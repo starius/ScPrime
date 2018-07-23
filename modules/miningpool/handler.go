@@ -65,10 +65,10 @@ func (h *Handler) parseRequest() (*types.StratumRequest, error) {
 			// h.log.Printf("%s: Harmless timeout occurred\n", h.s.printID())
 			//h.conn.SetReadDeadline(time.Time{})
 			// check last job time and if over 25 seconds, send a new job.
-			if time.Now().Sub(h.s.lastJobTimestamp) > (time.Second * 25) {
-				m.Method = "mining.notify"
-				break
-			}
+			// if time.Now().Sub(h.s.lastJobTimestamp) > (time.Second * 25) {
+			// 	m.Method = "mining.notify"
+			// 	break
+			// }
 			if h.s.DetectDisconnected() {
 				h.log.Println("Non-responsive disconnect detected!")
 				return nil, errors.New("Non-responsive disconnect detected")
@@ -81,6 +81,11 @@ func (h *Handler) parseRequest() (*types.StratumRequest, error) {
 				err = h.sendSetDifficulty(h.s.CurrentDifficulty())
 				if err != nil {
 					h.log.Println("Error sending SetDifficulty")
+					return nil, err
+				}
+				err = h.sendStratumNotify(true)
+				if err != nil {
+					h.log.Println("Error sending stratum notify")
 					return nil, err
 				}
 			}
