@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"testing"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/modules/gateway"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/modules/gateway"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // BenchmarkAcceptEmptyBlocks measures how quckly empty blocks are integrated

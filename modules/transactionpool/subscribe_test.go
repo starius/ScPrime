@@ -3,8 +3,8 @@ package transactionpool
 import (
 	"testing"
 
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // mockSubscriber receives transactions from the transaction pool it is

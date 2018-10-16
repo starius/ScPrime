@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // TestObligationLocks checks that the storage obligation locking functions

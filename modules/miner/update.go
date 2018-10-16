@@ -3,8 +3,8 @@ package miner
 import (
 	"sort"
 
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // addMapElementTxns places the splitSet from a mapElement into the correct

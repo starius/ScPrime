@@ -3,8 +3,8 @@ package gateway
 import (
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/modules"
 )
 
 const (

@@ -3,9 +3,9 @@ package wallet
 import (
 	"errors"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // sortedOutputs is a struct containing a slice of siacoin outputs and their

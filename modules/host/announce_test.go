@@ -5,8 +5,8 @@ import (
 	"net"
 	"testing"
 
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // announcementFinder is a quick module that parses the blockchain for host

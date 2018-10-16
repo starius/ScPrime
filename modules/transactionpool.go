@@ -3,9 +3,9 @@ package modules
 import (
 	"errors"
 
-	"gitlab.com/NebulousLabs/Sia/crypto"
-	"gitlab.com/NebulousLabs/Sia/encoding"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 const (
