@@ -130,7 +130,7 @@ numhosts
 
       // Remote address of the host. It can be an IPv4, IPv6, or hostname,
       // along with the port. IPv6 addresses are enclosed in square brackets.
-      "netaddress": "123.456.789.0:9982",
+      "netaddress": "123.456.789.0:4282",
 
       // Public key used to identify and verify hosts.
       "publickey": {
@@ -289,7 +289,7 @@ any particular order, and the order may change in subsequent calls.
 
       // Remote address of the host. It can be an IPv4, IPv6, or hostname,
       // along with the port. IPv6 addresses are enclosed in square brackets.
-      "netaddress": "123.456.789.0:9982",
+      "netaddress": "123.456.789.0:4282",
 
       // Public key used to identify and verify hosts.
       "publickey": {
@@ -458,7 +458,7 @@ overall.
 
     // Remote address of the host. It can be an IPv4, IPv6, or hostname,
     // along with the port. IPv6 addresses are enclosed in square brackets.
-    "netaddress": "123.456.789.0:9982",
+    "netaddress": "123.456.789.0:4282",
 
     // Public key used to identify and verify hosts.
     "publickey": {
@@ -648,7 +648,7 @@ Examples
       "maxdownloadbatchsize": 17825792,
       "maxduration": 25920,
       "maxrevisebatchsize": 17825792,
-      "netaddress": "123.456.789.0:9982",
+      "netaddress": "123.456.789.0:4282",
       "publickey": {
         "algorithm": "ed25519",
         "key": "RW50cm9weSBpc24ndCB3aGF0IGl0IHVzZWQgdG8gYmU="
@@ -695,7 +695,7 @@ Examples
       "maxdownloadbatchsize": 17825792,
       "maxduration": 25920,
       "maxrevisebatchsize": 17825792,
-      "netaddress": "123.456.789.0:9982",
+      "netaddress": "123.456.789.0:4282",
       "publickey": {
         "algorithm": "ed25519",
         "key": "RW50cm9weSBpc24ndCB3aGF0IGl0IHVzZWQgdG8gYmU="
@@ -762,7 +762,7 @@ Examples
       "maxdownloadbatchsize": 17825792,
       "maxduration": 25920,
       "maxrevisebatchsize": 17825792,
-      "netaddress": "123.456.789.0:9982",
+      "netaddress": "123.456.789.0:4282",
       "publickey": {
         "algorithm": "ed25519",
         "key": "RW50cm9weSBpc24ndCB3aGF0IGl0IHVzZWQgdG8gYmU="
@@ -809,7 +809,7 @@ Examples
       "maxdownloadbatchsize": 17825792,
       "maxduration": 25920,
       "maxrevisebatchsize": 17825792,
-      "netaddress": "123.456.789.0:9982",
+      "netaddress": "123.456.789.0:4282",
       "publickey": {
         "algorithm": "ed25519",
         "key": "RW50cm9weSBpc24ndCB3aGF0IGl0IHVzZWQgdG8gYmU="
@@ -856,7 +856,7 @@ Examples
       "maxdownloadbatchsize": 17825792,
       "maxduration": 25920,
       "maxrevisebatchsize": 17825792,
-      "netaddress": "123.456.789.0:9982",
+      "netaddress": "123.456.789.0:4282",
       "publickey": {
         "algorithm": "ed25519",
         "key": "RW50cm9weSBpc24ndCB3aGF0IGl0IHVzZWQgdG8gYmU="
@@ -922,7 +922,7 @@ Examples
     "maxdownloadbatchsize": 17825792,
     "maxduration": 25920,
     "maxrevisebatchsize": 17825792,
-    "netaddress": "123.456.789.0:9982",
+    "netaddress": "123.456.789.0:4282",
     "publickey": {
       "algorithm": "ed25519",
       "key": "RW50cm9weSBpc24ndCB3aGF0IGl0IHVzZWQgdG8gYmU="
