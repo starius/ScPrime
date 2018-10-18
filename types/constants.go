@@ -200,8 +200,8 @@ func init() {
 	} else if build.Release == "testing" {
 		// 'testing' settings are for automatic testing, and create much faster
 		// environments than a human can interact with.
-		DevFundInitialBlockHeight = 1; // Lets start the dev fund right from the start
-		DevFundDecaySchedule = 10;     // The dev dund perentage should decay every 10 blocks
+		DevFundInitialBlockHeight = 265400; // Lets start the dev fund right from the start
+		DevFundDecaySchedule = 43200;     // The dev dund perentage should decay every 10 blocks
 
 		BlockFrequency = 1 // As fast as possible
 		MaturityDelay = 3

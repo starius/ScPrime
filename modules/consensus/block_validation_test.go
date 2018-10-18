@@ -151,15 +151,16 @@ func TestCheckMinerPayoutsWithoutDevFee(t *testing.T) {
 // DevFundInitialPercentage but will look into that later.
 func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 	// All tests are done at height = 265400.
-	coinbase := types.CalculateCoinbase(265400)
+	height := types.BlockHeight(265400)
+	coinbase := types.CalculateCoinbase(height)
 	monthsSinceDevSubsidy := float64(1)
-	devFundInitialBlockHeight := BlockHeight(265400)
+	devFundInitialBlockHeight := types.BlockHeight(265400)
 	devFundDecaySchedule := float64(43200)
 	devFundInitialPercentage := float64(0.2)
 	if height > devFundInitialBlockHeight {
 		monthsSinceDevSubsidy = (float64(devFundInitialBlockHeight)-float64(height))/devFundDecaySchedule
 	}
-	devSubsidy := coinbase.MulFloat(devFundInitialPercentage-(float64(1)-float64(1)/monthsSinceDevSubsidy)/float64(20))
+	devFundSubsidy := coinbase.MulFloat(devFundInitialPercentage-(float64(1)-float64(1)/monthsSinceDevSubsidy)/float64(20))
 	minerSubsidy := coinbase.Sub(devFundSubsidy)
 
 	// Create a block with a single coinbase payout, and no dev fund payout.
@@ -168,7 +169,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: coinbase},
 		},
 	}
-	if checkMinerPayouts(b, 0) {
+	if checkMinerPayouts(b, height) {
 		t.Error("payouts evaluated incorrectly when there is a coinbase payout but not dev fund payout.")
 	}
 	// Create a block with a valid miner payout, and a dev fund payout with no unlock hash.
@@ -178,7 +179,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: devFundSubsidy},
 		},
 	}
-	if checkMinerPayouts(b, 0) {
+	if checkMinerPayouts(b, height) {
 		t.Error("payouts evaluated incorrectly when we are missing the dev fund unlock hash.")
 	}
 	// Create a block with a valid miner payout, and a dev fund payout with an incorrect unlock hash.
@@ -188,7 +189,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: devFundSubsidy, UnlockHash: types.UnlockHash{0, 1}},
 		},
 	}
-	if checkMinerPayouts(b, 0) {
+	if checkMinerPayouts(b, height) {
 		t.Error("payouts evaluated incorrectly when we have an incorrect dev fund unlock hash.")
 	}
 	// Create a block with a valid miner payout, but no dev fund payout.
@@ -197,7 +198,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: minerSubsidy},
 		},
 	}
-	if checkMinerPayouts(b, 0) {
+	if checkMinerPayouts(b, height) {
 		t.Error("payouts evaluated incorrectly when we are missing the dev fund payout but have a proper miner payout.")
 	}
 	// Create a block with a valid dev fund payout, but no miner payout.
@@ -206,7 +207,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: devFundSubsidy, UnlockHash: types.DevFundUnlockHash},
 		},
 	}
-	if checkMinerPayouts(b, 0) {
+	if checkMinerPayouts(b, height) {
 		t.Error("payouts evaluated incorrectly when we are missing the miner payout but have a proper dev fund payout.")
 	}
 	// Create a block with a valid miner payout and a valid dev fund payout.
@@ -216,7 +217,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: devFundSubsidy, UnlockHash: types.DevFundUnlockHash},
 		},
 	}
-	if !checkMinerPayouts(b, 0) {
+	if !checkMinerPayouts(b, height) {
 		t.Error("payouts evaluated incorrectly when there are only two payouts.")
 	}
 
@@ -226,7 +227,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: coinbase.Sub(types.NewCurrency64(1))},
 		},
 	}
-	if checkMinerPayouts(b, 0) {
+	if checkMinerPayouts(b, height) {
 		t.Error("payouts evaluated incorrectly when there is a too-small payout")
 	}
 
@@ -240,7 +241,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: devFundSubsidy, UnlockHash: types.DevFundUnlockHash},
 		},
 	}
-	if !checkMinerPayouts(b, 0) {
+	if !checkMinerPayouts(b, height) {
 		t.Error("payouts evaluated incorrectly when there are 3 payouts")
 	}
 
@@ -251,7 +252,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: coinbase},
 		},
 	}
-	if checkMinerPayouts(b, 0) {
+	if checkMinerPayouts(b, height) {
 		t.Error("payouts evaluated incorrectly when there are two large payouts")
 	}
 
@@ -262,7 +263,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{},
 		},
 	}
-	if checkMinerPayouts(b, 0) {
+	if checkMinerPayouts(b, height) {
 		t.Error("payouts evaluated incorrectly when there is only one payout.")
 	}
 }

@@ -95,10 +95,10 @@ func checkMinerPayoutsWithDevFund(b types.Block, height types.BlockHeight) bool 
 // DevFundInitialBlockHeight, will look into that later.
 func checkMinerPayouts(b types.Block, height types.BlockHeight) bool {
 	// If soft fork has occured
-	if height < types.BlockHeight(265400) {
-		return checkMinerPayoutsWithoutDevFund(b, height)
+	if height > types.BlockHeight(265400 - 1) {
+		return checkMinerPayoutsWithDevFund(b, height)
 	}
-	return checkMinerPayoutsWithDevFund(b, height)
+	return checkMinerPayoutsWithoutDevFund(b, height)
 }
 
 // checkTarget returns true if the block's ID meets the given target.
