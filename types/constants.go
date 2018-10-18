@@ -21,6 +21,16 @@ var (
 	// BlockSizeLimit is the maximum size of a binary-encoded Block
 	// that is permitted by the consensus rules.
 	BlockSizeLimit = uint64(2e6)
+	// DevFundInitialBlockHeight is the height at which the dev fund became mandatory
+	DevFundInitialBlockHeight BlockHeight
+	// DevFundInitialPercentage is the percentage of the block subsidy that goes
+	// to support development of the network instead of the miners at the time of the
+	// DevFundInitialBlockHeight
+	DevFundInitialPercentage = float64(0.2)
+	// DevFundDecaySchedule is the rate at which the DevFundInitialPercentage decays
+	DevFundDecaySchedule uint64
+	// DevFundUnlockHash is the unlock hash for the dev fund subsidy
+	DevFundUnlockHash = UnlockHash{214, 166, 197, 164, 29, 201, 53, 236, 106, 239, 10, 158, 127, 131, 20, 138, 63, 221, 230, 16, 98, 247, 32, 77, 210, 68, 116, 12, 241, 89, 27, 223}
 
 	// EndOfTime is value to be used when a date in the future is needed for
 	// validation
@@ -149,6 +159,9 @@ func init() {
 		// can coordinate their actions over a the developer testnets, but fast
 		// enough that there isn't much time wasted on waiting for things to
 		// happen.
+		DevFundInitialBlockHeight = 20 // Lets start the dev fund right from the start
+		DevFundDecaySchedule = 20      // The dev dund perentage should decay every 10 blocks
+
 		BlockFrequency = 12                      // 12 seconds: slow enough for developers to see ~each block, fast enough that blocks don't waste time.
 		MaturityDelay = 10                       // 60 seconds before a delayed output matures.
 		GenesisTimestamp = Timestamp(1424139000) // Change as necessary.
@@ -187,6 +200,9 @@ func init() {
 	} else if build.Release == "testing" {
 		// 'testing' settings are for automatic testing, and create much faster
 		// environments than a human can interact with.
+		DevFundInitialBlockHeight = 1 // Lets start the dev fund right from the start
+		DevFundDecaySchedule = 10     // The dev dund perentage should decay every 10 blocks
+
 		BlockFrequency = 1 // As fast as possible
 		MaturityDelay = 3
 		GenesisTimestamp = CurrentTimestamp() - 1e6
@@ -231,6 +247,13 @@ func init() {
 	} else if build.Release == "standard" {
 		// 'standard' settings are for the full network. They are slow enough
 		// that the network is secure in a real-world byzantine environment.
+
+		// Start the dev fund soft fork approximentally two months after the
+		// Sia ASIC hardhord happened;
+		DevFundInitialBlockHeight = 265400
+
+		// Approximentally every month we should decay the dev fund percentage
+		DevFundDecaySchedule = 43200
 
 		// A block time of 1 block per 10 minutes is chosen to follow Bitcoin's
 		// example. The security lost by lowering the block time is not
