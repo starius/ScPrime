@@ -22,7 +22,6 @@ var (
 	// that is permitted by the consensus rules.
 	BlockSizeLimit = uint64(2e6)
 	// DevFundInitialBlockHeight is the height at which the dev fund became mandatory
-	// 179000
 	DevFundInitialBlockHeight BlockHeight
 	// DevFundInitialPercentage is the percentage of the block subsidy that goes
 	// to support development of the network instead of the miners at the time of the 
