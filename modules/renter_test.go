@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/build"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // TestMerkleRootSetCompatibility checks that the persist encoding for the

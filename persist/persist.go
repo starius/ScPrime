@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 const (

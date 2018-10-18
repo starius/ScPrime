@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"testing"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/crypto"
-	"gitlab.com/NebulousLabs/Sia/encoding"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/persist"
 
-	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // newTestingFile initializes a file object with random parameters.

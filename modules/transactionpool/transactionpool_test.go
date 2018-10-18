@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/build"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/modules"
@@ -13,6 +12,7 @@ import (
 	"gitlab.com/SiaPrime/Sia/modules/miner"
 	"gitlab.com/SiaPrime/Sia/modules/wallet"
 	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // A tpoolTester is used during testing to initialize a transaction pool and

@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/node"
-	"gitlab.com/NebulousLabs/Sia/node/api/client"
-	"gitlab.com/NebulousLabs/Sia/siatest"
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/node"
+	"gitlab.com/SiaPrime/Sia/node/api/client"
+	"gitlab.com/SiaPrime/Sia/siatest"
+	"gitlab.com/SiaPrime/errors"
 )
 
 // TestInitialScanComplete tests if the initialScanComplete field is set

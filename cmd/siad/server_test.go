@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/node/api/client"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/node/api/client"
 )
 
 // TestLatestRelease tests that the latestRelease function properly processes a

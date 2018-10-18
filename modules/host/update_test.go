@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/modules"
 	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // TestStorageProof checks that the host can create and submit a storage proof.
