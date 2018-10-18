@@ -43,7 +43,21 @@ func NewBlockValidator() stdBlockValidator {
 
 // checkMinerPayouts compares a block's miner payouts to the block's subsidy and
 // returns true if they are equal.
-func checkMinerPayouts(b types.Block, height types.BlockHeight) bool {
+func checkMinerPayoutsWithoutDevFund(b types.Block, height types.BlockHeight) bool {
+	// Add up the payouts and check that all values are legal.
+	var payoutSum types.Currency
+	for _, payout := range b.MinerPayouts {
+		if payout.Value.IsZero() {
+			return false
+		}
+		payoutSum = payoutSum.Add(payout.Value)
+	}
+	return b.CalculateSubsidy(height).Equals(payoutSum)
+}
+
+// checkMinerPayouts compares a block's miner payouts to the block's subsidy and
+// returns true if they are equal.
+func checkMinerPayoutsWithDevFund(b types.Block, height types.BlockHeight) bool {
 	// Make sure we have enough payouts to cover both miner subsidy
 	// and the dev fund
 	if len(b.MinerPayouts) < 2 {
@@ -69,6 +83,19 @@ func checkMinerPayouts(b types.Block, height types.BlockHeight) bool {
 	}
 	// Finally, make sure the miner subsidy is correct
 	return minerBlockSubsidy.Equals(minerPayoutSum)
+}
+
+// check the height vs DevFundInitialBlockHeight. If it is less then use 
+// checkMinerPayoutsWithoutDevFund to compare a block's miner payouts to 
+// the block's subsidy and returns true if they are equal. Otherwise use 
+// checkMinerPayoutsWithDevFund to compare a block's miner payouts to the 
+// block's subsidy and returns true if they are equal.
+func checkMinerPayouts(b types.Block, height types.BlockHeight) bool {
+	// If soft fork has occured
+	if height < DevFundInitialBlockHeight {
+		return checkMinerPayoutsWithoutDevFund(b, height)
+	}
+	return checkMinerPayoutsWithDevFund(b, height)
 }
 
 // checkTarget returns true if the block's ID meets the given target.

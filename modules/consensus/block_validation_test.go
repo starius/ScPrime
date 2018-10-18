@@ -85,13 +85,70 @@ func TestUnitValidateBlock(t *testing.T) {
 	}
 }
 
-// TestCheckMinerPayouts probes the checkMinerPayouts function.
-func TestCheckMinerPayouts(t *testing.T) {
+// TestCheckMinerPayoutsWithoutDevFee probes the checkMinerPayouts function.
+func TestCheckMinerPayoutsWithoutDevFee(t *testing.T) {
 	// All tests are done at height = 0.
 	coinbase := types.CalculateCoinbase(0)
-	// coinbase.MulFloat(float64(0.1)) should be changed to coinbase.MulFloat(DevFundPercentage). 
-	// However, this will not work until we switch over to using our own repo for imports
-	devFundSubsidy := coinbase.MulFloat(float64(0.1))
+
+	// Create a block with a single valid payout.
+	b := types.Block{
+		MinerPayouts: []types.SiacoinOutput{
+			{Value: coinbase},
+		},
+	}
+	if !checkMinerPayouts(b, 0) {
+		t.Error("payouts evaluated incorrectly when there is only one payout.")
+	}
+
+	// Try a block with an incorrect payout.
+	b = types.Block{
+		MinerPayouts: []types.SiacoinOutput{
+			{Value: coinbase.Sub(types.NewCurrency64(1))},
+		},
+	}
+	if checkMinerPayouts(b, 0) {
+		t.Error("payouts evaluated incorrectly when there is a too-small payout")
+	}
+
+	// Try a block with 2 payouts.
+	b = types.Block{
+		MinerPayouts: []types.SiacoinOutput{
+			{Value: coinbase.Sub(types.NewCurrency64(1))},
+			{Value: types.NewCurrency64(1)},
+		},
+	}
+	if !checkMinerPayouts(b, 0) {
+		t.Error("payouts evaluated incorrectly when there are 2 payouts")
+	}
+
+	// Try a block with 2 payouts that are too large.
+	b = types.Block{
+		MinerPayouts: []types.SiacoinOutput{
+			{Value: coinbase},
+			{Value: coinbase},
+		},
+	}
+	if checkMinerPayouts(b, 0) {
+		t.Error("payouts evaluated incorrectly when there are two large payouts")
+	}
+
+	// Create a block with an empty payout.
+	b = types.Block{
+		MinerPayouts: []types.SiacoinOutput{
+			{Value: coinbase},
+			{},
+		},
+	}
+	if checkMinerPayouts(b, 0) {
+		t.Error("payouts evaluated incorrectly when there is only one payout.")
+	}
+}
+
+// TestCheckMinerPayoutsWithDevFee probes the checkMinerPayouts function.
+func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
+	// All tests are done at height = 265400.
+	coinbase := types.CalculateCoinbase(265400)
+	devFundSubsidy := coinbase.MulFloat(DevFundPercentage)
 	minerSubsidy := coinbase.Sub(devFundSubsidy)
 
 	// Create a block with a single coinbase payout, and no dev fund payout.

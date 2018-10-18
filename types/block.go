@@ -99,7 +99,14 @@ func (b Block) CalculateMinerFees() Currency {
 // subsidies for miners and the dev fund.
 func (b Block) CalculateSubsidies(height BlockHeight) (Currency, Currency) {
 	coinbase := CalculateCoinbase(height)
-	devSubsidy := coinbase.MulFloat(DevFundPercentage)
+	monthsSinceDevSubsidy := 0
+	if height > DevFundInitialBlockHeight {
+		monthsSinceDevSubsidy = (DevFundInitialBlockHeight-height)/DevFundDecaySchedule
+	}
+	devSubsidy := coinbase.MulFloat(DevFundPercentage-(1-1/monthsSinceDevSubsidy)/20)
+	if height > DevFundInitialBlockHeight {
+		devSubsidy := coinbase.MulFloat(DevFundPercentage-(DevFundInitialBlockHeight-height))
+	}
 	minerSubsidy := coinbase.Sub(devSubsidy)
 	minerSubsidy = minerSubsidy.Add(b.CalculateMinerFees())
 	return minerSubsidy, devSubsidy
