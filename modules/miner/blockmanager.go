@@ -83,7 +83,10 @@ func (m *Miner) blockForWorkWithDevFund() types.Block {
 }
 
 func (m *Miner) blockForWork() types.Block {
-	if m.persist.Height < DevFundInitialBlockHeight {
+	if m.persist.Height > DevFundInitialBlockHeight {
+		return m.blockForWorkWithDevFund()
+	}
+	if len(m.MinerPayouts) < 2 {
 		return m.blockForWorkWithoutDevFund()
 	}
 	return m.blockForWorkWithDevFund()
