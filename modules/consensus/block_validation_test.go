@@ -152,7 +152,14 @@ func TestCheckMinerPayoutsWithoutDevFee(t *testing.T) {
 func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 	// All tests are done at height = 265400.
 	coinbase := types.CalculateCoinbase(265400)
-	devFundSubsidy := coinbase.MulFloat(float64(0.2))
+	monthsSinceDevSubsidy := float64(1)
+	devFundInitialBlockHeight := BlockHeight(265400)
+	devFundDecaySchedule := float64(43200)
+	devFundInitialPercentage := float64(0.2)
+	if height > devFundInitialBlockHeight {
+		monthsSinceDevSubsidy = (float64(devFundInitialBlockHeight)-float64(height))/devFundDecaySchedule
+	}
+	devSubsidy := coinbase.MulFloat(devFundInitialPercentage-(float64(1)-float64(1)/monthsSinceDevSubsidy)/float64(20))
 	minerSubsidy := coinbase.Sub(devFundSubsidy)
 
 	// Create a block with a single coinbase payout, and no dev fund payout.
