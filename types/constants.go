@@ -24,7 +24,7 @@ var (
 	// DevFundInitialBlockHeight is the height at which the dev fund became mandatory
 	DevFundInitialBlockHeight BlockHeight
 	// DevFundInitialPercentage is the percentage of the block subsidy that goes
-	// to support development of the network instead of the miners at the time of the 
+	// to support development of the network instead of the miners at the time of the
 	// DevFundInitialBlockHeight
 	DevFundInitialPercentage = float64(0.2)
 	// DevFundDecaySchedule is the rate at which the DevFundInitialPercentage decays
@@ -159,8 +159,8 @@ func init() {
 		// can coordinate their actions over a the developer testnets, but fast
 		// enough that there isn't much time wasted on waiting for things to
 		// happen.
-		DevFundInitialBlockHeight = 20; // Lets start the dev fund right from the start
-		DevFundDecaySchedule = 20;     // The dev dund perentage should decay every 10 blocks
+		DevFundInitialBlockHeight = 20 // Lets start the dev fund right from the start
+		DevFundDecaySchedule = 20      // The dev dund perentage should decay every 10 blocks
 
 		BlockFrequency = 12                      // 12 seconds: slow enough for developers to see ~each block, fast enough that blocks don't waste time.
 		MaturityDelay = 10                       // 60 seconds before a delayed output matures.
@@ -200,8 +200,8 @@ func init() {
 	} else if build.Release == "testing" {
 		// 'testing' settings are for automatic testing, and create much faster
 		// environments than a human can interact with.
-		DevFundInitialBlockHeight = 265400; // Lets start the dev fund right from the start
-		DevFundDecaySchedule = 43200;     // The dev dund perentage should decay every 10 blocks
+		DevFundInitialBlockHeight = 265400 // Lets start the dev fund right from the start
+		DevFundDecaySchedule = 43200       // The dev dund perentage should decay every 10 blocks
 
 		BlockFrequency = 1 // As fast as possible
 		MaturityDelay = 3
@@ -248,12 +248,12 @@ func init() {
 		// 'standard' settings are for the full network. They are slow enough
 		// that the network is secure in a real-world byzantine environment.
 
-		// Start the dev fund soft fork approximentally two months after the 
+		// Start the dev fund soft fork approximentally two months after the
 		// Sia ASIC hardhord happened;
-		DevFundInitialBlockHeight = 265400;
+		DevFundInitialBlockHeight = 265400
 
 		// Approximentally every month we should decay the dev fund percentage
-		DevFundDecaySchedule = 43200;
+		DevFundDecaySchedule = 43200
 
 		// A block time of 1 block per 10 minutes is chosen to follow Bitcoin's
 		// example. The security lost by lowering the block time is not

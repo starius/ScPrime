@@ -146,8 +146,8 @@ func TestCheckMinerPayoutsWithoutDevFee(t *testing.T) {
 
 // TestCheckMinerPayoutsWithDevFee probes the checkMinerPayouts function.
 //
-// Not sure why I have to use types.BlockHeight(265400) here instead of 
-// DevFundInitialBlockHeight and float64(0.2) instead of 
+// Not sure why I have to use types.BlockHeight(265400) here instead of
+// DevFundInitialBlockHeight and float64(0.2) instead of
 // DevFundInitialPercentage but will look into that later.
 func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 	// All tests are done at height = 265400.
@@ -158,9 +158,9 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 	devFundDecaySchedule := float64(43200)
 	devFundInitialPercentage := float64(0.2)
 	if height > devFundInitialBlockHeight {
-		monthsSinceDevSubsidy = (float64(devFundInitialBlockHeight)-float64(height))/devFundDecaySchedule
+		monthsSinceDevSubsidy = (float64(devFundInitialBlockHeight) - float64(height)) / devFundDecaySchedule
 	}
-	devFundSubsidy := coinbase.MulFloat(devFundInitialPercentage-(float64(1)-float64(1)/monthsSinceDevSubsidy)/float64(20))
+	devFundSubsidy := coinbase.MulFloat(devFundInitialPercentage - (float64(1)-float64(1)/monthsSinceDevSubsidy)/float64(20))
 	minerSubsidy := coinbase.Sub(devFundSubsidy)
 
 	// Create a block with a single coinbase payout, and no dev fund payout.
@@ -179,7 +179,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: devFundSubsidy},
 		},
 	}
-	if checkMinerPayouts(b, height) && height > devFundInitialBlockHeight  {
+	if checkMinerPayouts(b, height) && height > devFundInitialBlockHeight {
 		t.Error("payouts evaluated incorrectly when we are missing the dev fund unlock hash.")
 	}
 	// Create a block with a valid miner payout, and a dev fund payout with an incorrect unlock hash.
@@ -189,7 +189,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: devFundSubsidy, UnlockHash: types.UnlockHash{0, 1}},
 		},
 	}
-	if checkMinerPayouts(b, height) && height > devFundInitialBlockHeight  {
+	if checkMinerPayouts(b, height) && height > devFundInitialBlockHeight {
 		t.Error("payouts evaluated incorrectly when we have an incorrect dev fund unlock hash.")
 	}
 	// Create a block with a valid miner payout, but no dev fund payout.
