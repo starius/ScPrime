@@ -64,13 +64,13 @@ func versionCmd(*cobra.Command, []string) {
 	}
 	switch build.Release {
 	case "dev":
-		fmt.Println("Spd Daemon v" + version + "-dev")
+		fmt.Println("SiaPrime Daemon v" + version + "-dev")
 	case "standard":
-		fmt.Println("Spd Daemon v" + version)
+		fmt.Println("SiaPrime Daemon v" + version)
 	case "testing":
-		fmt.Println("Spd Daemon v" + version + "-testing")
+		fmt.Println("SiaPrime Daemon v" + version + "-testing")
 	default:
-		fmt.Println("Spd Daemon v" + version + "-???")
+		fmt.Println("SiaPrime Daemon v" + version + "-???")
 	}
 }
 
