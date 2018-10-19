@@ -15,11 +15,11 @@ import (
 func DefaultSiaDir() string {
 	switch runtime.GOOS {
 	case "windows":
-		return filepath.Join(os.Getenv("LOCALAPPDATA"), "Sia")
+		return filepath.Join(os.Getenv("LOCALAPPDATA"), "SiaPrime")
 	case "darwin":
-		return filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "Sia")
+		return filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "SiaPrime")
 	default:
-		return filepath.Join(os.Getenv("HOME"), ".sia")
+		return filepath.Join(os.Getenv("HOME"), ".siaprime")
 	}
 }
 

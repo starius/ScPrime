@@ -40,9 +40,9 @@ func verifyAPISecurity(config Config) error {
 		addr := modules.NetAddress(config.Siad.APIaddr)
 		if !addr.IsLoopback() {
 			if addr.Host() == "" {
-				return fmt.Errorf("a blank host will listen on all interfaces, did you mean localhost:%v?\nyou must pass --disable-api-security to bind Siad to a non-localhost address", addr.Port())
+				return fmt.Errorf("a blank host will listen on all interfaces, did you mean localhost:%v?\nyou must pass --disable-api-security to bind Spd to a non-localhost address", addr.Port())
 			}
-			return errors.New("you must pass --disable-api-security to bind Siad to a non-localhost address")
+			return errors.New("you must pass --disable-api-security to bind Spd to a non-localhost address")
 		}
 		return nil
 	}
@@ -165,7 +165,7 @@ func apiPassword(siaDir string) (string, error) {
 		return "", err
 	}
 	fmt.Println("A secure API password has been written to", path)
-	fmt.Println("This password will be used automatically the next time you run siad.")
+	fmt.Println("This password will be used automatically the next time you run spd.")
 	return pw, nil
 }
 
@@ -191,7 +191,7 @@ func startDaemon(config Config) (err error) {
 	}
 
 	// Print the siad Version and GitRevision
-	fmt.Println("Sia Daemon v" + build.Version)
+	fmt.Println("SiaPrime Daemon v" + build.Version)
 	if build.GitRevision == "" {
 		fmt.Println("WARN: compiled without build commit or version. To compile correctly, please use the makefile")
 	} else {
