@@ -9,9 +9,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/modules"
 	"gitlab.com/SiaPrime/Sia/sync"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 var (

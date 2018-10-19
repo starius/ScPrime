@@ -4,13 +4,13 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/crypto"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // TestIntegrationAutoRenew tests that contracts are automatically renewed at

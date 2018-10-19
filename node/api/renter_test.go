@@ -14,12 +14,12 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/modules/renter"
-	"gitlab.com/NebulousLabs/Sia/modules/renter/contractor"
-	"gitlab.com/NebulousLabs/Sia/types"
-	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/modules/renter"
+	"gitlab.com/SiaPrime/Sia/modules/renter/contractor"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 const (

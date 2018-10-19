@@ -8,7 +8,7 @@ import (
 	"gitlab.com/SiaPrime/Sia/types"
 
 	"github.com/coreos/bbolt"
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
 // Errors returned by this file.

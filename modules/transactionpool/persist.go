@@ -12,7 +12,7 @@ import (
 	"gitlab.com/SiaPrime/Sia/types"
 
 	"github.com/coreos/bbolt"
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
 const tpoolSyncRate = time.Minute * 2

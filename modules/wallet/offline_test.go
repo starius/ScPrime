@@ -4,10 +4,10 @@ import (
 	"reflect"
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/modules"
 	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // TestSignTransaction constructs a valid, signed transaction using the

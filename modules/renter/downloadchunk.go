@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/crypto"
-	"gitlab.com/NebulousLabs/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
 
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
 // downloadPieceInfo contains all the information required to download and

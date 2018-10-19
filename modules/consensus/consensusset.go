@@ -16,7 +16,7 @@ import (
 	"gitlab.com/SiaPrime/Sia/types"
 
 	"github.com/coreos/bbolt"
-	"gitlab.com/NebulousLabs/demotemutex"
+	"gitlab.com/SiaPrime/demotemutex"
 )
 
 var (

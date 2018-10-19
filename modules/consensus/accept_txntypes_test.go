@@ -3,9 +3,9 @@ package consensus
 import (
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // testBlockSuite tests a wide variety of blocks.

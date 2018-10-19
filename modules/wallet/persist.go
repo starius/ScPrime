@@ -6,13 +6,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/encoding"
 	"gitlab.com/SiaPrime/Sia/modules"
 	"gitlab.com/SiaPrime/Sia/persist"
 	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/SiaPrime/fastrand"
 
 	"github.com/coreos/bbolt"
 )

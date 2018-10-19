@@ -8,10 +8,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"gitlab.com/NebulousLabs/Sia/crypto"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/node/api/client"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/node/api/client"
+	"gitlab.com/SiaPrime/Sia/types"
 
 	"github.com/spf13/cobra"
 )

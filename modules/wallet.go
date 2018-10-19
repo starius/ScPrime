@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"gitlab.com/NebulousLabs/entropy-mnemonics"
+	"gitlab.com/SiaPrime/entropy-mnemonics"
 
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/types"

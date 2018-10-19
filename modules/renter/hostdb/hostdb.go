@@ -13,13 +13,13 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/modules/renter/hostdb/hosttree"
-	"gitlab.com/NebulousLabs/Sia/persist"
-	"gitlab.com/NebulousLabs/Sia/types"
-	"gitlab.com/NebulousLabs/threadgroup"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/modules/renter/hostdb/hosttree"
+	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/threadgroup"
 
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
 var (

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/node/api"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/node/api"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // escapeSiaPath escapes the siapath to make it safe to use within a URL. This

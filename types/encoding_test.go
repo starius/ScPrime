@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 func hashStr(v interface{}) string {

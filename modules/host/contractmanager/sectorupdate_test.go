@@ -18,9 +18,9 @@ import (
 	"sync"
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // randSector creates a random sector that can be added to the contract

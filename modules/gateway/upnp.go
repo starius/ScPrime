@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/go-upnp"
+	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/SiaPrime/go-upnp"
 
 	"gitlab.com/SiaPrime/Sia/build"
 	"gitlab.com/SiaPrime/Sia/modules"

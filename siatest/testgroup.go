@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/node"
-	"gitlab.com/NebulousLabs/Sia/node/api/client"
-	"gitlab.com/NebulousLabs/Sia/persist"
-	"gitlab.com/NebulousLabs/Sia/types"
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/node"
+	"gitlab.com/SiaPrime/Sia/node/api/client"
+	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/errors"
 )
 
 type (

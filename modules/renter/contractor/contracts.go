@@ -1,8 +1,8 @@
 package contractor
 
 import (
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // contractEndHeight returns the height at which the Contractor's contracts

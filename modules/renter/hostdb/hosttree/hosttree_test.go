@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/crypto"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	siasync "gitlab.com/NebulousLabs/Sia/sync"
-	"gitlab.com/NebulousLabs/Sia/types"
-	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
+	siasync "gitlab.com/SiaPrime/Sia/sync"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 func verifyTree(tree *HostTree, nentries int) error {
