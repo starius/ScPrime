@@ -6,8 +6,8 @@ import (
 
 	"github.com/coreos/bbolt"
 
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // TestApplyMinerPayouts probes the applyMinerPayouts method of the consensus

@@ -14,3 +14,6 @@ doc/whitepaper.pdf
 # IntelliJ IDEA
 .idea
 sia.iml
+
+# Mac
+.DS_Store

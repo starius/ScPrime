@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/encoding"
-	"gitlab.com/NebulousLabs/Sia/modules"
 	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
 )
 
 const dummyNode = "111.111.111.111:1111"
@@ -36,10 +36,10 @@ func TestAddNode(t *testing.T) {
 	if err := g.addNode("foo"); err == nil {
 		t.Error("addNode added unroutable address")
 	}
-	if err := g.addNode("foo:9981"); err == nil {
+	if err := g.addNode("foo:4281"); err == nil {
 		t.Error("addNode added a non-IP address")
 	}
-	if err := g.addNode("[::]:9981"); err == nil {
+	if err := g.addNode("[::]:4281"); err == nil {
 		t.Error("addNode added unspecified address")
 	}
 	if err := g.addNode(g.myAddr); err != errOurAddress {

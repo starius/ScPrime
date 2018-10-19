@@ -6,11 +6,11 @@ import (
 	"github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/demotemutex"
 
-	"gitlab.com/NebulousLabs/Sia/crypto"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/persist"
-	"gitlab.com/NebulousLabs/Sia/sync"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/sync"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 var (
