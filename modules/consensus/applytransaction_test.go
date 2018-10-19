@@ -4,8 +4,8 @@ package consensus
 import (
 	"testing"
 
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // TestApplySiacoinInputs probes the applySiacoinInputs method of the consensus

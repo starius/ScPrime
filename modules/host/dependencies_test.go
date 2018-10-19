@@ -3,7 +3,7 @@ package host
 import (
 	"net"
 
-	"gitlab.com/NebulousLabs/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/modules"
 )
 
 type (

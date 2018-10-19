@@ -6,9 +6,9 @@ package types
 import (
 	"bytes"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/crypto"
-	"gitlab.com/NebulousLabs/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
 )
 
 const (
@@ -84,16 +84,25 @@ func (h BlockHeader) ID() BlockID {
 	return BlockID(crypto.HashObject(h))
 }
 
-// CalculateSubsidy takes a block and a height and determines the block
-// subsidy.
-func (b Block) CalculateSubsidy(height BlockHeight) Currency {
-	subsidy := CalculateCoinbase(height)
+// CalculateMinerFees calculates the sum of a block's miner transaction fees
+func (b Block) CalculateMinerFees() Currency {
+	fees := NewCurrency64(0)
 	for _, txn := range b.Transactions {
 		for _, fee := range txn.MinerFees {
-			subsidy = subsidy.Add(fee)
+			fees = fees.Add(fee)
 		}
 	}
-	return subsidy
+	return fees
+}
+
+// CalculateSubsidies takes a block and a height and determines the block
+// subsidies for miners and the dev fund.
+func (b Block) CalculateSubsidies(height BlockHeight) (Currency, Currency) {
+	coinbase := CalculateCoinbase(height)
+	devSubsidy := coinbase.MulFloat(DevFundPercentage)
+	minerSubsidy := coinbase.Sub(devSubsidy)
+	minerSubsidy = minerSubsidy.Add(b.CalculateMinerFees())
+	return minerSubsidy, devSubsidy
 }
 
 // Header returns the header of a block.

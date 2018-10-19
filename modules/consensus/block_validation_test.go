@@ -3,7 +3,7 @@ package consensus
 import (
 	"testing"
 
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // mockMarshaler is a mock implementation of the encoding.GenericMarshaler
@@ -89,15 +89,67 @@ func TestUnitValidateBlock(t *testing.T) {
 func TestCheckMinerPayouts(t *testing.T) {
 	// All tests are done at height = 0.
 	coinbase := types.CalculateCoinbase(0)
+	// coinbase.MulFloat(float64(0.1)) should be changed to coinbase.MulFloat(DevFundPercentage).
+	// However, this will not work until we switch over to using our own repo for imports
+	devFundSubsidy := coinbase.MulFloat(float64(0.2))
+	minerSubsidy := coinbase.Sub(devFundSubsidy)
 
-	// Create a block with a single valid payout.
+	// Create a block with a single coinbase payout, and no dev fund payout.
 	b := types.Block{
 		MinerPayouts: []types.SiacoinOutput{
 			{Value: coinbase},
 		},
 	}
+	if checkMinerPayouts(b, 0) {
+		t.Error("payouts evaluated incorrectly when there is a coinbase payout but not dev fund payout.")
+	}
+	// Create a block with a valid miner payout, and a dev fund payout with no unlock hash.
+	b = types.Block{
+		MinerPayouts: []types.SiacoinOutput{
+			{Value: minerSubsidy},
+			{Value: devFundSubsidy},
+		},
+	}
+	if checkMinerPayouts(b, 0) {
+		t.Error("payouts evaluated incorrectly when we are missing the dev fund unlock hash.")
+	}
+	// Create a block with a valid miner payout, and a dev fund payout with an incorrect unlock hash.
+	b = types.Block{
+		MinerPayouts: []types.SiacoinOutput{
+			{Value: minerSubsidy},
+			{Value: devFundSubsidy, UnlockHash: types.UnlockHash{0, 1}},
+		},
+	}
+	if checkMinerPayouts(b, 0) {
+		t.Error("payouts evaluated incorrectly when we have an incorrect dev fund unlock hash.")
+	}
+	// Create a block with a valid miner payout, but no dev fund payout.
+	b = types.Block{
+		MinerPayouts: []types.SiacoinOutput{
+			{Value: minerSubsidy},
+		},
+	}
+	if checkMinerPayouts(b, 0) {
+		t.Error("payouts evaluated incorrectly when we are missing the dev fund payout but have a proper miner payout.")
+	}
+	// Create a block with a valid dev fund payout, but no miner payout.
+	b = types.Block{
+		MinerPayouts: []types.SiacoinOutput{
+			{Value: devFundSubsidy, UnlockHash: types.DevFundUnlockHash},
+		},
+	}
+	if checkMinerPayouts(b, 0) {
+		t.Error("payouts evaluated incorrectly when we are missing the miner payout but have a proper dev fund payout.")
+	}
+	// Create a block with a valid miner payout and a valid dev fund payout.
+	b = types.Block{
+		MinerPayouts: []types.SiacoinOutput{
+			{Value: minerSubsidy},
+			{Value: devFundSubsidy, UnlockHash: types.DevFundUnlockHash},
+		},
+	}
 	if !checkMinerPayouts(b, 0) {
-		t.Error("payouts evaluated incorrectly when there is only one payout.")
+		t.Error("payouts evaluated incorrectly when there are only two payouts.")
 	}
 
 	// Try a block with an incorrect payout.
@@ -110,15 +162,18 @@ func TestCheckMinerPayouts(t *testing.T) {
 		t.Error("payouts evaluated incorrectly when there is a too-small payout")
 	}
 
-	// Try a block with 2 payouts.
+	minerPayout := coinbase.Sub(devFundSubsidy).Sub(types.NewCurrency64(1))
+	secondMinerPayout := types.NewCurrency64(1)
+	// Try a block with 3 payouts.
 	b = types.Block{
 		MinerPayouts: []types.SiacoinOutput{
-			{Value: coinbase.Sub(types.NewCurrency64(1))},
-			{Value: types.NewCurrency64(1)},
+			{Value: minerPayout},
+			{Value: secondMinerPayout},
+			{Value: devFundSubsidy, UnlockHash: types.DevFundUnlockHash},
 		},
 	}
 	if !checkMinerPayouts(b, 0) {
-		t.Error("payouts evaluated incorrectly when there are 2 payouts")
+		t.Error("payouts evaluated incorrectly when there are 3 payouts")
 	}
 
 	// Try a block with 2 payouts that are too large.

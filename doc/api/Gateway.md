@@ -122,15 +122,15 @@ Examples
 ###### Example JSON Response
 ```json
 {
-    "netaddress":"333.333.333.333:9981",
+    "netaddress":"333.333.333.333:4281",
     "peers":[
         {
-            "netaddress":"222.222.222.222:9981",
+            "netaddress":"222.222.222.222:4281",
             "version":"1.0.0",
             "inbound":false
         },
         {
-            "netaddress":"111.111.111.111:9981",
+            "netaddress":"111.111.111.111:4281",
             "version":"0.6.0",
             "inbound":true
         }

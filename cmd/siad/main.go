@@ -163,13 +163,13 @@ func main() {
 
 	// Set default values, which have the lowest priority.
 	root.Flags().StringVarP(&globalConfig.Siad.RequiredUserAgent, "agent", "", "Sia-Agent", "required substring for the user agent")
-	root.Flags().StringVarP(&globalConfig.Siad.HostAddr, "host-addr", "", ":9982", "which port the host listens on")
+	root.Flags().StringVarP(&globalConfig.Siad.HostAddr, "host-addr", "", ":4282", "which port the host listens on")
 	root.Flags().StringVarP(&globalConfig.Siad.ProfileDir, "profile-directory", "", "profiles", "location of the profiling directory")
-	root.Flags().StringVarP(&globalConfig.Siad.APIaddr, "api-addr", "", "localhost:9980", "which host:port the API server listens on")
+	root.Flags().StringVarP(&globalConfig.Siad.APIaddr, "api-addr", "", "localhost:4280", "which host:port the API server listens on")
 	root.Flags().StringVarP(&globalConfig.Siad.SiaDir, "sia-directory", "d", "", "location of the sia directory")
 	root.Flags().BoolVarP(&globalConfig.Siad.NoBootstrap, "no-bootstrap", "", false, "disable bootstrapping on this run")
 	root.Flags().StringVarP(&globalConfig.Siad.Profile, "profile", "", "", "enable profiling with flags 'cmt' for CPU, memory, trace")
-	root.Flags().StringVarP(&globalConfig.Siad.RPCaddr, "rpc-addr", "", ":9981", "which port the gateway listens on")
+	root.Flags().StringVarP(&globalConfig.Siad.RPCaddr, "rpc-addr", "", ":4281", "which port the gateway listens on")
 	root.Flags().StringVarP(&globalConfig.Siad.Modules, "modules", "M", "cghrtw", "enabled modules, see 'siad modules' for more info")
 	root.Flags().BoolVarP(&globalConfig.Siad.AuthenticateAPI, "authenticate-api", "", true, "enable API password protection")
 	root.Flags().BoolVarP(&globalConfig.Siad.TempPassword, "temp-password", "", false, "enter a temporary API password during startup")

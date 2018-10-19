@@ -4,7 +4,7 @@ import (
 	"net"
 
 	"github.com/xtaci/smux"
-	"gitlab.com/NebulousLabs/Sia/build"
+	"gitlab.com/SiaPrime/Sia/build"
 )
 
 // A streamSession is a multiplexed transport that can accept or initiate
