@@ -254,7 +254,7 @@ func updateToRelease(release githubRelease) error {
 	}
 
 	// process zip, finding siad/siac binaries and signatures
-	for _, binary := range []string{"siad", "siac"} {
+	for _, binary := range []string{"spd", "spc"} {
 		var binData io.ReadCloser
 		var signature []byte
 		var binaryName string // needed for TargetPath below
@@ -413,7 +413,7 @@ func (srv *Server) apiHandler(w http.ResponseWriter, r *http.Request) {
 	isReady := srv.api != nil
 	srv.mu.Unlock()
 	if !isReady {
-		api.WriteError(w, api.Error{Message: "siad is not ready. please wait for siad to finish loading."}, http.StatusServiceUnavailable)
+		api.WriteError(w, api.Error{Message: "spd is not ready. please wait for spd to finish loading."}, http.StatusServiceUnavailable)
 		return
 	}
 	srv.api.ServeHTTP(w, r)
@@ -432,7 +432,7 @@ func NewServer(config Config) (*Server, error) {
 	l, err := net.Listen("tcp", config.Siad.APIaddr)
 	if err != nil {
 		if isAddrInUseErr(err) {
-			return nil, fmt.Errorf("%v; are you running another instance of siad?", err.Error())
+			return nil, fmt.Errorf("%v; are you running another instance of spd?", err.Error())
 		}
 
 		return nil, err
@@ -486,7 +486,7 @@ func isAddrInUseErr(err error) bool {
 // API routes available.
 func (srv *Server) loadModules() error {
 	// Create the server and start serving daemon routes immediately.
-	fmt.Printf("(0/%d) Loading siad...\n", len(srv.config.Siad.Modules))
+	fmt.Printf("(0/%d) Loading spd...\n", len(srv.config.Siad.Modules))
 
 	// Initialize the Sia modules
 	i := 0
