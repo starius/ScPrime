@@ -3,9 +3,9 @@ package transactionpool
 import (
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/modules"
 	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // TestAcceptTransactionSet probes the AcceptTransactionSet method

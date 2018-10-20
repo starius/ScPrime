@@ -5,9 +5,9 @@ import (
 	"os"
 	"sync"
 
-	"gitlab.com/NebulousLabs/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/crypto"
 
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
 // uploadChunkID is a unique identifier for each chunk in the renter.

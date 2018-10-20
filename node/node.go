@@ -12,20 +12,20 @@ package node
 import (
 	"path/filepath"
 
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/modules/consensus"
-	"gitlab.com/NebulousLabs/Sia/modules/gateway"
-	"gitlab.com/NebulousLabs/Sia/modules/host"
-	"gitlab.com/NebulousLabs/Sia/modules/miner"
-	"gitlab.com/NebulousLabs/Sia/modules/renter"
-	"gitlab.com/NebulousLabs/Sia/modules/renter/contractor"
-	"gitlab.com/NebulousLabs/Sia/modules/renter/hostdb"
-	"gitlab.com/NebulousLabs/Sia/modules/renter/proto"
-	"gitlab.com/NebulousLabs/Sia/modules/transactionpool"
-	"gitlab.com/NebulousLabs/Sia/modules/wallet"
-	"gitlab.com/NebulousLabs/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/modules/consensus"
+	"gitlab.com/SiaPrime/Sia/modules/gateway"
+	"gitlab.com/SiaPrime/Sia/modules/host"
+	"gitlab.com/SiaPrime/Sia/modules/miner"
+	"gitlab.com/SiaPrime/Sia/modules/renter"
+	"gitlab.com/SiaPrime/Sia/modules/renter/contractor"
+	"gitlab.com/SiaPrime/Sia/modules/renter/hostdb"
+	"gitlab.com/SiaPrime/Sia/modules/renter/proto"
+	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
+	"gitlab.com/SiaPrime/Sia/modules/wallet"
+	"gitlab.com/SiaPrime/Sia/persist"
 
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
 // NodeParams contains a bunch of parameters for creating a new test node. As

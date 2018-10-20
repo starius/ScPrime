@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net"
 
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/Sia/build"
 	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/errors"
 )
 
 var (

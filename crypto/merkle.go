@@ -5,7 +5,7 @@ import (
 
 	"gitlab.com/SiaPrime/Sia/encoding"
 
-	"gitlab.com/NebulousLabs/merkletree"
+	"gitlab.com/SiaPrime/merkletree"
 )
 
 const (

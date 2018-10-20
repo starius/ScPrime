@@ -8,12 +8,12 @@ import (
 	"reflect"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/crypto"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/node/api"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/node/api"
 
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // DownloadToDisk downloads a previously uploaded file. The file will be downloaded

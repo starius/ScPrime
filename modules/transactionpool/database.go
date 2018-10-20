@@ -9,7 +9,7 @@ import (
 	"gitlab.com/SiaPrime/Sia/types"
 
 	"github.com/coreos/bbolt"
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
 // database.go contains objects related to the layout of the transaction pool's

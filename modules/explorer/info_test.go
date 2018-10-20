@@ -3,9 +3,9 @@ package explorer
 import (
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // TestImmediateBlockFacts grabs the block facts object from the block explorer

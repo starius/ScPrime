@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // TestUnitSignatureEncoding creates and encodes a public key, and verifies
