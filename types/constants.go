@@ -56,6 +56,9 @@ var (
 	// redundant computation.
 	GenesisID BlockID
 
+	// GenesisAirdropAllocation is the output creating the initial coins allocated
+	// for the airdrop at network launch
+	GenesisAirdropAllocation []SiacoinOutput
 	// GenesisSiafundAllocation is the set of SiafundOutputs created in the Genesis
 	// block.
 	GenesisSiafundAllocation []SiafundOutput
@@ -63,6 +66,12 @@ var (
 	GenesisTimestamp Timestamp
 	// InitialCoinbase is the coinbase reward of the Genesis block.
 	InitialCoinbase = uint64(300e3)
+	// AirdropCommunityValue is the total amount of coins the community members will split
+	// from the genesis block airdrop.
+	AirdropCommunityValue = NewCurrency64(2000000000).Mul(SiacoinPrecision).Div(NewCurrency64(10))
+	// AirdropPoolValue is the total amount of coins a pool gets from the genesis block
+	// airdrop so that they can pay out miners in the first 144 blocks
+	AirdropPoolValue = NewCurrency64(45000000).Mul(SiacoinPrecision).Div(NewCurrency64(10))
 	// MaturityDelay specifies the number of blocks that a maturity-required output
 	// is required to be on hold before it can be spent on the blockchain.
 	// Outputs are maturity-required if they are highly likely to be altered or
@@ -183,6 +192,18 @@ func init() {
 		OakMaxRise = big.NewRat(102, 100)
 		OakMaxDrop = big.NewRat(100, 102)
 
+		GenesisAirdropAllocation = []SiacoinOutput{
+			{
+				Value:      AirdropCommunityValue,
+				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
+			},
+			{
+				Value:      AirdropPoolValue,
+				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
+			},
+		}
+
+
 		GenesisSiafundAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(2000),
@@ -229,6 +250,18 @@ func init() {
 		OakMaxBlockShift = 3
 		OakMaxRise = big.NewRat(10001, 10e3)
 		OakMaxDrop = big.NewRat(10e3, 10001)
+
+		GenesisAirdropAllocation = []SiacoinOutput{
+			{
+				Value:      AirdropCommunityValue,
+				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
+			},
+			{
+				Value:      AirdropPoolValue,
+				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
+			},
+		}
+
 
 		GenesisSiafundAllocation = []SiafundOutput{
 			{
@@ -350,6 +383,18 @@ func init() {
 		// can get lucky and fake a ton of work.
 		OakMaxRise = big.NewRat(1004, 1e3)
 		OakMaxDrop = big.NewRat(1e3, 1004)
+
+		GenesisAirdropAllocation = []SiacoinOutput{
+			{
+				Value:      AirdropCommunityValue,
+				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
+			},
+			{
+				Value:      AirdropPoolValue,
+				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
+			},
+		}
+
 
 		GenesisSiafundAllocation = []SiafundOutput{
 			{
@@ -547,6 +592,7 @@ func init() {
 	GenesisBlock = Block{
 		Timestamp: GenesisTimestamp,
 		Transactions: []Transaction{
+			{SiacoinOutputs: GenesisAirdropAllocation},
 			{SiafundOutputs: GenesisSiafundAllocation},
 		},
 	}
