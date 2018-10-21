@@ -21,9 +21,14 @@ var (
 	// BlockSizeLimit is the maximum size of a binary-encoded Block
 	// that is permitted by the consensus rules.
 	BlockSizeLimit = uint64(2e6)
-	// DevFundPercentage is the percentage of the block subsidy that goes
-	// to support development of the network instead of the miners
-	DevFundPercentage = float64(0.2)
+	// DevFundInitialBlockHeight is the height at which the dev fund became mandatory
+	DevFundInitialBlockHeight BlockHeight
+	// DevFundInitialPercentage is the percentage of the block subsidy that goes
+	// to support development of the network instead of the miners at the time of the
+	// DevFundInitialBlockHeight
+	DevFundInitialPercentage = float64(0.2)
+	// DevFundDecaySchedule is the rate at which the DevFundInitialPercentage decays
+	DevFundDecaySchedule uint64
 	// DevFundUnlockHash is the unlock hash for the dev fund subsidy
 	DevFundUnlockHash = UnlockHash{214, 166, 197, 164, 29, 201, 53, 236, 106, 239, 10, 158, 127, 131, 20, 138, 63, 221, 230, 16, 98, 247, 32, 77, 210, 68, 116, 12, 241, 89, 27, 223}
 
@@ -51,9 +56,6 @@ var (
 	// redundant computation.
 	GenesisID BlockID
 
-	// GenesisAirdropAllocation is the output creating the initial coins allocated
-	// for the airdrop at network launch
-	GenesisAirdropAllocation []SiacoinOutput
 	// GenesisSiafundAllocation is the set of SiafundOutputs created in the Genesis
 	// block.
 	GenesisSiafundAllocation []SiafundOutput
@@ -61,12 +63,6 @@ var (
 	GenesisTimestamp Timestamp
 	// InitialCoinbase is the coinbase reward of the Genesis block.
 	InitialCoinbase = uint64(300e3)
-	// AirdropCommunityValue is the total amount of coins the community members will split
-	// from the genesis block airdrop.
-	AirdropCommunityValue = NewCurrency64(2000000000).Mul(SiacoinPrecision).Div(NewCurrency64(10))
-	// AirdropPoolValue is the total amount of coins a pool gets from the genesis block
-	// airdrop so that they can pay out miners in the first 144 blocks
-	AirdropPoolValue = NewCurrency64(45000000).Mul(SiacoinPrecision).Div(NewCurrency64(10))
 	// MaturityDelay specifies the number of blocks that a maturity-required output
 	// is required to be on hold before it can be spent on the blockchain.
 	// Outputs are maturity-required if they are highly likely to be altered or
@@ -163,6 +159,9 @@ func init() {
 		// can coordinate their actions over a the developer testnets, but fast
 		// enough that there isn't much time wasted on waiting for things to
 		// happen.
+		DevFundInitialBlockHeight = 20 // Lets start the dev fund right from the start
+		DevFundDecaySchedule = 20      // The dev dund perentage should decay every 10 blocks
+
 		BlockFrequency = 12                      // 12 seconds: slow enough for developers to see ~each block, fast enough that blocks don't waste time.
 		MaturityDelay = 10                       // 60 seconds before a delayed output matures.
 		GenesisTimestamp = Timestamp(1424139000) // Change as necessary.
@@ -184,17 +183,6 @@ func init() {
 		OakMaxRise = big.NewRat(102, 100)
 		OakMaxDrop = big.NewRat(100, 102)
 
-		GenesisAirdropAllocation = []SiacoinOutput{
-			{
-				Value:      AirdropCommunityValue,
-				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
-			},
-			{
-				Value:      AirdropPoolValue,
-				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
-			},
-		}
-
 		GenesisSiafundAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(2000),
@@ -212,6 +200,9 @@ func init() {
 	} else if build.Release == "testing" {
 		// 'testing' settings are for automatic testing, and create much faster
 		// environments than a human can interact with.
+		DevFundInitialBlockHeight = 265400 // Lets start the dev fund right from the start
+		DevFundDecaySchedule = 43200       // The dev dund perentage should decay every 10 blocks
+
 		BlockFrequency = 1 // As fast as possible
 		MaturityDelay = 3
 		GenesisTimestamp = CurrentTimestamp() - 1e6
@@ -239,17 +230,6 @@ func init() {
 		OakMaxRise = big.NewRat(10001, 10e3)
 		OakMaxDrop = big.NewRat(10e3, 10001)
 
-		GenesisAirdropAllocation = []SiacoinOutput{
-			{
-				Value:      AirdropCommunityValue,
-				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
-			},
-			{
-				Value:      AirdropPoolValue,
-				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
-			},
-		}
-
 		GenesisSiafundAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(2000),
@@ -267,6 +247,13 @@ func init() {
 	} else if build.Release == "standard" {
 		// 'standard' settings are for the full network. They are slow enough
 		// that the network is secure in a real-world byzantine environment.
+
+		// Start the dev fund soft fork approximentally two months after the
+		// Sia ASIC hardhord happened;
+		DevFundInitialBlockHeight = 265400
+
+		// Approximentally every month we should decay the dev fund percentage
+		DevFundDecaySchedule = 43200
 
 		// A block time of 1 block per 10 minutes is chosen to follow Bitcoin's
 		// example. The security lost by lowering the block time is not
@@ -287,7 +274,7 @@ func init() {
 		// The genesis timestamp is set to June 6th, because that is when the
 		// 100-block developer premine started. The trailing zeroes are a
 		// bonus, and make the timestamp easier to memorize.
-		GenesisTimestamp = Timestamp(1539927557) // October 19, 2018 12:39:37 UTC.
+		GenesisTimestamp = Timestamp(1433600000) // June 6th, 2015 @ 2:13pm UTC.
 
 		// The RootTarget was set such that the developers could reasonable
 		// premine 100 blocks in a day. It was known to the developers at launch
@@ -364,17 +351,6 @@ func init() {
 		OakMaxRise = big.NewRat(1004, 1e3)
 		OakMaxDrop = big.NewRat(1e3, 1004)
 
-		// Create the initial tokens for the airdrop
-		GenesisAirdropAllocation = []SiacoinOutput{
-			{
-				Value:      AirdropCommunityValue,
-				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
-			},
-			{
-				Value:      AirdropPoolValue,
-				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
-			},
-		}
 		GenesisSiafundAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(2),
@@ -572,7 +548,6 @@ func init() {
 		Timestamp: GenesisTimestamp,
 		Transactions: []Transaction{
 			{SiafundOutputs: GenesisSiafundAllocation},
-			{SiacoinOutputs: GenesisAirdropAllocation},
 		},
 	}
 	// Calculate the genesis ID.

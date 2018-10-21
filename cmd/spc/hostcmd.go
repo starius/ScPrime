@@ -8,10 +8,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"gitlab.com/NebulousLabs/Sia/crypto"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/node/api/client"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/node/api/client"
+	"gitlab.com/SiaPrime/Sia/types"
 
 	"github.com/spf13/cobra"
 )
@@ -23,9 +23,9 @@ var (
 		Long: `Announce yourself as a host on the network.
 Announcing will also configure the host to start accepting contracts.
 You can revert this by running:
-	siac host config acceptingcontracts false
+	spc host config acceptingcontracts false
 You may also supply a specific address to be announced, e.g.:
-	siac host announce my-host-domain.com:9001
+	spc host announce my-host-domain.com:9001
 Doing so will override the standard connectivity checks.`,
 		Run: hostannouncecmd,
 	}
@@ -59,7 +59,7 @@ Available settings:
      minstorageprice:           currency / TB / Month
      minuploadbandwidthprice:   currency / TB
 
-Currency units can be specified, e.g. 10SC; run 'siac help wallet' for details.
+Currency units can be specified, e.g. 10SC; run 'spc help wallet' for details.
 
 Durations (maxduration and windowsize) must be specified in either blocks (b),
 hours (h), days (d), or weeks (w). A block is approximately 10 minutes, so one
@@ -68,7 +68,7 @@ hour is six blocks, a day is 144 blocks, and a week is 1008 blocks.
 For a description of each parameter, see doc/API.md.
 
 To configure the host to accept new contracts, set acceptingcontracts to true:
-	siac host config acceptingcontracts true
+	spc host config acceptingcontracts true
 `,
 		Run: wrap(hostconfigcmd),
 	}
@@ -450,7 +450,7 @@ func hostannouncecmd(cmd *cobra.Command, args []string) {
 	}
 	fmt.Println(`The host has also been configured to accept contracts.
 To revert this, run:
-	siac host config acceptingcontracts false`)
+	spc host config acceptingcontracts false`)
 }
 
 // hostfolderaddcmd adds a folder to the host.

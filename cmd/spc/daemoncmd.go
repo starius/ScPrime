@@ -4,14 +4,14 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"gitlab.com/NebulousLabs/Sia/build"
+	"gitlab.com/SiaPrime/Sia/build"
 )
 
 var (
 	stopCmd = &cobra.Command{
 		Use:   "stop",
-		Short: "Stop the Sia daemon",
-		Long:  "Stop the Sia daemon.",
+		Short: "Stop the SiaPrime daemon",
+		Long:  "Stop the SiaPrime daemon.",
 		Run:   wrap(stopcmd),
 	}
 
@@ -54,7 +54,7 @@ func versioncmd() {
 		fmt.Println("Could not get daemon version:", err)
 		return
 	}
-	fmt.Println("Sia Daemon")
+	fmt.Println("SiaPrime Daemon")
 	fmt.Println("\tVersion " + dvg.Version)
 	if build.GitRevision != "" {
 		fmt.Println("\tGit Revision " + dvg.GitRevision)
@@ -69,7 +69,7 @@ func stopcmd() {
 	if err != nil {
 		die("Could not stop daemon:", err)
 	}
-	fmt.Println("Sia daemon stopped.")
+	fmt.Println("SiaPrime daemon stopped.")
 }
 
 func updatecmd() {
@@ -88,7 +88,7 @@ func updatecmd() {
 		fmt.Println("Could not apply update:", err)
 		return
 	}
-	fmt.Printf("Updated to version %s! Restart siad now.\n", update.Version)
+	fmt.Printf("Updated to version %s! Restart spd now.\n", update.Version)
 }
 
 func updatecheckcmd() {
@@ -98,7 +98,7 @@ func updatecheckcmd() {
 		return
 	}
 	if update.Available {
-		fmt.Printf("A new release (v%s) is available! Run 'siac update' to install it.\n", update.Version)
+		fmt.Printf("A new release (v%s) is available! Run 'spc update' to install it.\n", update.Version)
 	} else {
 		fmt.Println("Up to date.")
 	}

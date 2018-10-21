@@ -5,7 +5,7 @@ import (
 	"compress/gzip"
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // TestTwofishEncryption checks that encryption and decryption works correctly.

@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/build"
 	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // ProdDependencies act as a global instance of the production dependencies to

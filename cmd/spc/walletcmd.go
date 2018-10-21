@@ -16,12 +16,12 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 
-	"gitlab.com/NebulousLabs/Sia/crypto"
-	"gitlab.com/NebulousLabs/Sia/encoding"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/modules/wallet"
-	"gitlab.com/NebulousLabs/Sia/types"
-	"gitlab.com/NebulousLabs/entropy-mnemonics"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/modules/wallet"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/entropy-mnemonics"
 )
 
 var (
@@ -120,7 +120,7 @@ By default the wallet encryption / unlock password is the same as the generated 
 		Use:     `siag [filepath,...]`,
 		Short:   "Load siag key(s) into the wallet",
 		Long:    "Load siag key(s) into the wallet - typically used for siafunds.",
-		Example: "siac wallet load siag key1.siakey,key2.siakey",
+		Example: "spc wallet load siag key1.siakey,key2.siakey",
 		Run:     wrap(walletloadsiagcmd),
 	}
 

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/node/api/client"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/node/api/client"
 )
 
 // TestLatestRelease tests that the latestRelease function properly processes a
@@ -106,8 +106,8 @@ func TestNewServer(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = c.ConsensusGet()
-	if err == nil || !strings.Contains(err.Error(), "siad is not ready") {
-		t.Fatal("expected consensus call on unloaded server to fail with siad not ready")
+	if err == nil || !strings.Contains(err.Error(), "spd is not ready") {
+		t.Fatal("expected consensus call on unloaded server to fail with spd not ready")
 	}
 	// create a goroutine that continuously makes API requests to test that
 	// loading modules doesn't cause a race

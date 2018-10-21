@@ -11,8 +11,6 @@ import (
 
 	"github.com/coreos/bbolt"
 
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/threadgroup"
 	"gitlab.com/SiaPrime/Sia/build"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/encoding"
@@ -20,6 +18,8 @@ import (
 	"gitlab.com/SiaPrime/Sia/persist"
 	siasync "gitlab.com/SiaPrime/Sia/sync"
 	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/SiaPrime/threadgroup"
 )
 
 const (

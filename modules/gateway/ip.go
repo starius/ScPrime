@@ -4,9 +4,9 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/Sia/encoding"
 	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/errors"
 )
 
 // discoverPeerIP is the handler for the discoverPeer RPC. It returns the

@@ -21,18 +21,18 @@ import (
 	"syscall"
 	"time"
 
-	"gitlab.com/NebulousLabs/Sia/build"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/modules/consensus"
-	"gitlab.com/NebulousLabs/Sia/modules/explorer"
-	"gitlab.com/NebulousLabs/Sia/modules/gateway"
-	"gitlab.com/NebulousLabs/Sia/modules/host"
-	"gitlab.com/NebulousLabs/Sia/modules/miner"
-	"gitlab.com/NebulousLabs/Sia/modules/renter"
-	"gitlab.com/NebulousLabs/Sia/modules/transactionpool"
-	"gitlab.com/NebulousLabs/Sia/modules/wallet"
-	"gitlab.com/NebulousLabs/Sia/node/api"
-	"gitlab.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/modules/consensus"
+	"gitlab.com/SiaPrime/Sia/modules/explorer"
+	"gitlab.com/SiaPrime/Sia/modules/gateway"
+	"gitlab.com/SiaPrime/Sia/modules/host"
+	"gitlab.com/SiaPrime/Sia/modules/miner"
+	"gitlab.com/SiaPrime/Sia/modules/renter"
+	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
+	"gitlab.com/SiaPrime/Sia/modules/wallet"
+	"gitlab.com/SiaPrime/Sia/node/api"
+	"gitlab.com/SiaPrime/Sia/types"
 
 	"github.com/inconshreveable/go-update"
 	"github.com/julienschmidt/httprouter"
@@ -254,7 +254,7 @@ func updateToRelease(release githubRelease) error {
 	}
 
 	// process zip, finding siad/siac binaries and signatures
-	for _, binary := range []string{"siad", "siac"} {
+	for _, binary := range []string{"spd", "spc"} {
 		var binData io.ReadCloser
 		var signature []byte
 		var binaryName string // needed for TargetPath below
@@ -413,7 +413,7 @@ func (srv *Server) apiHandler(w http.ResponseWriter, r *http.Request) {
 	isReady := srv.api != nil
 	srv.mu.Unlock()
 	if !isReady {
-		api.WriteError(w, api.Error{Message: "siad is not ready. please wait for siad to finish loading."}, http.StatusServiceUnavailable)
+		api.WriteError(w, api.Error{Message: "spd is not ready. please wait for spd to finish loading."}, http.StatusServiceUnavailable)
 		return
 	}
 	srv.api.ServeHTTP(w, r)
@@ -432,7 +432,7 @@ func NewServer(config Config) (*Server, error) {
 	l, err := net.Listen("tcp", config.Siad.APIaddr)
 	if err != nil {
 		if isAddrInUseErr(err) {
-			return nil, fmt.Errorf("%v; are you running another instance of siad?", err.Error())
+			return nil, fmt.Errorf("%v; are you running another instance of spd?", err.Error())
 		}
 
 		return nil, err
@@ -486,7 +486,7 @@ func isAddrInUseErr(err error) bool {
 // API routes available.
 func (srv *Server) loadModules() error {
 	// Create the server and start serving daemon routes immediately.
-	fmt.Printf("(0/%d) Loading siad...\n", len(srv.config.Siad.Modules))
+	fmt.Printf("(0/%d) Loading spd...\n", len(srv.config.Siad.Modules))
 
 	// Initialize the Sia modules
 	i := 0

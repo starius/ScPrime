@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/Sia/build"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/modules"
@@ -15,6 +14,7 @@ import (
 	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
 	"gitlab.com/SiaPrime/Sia/modules/wallet"
 	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // A minerTester is the helper object for miner testing.
