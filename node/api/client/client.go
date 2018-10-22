@@ -43,7 +43,7 @@ func (c *Client) NewRequest(method, resource string, body io.Reader) (*http.Requ
 	}
 	agent := c.UserAgent
 	if agent == "" {
-		agent = "Sia-Agent"
+		agent = "SiaPrime-Agent"
 	}
 	req.Header.Set("User-Agent", agent)
 	if c.Password != "" {
