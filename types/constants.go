@@ -30,7 +30,7 @@ var (
 	// DevFundDecaySchedule is the rate at which the DevFundInitialPercentage decays
 	DevFundDecaySchedule uint64
 	// DevFundUnlockHash is the unlock hash for the dev fund subsidy
-	DevFundUnlockHash = UnlockHash{214, 166, 197, 164, 29, 201, 53, 236, 106, 239, 10, 158, 127, 131, 20, 138, 63, 221, 230, 16, 98, 247, 32, 77, 210, 68, 116, 12, 241, 89, 27, 223}
+	DevFundUnlockHash = unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69")
 
 	// EndOfTime is value to be used when a date in the future is needed for
 	// validation
@@ -159,6 +159,23 @@ var (
 	}).(BlockHeight)
 )
 
+// scanAddress scans a types.UnlockHash from a string.
+func scanAddress(addrStr string) (addr UnlockHash, err error) {
+        err = addr.LoadString(addrStr)
+        if err != nil {
+                return UnlockHash{}, err
+        }
+        return addr, nil
+}
+
+func unlockHashFromAddrStr(addrStr string) (addr UnlockHash){
+	dest, err := scanAddress(addrStr)
+	if err != nil {
+		return UnlockHash{}
+	}
+	return dest
+}
+
 // init checks which build constant is in place and initializes the variables
 // accordingly.
 func init() {
@@ -195,11 +212,11 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
+				UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
 			},
 			{
 				Value:      AirdropPoolValue,
-				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
+                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
 			},
 		}
 
@@ -254,11 +271,11 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
+                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
 			},
 			{
 				Value:      AirdropPoolValue,
-				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
+                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
 			},
 		}
 
