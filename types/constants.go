@@ -404,11 +404,11 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
+                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
 			},
 			{
 				Value:      AirdropPoolValue,
-				UnlockHash: UnlockHash{150, 207, 110, 1, 194, 164, 204, 225, 187, 15, 120, 146, 252, 172, 94, 0, 0, 196, 135, 188, 142, 90, 195, 136, 222, 112, 8, 160, 222, 92, 241, 22},
+                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
 			},
 		}
 
