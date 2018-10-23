@@ -139,9 +139,9 @@ func unlockWallet(w modules.Wallet, password string) error {
 // stdin.
 func apiPassword(siaDir string) (string, error) {
 	// Check the environment variable.
-	pw := os.Getenv("SIA_API_PASSWORD")
+	pw := os.Getenv("SIAPRIME_API_PASSWORD")
 	if pw != "" {
-		fmt.Println("Using SIA_API_PASSWORD environment variable")
+		fmt.Println("Using SIAPRIME_API_PASSWORD environment variable")
 		return pw, nil
 	}
 

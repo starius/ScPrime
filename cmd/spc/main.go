@@ -117,7 +117,7 @@ func main() {
 	walletInitSeedCmd.Flags().BoolVarP(&initForce, "force", "", false, "destroy the existing wallet")
 	walletLoadCmd.AddCommand(walletLoad033xCmd, walletLoadSeedCmd, walletLoadSiagCmd)
 	walletSendCmd.AddCommand(walletSendSiacoinsCmd, walletSendSiafundsCmd)
-	walletUnlockCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Display interactive password prompt even if SIA_WALLET_PASSWORD is set")
+	walletUnlockCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Display interactive password prompt even if SIAPRIME_WALLET_PASSWORD is set")
 	walletBroadcastCmd.Flags().BoolVarP(&walletRawTxn, "raw", "", false, "Decode transaction as base64 instead of JSON")
 	walletSignCmd.Flags().BoolVarP(&walletRawTxn, "raw", "", false, "Encode signed transaction as base64 instead of JSON")
 
@@ -151,13 +151,13 @@ func main() {
 	root.PersistentFlags().StringVarP(&httpClient.Address, "addr", "a", "localhost:4280", "which host/port to communicate with (i.e. the host/port spd is listening on)")
 	root.PersistentFlags().StringVarP(&httpClient.Password, "apipassword", "", "", "the password for the API's http authentication")
 	root.PersistentFlags().StringVarP(&siaDir, "siaprime-directory", "d", build.DefaultSiaDir(), "location of the sia directory")
-	root.PersistentFlags().StringVarP(&httpClient.UserAgent, "useragent", "", "Sia-Agent", "the useragent used by spc to connect to the daemon's API")
+	root.PersistentFlags().StringVarP(&httpClient.UserAgent, "useragent", "", "SiaPrime-Agent", "the useragent used by spc to connect to the daemon's API")
 
 	// Check if the api password environment variable is set.
-	apiPassword := os.Getenv("SIA_API_PASSWORD")
+	apiPassword := os.Getenv("SIAPRIME_API_PASSWORD")
 	if apiPassword != "" {
 		httpClient.Password = apiPassword
-		fmt.Println("Using SIA_API_PASSWORD environment variable")
+		fmt.Println("Using SIAPRIME_API_PASSWORD environment variable")
 	}
 
 	// If the API password wasn't set we try to read it from the file. If

@@ -592,8 +592,8 @@ func (srv *Server) loadModules() error {
 	srv.mu.Unlock()
 
 	// Attempt to auto-unlock the wallet using the SIA_WALLET_PASSWORD env variable
-	if password := os.Getenv("SIA_WALLET_PASSWORD"); password != "" {
-		fmt.Println("Sia Wallet Password found, attempting to auto-unlock wallet")
+	if password := os.Getenv("SIAPRIME_WALLET_PASSWORD"); password != "" {
+		fmt.Println("SiaPrime Wallet Password found, attempting to auto-unlock wallet")
 		if err := unlockWallet(w, password); err != nil {
 			fmt.Println("Auto-unlock failed.")
 		} else {
