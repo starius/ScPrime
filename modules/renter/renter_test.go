@@ -5,16 +5,16 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/modules/consensus"
-	"github.com/NebulousLabs/Sia/modules/gateway"
-	"github.com/NebulousLabs/Sia/modules/miner"
-	"github.com/NebulousLabs/Sia/modules/renter/contractor"
-	"github.com/NebulousLabs/Sia/modules/transactionpool"
-	"github.com/NebulousLabs/Sia/modules/wallet"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/modules/consensus"
+	"gitlab.com/SiaPrime/Sia/modules/gateway"
+	"gitlab.com/SiaPrime/Sia/modules/miner"
+	"gitlab.com/SiaPrime/Sia/modules/renter/contractor"
+	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
+	"gitlab.com/SiaPrime/Sia/modules/wallet"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // renterTester contains all of the modules that are used while testing the renter.
@@ -100,7 +100,7 @@ func newRenterTester(name string) (*renterTester, error) {
 }
 
 // stubHostDB is the minimal implementation of the hostDB interface. It can be
-// embedded in other mock hostDB types, removing the need to reimplement all
+// embedded in other mock hostDB types, removing the need to re-implement all
 // of the hostDB's methods on every mock.
 type stubHostDB struct{}
 
@@ -112,7 +112,7 @@ func (stubHostDB) IsOffline(modules.NetAddress) bool    { return true }
 func (stubHostDB) RandomHosts(int, []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
 	return []modules.HostDBEntry{}, nil
 }
-func (stubHostDB) EstimateHostScore(modules.HostDBEntry) modules.HostScoreBreakdown {
+func (stubHostDB) EstimateHostScore(modules.HostDBEntry, modules.Allowance) modules.HostScoreBreakdown {
 	return modules.HostScoreBreakdown{}
 }
 func (stubHostDB) Host(types.SiaPublicKey) (modules.HostDBEntry, bool) {
@@ -147,7 +147,10 @@ type pricesStub struct {
 
 func (pricesStub) InitialScanComplete() (bool, error) { return true, nil }
 
-func (ps pricesStub) RandomHosts(n int, exclude []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
+func (ps pricesStub) RandomHosts(_ int, _, _ []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
+	return ps.dbEntries, nil
+}
+func (ps pricesStub) RandomHostsWithAllowance(_ int, _, _ []types.SiaPublicKey, _ modules.Allowance) ([]modules.HostDBEntry, error) {
 	return ps.dbEntries, nil
 }
 
@@ -175,22 +178,21 @@ func TestRenterPricesVolatility(t *testing.T) {
 	dbe.StoragePrice = types.SiacoinPrecision
 	dbe.UploadBandwidthPrice = types.SiacoinPrecision
 	hdb.dbEntries = append(hdb.dbEntries, dbe)
-	initial := rt.renter.PriceEstimation()
+	allowance := modules.Allowance{}
+	initial, _, err := rt.renter.PriceEstimation(allowance)
+	if err != nil {
+		t.Fatal(err)
+	}
 	dbe.ContractPrice = dbe.ContractPrice.Mul64(2)
 	hdb.dbEntries = append(hdb.dbEntries, dbe)
-	after := rt.renter.PriceEstimation()
+	after, _, err := rt.renter.PriceEstimation(allowance)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !reflect.DeepEqual(initial, after) {
 		t.Log(initial)
 		t.Log(after)
 		t.Fatal("expected renter price estimation to be constant")
-	}
-	_, err = rt.miner.AddBlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-	after = rt.renter.PriceEstimation()
-	if reflect.DeepEqual(initial, after) {
-		t.Fatal("expected renter price estimation to change after mining a block")
 	}
 }
 
@@ -216,6 +218,7 @@ func TestRenterSiapathValidate(t *testing.T) {
 		{"/leading/slash", false},
 		{"foo/./bar", false},
 		{"", false},
+		{"blank/end/", false},
 	}
 	for _, pathtest := range pathtests {
 		err := validateSiapath(pathtest.in)

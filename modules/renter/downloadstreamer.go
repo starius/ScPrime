@@ -7,7 +7,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
 type (

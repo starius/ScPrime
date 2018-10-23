@@ -23,17 +23,20 @@ Index
 | ------------------------------------------------------------------------------- | --------- |
 | [/renter](#renter-get)                                                          | GET       |
 | [/renter](#renter-post)                                                         | POST      |
+| [/renter/contract/cancel](#rentercontractcancel-post)                           | POST      |
 | [/renter/contracts](#rentercontracts-get)                                       | GET       |
 | [/renter/downloads](#renterdownloads-get)                                       | GET       |
+| [/renter/downloads/clear](#renterdownloadsclear-post)                           | POST      |
 | [/renter/files](#renterfiles-get)                                               | GET       |
-| [/renter/file/*___siapath___](#renterfile___siapath___-get)                     | GET       |
-| [/renter/prices](#renter-prices-get)                                            | GET       |
+| [/renter/file/*___siapath___](#renterfilesiapath-get)                           | GET       |
+| [/renter/file/*__siapath__](#rentertrackingsiapath-post)                        | POST      |
+| [/renter/prices](#renterprices-get)                                             | GET       |
 | [/renter/delete/___*siapath___](#renterdelete___siapath___-post)                | POST      |
 | [/renter/download/___*siapath___](#renterdownload__siapath___-get)              | GET       |
 | [/renter/downloadasync/___*siapath___](#renterdownloadasync__siapath___-get)    | GET       |
 | [/renter/rename/___*siapath___](#renterrename___siapath___-post)                | POST      |
 | [/renter/stream/___*siapath___](#renterstreamsiapath-get)                       | GET       |
-| [/renter/upload/___*siapath___](#renterupload___siapath___-post)                | POST      |
+| [/renter/upload/___*siapath___](#renteruploadsiapath-post)                      | POST      |
 
 #### /renter [GET]
 
@@ -62,11 +65,11 @@ returns the current settings along with metrics on the renter's spending.
       // Is always nonzero.
       "renewwindow": 3024 // blocks
     }, 
-    // MaxUploadSpeed by defaul is unlimited but can be set by the user to 
+    // MaxUploadSpeed by default is unlimited but can be set by the user to 
     // manage bandwidth
     "maxuploadspeed":     1234, // bytes per second
 
-    // MaxDownloadSpeed by defaul is unlimited but can be set by the user to 
+    // MaxDownloadSpeed by default is unlimited but can be set by the user to 
     // manage bandwidth
     "maxdownloadspeed":   1234, // bytes per second
 
@@ -145,14 +148,40 @@ streamcachesize
 standard success or error response. See
 [API.md#standard-responses](/doc/API.md#standard-responses).
 
+#### /renter/contract/cancel [POST]
+
+cancels a specific contract of the Renter.
+
+###### Query String Parameter
+```
+// ID of the file contract
+id
+```
+
+###### Response
+standard success or error response. See
+[API.md#standard-responses](/doc/API.md#standard-responses).
+
 #### /renter/contracts [GET]
 
-returns active contracts. Expired contracts are not included.
+returns the renter's contracts.  Active contracts are contracts that the Renter
+is currently using to store, upload, and download data, and are returned by
+default. Inactive contracts are contracts that are in the current period but are
+marked as not good for renew, these contracts have the potential to become
+active again but currently are not storing data.  Expired contracts are
+contracts not in the current period, where not more data is being stored and
+excess funds have been released to the renter.
+
+###### Contract Parameters
+```
+inactive   // true or false - Optional
+expired    // true or false - Optional
+```
 
 ###### JSON Response
 ```javascript
 {
-  "contracts": [
+  "activecontracts": [
     {
       // Amount of contract funds that have been spent on downloads.
       "downloadspending": "1234", // hastings
@@ -212,7 +241,9 @@ returns active contracts. Expired contracts are not included.
       // Signals if contract is good for a renewal
       "goodforrenew": false,
     }
-  ]
+  ],
+  "inactivecontracts": [],
+  "expiredcontracts": [],
 }
 ```
 
@@ -274,10 +305,28 @@ lists all files in the download queue.
       // will eventually include data transferred during contract + payment
       // negotiation, as well as data from failed piece downloads.
       "totaldatatransfered": 10321,
-    }   
+    }
   ]
 }
 ```
+#### /renter/downloads/clear [POST]
+
+Clears the download history of the renter for a range of unix time stamps.  Both
+parameters are optional, if no parameters are provided, the entire download
+history will be cleared.  To clear a single download, provide the timestamp for
+the download as both parameters.  Providing only the before parameter will clear
+all downloads older than the timestamp.  Conversely, providing only the after
+parameter will clear all downloads newer than the timestamp.
+
+###### Timestamp Parameters [(with comments)]
+```
+before  // Optional - unix timestamp found in the download history
+after   // Optional - unix timestamp found in the download history
+```
+
+###### Response
+standard success or error response. See
+[API.md#standard-responses](/doc/API.md#standard-responses).
 
 #### /renter/files [GET]
 
@@ -381,29 +430,96 @@ lists the status of specified file.
 }
 ```
 
+#### /renter/file/*___siapath___ [POST]
+
+endpoint for changing file metadata.
+
+###### Path Parameters [(with comments)](/doc/api/Renter.md#path-parameters-3)
+```
+// SiaPath of the file on the network. The path must be non-empty, may not
+// include any path traversal strings ("./", "../"), and may not begin with a
+// forward-slash character.
+*siapath
+```
+
+###### Query String Parameters [(with comments)](/doc/api/Renter.md#query-string-parameters-3)
+```
+// If provided, this parameter changes the tracking path of a file to the 
+// specified path. Useful if moving the file to a different location on disk.
+trackingpath
+```
+
+###### Response
+standard success or error response. See
+[#standard-responses](#standard-responses).
+
 #### /renter/prices [GET]
 
-lists the estimated prices of performing various storage and data operations.
+lists the estimated prices of performing various storage and data operations. An
+allowance can be submitted to provide a more personalized estimate. If no
+allowance is submitted then the current set allowance will be used, if there is
+no allowance set then sane defaults will be used. Submitting an allowance is
+optional, but when submitting an allowance all the components of the allowance
+are required. The allowance used to create the estimate is returned with the
+estimate.
 
-###### JSON Response
+###### Query String Parameters 5
+```
+all optional or all required
+
+// Number of hastings allocated for file contracts in the given period.
+funds // hastings
+
+// Number of hosts that contracts should be formed with. Files cannot be
+// uploaded to more hosts than you have contracts with, and it's generally good
+// to form a few more contracts than you need.
+hosts
+
+// Duration of contracts formed. Must be nonzero.
+period // block height
+
+// Renew window specifies how many blocks before the expiration of the current
+// contracts the renter will wait before renewing the contracts. A smaller
+// renew window means that Sia must be run more frequently, but also means
+// fewer total transaction fees. Storage spending is not affected by the renew
+// window size.
+renewwindow // block height
+```
+
+###### JSON Response 5
 ```javascript
 {
-      // The estimated cost of downloading one terabyte of data from the
-      // network.
-      "downloadterabyte": "1234", // hastings
+    // The estimated cost of downloading one terabyte of data from the
+    // network.
+    "downloadterabyte": "1234", // hastings
 
-      // The estimated cost of forming a set of contracts on the network. This
-      // cost also applies to the estimated cost of renewing the renter's set of
-      // contracts.
-      "formcontracts": "1234", // hastings
+    // The estimated cost of forming a set of contracts on the network. This
+    // cost also applies to the estimated cost of renewing the renter's set of
+    // contracts.
+    "formcontracts": "1234", // hastings
 
-      // The estimated cost of storing one terabyte of data on the network for
-      // a month, including accounting for redundancy.
-      "storageterabytemonth": "1234", // hastings
+    // The estimated cost of storing one terabyte of data on the network for
+    // a month, including accounting for redundancy.
+    "storageterabytemonth": "1234", // hastings
 
-      // The estimated cost of uploading one terabyte of data to the network,
-      // including accounting for redundancy.
-      "uploadterabyte": "1234", // hastings
+    // The estimated cost of uploading one terabyte of data to the network,
+    // including accounting for redundancy.
+    "uploadterabyte": "1234", // hastings
+
+    // Amount of money allocated for contracts. Funds are spent on both
+    // storage and bandwidth.
+    "funds": "1234", // hastings
+
+    // Number of hosts that contracts will be formed with.
+    "hosts":24,
+
+    // Duration of contracts formed, in number of blocks.
+    "period": 6048, // blocks
+
+    // If the current blockheight + the renew window >= the height the
+    // contract is scheduled to end, the contract is renewed automatically.
+    // Is always nonzero.
+    "renewwindow": 3024 // blocks
 }
 ```
 
@@ -496,11 +612,13 @@ standard success or error response. See
 downloads a file using http streaming. This call blocks until the data is
 received.
 The streaming endpoint also uses caching internally to prevent siad from
-redownloading the same chunk multiple times when only parts of a file are
+re-downloading the same chunk multiple times when only parts of a file are
 requested at once. This might lead to a substantial increase in ram usage and
 therefore it is not recommended to stream multiple files in parallel at the
 moment. This restriction will be removed together with the caching once partial
-downloads are supported in the future.
+downloads are supported in the future. If you want to stream multiple files you
+should increase the size of the Renter's `streamcachesize` to at least 2x the
+number of files you are steaming.
 
 ###### Path Parameters [(with comments)](/doc/api/Renter.md#path-parameters-1)
 ```

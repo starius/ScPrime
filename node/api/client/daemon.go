@@ -1,6 +1,6 @@
 package client
 
-import "github.com/NebulousLabs/Sia/node/api"
+import "gitlab.com/SiaPrime/Sia/node/api"
 
 // DaemonVersionGet requests the /daemon/version resource
 func (c *Client) DaemonVersionGet() (dvg api.DaemonVersionGet, err error) {
@@ -16,7 +16,7 @@ func (c *Client) DaemonStopGet() (err error) {
 
 // DaemonUpdateGet checks for an available daemon update.
 func (c *Client) DaemonUpdateGet() (dig api.DaemonUpdateGet, err error) {
-	err = c.get("/daemon/update", nil)
+	err = c.get("/daemon/update", &dig)
 	return
 }
 

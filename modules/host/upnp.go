@@ -1,20 +1,10 @@
 package host
 
 import (
-	"context"
-	"errors"
-	"io"
-	"io/ioutil"
 	"net"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/modules"
-
-	"github.com/NebulousLabs/go-upnp"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/modules"
 )
 
 // managedLearnHostname discovers the external IP of the Host. If the host's
@@ -43,30 +33,14 @@ func (h *Host) managedLearnHostname() {
 	}
 	h.log.Println("No manually set net address. Scanning to automatically determine address.")
 
-	// try UPnP first, then fallback to myexternalip.com
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go func() {
-		select {
-		case <-h.tg.StopChan():
-			cancel()
-		case <-ctx.Done():
-		}
-	}()
-	var hostname string
-	d, err := upnp.DiscoverCtx(ctx)
-	if err == nil {
-		hostname, err = d.ExternalIP()
-	}
-	if err != nil {
-		hostname, err = myExternalIP()
-	}
+	// Use the gateway to get the external ip.
+	hostname, err := h.g.DiscoverAddress(h.tg.StopChan())
 	if err != nil {
 		h.log.Println("WARN: failed to discover external IP")
 		return
 	}
 
-	autoAddress := modules.NetAddress(net.JoinHostPort(hostname, hostPort))
+	autoAddress := modules.NetAddress(net.JoinHostPort(string(hostname), hostPort))
 	if err := autoAddress.IsValid(); err != nil {
 		h.log.Printf("WARN: discovered hostname %q is invalid: %v", autoAddress, err)
 		return
@@ -101,119 +75,4 @@ func (h *Host) managedLearnHostname() {
 			h.log.Println("unable to announce address after upnp-detected address change:", err)
 		}
 	}
-}
-
-// managedForwardPort adds a port mapping to the router.
-func (h *Host) managedForwardPort(port string) error {
-	if build.Release == "testing" {
-		// Add a blocking placeholder where testing is able to mock behaviors
-		// such as a port forward action that blocks for 10 seconds before
-		// completing.
-		if h.dependencies.Disrupt("managedForwardPort") {
-			return nil
-		}
-
-		// Port forwarding functions are frequently unavailable during testing,
-		// and the long blocking can be highly disruptive. Under normal
-		// scenarios, return without complaint, and without running the
-		// port-forward logic.
-		return nil
-	}
-
-	// If the port is invalid, there is no need to perform any of the other
-	// tasks.
-	portInt, err := strconv.Atoi(port)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go func() {
-		select {
-		case <-h.tg.StopChan():
-			cancel()
-		case <-ctx.Done():
-		}
-	}()
-	d, err := upnp.DiscoverCtx(ctx)
-	if err != nil {
-		h.log.Printf("WARN: could not automatically forward port %s: %v", port, err)
-		return err
-	}
-	err = d.Forward(uint16(portInt), "Sia Host")
-	if err != nil {
-		h.log.Printf("WARN: could not automatically forward port %s: %v", port, err)
-		return err
-	}
-
-	h.log.Println("INFO: successfully forwarded port", port)
-	return nil
-}
-
-// managedClearPort removes a port mapping from the router.
-func (h *Host) managedClearPort() error {
-	if build.Release == "testing" {
-		// Allow testing to force an error to be returned here.
-		if h.dependencies.Disrupt("managedClearPort return error") {
-			return errors.New("Mocked managedClearPortErr")
-		}
-		return nil
-	}
-
-	// If the port is invalid, there is no need to perform any of the other
-	// tasks.
-	h.mu.RLock()
-	port := h.port
-	h.mu.RUnlock()
-	portInt, err := strconv.Atoi(port)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go func() {
-		select {
-		case <-h.tg.StopChan():
-			cancel()
-		case <-ctx.Done():
-		}
-	}()
-	d, err := upnp.DiscoverCtx(ctx)
-	if err != nil {
-		return err
-	}
-	err = d.Clear(uint16(portInt))
-	if err != nil {
-		return err
-	}
-
-	h.log.Println("INFO: successfully unforwarded port", port)
-	return nil
-}
-
-// myExternalIP discovers the host's external IP by querying a centralized
-// service, http://myexternalip.com.
-func myExternalIP() (string, error) {
-	// timeout after 10 seconds
-	client := http.Client{Timeout: time.Duration(10 * time.Second)}
-	resp, err := client.Get("http://myexternalip.com/raw")
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		errResp, _ := ioutil.ReadAll(resp.Body)
-		return "", errors.New(string(errResp))
-	}
-	buf, err := ioutil.ReadAll(io.LimitReader(resp.Body, 64))
-	if err != nil {
-		return "", err
-	}
-	if len(buf) == 0 {
-		return "", errors.New("myexternalip.com returned a 0 length IP address")
-	}
-	// trim newline
-	return strings.TrimSpace(string(buf)), nil
 }

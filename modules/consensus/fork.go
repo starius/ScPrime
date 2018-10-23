@@ -3,8 +3,8 @@ package consensus
 import (
 	"errors"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/modules"
 
 	"github.com/coreos/bbolt"
 )

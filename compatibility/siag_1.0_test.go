@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/encoding"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // KeyPairSiag_1_0 matches the KeyPair struct of the siag 1.0 code.
@@ -58,7 +58,7 @@ func verifyKeysSiag_1_0(uc types.UnlockConditions, folder string, keyname string
 				PublicKeyIndex: i,
 				CoveredFields:  types.CoveredFields{WholeTransaction: true},
 			})
-			sigHash := txn.SigHash(int(j))
+			sigHash := txn.SigHash(int(j), 0)
 			sig := crypto.SignHash(sigHash, loadedKeys[i].SecretKey)
 			txn.TransactionSignatures[j].Signature = sig[:]
 			i++

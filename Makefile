@@ -3,8 +3,8 @@ BUILD_TIME=$(shell date)
 GIT_REVISION=$(shell git rev-parse --short HEAD)
 GIT_DIRTY=$(shell git diff-index --quiet HEAD -- || echo "✗-")
 
-ldflags= -X github.com/NebulousLabs/Sia/build.GitRevision=${GIT_DIRTY}${GIT_REVISION} \
--X "github.com/NebulousLabs/Sia/build.BuildTime=${BUILD_TIME}"
+ldflags= -X gitlab.com/SiaPrime/Sia/build.GitRevision=${GIT_DIRTY}${GIT_REVISION} \
+-X "gitlab.com/SiaPrime/Sia/build.BuildTime=${BUILD_TIME}"
 
 # all will build and install release binaries
 all: release
@@ -13,19 +13,19 @@ all: release
 # Sia.
 dependencies:
 	# Consensus Dependencies
-	go get -u github.com/NebulousLabs/demotemutex
-	go get -u github.com/NebulousLabs/fastrand
-	go get -u github.com/NebulousLabs/merkletree
-	go get -u github.com/NebulousLabs/bolt
+	go get -u gitlab.com/SiaPrime/demotemutex
+	go get -u gitlab.com/SiaPrime/fastrand
+	go get -u gitlab.com/SiaPrime/merkletree
+	go get -u gitlab.com/SiaPrime/bolt
 	go get -u golang.org/x/crypto/blake2b
 	go get -u golang.org/x/crypto/ed25519
 	# Module + Daemon Dependencies
-	go get -u github.com/NebulousLabs/entropy-mnemonics
-	go get -u github.com/NebulousLabs/errors
-	go get -u github.com/NebulousLabs/go-upnp
-	go get -u github.com/NebulousLabs/ratelimit
-	go get -u github.com/NebulousLabs/threadgroup
-	go get -u github.com/NebulousLabs/writeaheadlog
+	go get -u gitlab.com/SiaPrime/entropy-mnemonics
+	go get -u gitlab.com/SiaPrime/errors
+	go get -u gitlab.com/SiaPrime/go-upnp
+	go get -u gitlab.com/SiaPrime/ratelimit
+	go get -u gitlab.com/SiaPrime/threadgroup
+	go get -u gitlab.com/SiaPrime/writeaheadlog
 	go get -u github.com/klauspost/reedsolomon
 	go get -u github.com/julienschmidt/httprouter
 	go get -u github.com/inconshreveable/go-update
@@ -42,13 +42,13 @@ dependencies:
 	# Developer Dependencies
 	#go install -race std
 	go get -u github.com/client9/misspell/cmd/misspell
-	go get -u github.com/golang/lint/golint
-	go get -u github.com/NebulousLabs/glyphcheck
+	go get -u golang.org/x/lint/golint
+	go get -u gitlab.com/SiaPrime/glyphcheck
 
 # pkgs changes which packages the makefile calls operate on. run changes which
 # tests are run during testing.
 run = .
-pkgs = ./build ./cmd/siac ./cmd/siad ./compatibility ./crypto ./encoding ./modules ./modules/consensus ./modules/explorer \
+pkgs = ./build ./cmd/spc ./cmd/spd ./compatibility ./crypto ./encoding ./modules ./modules/consensus ./modules/explorer \
        ./modules/gateway ./modules/host ./modules/host/contractmanager ./modules/renter ./modules/renter/contractor       \
        ./modules/renter/hostdb ./modules/renter/hostdb/hosttree ./modules/renter/proto ./modules/miner ./modules/miningpool \
        ./modules/wallet ./modules/transactionpool ./modules/stratumminer ./node ./node/api ./persist ./siatest \
@@ -98,9 +98,11 @@ test:
 test-v:
 	go test -race -v -short -tags='debug testing netgo' -timeout=15s $(pkgs) -run=$(run)
 test-long: clean fmt vet lint
-	go test -v -race -tags='testing debug netgo' -timeout=500s $(pkgs) -run=$(run)
+	@mkdir -p cover
+	go test --coverprofile='./cover/cover.out' -v -race -tags='testing debug netgo' -timeout=1800s $(pkgs) -run=$(run)
 test-vlong: clean fmt vet lint
-	go test -v -race -tags='testing debug vlong netgo' -timeout=5000s $(pkgs) -run=$(run)
+	@mkdir -p cover
+	go test --coverprofile='./cover/cover.out' -v -race -tags='testing debug vlong netgo' -timeout=20000s $(pkgs) -run=$(run)
 test-cpu:
 	go test -v -tags='testing debug netgo' -timeout=500s -cpuprofile cpu.prof $(pkgs) -run=$(run)
 test-mem:

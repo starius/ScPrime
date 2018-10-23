@@ -5,16 +5,38 @@ package hostdb
 // settings of the hosts.
 
 import (
+	"fmt"
 	"net"
 	"sort"
 	"time"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/encoding"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/modules/renter/hostdb/hosttree"
+	"gitlab.com/SiaPrime/fastrand"
 )
+
+// equalIPNets checks if two slices of IP subnets contain the same subnets.
+func equalIPNets(ipNetsA, ipNetsB []string) bool {
+	// Check the length first.
+	if len(ipNetsA) != len(ipNetsB) {
+		return false
+	}
+	// Create a map of all the subnets in ipNetsA.
+	mapNetsA := make(map[string]struct{})
+	for _, subnet := range ipNetsA {
+		mapNetsA[subnet] = struct{}{}
+	}
+	// Make sure that all the subnets from ipNetsB are in the map.
+	for _, subnet := range ipNetsB {
+		if _, exists := mapNetsA[subnet]; !exists {
+			return false
+		}
+	}
+	return true
+}
 
 // queueScan will add a host to the queue to be scanned. The host will be added
 // at a random position which means that the order in which queueScan is called
@@ -152,6 +174,8 @@ func (hdb *HostDB) updateEntry(entry modules.HostDBEntry, netErr error) {
 	newEntry, exists := hdb.hostTree.Select(entry.PublicKey)
 	if exists {
 		newEntry.HostExternalSettings = entry.HostExternalSettings
+		newEntry.IPNets = entry.IPNets
+		newEntry.LastIPNetChange = entry.LastIPNetChange
 	} else {
 		newEntry = entry
 	}
@@ -250,6 +274,38 @@ func (hdb *HostDB) updateEntry(entry modules.HostDBEntry, netErr error) {
 	}
 }
 
+// managedLookupIPNets returns string representations of the CIDR subnets
+// used by the host.  In case of an error we return nil. We don't really care
+// about the error because we don't update host entries if we are offline
+// anyway. So if we fail to resolve a hostname, the problem is not related to
+// us.
+func (hdb *HostDB) managedLookupIPNets(address modules.NetAddress) (ipNets []string, err error) {
+	// Lookup the IP addresses of the host.
+	addresses, err := hdb.deps.Resolver().LookupIP(address.Host())
+	if err != nil {
+		return nil, err
+	}
+	// Get the subnets of the addresses.
+	for _, ip := range addresses {
+		// Set the filterRange according to the type of IP address.
+		var filterRange int
+		if ip.To4() != nil {
+			filterRange = hosttree.IPv4FilterRange
+		} else {
+			filterRange = hosttree.IPv6FilterRange
+		}
+
+		// Get the subnet.
+		_, ipnet, err := net.ParseCIDR(fmt.Sprintf("%s/%d", ip.String(), filterRange))
+		if err != nil {
+			return nil, err
+		}
+		// Add the subnet to the host.
+		ipNets = append(ipNets, ipnet.String())
+	}
+	return
+}
+
 // managedScanHost will connect to a host and grab the settings, verifying
 // uptime and updating to the host's preferences.
 func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
@@ -258,6 +314,25 @@ func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
 	pubKey := entry.PublicKey
 	hdb.log.Debugf("Scanning host %v at %v", pubKey, netAddr)
 
+	// If we use a custom resolver for testing, we replace the custom domain
+	// with 127.0.0.1. Otherwise the scan will fail.
+	if hdb.deps.Disrupt("customResolver") {
+		port := netAddr.Port()
+		netAddr = modules.NetAddress(fmt.Sprintf("127.0.0.1:%s", port))
+	}
+
+	// Resolve the host's used subnets and update the timestamp if they
+	// changed. We only update the timestamp if resolving the ipNets was
+	// successful.
+	ipNets, err := hdb.managedLookupIPNets(entry.NetAddress)
+	if err == nil && !equalIPNets(ipNets, entry.IPNets) {
+		entry.IPNets = ipNets
+		entry.LastIPNetChange = time.Now()
+	}
+	if err != nil {
+		hdb.log.Debugln("mangedScanHost: failed to look up IP nets", err)
+	}
+
 	// Update historic interactions of entry if necessary
 	hdb.mu.RLock()
 	updateHostHistoricInteractions(&entry, hdb.blockHeight)
@@ -265,7 +340,7 @@ func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
 
 	var settings modules.HostExternalSettings
 	var latency time.Duration
-	err := func() error {
+	err = func() error {
 		timeout := hostRequestTimeout
 		hdb.mu.RLock()
 		if len(hdb.initialScanLatencies) > minScansForSpeedup {
@@ -324,6 +399,12 @@ func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
 
 	hdb.mu.Lock()
 	defer hdb.mu.Unlock()
+	// We don't want to override the NetAddress during a scan so we need to
+	// retrieve the most recent NetAddress from the tree first.
+	oldEntry, exists := hdb.hostTree.Select(entry.PublicKey)
+	if exists {
+		entry.NetAddress = oldEntry.NetAddress
+	}
 	// Update the host tree to have a new entry, including the new error. Then
 	// delete the entry from the scan map as the scan has been successful.
 	hdb.updateEntry(entry, err)

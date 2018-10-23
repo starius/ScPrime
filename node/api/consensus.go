@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/encoding"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"github.com/SiaPrime/Sia/encoding"
+	"github.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 
 	"github.com/coreos/bbolt"
 	"github.com/julienschmidt/httprouter"
@@ -246,7 +246,8 @@ func (api *API) consensusHandler(w http.ResponseWriter, req *http.Request, _ htt
 	})
 }
 
-// consensusBlocksIDHandler handles the API calls to /consensus/blocks endpoint.
+// consensusBlocksIDHandler handles the API calls to /consensus/blocks
+// endpoint.
 func (api *API) consensusBlocksHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	// Get query params and check them.
 	id, height := req.FormValue("id"), req.FormValue("height")

@@ -3,12 +3,12 @@ package proto
 import (
 	"net"
 
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/encoding"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 
-	"github.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
 // Renew negotiates a new contract for data already stored with a host, and
@@ -34,27 +34,15 @@ func (cs *ContractSet) Renew(oldContract *SafeContract, params ContractParams, t
 
 	// Calculate the anticipated transaction fee.
 	_, maxFee := tpool.FeeEstimation()
-	txnFee := maxFee.Mul64(estTxnSize)
-
-	// Underflow check.
-	if funding.Cmp(host.ContractPrice.Add(txnFee).Add(basePrice)) <= 0 {
-		return modules.RenterContract{}, errors.New("insufficient funds to cover contract fee and transaction fee during contract renewal")
-	}
-	// Divide by zero check.
-	if host.StoragePrice.IsZero() {
-		host.StoragePrice = types.NewCurrency64(1)
-	}
+	txnFee := maxFee.Mul64(modules.EstimatedFileContractTransactionSetSize)
 
 	// Calculate the payouts for the renter, host, and whole contract.
-	renterPayout := funding.Sub(host.ContractPrice).Sub(txnFee).Sub(basePrice) // renter payout is pre-tax
-	maxStorageSize := renterPayout.Div(host.StoragePrice)
-	hostCollateral := maxStorageSize.Mul(host.Collateral)
-	if hostCollateral.Cmp(host.MaxCollateral) > 0 {
-		hostCollateral = host.MaxCollateral
+	period := endHeight - startHeight
+	expectedStorage := modules.DefaultUsageGuideLines.ExpectedStorage
+	renterPayout, hostPayout, hostCollateral, err := modules.RenterPayoutsPreTax(host, funding, txnFee, basePrice, period, expectedStorage)
+	if err != nil {
+		return modules.RenterContract{}, err
 	}
-
-	// Determine the host payout and the total payout for the contract.
-	hostPayout := hostCollateral.Add(host.ContractPrice).Add(basePrice)
 	totalPayout := renterPayout.Add(hostPayout)
 
 	// check for negative currency
@@ -134,11 +122,11 @@ func (cs *ContractSet) Renew(oldContract *SafeContract, params ContractParams, t
 		return modules.RenterContract{}, errors.New("couldn't initiate RPC: " + err.Error())
 	}
 	// verify that both parties are renewing the same contract
-	if err = verifyRecentRevision(conn, contract, host.Version); err != nil {
-		// don't add context; want to preserve the original error type so that
-		// callers can check using IsRevisionMismatch
+	err = verifyRecentRevision(conn, oldContract, host.Version)
+	if err != nil {
 		return modules.RenterContract{}, err
 	}
+
 	// verify the host's settings and confirm its identity
 	host, err = verifySettings(conn, host)
 	if err != nil {
@@ -221,7 +209,7 @@ func (cs *ContractSet) Renew(oldContract *SafeContract, params ContractParams, t
 		FileContractRevisions: []types.FileContractRevision{initRevision},
 		TransactionSignatures: []types.TransactionSignature{renterRevisionSig},
 	}
-	encodedSig := crypto.SignHash(revisionTxn.SigHash(0), ourSK)
+	encodedSig := crypto.SignHash(revisionTxn.SigHash(0, startHeight), ourSK)
 	revisionTxn.TransactionSignatures[0].Signature = encodedSig[:]
 
 	// Send acceptance and signatures

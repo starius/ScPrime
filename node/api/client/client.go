@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/NebulousLabs/Sia/node/api"
-	"github.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/Sia/node/api"
+	"gitlab.com/SiaPrime/errors"
 )
 
 // A Client makes requests to the siad HTTP API.
@@ -43,7 +43,7 @@ func (c *Client) NewRequest(method, resource string, body io.Reader) (*http.Requ
 	}
 	agent := c.UserAgent
 	if agent == "" {
-		agent = "Sia-Agent"
+		agent = "SiaPrime-Agent"
 	}
 	req.Header.Set("User-Agent", agent)
 	if c.Password != "" {

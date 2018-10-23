@@ -9,8 +9,9 @@ import (
 	"hash"
 	"unsafe"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
 )
 
 const (
@@ -101,8 +102,42 @@ func (b Block) CalculateMinerFees() Currency {
 // subsidy.
 func (b Block) CalculateSubsidy(height BlockHeight) Currency {
 	subsidy := CalculateCoinbase(height)
-	subsidy = subsidy.Add(b.CalculateMinerFees())
+	for _, txn := range b.Transactions {
+		for _, fee := range txn.MinerFees {
+			subsidy = subsidy.Add(fee)
+		}
+	}
 	return subsidy
+}
+
+// CalculateSubsidies takes a block and a height and determines the block
+// subsidies for miners and the dev fund.
+func (b Block) CalculateSubsidies(height BlockHeight) (Currency, Currency) {
+	coinbase := CalculateCoinbase(height)
+	devFundInitialBlockHeight := DevFundInitialBlockHeight
+	devFundDecaySchedule := DevFundDecaySchedule
+	devFundInitialPercentage := DevFundInitialPercentage
+	devFundFinalPercentage := DevFundFinalPercentage
+	devSubsidy := coinbase.MulFloat(0)
+
+	devFundPercentage := float64(0)
+	tempHeight := devFundInitialBlockHeight
+	if height > tempHeight {
+		devFundPercentage = devFundInitialPercentage
+		for height > tempHeight && devFundPercentage > devFundFinalPercentage {
+			devFundPercentage = devFundPercentage - float64(.01)
+			tempHeight = tempHeight+BlockHeight(devFundDecaySchedule)
+		}
+		devSubsidy = coinbase.MulFloat(devFundPercentage)
+	}
+	minerSubsidy := coinbase.Sub(devSubsidy)
+	for _, txn := range b.Transactions {
+		for _, fee := range txn.MinerFees {
+			minerSubsidy = minerSubsidy.Add(fee)
+		}
+	}
+
+	return minerSubsidy, devSubsidy
 }
 
 // Header returns the header of a block.

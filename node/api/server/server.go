@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/node"
-	"github.com/NebulousLabs/Sia/node/api"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/node"
+	"gitlab.com/SiaPrime/Sia/node/api"
+	"gitlab.com/SiaPrime/Sia/types"
 
-	"github.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
 // A Server is a collection of siad modules that can be communicated with over

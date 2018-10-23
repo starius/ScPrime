@@ -11,15 +11,15 @@ import (
 
 	"github.com/coreos/bbolt"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/encoding"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/persist"
-	siasync "github.com/NebulousLabs/Sia/sync"
-	"github.com/NebulousLabs/Sia/types"
-	"github.com/NebulousLabs/errors"
-	"github.com/NebulousLabs/threadgroup"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/persist"
+	siasync "gitlab.com/SiaPrime/Sia/sync"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/SiaPrime/threadgroup"
 )
 
 const (
@@ -71,9 +71,10 @@ type Wallet struct {
 	// from the seeds, when checking new outputs or spending outputs, the seeds
 	// are not referenced at all. The seeds are only stored so that the user
 	// may access them.
-	seeds     []modules.Seed
-	keys      map[types.UnlockHash]spendableKey
-	lookahead map[types.UnlockHash]uint64
+	seeds        []modules.Seed
+	keys         map[types.UnlockHash]spendableKey
+	lookahead    map[types.UnlockHash]uint64
+	watchedAddrs map[types.UnlockHash]struct{}
 
 	// unconfirmedProcessedTransactions tracks unconfirmed transactions.
 	//
@@ -122,6 +123,7 @@ func (w *Wallet) Height() (types.BlockHeight, error) {
 
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	w.syncDB()
 
 	var height uint64
 	err := w.db.View(func(tx *bolt.Tx) error {
@@ -156,8 +158,9 @@ func NewCustomWallet(cs modules.ConsensusSet, tpool modules.TransactionPool, per
 		cs:    cs,
 		tpool: tpool,
 
-		keys:      make(map[types.UnlockHash]spendableKey),
-		lookahead: make(map[types.UnlockHash]uint64),
+		keys:         make(map[types.UnlockHash]spendableKey),
+		lookahead:    make(map[types.UnlockHash]uint64),
+		watchedAddrs: make(map[types.UnlockHash]struct{}),
 
 		unconfirmedSets: make(map[modules.TransactionSetID][]types.TransactionID),
 
@@ -168,25 +171,6 @@ func NewCustomWallet(cs modules.ConsensusSet, tpool modules.TransactionPool, per
 	err := w.initPersist()
 	if err != nil {
 		return nil, err
-	}
-
-	// begin the initial transaction
-	w.dbTx, err = w.db.Begin(true)
-	if err != nil {
-		w.log.Critical("ERROR: failed to start database update:", err)
-	}
-
-	// COMPATv131 we need to create the bucketProcessedTxnIndex if it doesn't exist
-	if w.dbTx.Bucket(bucketProcessedTransactions).Stats().KeyN > 0 &&
-		w.dbTx.Bucket(bucketProcessedTxnIndex).Stats().KeyN == 0 {
-		err = initProcessedTxnIndex(w.dbTx)
-		if err != nil {
-			return nil, err
-		}
-		// Save changes to disk
-		if err = w.syncDB(); err != nil {
-			return nil, err
-		}
 	}
 	return w, nil
 }

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/modules/renter/proto"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/modules/renter/proto"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 var errInvalidDownloader = errors.New("downloader has been invalidated because its contract is being renewed")
@@ -52,7 +52,6 @@ func (hd *hostDownloader) invalidate() {
 	}
 	hd.contractor.mu.Lock()
 	delete(hd.contractor.downloaders, hd.contractID)
-	delete(hd.contractor.revising, hd.contractID)
 	hd.contractor.mu.Unlock()
 }
 
@@ -70,7 +69,6 @@ func (hd *hostDownloader) Close() error {
 	hd.invalid = true
 	hd.contractor.mu.Lock()
 	delete(hd.contractor.downloaders, hd.contractID)
-	delete(hd.contractor.revising, hd.contractID)
 	hd.contractor.mu.Unlock()
 	return hd.downloader.Close()
 }
@@ -137,30 +135,8 @@ func (c *Contractor) Downloader(pk types.SiaPublicKey, cancel <-chan struct{}) (
 		return nil, errTooExpensive
 	}
 
-	// Acquire the revising lock for the contract, which excludes other threads
-	// from interacting with the contract.
-	//
-	// TODO: Because we have another layer of contract safety via the
-	// contractset, do we need the revising lock anymore?
-	c.mu.Lock()
-	alreadyRevising := c.revising[contract.ID]
-	if alreadyRevising {
-		c.mu.Unlock()
-		return nil, errors.New("already revising that contract")
-	}
-	c.revising[contract.ID] = true
-	c.mu.Unlock()
-	// release lock early if function returns an error
-	defer func() {
-		if err != nil {
-			c.mu.Lock()
-			delete(c.revising, contract.ID)
-			c.mu.Unlock()
-		}
-	}()
-
 	// create downloader
-	d, err := c.staticContracts.NewDownloader(host, contract.ID, c.hdb, cancel)
+	d, err := c.staticContracts.NewDownloader(host, contract.ID, height, c.hdb, cancel)
 	if err != nil {
 		return nil, err
 	}

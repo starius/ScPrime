@@ -96,17 +96,17 @@ import (
 // more difficult.
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"sync"
 
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/persist"
-	siasync "github.com/NebulousLabs/Sia/sync"
-	"github.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/persist"
+	siasync "gitlab.com/SiaPrime/Sia/sync"
+	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 var (
@@ -148,6 +148,7 @@ type Gateway struct {
 	// Utilities.
 	log        *persist.Logger
 	mu         sync.RWMutex
+	persist    persistence
 	persistDir string
 	threads    siasync.ThreadGroup
 
@@ -183,7 +184,25 @@ func (g *Gateway) Close() error {
 	}
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	return g.saveSync()
+	return errors.Compose(g.saveSync(), g.saveSyncNodes())
+}
+
+// DiscoverAddress discovers and returns the current public IP address of the
+// gateway. Contrary to Address, DiscoverAddress is blocking and might take
+// multiple minutes to return. A channel to cancel the discovery can be
+// supplied optionally. If nil is supplied, a reasonable timeout will be used
+// by default.
+func (g *Gateway) DiscoverAddress(cancel <-chan struct{}) (modules.NetAddress, error) {
+	return g.managedLearnHostname(cancel)
+}
+
+// ForwardPort adds a port mapping to the router.
+func (g *Gateway) ForwardPort(port string) error {
+	if err := g.threads.Add(); err != nil {
+		return err
+	}
+	defer g.threads.Done()
+	return g.managedForwardPort(port)
 }
 
 // New returns an initialized Gateway.
@@ -242,9 +261,13 @@ func New(addr string, bootstrap bool, persistDir string) (*Gateway, error) {
 		g.UnregisterConnectCall("ShareNodes")
 	})
 
-	// Load the old node list. If it doesn't exist, no problem, but if it does,
-	// we want to know about any errors preventing us from loading it.
+	// Load the old node list and gateway persistence. If it doesn't exist, no
+	// problem, but if it does, we want to know about any errors preventing us
+	// from loading it.
 	if loadErr := g.load(); loadErr != nil && !os.IsNotExist(loadErr) {
+		return nil, loadErr
+	}
+	if loadErr := g.loadNodes(); loadErr != nil && !os.IsNotExist(loadErr) {
 		return nil, loadErr
 	}
 	// Spawn the thread to periodically save the gateway.
@@ -252,11 +275,13 @@ func New(addr string, bootstrap bool, persistDir string) (*Gateway, error) {
 	// Make sure that the gateway saves after shutdown.
 	g.threads.AfterStop(func() {
 		g.mu.Lock()
-		err = g.saveSync()
-		g.mu.Unlock()
-		if err != nil {
+		if err := g.saveSync(); err != nil {
 			g.log.Println("ERROR: Unable to save gateway:", err)
 		}
+		if err := g.saveSyncNodes(); err != nil {
+			g.log.Println("ERROR: Unable to save gateway nodes:", err)
+		}
+		g.mu.Unlock()
 	})
 
 	// Add the bootstrap peers to the node list.

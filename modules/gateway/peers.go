@@ -6,11 +6,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/encoding"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/types"
-	"github.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 var (
@@ -467,7 +467,7 @@ func (g *Gateway) managedConnect(addr modules.NetAddress) error {
 	g.addNode(addr)
 	g.nodes[addr].WasOutboundPeer = true
 
-	if err := g.saveSync(); err != nil {
+	if err := g.saveSyncNodes(); err != nil {
 		g.log.Println("ERROR: Unable to save new outbound peer to gateway:", err)
 	}
 

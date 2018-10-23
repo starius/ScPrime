@@ -125,16 +125,18 @@ package renter
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/types"
 
-	"github.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
 type (
@@ -163,7 +165,6 @@ type (
 
 		// Retrieval settings for the file.
 		staticLatencyTarget time.Duration // In milliseconds. Lower latency results in lower total system throughput.
-		staticOverdrive     int           // How many extra pieces to download to prevent slow hosts from being a bottleneck.
 		staticPriority      uint64        // Downloads with higher priority will complete first.
 
 		// Utilities.
@@ -284,11 +285,14 @@ func (r *Renter) managedDownload(p modules.RenterDownloadParameters) (*download,
 	if p.Destination != "" && !filepath.IsAbs(p.Destination) {
 		return nil, errors.New("destination must be an absolute path")
 	}
-	if p.Offset == file.size {
+	if p.Offset == file.size && file.size != 0 {
 		return nil, errors.New("offset equals filesize")
 	}
 	// Sentinel: if length == 0, download the entire file.
 	if p.Length == 0 {
+		if p.Offset > file.size {
+			return nil, errors.New("offset cannot be greater than file size")
+		}
 		p.Length = file.size - p.Offset
 	}
 	// Check whether offset and length is valid.
@@ -309,6 +313,15 @@ func (r *Renter) managedDownload(p modules.RenterDownloadParameters) (*download,
 		}
 		dw = osFile
 		destinationType = "file"
+	}
+
+	// If the destination is a httpWriter, we set the Content-Length in the
+	// header.
+	if isHTTPResp {
+		w, ok := p.Httpwriter.(http.ResponseWriter)
+		if ok {
+			w.Header().Set("Content-Length", fmt.Sprint(p.Length))
+		}
 	}
 
 	// Create the download object.
@@ -345,8 +358,8 @@ func (r *Renter) managedNewDownload(params downloadParams) (*download, error) {
 	if params.file == nil {
 		return nil, errors.New("no file provided when requesting download")
 	}
-	if params.length <= 0 {
-		return nil, errors.New("download length must be a positive whole number")
+	if params.length < 0 {
+		return nil, errors.New("download length must be zero or a positive whole number")
 	}
 	if params.offset < 0 {
 		return nil, errors.New("download offset cannot be a negative number")
@@ -367,7 +380,6 @@ func (r *Renter) managedNewDownload(params downloadParams) (*download, error) {
 		staticLatencyTarget:   params.latencyTarget,
 		staticLength:          params.length,
 		staticOffset:          params.offset,
-		staticOverdrive:       params.overdrive,
 		staticSiaPath:         params.file.name,
 		staticPriority:        params.priority,
 
@@ -378,6 +390,10 @@ func (r *Renter) managedNewDownload(params downloadParams) (*download, error) {
 	// Determine which chunks to download.
 	minChunk := params.offset / params.file.staticChunkSize()
 	maxChunk := (params.offset + params.length - 1) / params.file.staticChunkSize()
+	// Protect maxChunk underflow on tiny files
+	if params.file.size < 4096 {
+		maxChunk = 0
+	}
 
 	// For each chunk, assemble a mapping from the contract id to the index of
 	// the piece within the chunk that the contract is responsible for.
@@ -476,8 +492,8 @@ func (r *Renter) managedNewDownload(params downloadParams) (*download, error) {
 }
 
 // DownloadHistory returns the list of downloads that have been performed. Will
-// include downloads that have not yet completed. Downloads will be roughly, but
-// not precisely, sorted according to start time.
+// include downloads that have not yet completed. Downloads will be roughly,
+// but not precisely, sorted according to start time.
 //
 // TODO: Currently the DownloadHistory only contains downloads from this
 // session, does not contain downloads that were executed for the purposes of
@@ -505,6 +521,7 @@ func (r *Renter) DownloadHistory() []modules.DownloadInfo {
 			EndTime:              d.endTime,
 			Received:             atomic.LoadUint64(&d.atomicDataReceived),
 			StartTime:            d.staticStartTime,
+			StartTimeUnix:        d.staticStartTime.UnixNano(),
 			TotalDataTransferred: atomic.LoadUint64(&d.atomicTotalDataTransferred),
 		}
 		// Release download lock before calling d.Err(), which will acquire the
@@ -518,4 +535,48 @@ func (r *Renter) DownloadHistory() []modules.DownloadInfo {
 		}
 	}
 	return downloads
+}
+
+// ClearDownloadHistory clears the renter's download history inclusive of the
+// provided before and after timestamps
+//
+// TODO: This function can be improved by implementing a binary search, the
+// trick will be making the binary search be just as readable while handling
+// all the edge cases
+func (r *Renter) ClearDownloadHistory(after, before time.Time) error {
+	if err := r.tg.Add(); err != nil {
+		return err
+	}
+	defer r.tg.Done()
+	r.downloadHistoryMu.Lock()
+	defer r.downloadHistoryMu.Unlock()
+
+	// Check to confirm there are downloads to clear
+	if len(r.downloadHistory) == 0 {
+		return nil
+	}
+
+	// Timestamp validation
+	if before.Before(after) {
+		return errors.New("before timestamp can not be newer then after timestamp")
+	}
+
+	// Clear download history if both before and after timestamps are zero values
+	if before.Equal(types.EndOfTime) && after.IsZero() {
+		r.downloadHistory = r.downloadHistory[:0]
+		return nil
+	}
+
+	// Find and return downloads that are not within the given range
+	withinTimespan := func(t time.Time) bool {
+		return (t.After(after) || t.Equal(after)) && (t.Before(before) || t.Equal(before))
+	}
+	filtered := r.downloadHistory[:0]
+	for _, d := range r.downloadHistory {
+		if !withinTimespan(d.staticStartTime) {
+			filtered = append(filtered, d)
+		}
+	}
+	r.downloadHistory = filtered
+	return nil
 }

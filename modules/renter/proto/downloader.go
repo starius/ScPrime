@@ -5,12 +5,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/encoding"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 
-	"github.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
 // A Downloader retrieves sectors by calling the download RPC on a host.
@@ -24,6 +24,8 @@ type Downloader struct {
 	hdb         hostDB
 	host        modules.HostDBEntry
 	once        sync.Once
+
+	height types.BlockHeight
 }
 
 // Sector retrieves the sector with the specified Merkle root, and revises
@@ -97,7 +99,7 @@ func (hd *Downloader) Sector(root crypto.Hash) (_ modules.RenterContract, _ []by
 
 	// send the revision to the host for approval
 	extendDeadline(hd.conn, connTimeout)
-	signedTxn, err := negotiateRevision(hd.conn, rev, contract.SecretKey)
+	signedTxn, err := negotiateRevision(hd.conn, rev, contract.SecretKey, hd.height)
 	if err == modules.ErrStopResponse {
 		// if host gracefully closed, close our connection as well; this will
 		// cause the next download to fail. However, we must delay closing
@@ -156,7 +158,7 @@ func (hd *Downloader) Close() error {
 
 // NewDownloader initiates the download request loop with a host, and returns a
 // Downloader.
-func (cs *ContractSet) NewDownloader(host modules.HostDBEntry, id types.FileContractID, hdb hostDB, cancel <-chan struct{}) (_ *Downloader, err error) {
+func (cs *ContractSet) NewDownloader(host modules.HostDBEntry, id types.FileContractID, currentHeight types.BlockHeight, hdb hostDB, cancel <-chan struct{}) (_ *Downloader, err error) {
 	sc, ok := cs.Acquire(id)
 	if !ok {
 		return nil, errors.New("invalid contract")
@@ -181,20 +183,9 @@ func (cs *ContractSet) NewDownloader(host modules.HostDBEntry, id types.FileCont
 		}
 	}()
 
-	conn, closeChan, err := initiateRevisionLoop(host, contract, modules.RPCDownload, cancel, cs.rl)
-	if IsRevisionMismatch(err) && len(sc.unappliedTxns) > 0 {
-		// we have desynced from the host. If we have unapplied updates from the
-		// WAL, try applying them.
-		conn, closeChan, err = initiateRevisionLoop(host, sc.unappliedHeader(), modules.RPCDownload, cancel, cs.rl)
-		if err != nil {
-			return nil, err
-		}
-		// applying the updates was successful; commit them to disk
-		if err := sc.commitTxns(); err != nil {
-			return nil, err
-		}
-	} else if err != nil {
-		return nil, err
+	conn, closeChan, err := initiateRevisionLoop(host, sc, modules.RPCDownload, cancel, cs.rl)
+	if err != nil {
+		return nil, errors.AddContext(err, "failed to initiate revision loop")
 	}
 	// if we succeeded, we can safely discard the unappliedTxns
 	for _, txn := range sc.unappliedTxns {
@@ -211,5 +202,7 @@ func (cs *ContractSet) NewDownloader(host modules.HostDBEntry, id types.FileCont
 		closeChan:   closeChan,
 		deps:        cs.deps,
 		hdb:         hdb,
+
+		height: currentHeight,
 	}, nil
 }

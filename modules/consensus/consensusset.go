@@ -9,14 +9,14 @@ package consensus
 import (
 	"errors"
 
-	"github.com/NebulousLabs/Sia/encoding"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/persist"
-	siasync "github.com/NebulousLabs/Sia/sync"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/persist"
+	siasync "gitlab.com/SiaPrime/Sia/sync"
+	"gitlab.com/SiaPrime/Sia/types"
 
-	"github.com/NebulousLabs/demotemutex"
 	"github.com/coreos/bbolt"
+	"gitlab.com/SiaPrime/demotemutex"
 )
 
 var (
@@ -131,6 +131,17 @@ func NewCustomConsensusSet(gateway modules.Gateway, bootstrap bool, persistDir s
 
 		staticDeps: deps,
 		persistDir: persistDir,
+	}
+
+	// Create the diffs for the genesis siacoin outputs.
+	for i, siacoinOutput := range types.GenesisBlock.Transactions[0].SiacoinOutputs {
+		scid := types.GenesisBlock.Transactions[0].SiacoinOutputID(uint64(i))
+		scod := modules.SiacoinOutputDiff{
+			Direction:     modules.DiffApply,
+			ID:            scid,
+			SiacoinOutput: siacoinOutput,
+		}
+		cs.blockRoot.SiacoinOutputDiffs = append(cs.blockRoot.SiacoinOutputDiffs, scod)
 	}
 
 	// Create the diffs for the genesis siafund outputs.

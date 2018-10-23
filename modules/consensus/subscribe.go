@@ -4,11 +4,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/modules"
 
-	siasync "github.com/NebulousLabs/Sia/sync"
 	"github.com/coreos/bbolt"
+	siasync "gitlab.com/SiaPrime/Sia/sync"
 )
 
 // computeConsensusChange computes the consensus change from the change entry

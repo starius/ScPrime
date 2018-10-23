@@ -5,15 +5,72 @@ import (
 	"io"
 	"time"
 
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/types"
 
-	"github.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
-// ErrHostFault is an error that is usually extended to indicate that an error
-// is the host's fault.
-var ErrHostFault = errors.New("host has returned an error")
+var (
+	// DefaultAllowance is the set of default allowance settings that will be
+	// used when allowances are not set or not fully set
+	DefaultAllowance = Allowance{
+		Funds:       types.SiacoinPrecision.Mul64(500),
+		Hosts:       uint64(PriceEstimationScope),
+		Period:      types.BlockHeight(12096),
+		RenewWindow: types.BlockHeight(4032),
+	}
+
+	// ErrHostFault is an error that is usually extended to indicate that an error
+	// is the host's fault.
+	ErrHostFault = errors.New("host has returned an error")
+
+	// PriceEstimationScope is the number of hosts that get queried by the
+	// renter when providing price estimates. Especially for the 'Standard'
+	// variable, there should be congruence with the number of contracts being
+	// used in the renter allowance.
+	PriceEstimationScope = build.Select(build.Var{
+		Standard: int(50),
+		Dev:      int(12),
+		Testing:  int(4),
+	}).(int)
+
+	// DefaultUsageGuideLines is a sane set of guidelines.
+	DefaultUsageGuideLines = UsageGuidelines{
+		ExpectedStorage:           25e9,
+		ExpectedUploadFrequency:   24192,
+		ExpectedDownloadFrequency: 12096,
+		ExpectedRedundancy:        3.0,
+	}
+)
+
+// UsageGuidelines is a temporary helper struct.
+// TODO: These values should be rolled into the allowance, instead of being a
+// separate struct that we pass in.
+//
+// expectedStorage is the amount of data that we expect to have in a contract.
+//
+// expectedUploadFrequency is the expected number of blocks between each
+// complete re-upload of the filesystem. This will be a combination of the rate
+// at which a user uploads files, the rate at which a user replaces files, and
+// the rate at which a user has to repair files due to host churn. If the
+// expected storage is 25 GB and the expected upload frequency is 24 weeks, it
+// means the user is expected to do about 1 GB of upload per week on average
+// throughout the life of the contract.
+//
+// expectedDownloadFrequency is the expected number of blocks between each
+// complete download of the filesystem. This should include the user
+// downloading, streaming, and repairing files.
+//
+// expectedDataPieces and expectedParityPieces are used to give information
+// about the redundancy of the files being uploaded.
+type UsageGuidelines struct {
+	ExpectedStorage           uint64
+	ExpectedUploadFrequency   uint64
+	ExpectedDownloadFrequency uint64
+	ExpectedRedundancy        float64
+}
 
 // IsHostsFault indicates if a returned error is the host's fault.
 func IsHostsFault(err error) bool {
@@ -24,6 +81,13 @@ const (
 	// RenterDir is the name of the directory that is used to store the
 	// renter's persistent data.
 	RenterDir = "renter"
+
+	// EstimatedFileContractTransactionSetSize is the estimated blockchain size
+	// of a transaction set between a renter and a host that contains a file
+	// contract. This transaction set will contain a setup transaction from each
+	// the host and the renter, and will also contain a file contract and file
+	// contract revision that have each been signed by all parties.
+	EstimatedFileContractTransactionSetSize = 2048
 )
 
 // An ErasureCoder is an error-correcting encoder and decoder.
@@ -82,6 +146,7 @@ type DownloadInfo struct {
 	Error                string    `json:"error"`                // Will be the empty string unless there was an error.
 	Received             uint64    `json:"received"`             // Amount of data confirmed and decoded.
 	StartTime            time.Time `json:"starttime"`            // The time when the download was started.
+	StartTimeUnix        int64     `json:"starttimeunix"`        // The time when the download was started in unix format.
 	TotalDataTransferred uint64    `json:"totaldatatransferred"` // Total amount of data transferred, including negotiation, etc.
 }
 
@@ -104,6 +169,8 @@ type FileInfo struct {
 	UploadedBytes  uint64            `json:"uploadedbytes"`
 	UploadProgress float64           `json:"uploadprogress"`
 	Expiration     types.BlockHeight `json:"expiration"`
+	OnDisk         bool              `json:"ondisk"`
+	Recoverable    bool              `json:"recoverable"`
 }
 
 // A HostDBEntry represents one host entry in the Renter's host DB. It
@@ -121,12 +188,17 @@ type HostDBEntry struct {
 	HistoricUptime   time.Duration `json:"historicuptime"`
 	ScanHistory      HostDBScans   `json:"scanhistory"`
 
+	// Measurements that are taken whenever we interact with a host.
 	HistoricFailedInteractions     float64 `json:"historicfailedinteractions"`
 	HistoricSuccessfulInteractions float64 `json:"historicsuccessfulinteractions"`
 	RecentFailedInteractions       float64 `json:"recentfailedinteractions"`
 	RecentSuccessfulInteractions   float64 `json:"recentsuccessfulinteractions"`
 
-	LastHistoricUpdate types.BlockHeight
+	LastHistoricUpdate types.BlockHeight `json:"lasthistoricupdate"`
+
+	// Measurements related to the IP subnet mask.
+	IPNets          []string  `json:"ipnets"`
+	LastIPNetChange time.Time `json:"lastipnetchange"`
 
 	// The public key of the host, stored separately to minimize risk of certain
 	// MitM based vulnerabilities.
@@ -321,10 +393,13 @@ type Renter interface {
 	// Close closes the Renter.
 	Close() error
 
-	// Contracts returns the active contracts formed by the renter.
+	// CancelContract cancels a specific contract of the renter.
+	CancelContract(id types.FileContractID) error
+
+	// Contracts returns the staticContracts of the renter's hostContractor.
 	Contracts() []RenterContract
 
-	// OldContracts returns the old contracts formed by the renter.
+	// OldContracts returns the oldContracts of the renter's hostContractor.
 	OldContracts() []RenterContract
 
 	// ContractUtility provides the contract utility for a given host key.
@@ -348,6 +423,10 @@ type Renter interface {
 	// Download performs a download according to the parameters passed without
 	// blocking, including downloads of `offset` and `length` type.
 	DownloadAsync(params RenterDownloadParameters) error
+
+	// ClearDownloadHistory clears the download history of the renter
+	// inclusive for before and after times.
+	ClearDownloadHistory(after, before time.Time) error
 
 	// DownloadHistory lists all the files that have been scheduled for download.
 	DownloadHistory() []DownloadInfo
@@ -375,14 +454,14 @@ type Renter interface {
 
 	// PriceEstimation estimates the cost in siacoins of performing various
 	// storage and data operations.
-	PriceEstimation() RenterPriceEstimation
+	PriceEstimation(allowance Allowance) (RenterPriceEstimation, Allowance, error)
 
 	// RenameFile changes the path of a file.
 	RenameFile(path, newPath string) error
 
 	// EstimateHostScore will return the score for a host with the provided
 	// settings, assuming perfect age and uptime adjustments
-	EstimateHostScore(entry HostDBEntry) HostScoreBreakdown
+	EstimateHostScore(entry HostDBEntry, allowance Allowance) HostScoreBreakdown
 
 	// ScoreBreakdown will return the score for a host db entry using the
 	// hostdb's weighting algorithm.
@@ -393,6 +472,10 @@ type Renter interface {
 
 	// SetSettings sets the Renter's settings.
 	SetSettings(RenterSettings) error
+
+	// SetFileTrackingPath sets the on-disk location of an uploaded file to a
+	// new value. Useful if files need to be moved on disk.
+	SetFileTrackingPath(siaPath, newPath string) error
 
 	// ShareFiles creates a '.sia' file that can be shared with others.
 	ShareFiles(paths []string, shareDest string) error

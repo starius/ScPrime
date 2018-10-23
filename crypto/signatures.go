@@ -5,8 +5,8 @@ import (
 	"errors"
 	"io"
 
-	"github.com/NebulousLabs/Sia/encoding"
-	"github.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/fastrand"
 
 	"golang.org/x/crypto/ed25519"
 )
@@ -80,7 +80,7 @@ func ReadSignedObject(r io.Reader, obj interface{}, maxLen uint64, pk PublicKey)
 		return err
 	}
 	// read the encoded object
-	encObj, err := encoding.ReadPrefix(r, maxLen)
+	encObj, err := encoding.ReadPrefixedBytes(r, maxLen)
 	if err != nil {
 		return err
 	}

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/types"
-	"github.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 var (
@@ -18,7 +18,7 @@ var (
 // correct miner payouts and a random transaction to prevent collisions and
 // overlapping work with other blocks being mined in parallel or for different
 // forks (during testing).
-func (m *Miner) blockForWork() types.Block {
+func (m *Miner) blockForWorkWithoutDevFund() types.Block {
 	b := m.persist.UnsolvedBlock
 
 	// Update the timestamp.
@@ -44,6 +44,49 @@ func (m *Miner) blockForWork() types.Block {
 	b.Transactions = append([]types.Transaction{randTxn}, b.Transactions...)
 
 	return b
+}
+
+// blockForWork returns a block that is ready for nonce grinding, including
+// correct miner payouts and a random transaction to prevent collisions and
+// overlapping work with other blocks being mined in parallel or for different
+// forks (during testing).
+func (m *Miner) blockForWorkWithDevFund() types.Block {
+	b := m.persist.UnsolvedBlock
+
+	// Update the timestamp.
+	if b.Timestamp < types.CurrentTimestamp() {
+		b.Timestamp = types.CurrentTimestamp()
+	}
+
+	// Update the address + payouts.
+	err := m.checkAddress()
+	if err != nil {
+		m.log.Println(err)
+	}
+	devPayoutVal, minerPayoutVal := b.CalculateSubsidies(m.persist.Height + 1)
+	b.MinerPayouts = []types.SiacoinOutput{{
+		Value:      minerPayoutVal,
+		UnlockHash: m.persist.Address,
+	}, {
+		Value:      devPayoutVal,
+		UnlockHash: types.DevFundUnlockHash,
+	}}
+
+	// Add an arb-data txn to the block to create a unique merkle root.
+	randBytes := fastrand.Bytes(types.SpecifierLen)
+	randTxn := types.Transaction{
+		ArbitraryData: [][]byte{append(modules.PrefixNonSia[:], randBytes...)},
+	}
+	b.Transactions = append([]types.Transaction{randTxn}, b.Transactions...)
+
+	return b
+}
+
+// always return blockForWorkWithDevFund as that is valid and it will let
+// miners show support for the SiaPrime softfork before the soft fork block
+// height is reached.
+func (m *Miner) blockForWork() types.Block {
+	return m.blockForWorkWithDevFund()
 }
 
 // newSourceBlock creates a new source block for the block manager so that new

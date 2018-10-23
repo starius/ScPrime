@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/persist"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 var (
@@ -323,16 +323,32 @@ func (r *Renter) FileList() []modules.FileInfo {
 		if exists {
 			localPath = tf.RepairPath
 		}
+		// Check for 0byte files
+		//
+		// TODO - once tiny files are stored in the metadata this code should be
+		// able to be cleaned up.
+		var redundancy, uploadProgress float64
+		if f.size == 0 {
+			redundancy = float64(f.erasureCode.NumPieces()) / float64(f.erasureCode.MinPieces())
+			uploadProgress = 100
+		} else {
+			redundancy = f.redundancy(offline, goodForRenew)
+			uploadProgress = f.uploadProgress()
+		}
+		_, err := os.Stat(localPath)
+		onDisk := !os.IsNotExist(err)
 		fileList = append(fileList, modules.FileInfo{
 			SiaPath:        f.name,
 			LocalPath:      localPath,
 			Filesize:       f.size,
 			Renewing:       renewing,
 			Available:      f.available(offline),
-			Redundancy:     f.redundancy(offline, goodForRenew),
+			Redundancy:     redundancy,
 			UploadedBytes:  f.uploadedBytes(),
-			UploadProgress: f.uploadProgress(),
+			UploadProgress: uploadProgress,
 			Expiration:     f.expiration(),
+			OnDisk:         onDisk,
+			Recoverable:    onDisk || redundancy >= 1,
 		})
 		f.mu.RUnlock()
 		r.mu.RUnlock(lockID)
@@ -380,16 +396,28 @@ func (r *Renter) File(siaPath string) (modules.FileInfo, error) {
 	if exists {
 		localPath = tf.RepairPath
 	}
+	var redundancy, uploadProgress float64
+	if file.size == 0 {
+		redundancy = float64(file.erasureCode.NumPieces()) / float64(file.erasureCode.MinPieces())
+		uploadProgress = 100
+	} else {
+		redundancy = file.redundancy(offline, goodForRenew)
+		uploadProgress = file.uploadProgress()
+	}
+	_, err := os.Stat(localPath)
+	onDisk := !os.IsNotExist(err)
 	fileInfo = modules.FileInfo{
 		SiaPath:        file.name,
 		LocalPath:      localPath,
 		Filesize:       file.size,
 		Renewing:       renewing,
 		Available:      file.available(offline),
-		Redundancy:     file.redundancy(offline, goodForRenew),
+		Redundancy:     redundancy,
 		UploadedBytes:  file.uploadedBytes(),
-		UploadProgress: file.uploadProgress(),
+		UploadProgress: uploadProgress,
 		Expiration:     file.expiration(),
+		OnDisk:         onDisk,
+		Recoverable:    onDisk || redundancy >= 1,
 	}
 
 	return fileInfo, nil

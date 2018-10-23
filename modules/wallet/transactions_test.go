@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // TestIntegrationTransactions checks that the transaction history is being
@@ -235,7 +235,7 @@ func TestProcessedTxnIndexCompatCode(t *testing.T) {
 	defer wt.closeWt()
 
 	// Mine blocks to get lots of processed transactions
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100; i++ {
 		if _, err := wt.miner.AddBlock(); err != nil {
 			t.Fatal(err)
 		}

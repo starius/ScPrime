@@ -3,9 +3,9 @@ package renter
 import (
 	"time"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
 )
 
 var (
@@ -86,6 +86,10 @@ const (
 	// DefaultMaxUploadSpeed is set to zero to indicate no limit, the user
 	// can set a custom MaxUploadSpeed through the API
 	DefaultMaxUploadSpeed = 0
+
+	// PriceEstimationSafetyFactor is the factor of safety used in the price
+	// estimation to account for any missed costs
+	PriceEstimationSafetyFactor = 1.33
 )
 
 var (

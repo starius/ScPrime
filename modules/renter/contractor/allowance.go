@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/NebulousLabs/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/modules"
 )
 
 var (
@@ -34,9 +34,6 @@ var (
 // set. The contracts cannot be used to create Editors or Downloads, and will
 // not be renewed.
 //
-// TODO: can an Editor or Downloader be used across renewals?
-// TODO: will hosts allow renewing the same contract twice?
-//
 // NOTE: At this time, transaction fees are not counted towards the allowance.
 // This means the contractor may spend more than allowance.Funds.
 func (c *Contractor) SetAllowance(a modules.Allowance) error {
@@ -63,9 +60,11 @@ func (c *Contractor) SetAllowance(a modules.Allowance) error {
 	c.log.Println("INFO: setting allowance to", a)
 	c.mu.Lock()
 	// set the current period to the blockheight if the existing allowance is
-	// empty
+	// empty. the current period is set in the past by the renew window to make sure
+	// the first period aligns with the first period contracts in the same way
+	// that future periods align with contracts
 	if reflect.DeepEqual(c.allowance, modules.Allowance{}) {
-		c.currentPeriod = c.blockHeight
+		c.currentPeriod = c.blockHeight - a.RenewWindow
 	}
 	c.allowance = a
 	err := c.saveSync()
@@ -89,6 +88,12 @@ func (c *Contractor) SetAllowance(a modules.Allowance) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// We changed the allowance successfully. Update the hostdb.
+	err = c.hdb.SetAllowance(a)
+	if err != nil {
+		return err
 	}
 
 	// Interrupt any existing maintenance and launch a new round of

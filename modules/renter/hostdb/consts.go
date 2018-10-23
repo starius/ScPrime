@@ -3,7 +3,7 @@ package hostdb
 import (
 	"time"
 
-	"github.com/NebulousLabs/Sia/build"
+	"gitlab.com/SiaPrime/Sia/build"
 )
 
 const (
@@ -41,7 +41,7 @@ const (
 	minScansForSpeedup = 25
 
 	// scanSpeedupMedianMultiplier is the number with which the median of the
-	// initial scans is multiplied to speedup the intial scan after
+	// initial scans is multiplied to speedup the initial scan after
 	// minScansForSpeedup successful scans.
 	scanSpeedupMedianMultiplier = 5
 

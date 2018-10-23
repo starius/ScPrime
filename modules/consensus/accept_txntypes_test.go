@@ -3,9 +3,9 @@ package consensus
 import (
 	"testing"
 
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/types"
-	"github.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // testBlockSuite tests a wide variety of blocks.
@@ -511,7 +511,7 @@ func (cst *consensusSetTester) testFileContractRevision() {
 		FileContractRevisions: []types.FileContractRevision{fcr},
 		TransactionSignatures: []types.TransactionSignature{ts},
 	}
-	encodedSig := crypto.SignHash(txn.SigHash(0), sk)
+	encodedSig := crypto.SignHash(txn.SigHash(0, 0), sk)
 	txn.TransactionSignatures[0].Signature = encodedSig[:]
 	err = cst.tpool.AcceptTransactionSet([]types.Transaction{txn})
 	if err != nil {

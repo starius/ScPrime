@@ -1,19 +1,20 @@
 package siatest
 
 import (
+	"fmt"
 	"math"
+	"path/filepath"
 	"reflect"
-	"strconv"
 	"sync"
 	"time"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/node"
-	"github.com/NebulousLabs/Sia/node/api/client"
-	"github.com/NebulousLabs/Sia/types"
-	"github.com/NebulousLabs/errors"
-	"github.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/node"
+	"gitlab.com/SiaPrime/Sia/node/api/client"
+	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/errors"
 )
 
 type (
@@ -48,13 +49,15 @@ var (
 
 // NewGroup creates a group of TestNodes from node params. All the nodes will
 // be connected, synced and funded. Hosts nodes are also announced.
-func NewGroup(nodeParams ...node.NodeParams) (*TestGroup, error) {
+func NewGroup(groupDir string, nodeParams ...node.NodeParams) (*TestGroup, error) {
 	// Create and init group
 	tg := &TestGroup{
 		nodes:   make(map[*TestNode]struct{}),
 		hosts:   make(map[*TestNode]struct{}),
 		renters: make(map[*TestNode]struct{}),
 		miners:  make(map[*TestNode]struct{}),
+
+		dir: groupDir,
 	}
 
 	// Create node and add it to the correct groups
@@ -86,7 +89,8 @@ func NewGroup(nodeParams ...node.NodeParams) (*TestGroup, error) {
 		return nil, errors.New("cannot fund group without miners")
 	}
 	miner := tg.Miners()[0]
-	for i := types.BlockHeight(0); i <= types.MaturityDelay+types.TaxHardforkHeight; i++ {
+	renewWindow := types.BlockHeight(DefaultAllowance.RenewWindow)
+	for i := types.BlockHeight(0); i <= types.MaturityDelay+types.TaxHardforkHeight+renewWindow; i++ {
 		if err := miner.MineBlock(); err != nil {
 			return nil, errors.AddContext(err, "failed to mine block for funding")
 		}
@@ -97,21 +101,24 @@ func NewGroup(nodeParams ...node.NodeParams) (*TestGroup, error) {
 
 // NewGroupFromTemplate will create hosts, renters and miners according to the
 // settings in groupParams.
-func NewGroupFromTemplate(groupParams GroupParams) (*TestGroup, error) {
+func NewGroupFromTemplate(groupDir string, groupParams GroupParams) (*TestGroup, error) {
 	var params []node.NodeParams
 	// Create host params
 	for i := 0; i < groupParams.Hosts; i++ {
-		params = append(params, node.Host(randomDir()))
+		params = append(params, node.HostTemplate)
+		randomNodeDir(groupDir, &params[len(params)-1])
 	}
 	// Create renter params
 	for i := 0; i < groupParams.Renters; i++ {
-		params = append(params, node.Renter(randomDir()))
+		params = append(params, node.RenterTemplate)
+		randomNodeDir(groupDir, &params[len(params)-1])
 	}
 	// Create miner params
 	for i := 0; i < groupParams.Miners; i++ {
-		params = append(params, Miner(randomDir()))
+		params = append(params, MinerTemplate)
+		randomNodeDir(groupDir, &params[len(params)-1])
 	}
-	return NewGroup(params...)
+	return NewGroup(groupDir, params...)
 }
 
 // addStorageFolderToHosts adds a single storage folder to each host.
@@ -136,6 +143,9 @@ func addStorageFolderToHosts(hosts map[*TestNode]struct{}) error {
 // announceHosts adds storage to each host and announces them to the group
 func announceHosts(hosts map[*TestNode]struct{}) error {
 	for host := range hosts {
+		if host.params.SkipHostAnnouncement {
+			continue
+		}
 		if err := host.HostModifySettingPost(client.HostParamAcceptingContracts, true); err != nil {
 			return errors.AddContext(err, "failed to set host to accepting contracts")
 		}
@@ -233,6 +243,9 @@ func hostsInRenterDBCheck(miner *TestNode, renters map[*TestNode]struct{}, hosts
 			continue
 		}
 		for host := range hosts {
+			if host.params.SkipHostAnnouncement {
+				continue
+			}
 			numRetries := 0
 			err := Retry(600, 100*time.Millisecond, func() error {
 				numRetries++
@@ -242,7 +255,7 @@ func hostsInRenterDBCheck(miner *TestNode, renters map[*TestNode]struct{}, hosts
 				}
 				// Check if the renter has the host in its db.
 				err := errors.AddContext(renter.KnowsHost(host), "renter doesn't know host")
-				if err != nil && numRetries%10 == 0 {
+				if err != nil && numRetries%100 == 0 {
 					return errors.Compose(err, miner.MineBlock())
 				}
 				if err != nil {
@@ -267,13 +280,36 @@ func mapToSlice(m map[*TestNode]struct{}) []*TestNode {
 	return tns
 }
 
-// randomDir is a helper functions that returns a random directory path
-func randomDir() string {
-	dir, err := TestDir(strconv.Itoa(fastrand.Intn(math.MaxInt32)))
-	if err != nil {
-		panic(errors.AddContext(err, "failed to create testing directory"))
+// randomNodeDir generates a random directory for the provided node params if
+// Dir wasn't set using the provided parentDir and a randomized suffix.
+func randomNodeDir(parentDir string, nodeParams *node.NodeParams) {
+	if nodeParams.Dir != "" {
+		return
 	}
-	return dir
+	nodeDir := ""
+	if nodeParams.Gateway != nil || nodeParams.CreateGateway {
+		nodeDir += "g"
+	}
+	if nodeParams.ConsensusSet != nil || nodeParams.CreateConsensusSet {
+		nodeDir += "c"
+	}
+	if nodeParams.TransactionPool != nil || nodeParams.CreateTransactionPool {
+		nodeDir += "t"
+	}
+	if nodeParams.Wallet != nil || nodeParams.CreateWallet {
+		nodeDir += "w"
+	}
+	if nodeParams.Renter != nil || nodeParams.CreateRenter {
+		nodeDir += "r"
+	}
+	if nodeParams.Host != nil || nodeParams.CreateHost {
+		nodeDir += "h"
+	}
+	if nodeParams.Miner != nil || nodeParams.CreateMiner {
+		nodeDir += "m"
+	}
+	nodeDir += fmt.Sprintf("-%s", persist.RandomSuffix())
+	nodeParams.Dir = filepath.Join(parentDir, nodeDir)
 }
 
 // setRenterAllowances sets the allowance of each renter
@@ -370,29 +406,42 @@ func waitForContracts(miner *TestNode, renters map[*TestNode]struct{}, hosts map
 		if uint64(len(hosts)) < expectedContracts {
 			expectedContracts = uint64(len(hosts))
 		}
+		// Subtract hosts which the renter doesn't know yet because they
+		// weren't announced automatically.
+		for host := range hosts {
+			if host.params.SkipHostAnnouncement && renter.KnowsHost(host) != nil {
+				expectedContracts--
+			}
+		}
 		// Check if number of contracts is sufficient.
-		err = Retry(1000, 100, func() error {
+		err = Retry(1000, 100*time.Millisecond, func() error {
 			numRetries++
 			contracts := uint64(0)
 			// Get the renter's contracts.
-			rc, err := renter.RenterContractsGet()
+			rc, err := renter.RenterInactiveContractsGet()
 			if err != nil {
 				return err
 			}
 			// Count number of contracts
-			for _, c := range rc.Contracts {
+			for _, c := range rc.ActiveContracts {
+				if _, exists := hostMap[string(c.HostPublicKey.Key)]; exists {
+					contracts++
+				}
+			}
+			for _, c := range rc.InactiveContracts {
 				if _, exists := hostMap[string(c.HostPublicKey.Key)]; exists {
 					contracts++
 				}
 			}
 			// Check if number is sufficient
 			if contracts < expectedContracts {
-				if numRetries%10 == 0 {
+				if numRetries%100 == 0 {
 					if err := miner.MineBlock(); err != nil {
 						return err
 					}
 				}
-				return errors.New("renter hasn't formed enough contracts")
+				return fmt.Errorf("renter hasn't formed enough contracts: expected %v got %v",
+					expectedContracts, contracts)
 			}
 			return nil
 		})
@@ -406,7 +455,7 @@ func waitForContracts(miner *TestNode, renters map[*TestNode]struct{}, hosts map
 }
 
 // AddNodeN adds n nodes of a given template to the group.
-func (tg *TestGroup) AddNodeN(np node.NodeParams, n int) error {
+func (tg *TestGroup) AddNodeN(np node.NodeParams, n int) ([]*TestNode, error) {
 	nps := make([]node.NodeParams, n)
 	for i := 0; i < n; i++ {
 		nps[i] = np
@@ -415,21 +464,21 @@ func (tg *TestGroup) AddNodeN(np node.NodeParams, n int) error {
 }
 
 // AddNodes creates a node and adds it to the group.
-func (tg *TestGroup) AddNodes(nps ...node.NodeParams) error {
+func (tg *TestGroup) AddNodes(nps ...node.NodeParams) ([]*TestNode, error) {
 	newNodes := make(map[*TestNode]struct{})
 	newHosts := make(map[*TestNode]struct{})
 	newRenters := make(map[*TestNode]struct{})
+	newMiners := make(map[*TestNode]struct{})
 	for _, np := range nps {
 		// Create the nodes and add them to the group.
-		if np.Dir == "" {
-			np.Dir = randomDir()
-		}
+		randomNodeDir(tg.dir, &np)
 		node, err := NewCleanNode(np)
 		if err != nil {
-			return build.ExtendErr("failed to create host", err)
+			return mapToSlice(newNodes), build.ExtendErr("failed to create host", err)
 		}
 		// Add node to nodes
 		tg.nodes[node] = struct{}{}
+		newNodes[node] = struct{}{}
 		// Add node to hosts
 		if np.Host != nil || np.CreateHost {
 			tg.hosts[node] = struct{}{}
@@ -443,11 +492,11 @@ func (tg *TestGroup) AddNodes(nps ...node.NodeParams) error {
 		// Add node to miners
 		if np.Miner != nil || np.CreateMiner {
 			tg.miners[node] = struct{}{}
+			newMiners[node] = struct{}{}
 		}
-		newNodes[node] = struct{}{}
 	}
 
-	return tg.setupNodes(newHosts, newNodes, newRenters)
+	return mapToSlice(newNodes), tg.setupNodes(newHosts, newNodes, newRenters)
 }
 
 // setupNodes does the set up required for creating a test group

@@ -3,8 +3,8 @@ package gateway
 import (
 	"time"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/modules"
 )
 
 const (
@@ -32,7 +32,7 @@ const (
 	// incoming connections. This version is usually raised if changes to the
 	// codebase were made that weren't backwards compatible. This might include
 	// changes to the protocol or hardforks.
-	minimumAcceptablePeerVersion = "1.3.1"
+	minimumAcceptablePeerVersion = "1.3.5"
 )
 
 var (

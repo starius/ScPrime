@@ -3,10 +3,10 @@ package host
 import (
 	"time"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 var (
@@ -150,7 +150,7 @@ func createRevisionSignature(fcr types.FileContractRevision, renterSig types.Tra
 		FileContractRevisions: []types.FileContractRevision{fcr},
 		TransactionSignatures: []types.TransactionSignature{renterSig, hostSig},
 	}
-	sigHash := txn.SigHash(1)
+	sigHash := txn.SigHash(1, blockHeight)
 	encodedSig := crypto.SignHash(sigHash, secretKey)
 	txn.TransactionSignatures[1].Signature = encodedSig[:]
 	err := modules.VerifyFileContractRevisionTransactionSignatures(fcr, txn.TransactionSignatures, blockHeight)

@@ -11,9 +11,9 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
 )
 
 // sanityCheckWriter checks that the bytes written to w exactly match the
@@ -634,6 +634,11 @@ func (fcr *FileContractRevision) UnmarshalSia(r io.Reader) error {
 	return d.Err()
 }
 
+// LoadString loads a FileContractID from a string
+func (fcid *FileContractID) LoadString(str string) error {
+	return (*crypto.Hash)(fcid).LoadString(str)
+}
+
 // MarshalJSON marshals an id as a hex string.
 func (fcid FileContractID) MarshalJSON() ([]byte, error) {
 	return json.Marshal(fcid.String())
@@ -800,6 +805,23 @@ func (spk *SiaPublicKey) String() string {
 	return spk.Algorithm.String() + ":" + fmt.Sprintf("%x", spk.Key)
 }
 
+// UnmarshalJSON unmarshals a SiaPublicKey as JSON.
+func (spk *SiaPublicKey) UnmarshalJSON(b []byte) error {
+	spk.LoadString(string(bytes.Trim(b, `"`)))
+	if spk.Key == nil {
+		// fallback to old (base64) encoding
+		var oldSPK struct {
+			Algorithm Specifier
+			Key       []byte
+		}
+		if err := json.Unmarshal(b, &oldSPK); err != nil {
+			return err
+		}
+		spk.Algorithm, spk.Key = oldSPK.Algorithm, oldSPK.Key
+	}
+	return nil
+}
+
 // MarshalJSON marshals a specifier as a string.
 func (s Specifier) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.String())
@@ -871,7 +893,7 @@ func (t Transaction) MarshalSia(w io.Writer) error {
 	}
 
 	e := encoder(w)
-	t.MarshalSiaNoSignatures(e)
+	t.marshalSiaNoSignatures(e)
 	e.WriteInt(len((t.TransactionSignatures)))
 	for i := range t.TransactionSignatures {
 		t.TransactionSignatures[i].MarshalSia(e)
@@ -879,9 +901,9 @@ func (t Transaction) MarshalSia(w io.Writer) error {
 	return e.Err()
 }
 
-// MarshalSiaNoSignatures is a helper function for calculating certain hashes
+// marshalSiaNoSignatures is a helper function for calculating certain hashes
 // that do not include the transaction's signatures.
-func (t Transaction) MarshalSiaNoSignatures(w io.Writer) {
+func (t Transaction) marshalSiaNoSignatures(w io.Writer) {
 	e := encoder(w)
 	e.WriteInt(len((t.SiacoinInputs)))
 	for i := range t.SiacoinInputs {

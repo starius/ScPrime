@@ -17,6 +17,7 @@ standards.
   * [A few guidelines](#naming)
   * [Basic test format](#basic)
   * [Table-driven tests](#table)
+  * [Siatest Package](#siatest)
 * [Questions?](#questions)
 
 <a name="existing"></a>
@@ -127,7 +128,7 @@ go test -v -race -tags='testing debug' -timeout=300s ./persist -run=Test
 === RUN   TestRelativePathSafeFile
 --- PASS: TestRelativePathSafeFile (0.00s)
 PASS
-ok  	github.com/NebulousLabs/Sia/persist	1.485s
+ok  	gitlab.com/NebulousLabs/Sia/persist	1.485s
 $
 ``` 
 
@@ -225,6 +226,19 @@ func TestParseFilesize(t *testing.T) {
 	}
 }
 ```
+
+<a name="siatest">
+### Siatest Package
+When deciding what tests to write for Sia, you should consider whether the best
+test is a unit test or a siatest. Ideally both a unit test and a siatest is
+written for new code. A unit test should explicitly test the new code
+functionality and a siatest should test the integration of the code and how it
+affects the rest of the platform. All the tests in the siatest package should
+use the API to execute the test. The idea is that everything that is trying to
+be tested should be able to be controlled and verified through the API. If you
+are looking for a place to start, there are many examples of older tests that
+could be upgraded to siatests.
+
 <a name="questions"></a>
 ## Questions?
 Read these if you haven't already:
@@ -243,14 +257,14 @@ And feel free to ask questions on the [#core-dev channel][discord] on the Sia Di
 Odds are, someone else is wondering the same thing.
 
 [pkg/testing]: https://golang.org/pkg/testing/
-[makefile]: https://github.com/NebulousLabs/Sia/blob/master/Makefile
+[makefile]: https://gitlab.com/NebulousLabs/Sia/blob/master/Makefile
 [luke]: https://gist.github.com/lukechampine/6418449
-[guide]: https://github.com/NebulousLabs/Sia/blob/master/doc/Guide%20to%20Contributing%20to%20Sia.md
-[developers]: https://github.com/NebulousLabs/Sia/blob/master/doc/Developers.md
+[guide]: https://gitlab.com/NebulousLabs/Sia/blob/master/doc/Guide%20to%20Contributing%20to%20Sia.md
+[developers]: https://gitlab.com/NebulousLabs/Sia/blob/master/doc/Developers.md
 [table]: http://dave.cheney.net/2013/06/09/writing-table-driven-tests-in-go
-[boltdb_test.go]: https://github.com/NebulousLabs/Sia/blob/master/persist/boltdb_test.go
+[boltdb_test.go]: https://gitlab.com/NebulousLabs/Sia/blob/master/persist/boltdb_test.go
 [cheney-benchmarks]: http://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go
 [pkg/testing]: https://golang.org/pkg/testing/
 [discord]: https://discord.gg/sia
-[parse_test]: https://github.com/NebulousLabs/Sia/blob/master/siac/parse_test.go
+[parse_test]: https://gitlab.com/NebulousLabs/Sia/blob/master/siac/parse_test.go
 [global]: http://c2.com/cgi/wiki?GlobalVariablesAreBad

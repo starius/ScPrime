@@ -6,13 +6,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/encoding"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/persist"
-	"github.com/NebulousLabs/Sia/types"
-	"github.com/NebulousLabs/errors"
-	"github.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/SiaPrime/fastrand"
 
 	"github.com/coreos/bbolt"
 )
@@ -74,6 +74,9 @@ func (w *Wallet) openDB(filename string) (err error) {
 		if wb.Get(keySiafundPool) == nil {
 			wb.Put(keySiafundPool, encoding.Marshal(types.ZeroCurrency))
 		}
+		if wb.Get(keyWatchedAddrs) == nil {
+			wb.Put(keyWatchedAddrs, encoding.Marshal([]types.UnlockHash{}))
+		}
 
 		// build the bucketAddrTransactions bucket if necessary
 		if buildAddrTxns {
@@ -124,6 +127,27 @@ func (w *Wallet) initPersist() error {
 	if err != nil {
 		return err
 	}
+
+	// begin the initial transaction
+	w.dbTx, err = w.db.Begin(true)
+	if err != nil {
+		w.log.Critical("ERROR: failed to start database update:", err)
+	}
+
+	// COMPATv131 we need to create the bucketProcessedTxnIndex if it doesn't exist
+	if w.dbTx.Bucket(bucketProcessedTransactions).Stats().KeyN > 0 &&
+		w.dbTx.Bucket(bucketProcessedTxnIndex).Stats().KeyN == 0 {
+		err = initProcessedTxnIndex(w.dbTx)
+		if err != nil {
+			return err
+		}
+		// Save changes to disk
+		if err = w.syncDB(); err != nil {
+			return err
+		}
+	}
+
+	// ensure that the final db transaction is committed when the wallet closes
 	err = w.tg.AfterStop(func() error {
 		var err error
 		if w.dbRollback {
@@ -143,6 +167,8 @@ func (w *Wallet) initPersist() error {
 	if err != nil {
 		return err
 	}
+
+	// spawn a goroutine to commit the db transaction at regular intervals
 	go w.threadedDBUpdate()
 	return nil
 }

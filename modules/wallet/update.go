@@ -3,9 +3,9 @@ package wallet
 import (
 	"math"
 
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/types"
-	"github.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/errors"
 
 	"github.com/coreos/bbolt"
 )
@@ -71,10 +71,11 @@ func (w *Wallet) advanceSeedLookahead(index uint64) (bool, error) {
 }
 
 // isWalletAddress is a helper function that checks if an UnlockHash is
-// derived from one of the wallet's spendable keys or future keys.
+// derived from one of the wallet's spendable keys or is being explicitly watched.
 func (w *Wallet) isWalletAddress(uh types.UnlockHash) bool {
-	_, exists := w.keys[uh]
-	return exists
+	_, spendable := w.keys[uh]
+	_, watchonly := w.watchedAddrs[uh]
+	return spendable || watchonly
 }
 
 // updateLookahead uses a consensus change to update the seed progress if one of the outputs

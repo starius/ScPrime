@@ -4,16 +4,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/modules/consensus"
-	"github.com/NebulousLabs/Sia/modules/gateway"
-	"github.com/NebulousLabs/Sia/modules/miner"
-	"github.com/NebulousLabs/Sia/modules/renter/hostdb"
-	"github.com/NebulousLabs/Sia/modules/transactionpool"
-	modWallet "github.com/NebulousLabs/Sia/modules/wallet" // name conflicts with type
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/modules/consensus"
+	"gitlab.com/SiaPrime/Sia/modules/gateway"
+	"gitlab.com/SiaPrime/Sia/modules/miner"
+	"gitlab.com/SiaPrime/Sia/modules/renter/hostdb"
+	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
+	modWallet "gitlab.com/SiaPrime/Sia/modules/wallet" // name conflicts with type
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // contractorTester contains all of the modules that are used while testing the contractor.
@@ -257,7 +257,7 @@ func TestReviseContract(t *testing.T) {
 	}
 
 	// sign the transaction
-	encodedSig := crypto.SignHash(signedTxn.SigHash(0), sk)
+	encodedSig := crypto.SignHash(signedTxn.SigHash(0, ct.cs.Height()), sk)
 	signedTxn.TransactionSignatures[0].Signature = encodedSig[:]
 
 	err = signedTxn.StandaloneValid(ct.contractor.blockHeight)

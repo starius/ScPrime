@@ -7,9 +7,11 @@ package types
 // sane, plus we have no coverage for them.
 
 import (
+	"math"
 	"math/big"
+	"time"
 
-	"github.com/NebulousLabs/Sia/build"
+	"gitlab.com/SiaPrime/Sia/build"
 )
 
 var (
@@ -19,6 +21,27 @@ var (
 	// BlockSizeLimit is the maximum size of a binary-encoded Block
 	// that is permitted by the consensus rules.
 	BlockSizeLimit = uint64(2e6)
+	// DevFundInitialBlockHeight is the height at which the dev fund became mandatory
+	DevFundInitialBlockHeight = BlockHeight(0)
+	// DevFundInitialPercentage is the percentage of the block subsidy that goes
+	// to support development of the network instead of the miners at the time of the
+	// DevFundInitialBlockHeight
+	DevFundInitialPercentage = float64(0.21)
+	// DevFundInitialPercentage is the percentage of the block subsidy that goes
+	// to support development of the network instead of the miners at the time of the
+	// DevFundInitialBlockHeight
+	DevFundFinalPercentage = float64(0.15)
+	// DevFundDecaySchedule is the rate at which the DevFundInitialPercentage decays
+	DevFundDecaySchedule = uint64(43200)
+	// DevFundUnlockHash is the unlock hash for the dev fund subsidy
+	// Do not set this to the Zero address as doing so will cause the test that 
+	// verifies that a dev fee is set to fail
+	DevFundUnlockHash = unlockHashFromAddrStr("e68b2c8e7a1e1c28782f70a62630bb8d1b480b49dbce422eafbb338de17eb00453918618bbd3")
+
+	// EndOfTime is value to be used when a date in the future is needed for
+	// validation
+	EndOfTime = time.Unix(0, math.MaxInt64)
+
 	// ExtremeFutureThreshold is a temporal limit beyond which Blocks are
 	// discarded by the consensus rules. When incoming Blocks are processed, their
 	// Timestamp is allowed to exceed the processor's current time by a small amount.
@@ -39,6 +62,9 @@ var (
 	// redundant computation.
 	GenesisID BlockID
 
+	// GenesisAirdropAllocation is the output creating the initial coins allocated
+	// for the airdrop at network launch
+	GenesisAirdropAllocation []SiacoinOutput
 	// GenesisSiafundAllocation is the set of SiafundOutputs created in the Genesis
 	// block.
 	GenesisSiafundAllocation []SiafundOutput
@@ -46,6 +72,12 @@ var (
 	GenesisTimestamp Timestamp
 	// InitialCoinbase is the coinbase reward of the Genesis block.
 	InitialCoinbase = uint64(300e3)
+	// AirdropCommunityValue is the total amount of coins the community members will split
+	// from the genesis block airdrop.
+	AirdropCommunityValue = NewCurrency64(2000000000).Mul(SiacoinPrecision).Div(NewCurrency64(10))
+	// AirdropPoolValue is the total amount of coins a pool gets from the genesis block
+	// airdrop so that they can pay out miners in the first 144 blocks
+	AirdropPoolValue = NewCurrency64(45000000).Mul(SiacoinPrecision).Div(NewCurrency64(10))
 	// MaturityDelay specifies the number of blocks that a maturity-required output
 	// is required to be on hold before it can be spent on the blockchain.
 	// Outputs are maturity-required if they are highly likely to be altered or
@@ -125,13 +157,30 @@ var (
 )
 
 var (
-	// TaxHardforkHeight is the height at which the tax hardfork occured.
+	// TaxHardforkHeight is the height at which the tax hardfork occurred.
 	TaxHardforkHeight = build.Select(build.Var{
 		Dev:      BlockHeight(10),
 		Standard: BlockHeight(21e3),
 		Testing:  BlockHeight(10),
 	}).(BlockHeight)
 )
+
+// scanAddress scans a types.UnlockHash from a string.
+func scanAddress(addrStr string) (addr UnlockHash, err error) {
+        err = addr.LoadString(addrStr)
+        if err != nil {
+                return UnlockHash{}, err
+        }
+        return addr, nil
+}
+
+func unlockHashFromAddrStr(addrStr string) (addr UnlockHash){
+	dest, err := scanAddress(addrStr)
+	if err != nil {
+		return UnlockHash{}
+	}
+	return dest
+}
 
 // init checks which build constant is in place and initializes the variables
 // accordingly.
@@ -162,6 +211,18 @@ func init() {
 		OakMaxBlockShift = 3
 		OakMaxRise = big.NewRat(102, 100)
 		OakMaxDrop = big.NewRat(100, 102)
+
+		GenesisAirdropAllocation = []SiacoinOutput{
+			{
+				Value:      AirdropCommunityValue,
+				UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+			},
+			{
+				Value:      AirdropPoolValue,
+                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+			},
+		}
+
 
 		GenesisSiafundAllocation = []SiafundOutput{
 			{
@@ -206,6 +267,18 @@ func init() {
 		OakMaxBlockShift = 3
 		OakMaxRise = big.NewRat(10001, 10e3)
 		OakMaxDrop = big.NewRat(10e3, 10001)
+
+		GenesisAirdropAllocation = []SiacoinOutput{
+			{
+				Value:      AirdropCommunityValue,
+                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+			},
+			{
+				Value:      AirdropPoolValue,
+                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+			},
+		}
+
 
 		GenesisSiafundAllocation = []SiafundOutput{
 			{
@@ -320,6 +393,18 @@ func init() {
 		// can get lucky and fake a ton of work.
 		OakMaxRise = big.NewRat(1004, 1e3)
 		OakMaxDrop = big.NewRat(1e3, 1004)
+
+		GenesisAirdropAllocation = []SiacoinOutput{
+			{
+				Value:      AirdropCommunityValue,
+                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+			},
+			{
+				Value:      AirdropPoolValue,
+                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+			},
+		}
+
 
 		GenesisSiafundAllocation = []SiafundOutput{
 			{
@@ -517,6 +602,7 @@ func init() {
 	GenesisBlock = Block{
 		Timestamp: GenesisTimestamp,
 		Transactions: []Transaction{
+			{SiacoinOutputs: GenesisAirdropAllocation},
 			{SiafundOutputs: GenesisSiafundAllocation},
 		},
 	}

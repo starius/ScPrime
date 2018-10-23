@@ -5,14 +5,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/encoding"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 
-	"github.com/NebulousLabs/errors"
-	"github.com/NebulousLabs/ratelimit"
+	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/SiaPrime/ratelimit"
 )
 
 // cachedMerkleRoot calculates the root of a set of existing Merkle roots.
@@ -145,7 +145,7 @@ func (he *Editor) Upload(data []byte) (_ modules.RenterContract, _ crypto.Hash, 
 
 	// send revision to host and exchange signatures
 	extendDeadline(he.conn, connTimeout)
-	signedTxn, err := negotiateRevision(he.conn, rev, contract.SecretKey)
+	signedTxn, err := negotiateRevision(he.conn, rev, contract.SecretKey, he.height)
 	if err == modules.ErrStopResponse {
 		// if host gracefully closed, close our connection as well; this will
 		// cause the next operation to fail
@@ -190,20 +190,9 @@ func (cs *ContractSet) NewEditor(host modules.HostDBEntry, id types.FileContract
 		}
 	}()
 
-	conn, closeChan, err := initiateRevisionLoop(host, contract, modules.RPCReviseContract, cancel, cs.rl)
-	if IsRevisionMismatch(err) && len(sc.unappliedTxns) > 0 {
-		// we have desynced from the host. If we have unapplied updates from the
-		// WAL, try applying them.
-		conn, closeChan, err = initiateRevisionLoop(host, sc.unappliedHeader(), modules.RPCReviseContract, cancel, cs.rl)
-		if err != nil {
-			return nil, err
-		}
-		// applying the updates was successful; commit them to disk
-		if err := sc.commitTxns(); err != nil {
-			return nil, err
-		}
-	} else if err != nil {
-		return nil, err
+	conn, closeChan, err := initiateRevisionLoop(host, sc, modules.RPCReviseContract, cancel, cs.rl)
+	if err != nil {
+		return nil, errors.AddContext(err, "failed to initiate revision loop")
 	}
 	// if we succeeded, we can safely discard the unappliedTxns
 	for _, txn := range sc.unappliedTxns {
@@ -215,18 +204,19 @@ func (cs *ContractSet) NewEditor(host modules.HostDBEntry, id types.FileContract
 	return &Editor{
 		host:        host,
 		hdb:         hdb,
-		height:      currentHeight,
 		contractID:  id,
 		contractSet: cs,
 		conn:        conn,
 		closeChan:   closeChan,
 		deps:        cs.deps,
+
+		height: currentHeight,
 	}, nil
 }
 
 // initiateRevisionLoop initiates either the editor or downloader loop with
 // host, depending on which rpc was passed.
-func initiateRevisionLoop(host modules.HostDBEntry, contract contractHeader, rpc types.Specifier, cancel <-chan struct{}, rl *ratelimit.RateLimit) (net.Conn, chan struct{}, error) {
+func initiateRevisionLoop(host modules.HostDBEntry, contract *SafeContract, rpc types.Specifier, cancel <-chan struct{}, rl *ratelimit.RateLimit) (net.Conn, chan struct{}, error) {
 	c, err := (&net.Dialer{
 		Cancel:  cancel,
 		Timeout: 45 * time.Second, // TODO: Constant

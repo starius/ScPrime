@@ -12,23 +12,22 @@ package node
 import (
 	"path/filepath"
 
-	"github.com/NebulousLabs/Sia/config"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/modules/consensus"
-	"github.com/NebulousLabs/Sia/modules/gateway"
-	"github.com/NebulousLabs/Sia/modules/host"
-	"github.com/NebulousLabs/Sia/modules/miner"
-	"github.com/NebulousLabs/Sia/modules/miningpool"
-	"github.com/NebulousLabs/Sia/modules/renter"
-	"github.com/NebulousLabs/Sia/modules/renter/contractor"
-	"github.com/NebulousLabs/Sia/modules/renter/hostdb"
-	"github.com/NebulousLabs/Sia/modules/renter/proto"
-	"github.com/NebulousLabs/Sia/modules/stratumminer"
-	"github.com/NebulousLabs/Sia/modules/transactionpool"
-	"github.com/NebulousLabs/Sia/modules/wallet"
-	"github.com/NebulousLabs/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/modules/consensus"
+	"gitlab.com/SiaPrime/Sia/modules/gateway"
+	"gitlab.com/SiaPrime/Sia/modules/host"
+	"gitlab.com/SiaPrime/Sia/modules/miner"
+	"github.com/SiaPrime/Sia/modules/miningpool"
+	"gitlab.com/SiaPrime/Sia/modules/renter"
+	"gitlab.com/SiaPrime/Sia/modules/renter/contractor"
+	"gitlab.com/SiaPrime/Sia/modules/renter/hostdb"
+	"gitlab.com/SiaPrime/Sia/modules/renter/proto"
+	"github.com/SiaPrime/Sia/modules/stratumminer"
+	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
+	"gitlab.com/SiaPrime/Sia/modules/wallet"
+	"gitlab.com/SiaPrime/Sia/persist"
 
-	"github.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/errors"
 )
 
 // NodeParams contains a bunch of parameters for creating a new test node. As
@@ -93,11 +92,12 @@ type NodeParams struct {
 	Allowance modules.Allowance
 
 	// The following fields are used to skip parts of the node set up
-	SkipSetAllowance  bool
-	SkipHostDiscovery bool
+	SkipSetAllowance     bool
+	SkipHostDiscovery    bool
+	SkipHostAnnouncement bool
 
 	// The high level directory where all the persistence gets stored for the
-	// moudles.
+	// modules.
 	Dir string
 }
 

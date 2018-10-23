@@ -3,7 +3,7 @@ package crypto
 import (
 	"testing"
 
-	"github.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // TestTreeBuilder builds a tree and gets the merkle root.

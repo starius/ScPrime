@@ -1,12 +1,14 @@
 package siatest
 
 import (
-	"github.com/NebulousLabs/Sia/node"
-	"github.com/NebulousLabs/Sia/node/api/client"
-	"github.com/NebulousLabs/Sia/node/api/server"
-	"github.com/NebulousLabs/Sia/types"
+	"testing"
 
-	"github.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/Sia/node"
+	"gitlab.com/SiaPrime/Sia/node/api/client"
+	"gitlab.com/SiaPrime/Sia/node/api/server"
+	"gitlab.com/SiaPrime/Sia/types"
+
+	"gitlab.com/SiaPrime/errors"
 )
 
 // TestNode is a helper struct for testing that contains a server and a client
@@ -16,6 +18,67 @@ type TestNode struct {
 	client.Client
 	params      node.NodeParams
 	primarySeed string
+}
+
+// PrintDebugInfo prints out helpful debug information when debug tests and ndfs, the
+// boolean arguments dictate what is printed
+func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterInfo bool) {
+	if contractInfo {
+		rc, err := tn.RenterInactiveContractsGet()
+		if err != nil {
+			t.Log(err)
+		}
+		t.Log("Active Contracts")
+		for _, c := range rc.ActiveContracts {
+			t.Log("    ID", c.ID)
+			t.Log("    HostPublicKey", c.HostPublicKey)
+			t.Log("    GoodForUpload", c.GoodForUpload)
+			t.Log("    GoodForRenew", c.GoodForRenew)
+			t.Log("    EndHeight", c.EndHeight)
+		}
+		t.Log()
+		t.Log("Inactive Contracts")
+		for _, c := range rc.InactiveContracts {
+			t.Log("    ID", c.ID)
+			t.Log("    HostPublicKey", c.HostPublicKey)
+			t.Log("    GoodForUpload", c.GoodForUpload)
+			t.Log("    GoodForRenew", c.GoodForRenew)
+			t.Log("    EndHeight", c.EndHeight)
+		}
+		t.Log()
+	}
+
+	if hostInfo {
+		hdbag, err := tn.HostDbActiveGet()
+		if err != nil {
+			t.Log(err)
+		}
+		t.Log("Active Hosts from HostDB")
+		for _, host := range hdbag.Hosts {
+			t.Log("    Host:", host.NetAddress)
+			t.Log("        pk", host.PublicKey)
+			t.Log("        Accepting Contracts", host.HostExternalSettings.AcceptingContracts)
+			t.Log("        LastIPNetChange", host.LastIPNetChange.String())
+			t.Log("        Subnets")
+			for _, subnet := range host.IPNets {
+				t.Log("            ", subnet)
+			}
+		}
+		t.Log()
+	}
+
+	if renterInfo {
+		rg, err := tn.RenterGet()
+		if err != nil {
+			t.Log(err)
+		}
+		t.Log("CP:", rg.CurrentPeriod)
+		settings := rg.Settings
+		t.Log("Allowance Funds:", settings.Allowance.Funds)
+		fm := rg.FinancialMetrics
+		t.Log("Unspent Funds:", fm.Unspent)
+		t.Log()
+	}
 }
 
 // RestartNode restarts a TestNode
@@ -71,7 +134,7 @@ func NewNode(nodeParams node.NodeParams) (*TestNode, error) {
 
 // NewCleanNode creates a new TestNode that's not yet funded
 func NewCleanNode(nodeParams node.NodeParams) (*TestNode, error) {
-	userAgent := "Sia-Agent"
+	userAgent := "SiaPrime-Agent"
 	password := "password"
 
 	// Create server

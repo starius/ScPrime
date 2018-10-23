@@ -10,8 +10,8 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
 )
 
 var (
@@ -218,6 +218,50 @@ func (t Transaction) SigHash(i int) (hash crypto.Hash) {
 		}
 	}
 
+	h.Write(sig.ParentID[:])
+	encoding.WriteUint64(h, sig.PublicKeyIndex)
+	encoding.WriteUint64(h, uint64(sig.Timelock))
+
+	for _, i := range sig.CoveredFields.TransactionSignatures {
+		t.TransactionSignatures[i].MarshalSia(h)
+	}
+
+	h.Sum(hash[:0])
+	return
+}
+
+// partialSigHash calculates the hash of the fields of the transaction
+// specified in cf.
+func (t *Transaction) partialSigHash(cf CoveredFields, height BlockHeight) (hash crypto.Hash) {
+	h := crypto.NewHash()
+
+	for _, input := range cf.SiacoinInputs {
+		t.SiacoinInputs[input].MarshalSia(h)
+	}
+	for _, output := range cf.SiacoinOutputs {
+		t.SiacoinOutputs[output].MarshalSia(h)
+	}
+	for _, contract := range cf.FileContracts {
+		t.FileContracts[contract].MarshalSia(h)
+	}
+	for _, revision := range cf.FileContractRevisions {
+		t.FileContractRevisions[revision].MarshalSia(h)
+	}
+	for _, storageProof := range cf.StorageProofs {
+		t.StorageProofs[storageProof].MarshalSia(h)
+	}
+	for _, siafundInput := range cf.SiafundInputs {
+		t.SiafundInputs[siafundInput].MarshalSia(h)
+	}
+	for _, siafundOutput := range cf.SiafundOutputs {
+		t.SiafundOutputs[siafundOutput].MarshalSia(h)
+	}
+	for _, minerFee := range cf.MinerFees {
+		t.MinerFees[minerFee].MarshalSia(h)
+	}
+	for _, arbData := range cf.ArbitraryData {
+		encoding.WritePrefixedBytes(h, t.ArbitraryData[arbData])
+	}
 	for _, sig := range cf.TransactionSignatures {
 		t.TransactionSignatures[sig].MarshalSia(h)
 	}
@@ -278,6 +322,19 @@ func (t Transaction) validCoveredFields() error {
 				if len(fieldMax.field) != 0 {
 					return ErrWholeTransactionViolation
 				}
+			}
+		} else {
+			// If WholeTransaction is not set, at least one field
+			// must be non-empty.
+			allEmpty := true
+			for _, fieldMax := range fieldMaxs {
+				if len(fieldMax.field) != 0 {
+					allEmpty = false
+					break
+				}
+			}
+			if allEmpty {
+				return ErrWholeTransactionViolation
 			}
 		}
 

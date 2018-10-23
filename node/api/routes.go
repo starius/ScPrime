@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NebulousLabs/Sia/build"
 	"github.com/julienschmidt/httprouter"
+	"gitlab.com/SiaPrime/Sia/build"
 )
 
 // buildHttpRoutes sets up and returns an * httprouter.Router.
@@ -82,10 +82,12 @@ func (api *API) buildHTTPRoutes(requiredUserAgent string, requiredPassword strin
 	if api.renter != nil {
 		router.GET("/renter", api.renterHandlerGET)
 		router.POST("/renter", RequirePassword(api.renterHandlerPOST, requiredPassword))
+		router.POST("/renter/contract/cancel", RequirePassword(api.renterContractCancelHandler, requiredPassword))
 		router.GET("/renter/contracts", api.renterContractsHandler)
 		router.GET("/renter/downloads", api.renterDownloadsHandler)
+		router.POST("/renter/downloads/clear", RequirePassword(api.renterClearDownloadsHandler, requiredPassword))
 		router.GET("/renter/files", api.renterFilesHandler)
-		router.GET("/renter/file/*siapath", api.renterFileHandler)
+		router.GET("/renter/file/*siapath", api.renterFileHandlerGET)
 		router.GET("/renter/prices", api.renterPricesHandler)
 
 		// TODO: re-enable these routes once the new .sia format has been
@@ -101,6 +103,7 @@ func (api *API) buildHTTPRoutes(requiredUserAgent string, requiredPassword strin
 		router.POST("/renter/rename/*siapath", RequirePassword(api.renterRenameHandler, requiredPassword))
 		router.GET("/renter/stream/*siapath", api.renterStreamHandler)
 		router.POST("/renter/upload/*siapath", RequirePassword(api.renterUploadHandler, requiredPassword))
+		router.POST("/renter/file/*siapath", RequirePassword(api.renterFileHandlerPOST, requiredPassword))
 
 		// HostDB endpoints.
 		router.GET("/hostdb", api.hostdbHandler)
@@ -148,6 +151,12 @@ func (api *API) buildHTTPRoutes(requiredUserAgent string, requiredPassword strin
 		router.GET("/wallet/verify/address/:addr", api.walletVerifyAddressHandler)
 		router.POST("/wallet/unlock", RequirePassword(api.walletUnlockHandler, requiredPassword))
 		router.POST("/wallet/changepassword", RequirePassword(api.walletChangePasswordHandler, requiredPassword))
+		router.GET("/wallet/unlockconditions/:addr", RequirePassword(api.walletUnlockConditionsHandlerGET, requiredPassword))
+		router.POST("/wallet/unlockconditions", RequirePassword(api.walletUnlockConditionsHandlerPOST, requiredPassword))
+		router.GET("/wallet/unspent", RequirePassword(api.walletUnspentHandler, requiredPassword))
+		router.POST("/wallet/sign", RequirePassword(api.walletSignHandler, requiredPassword))
+		router.GET("/wallet/watch", RequirePassword(api.walletWatchHandlerGET, requiredPassword))
+		router.POST("/wallet/watch", RequirePassword(api.walletWatchHandlerPOST, requiredPassword))
 	}
 
 	// Apply UserAgent middleware and return the Router

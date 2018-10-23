@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/encoding"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/types"
-	"github.com/NebulousLabs/fastrand"
 	"github.com/coreos/bbolt"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 var (
@@ -109,6 +109,7 @@ func (w *Wallet) managedUnlock(masterKey crypto.TwofishKey) error {
 	var primarySeedProgress uint64
 	var auxiliarySeedFiles []seedFile
 	var unseededKeyFiles []spendableKeyFile
+	var watchedAddrs []types.UnlockHash
 	err := func() error {
 		w.mu.Lock()
 		defer w.mu.Unlock()
@@ -141,6 +142,12 @@ func (w *Wallet) managedUnlock(masterKey crypto.TwofishKey) error {
 
 		// unseededKeyFiles
 		err = encoding.Unmarshal(wb.Get(keySpendableKeyFiles), &unseededKeyFiles)
+		if err != nil {
+			return err
+		}
+
+		// watchedAddrs
+		err = encoding.Unmarshal(wb.Get(keyWatchedAddrs), &watchedAddrs)
 		if err != nil {
 			return err
 		}
@@ -183,6 +190,12 @@ func (w *Wallet) managedUnlock(masterKey crypto.TwofishKey) error {
 			}
 			w.integrateSpendableKey(masterKey, sk)
 		}
+
+		// watchedAddrs
+		for _, addr := range watchedAddrs {
+			w.watchedAddrs[addr] = struct{}{}
+		}
+
 		return nil
 	}()
 	if err != nil {

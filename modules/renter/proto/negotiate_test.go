@@ -5,10 +5,10 @@ import (
 	"net"
 	"testing"
 
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/encoding"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // TestNegotiateRevisionStopResponse tests that when the host sends
@@ -36,7 +36,7 @@ func TestNegotiateRevisionStopResponse(t *testing.T) {
 	// since the host wrote StopResponse, we should proceed to validating the
 	// transaction. This will return a known error because we are supplying an
 	// empty revision.
-	_, err := negotiateRevision(rConn, types.FileContractRevision{}, crypto.SecretKey{})
+	_, err := negotiateRevision(rConn, types.FileContractRevision{}, crypto.SecretKey{}, 0)
 	if err != types.ErrFileContractWindowStartViolation {
 		t.Fatalf("expected %q, got \"%v\"", types.ErrFileContractWindowStartViolation, err)
 	}
@@ -56,7 +56,7 @@ func TestNegotiateRevisionStopResponse(t *testing.T) {
 		encoding.WriteObject(hConn, types.TransactionSignature{})
 	}()
 	expectedErr := "host did not accept transaction signature: sentinel"
-	_, err = negotiateRevision(rConn, types.FileContractRevision{}, crypto.SecretKey{})
+	_, err = negotiateRevision(rConn, types.FileContractRevision{}, crypto.SecretKey{}, 0)
 	if err == nil || err.Error() != expectedErr {
 		t.Fatalf("expected %q, got \"%v\"", expectedErr, err)
 	}

@@ -2,7 +2,7 @@ package gateway
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -11,10 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NebulousLabs/go-upnp"
+	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/SiaPrime/go-upnp"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/modules"
 )
 
 // myExternalIP discovers the gateway's external IP by querying a centralized
@@ -42,6 +43,51 @@ func myExternalIP() (string, error) {
 	return strings.TrimSpace(string(buf)), nil
 }
 
+// managedLearnHostname tries to discover the external ip of the machine. If
+// discovering the address failed or if it is invalid, an error is returned.
+func (g *Gateway) managedLearnHostname(cancel <-chan struct{}) (modules.NetAddress, error) {
+	// create ctx to cancel upnp discovery during shutdown
+	ctx, ctxCancel := context.WithTimeout(context.Background(), timeoutIPDiscovery)
+	defer ctxCancel()
+	go func() {
+		select {
+		case <-cancel:
+			ctxCancel()
+		case <-g.threads.StopChan():
+			ctxCancel()
+		case <-ctx.Done():
+		}
+	}()
+
+	// try UPnP first, then fallback to myexternalip.com and peer-to-peer
+	// discovery.
+	var host string
+	d, err := upnp.Load(g.persist.RouterURL)
+	if err != nil {
+		d, err = upnp.DiscoverCtx(ctx)
+	}
+	if err == nil {
+		g.mu.Lock()
+		g.persist.RouterURL = d.Location()
+		if err = g.saveSync(); err != nil {
+			g.log.Panicln("WARN: could not save the gateway:", err)
+		}
+		g.mu.Unlock()
+		host, err = d.ExternalIP()
+	}
+	if err != nil {
+		host, err = g.managedIPFromPeers(ctx.Done())
+	}
+	if !build.DEBUG && err != nil {
+		host, err = myExternalIP()
+	}
+	if err != nil {
+		return "", errors.AddContext(err, "failed to discover external IP")
+	}
+	addr := modules.NetAddress(host)
+	return addr, addr.IsValid()
+}
+
 // threadedLearnHostname discovers the external IP of the Gateway regularly.
 func (g *Gateway) threadedLearnHostname() {
 	if err := g.threads.Add(); err != nil {
@@ -53,31 +99,8 @@ func (g *Gateway) threadedLearnHostname() {
 		return
 	}
 
-	// create ctx to cancel upnp discovery during shutdown
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go func() {
-		select {
-		case <-g.threads.StopChan():
-			cancel()
-		case <-ctx.Done():
-		}
-	}()
-
 	for {
-		// try UPnP first, then fallback to myexternalip.com and peer-to-peer
-		// discovery.
-		var host string
-		d, err := upnp.DiscoverCtx(ctx)
-		if err == nil {
-			host, err = d.ExternalIP()
-		}
-		if !build.DEBUG && err != nil {
-			host, err = myExternalIP()
-		}
-		if err != nil {
-			host, err = g.managedIPFromPeers()
-		}
+		host, err := g.managedLearnHostname(nil)
 		if err != nil {
 			g.log.Println("WARN: failed to discover external IP:", err)
 		}
@@ -90,7 +113,7 @@ func (g *Gateway) threadedLearnHostname() {
 		}
 
 		g.mu.RLock()
-		addr := modules.NetAddress(net.JoinHostPort(host, g.port))
+		addr := modules.NetAddress(net.JoinHostPort(string(host), g.port))
 		g.mu.RUnlock()
 		if err := addr.IsValid(); err != nil {
 			g.log.Printf("WARN: discovered hostname %q is invalid: %v", addr, err)
@@ -115,17 +138,24 @@ func (g *Gateway) threadedLearnHostname() {
 	}
 }
 
-// threadedForwardPort adds a port mapping to the router.
-func (g *Gateway) threadedForwardPort(port string) {
-	if err := g.threads.Add(); err != nil {
-		return
-	}
-	defer g.threads.Done()
-
+// managedForwardPort adds a port mapping to the router.
+func (g *Gateway) managedForwardPort(port string) error {
 	if build.Release == "testing" {
-		return
+		// Port forwarding functions are frequently unavailable during testing,
+		// and the long blocking can be highly disruptive. Under normal
+		// scenarios, return without complaint, and without running the
+		// port-forward logic.
+		return nil
 	}
 
+	// If the port is invalid, there is no need to perform any of the other
+	// tasks.
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		return err
+	}
+
+	// Create a context to stop UPnP discovery in case of a shutdown.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go func() {
@@ -135,25 +165,26 @@ func (g *Gateway) threadedForwardPort(port string) {
 		case <-ctx.Done():
 		}
 	}()
+
+	// Look for UPnP-enabled devices
 	d, err := upnp.DiscoverCtx(ctx)
 	if err != nil {
-		g.log.Printf("WARN: could not automatically forward port %s: no UPnP-enabled devices found: %v", port, err)
-		return
+		err = fmt.Errorf("WARN: could not automatically forward port %s: no UPnP-enabled devices found: %v", port, err)
+		return err
 	}
 
-	portInt, _ := strconv.Atoi(port)
+	// Forward port
 	err = d.Forward(uint16(portInt), "Sia RPC")
 	if err != nil {
-		g.log.Printf("WARN: could not automatically forward port %s: %v", port, err)
-		return
+		err = fmt.Errorf("WARN: could not automatically forward port %s: %v", port, err)
+		return err
 	}
-
-	g.log.Println("INFO: successfully forwarded port", port)
 
 	// Establish port-clearing at shutdown.
 	g.threads.AfterStop(func() {
 		g.managedClearPort(port)
 	})
+	return nil
 }
 
 // managedClearPort removes a port mapping from the router.
@@ -184,4 +215,18 @@ func (g *Gateway) managedClearPort(port string) {
 	}
 
 	g.log.Println("INFO: successfully unforwarded port", port)
+}
+
+// threadedForwardPort forwards a port and logs potential errors.
+func (g *Gateway) threadedForwardPort(port string) {
+	if err := g.threads.Add(); err != nil {
+		return
+	}
+	defer g.threads.Done()
+
+	if err := g.managedForwardPort(port); err != nil {
+		g.log.Debugf("WARN: %v", err)
+	}
+	g.log.Println("INFO: successfully forwarded port", port)
+	return
 }
