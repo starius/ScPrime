@@ -1,7 +1,7 @@
 package consensus
 
 import (
-	"errors"
+	"gitlab.com/SiaPrime/errors"
 	"net"
 	"sync"
 	"time"
