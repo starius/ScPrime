@@ -74,7 +74,7 @@ func checkMinerPayoutsWithDevFund(b types.Block, height types.BlockHeight) bool 
 	// The last payout in a block is for the dev fund
 	devSubsidyPayout := b.MinerPayouts[len(b.MinerPayouts)-1]
 	// Make sure the dev subsidy is correct
-	minerBlockSubsidy, devBlockSubsidy := b.CalculateSubsidies(height)
+	devBlockSubsidy, minerBlockSubsidy := b.CalculateSubsidies(height)
 	if !devSubsidyPayout.Value.Equals(devBlockSubsidy) {
 		return false
 	}
