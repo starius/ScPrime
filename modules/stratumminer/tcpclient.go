@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	//"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/types"
+	//"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/types"
 
-	"github.com/NebulousLabs/threadgroup"
+	"gitlab.com/SiaPrime/threadgroup"
 )
 
 //ErrorCallback is the type of function that be registered to be notified of errors requiring a client

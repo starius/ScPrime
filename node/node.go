@@ -12,17 +12,18 @@ package node
 import (
 	"path/filepath"
 
+	"gitlab.com/SiaPrime/Sia/config"
 	"gitlab.com/SiaPrime/Sia/modules"
 	"gitlab.com/SiaPrime/Sia/modules/consensus"
 	"gitlab.com/SiaPrime/Sia/modules/gateway"
 	"gitlab.com/SiaPrime/Sia/modules/host"
 	"gitlab.com/SiaPrime/Sia/modules/miner"
-	"github.com/SiaPrime/Sia/modules/miningpool"
+	"gitlab.com/SiaPrime/Sia/modules/miningpool"
 	"gitlab.com/SiaPrime/Sia/modules/renter"
 	"gitlab.com/SiaPrime/Sia/modules/renter/contractor"
 	"gitlab.com/SiaPrime/Sia/modules/renter/hostdb"
 	"gitlab.com/SiaPrime/Sia/modules/renter/proto"
-	"github.com/SiaPrime/Sia/modules/stratumminer"
+	"gitlab.com/SiaPrime/Sia/modules/stratumminer"
 	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
 	"gitlab.com/SiaPrime/Sia/modules/wallet"
 	"gitlab.com/SiaPrime/Sia/persist"
@@ -116,7 +117,7 @@ type Node struct {
 	Wallet          modules.Wallet
 
 	// The high level directory where all the persistence gets stored for the
-	// moudles.
+	// modules.
 	Dir string
 }
 
@@ -259,7 +260,7 @@ func New(params NodeParams) (*Node, error) {
 		if !params.CreateHost {
 			return nil, nil
 		}
-		return host.New(cs, tp, w, "localhost:0", filepath.Join(dir, modules.HostDir))
+		return host.New(cs, g, tp, w, "localhost:0", filepath.Join(dir, modules.HostDir))
 	}()
 	if err != nil {
 		return nil, errors.Extend(err, errors.New("unable to create host"))
@@ -339,7 +340,6 @@ func New(params NodeParams) (*Node, error) {
 	if err != nil {
 		return nil, errors.Extend(err, errors.New("unable to create miner"))
 	}
-
 	// Mining Pool.
 	p, err := func() (modules.Pool, error) {
 		if params.CreateMiningPool && params.MiningPool != nil {
@@ -357,8 +357,7 @@ func New(params NodeParams) (*Node, error) {
 		}
 		return p, nil
 	}()
-
-	// Stratum Miner.
+ 	// Stratum Miner.
 	sm, err := func() (modules.StratumMiner, error) {
 		if params.CreateStratumMiner && params.StratumMiner != nil {
 			return nil, errors.New("cannot create stratum miner and also use custom stratum miner")
@@ -409,3 +408,4 @@ func New(params NodeParams) (*Node, error) {
 		Dir: dir,
 	}, nil
 }
+

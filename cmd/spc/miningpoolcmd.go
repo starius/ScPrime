@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/NebulousLabs/Sia/node/api"
+	"gitlab.com/SiaPrime/Sia/node/api"
 	"github.com/spf13/cobra"
 )
 

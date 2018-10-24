@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/SiaPrime/Sia/build"
-	"github.com/SiaPrime/Sia/config"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/config"
 )
 
 var (
@@ -142,7 +142,7 @@ Explorer (e):
 	the blockchain.
 	The explorer requires the consenus set.
 	Example:
-		spd -M gce`)
+		spd -M gce
 Stratum Miner (s):
 	The stratum miner provides a CPU stratum mining client as well an as API
 	for monitoring statistics and controlling the miner.

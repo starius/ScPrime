@@ -3,7 +3,7 @@ package client
 import (
 	"net/url"
 
-	"github.com/NebulousLabs/Sia/node/api"
+	"gitlab.com/SiaPrime/Sia/node/api"
 )
 
 // StratumMinerGet requests the /stratumminer endpoint's resources.

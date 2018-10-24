@@ -18,13 +18,13 @@ import (
 
 	"github.com/sasha-s/go-deadlock"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/config"
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/persist"
-	"github.com/NebulousLabs/Sia/types"
-	"github.com/NebulousLabs/threadgroup"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/config"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/threadgroup"
 
 	// blank to load the sql driver for mysql
 	_ "github.com/go-sql-driver/mysql"

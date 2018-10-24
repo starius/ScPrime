@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 var (

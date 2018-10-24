@@ -6,10 +6,10 @@ import (
 
 	"github.com/sasha-s/go-deadlock"
 
-	"github.com/NebulousLabs/Sia/config"
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/persist"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/config"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/types"
 )
 
 // persistence is the data that is kept when the pool is restarted.

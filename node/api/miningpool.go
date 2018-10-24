@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/NebulousLabs/Sia/modules"
-	"github.com/NebulousLabs/Sia/types"
+	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/types"
 	"github.com/julienschmidt/httprouter"
 )
 

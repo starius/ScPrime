@@ -6,8 +6,8 @@ import (
 	"net"
 	"os"
 
-	"github.com/NebulousLabs/Sia/persist"
-	"github.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/fastrand"
 )
 
 // Fake errors that get returned when a simulated failure of a dependency is

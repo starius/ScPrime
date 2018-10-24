@@ -27,11 +27,11 @@ import (
 	"gitlab.com/SiaPrime/Sia/modules/explorer"
 	"gitlab.com/SiaPrime/Sia/modules/gateway"
 	"gitlab.com/SiaPrime/Sia/modules/host"
-	index "github.com/SiaPrime/Sia/modules/index"
+	index "gitlab.com/SiaPrime/Sia/modules/index"
 	"gitlab.com/SiaPrime/Sia/modules/miner"
-	pool "github.com/SiaPrime/Sia/modules/miningpool"
+	pool "gitlab.com/SiaPrime/Sia/modules/miningpool"
 	"gitlab.com/SiaPrime/Sia/modules/renter"
-	"github.com/SiaPrime/Sia/modules/stratumminer"
+	"gitlab.com/SiaPrime/Sia/modules/stratumminer"
 	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
 	"gitlab.com/SiaPrime/Sia/modules/wallet"
 	"gitlab.com/SiaPrime/Sia/node/api"
@@ -558,7 +558,7 @@ func (srv *Server) loadModules() error {
 	if strings.Contains(srv.config.Siad.Modules, "h") {
 		i++
 		fmt.Printf("(%d/%d) Loading host...\n", i, len(srv.config.Siad.Modules))
-		h, err = host.New(cs, tpool, w, srv.config.Siad.HostAddr, filepath.Join(srv.config.Siad.SiaDir, modules.HostDir))
+		h, err = host.New(cs, g, tpool, w, srv.config.Siad.HostAddr, filepath.Join(srv.config.Siad.SiaDir, modules.HostDir))
 		if err != nil {
 			return err
 		}
@@ -594,8 +594,7 @@ func (srv *Server) loadModules() error {
 		}
 		srv.moduleClosers = append(srv.moduleClosers, moduleCloser{name: "stratumminer", Closer: sm})
 	}
-
-	var idx modules.Index
+ 	var idx modules.Index
 	if strings.Contains(srv.config.Siad.Modules, "i") {
 		i++
 		fmt.Printf("(%d/%d) Loading index...\n", i, len(srv.config.Siad.Modules))
@@ -671,3 +670,4 @@ func (srv *Server) Close() error {
 
 	return build.JoinErrors(errs, "\n")
 }
+

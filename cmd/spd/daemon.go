@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"strconv"
@@ -12,12 +10,12 @@ import (
 	"time"
 
 	"gitlab.com/SiaPrime/Sia/build"
+	fileConfig "gitlab.com/SiaPrime/Sia/config"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/modules"
 	"gitlab.com/SiaPrime/Sia/profile"
 	mnemonics "gitlab.com/SiaPrime/entropy-mnemonics"
 	"gitlab.com/SiaPrime/errors"
-	"gitlab.com/SiaPrime/fastrand"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

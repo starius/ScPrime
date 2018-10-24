@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"gitlab.com/SiaPrime/Sia/crypto"
-	"github.com/SiaPrime/Sia/encoding"
-	"github.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/Sia/modules"
 	"gitlab.com/SiaPrime/Sia/types"
 
 	"github.com/coreos/bbolt"

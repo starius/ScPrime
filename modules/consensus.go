@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"gitlab.com/SiaPrime/Sia/crypto"
-	"github.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/Sia/persist"
 	"gitlab.com/SiaPrime/Sia/types"
 )
 

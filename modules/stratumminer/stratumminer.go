@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/NebulousLabs/Sia/build"
-	"github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/persist"
-	"github.com/NebulousLabs/threadgroup"
+	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/threadgroup"
 )
 
 //miningWork is sent to the mining routines and defines what ranges should be searched for a matching nonce
