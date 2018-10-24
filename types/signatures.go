@@ -480,4 +480,3 @@ func (t *Transaction) validSignatures(currentHeight BlockHeight) error {
 
 	return nil
 }
-

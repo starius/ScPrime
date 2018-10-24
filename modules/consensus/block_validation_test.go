@@ -102,7 +102,7 @@ func TestCheckMinerPayoutsWithoutDevFee(t *testing.T) {
 		devFundPercentage = devFundInitialPercentage
 		for height > tempHeight && devFundPercentage > devFundFinalPercentage {
 			devFundPercentage = devFundPercentage - float64(.01)
-			tempHeight = tempHeight+types.BlockHeight(devFundDecaySchedule)
+			tempHeight = tempHeight + types.BlockHeight(devFundDecaySchedule)
 		}
 		devSubsidy = coinbase.MulFloat(devFundPercentage)
 	}
@@ -183,7 +183,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 		devFundPercentage = devFundInitialPercentage
 		for height > tempHeight && devFundPercentage > devFundFinalPercentage {
 			devFundPercentage = devFundPercentage - float64(.01)
-			tempHeight = tempHeight+types.BlockHeight(devFundDecaySchedule)
+			tempHeight = tempHeight + types.BlockHeight(devFundDecaySchedule)
 		}
 		devSubsidy = coinbase.MulFloat(devFundPercentage)
 	}

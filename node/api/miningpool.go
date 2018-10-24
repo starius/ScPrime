@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/julienschmidt/httprouter"
 	"gitlab.com/SiaPrime/Sia/modules"
 	"gitlab.com/SiaPrime/Sia/types"
-	"github.com/julienschmidt/httprouter"
 )
 
 type (

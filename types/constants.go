@@ -34,7 +34,7 @@ var (
 	// DevFundDecaySchedule is the rate at which the DevFundInitialPercentage decays
 	DevFundDecaySchedule = uint64(43200)
 	// DevFundUnlockHash is the unlock hash for the dev fund subsidy
-	// Do not set this to the Zero address as doing so will cause the test that 
+	// Do not set this to the Zero address as doing so will cause the test that
 	// verifies that a dev fee is set to fail
 	DevFundUnlockHash = unlockHashFromAddrStr("e68b2c8e7a1e1c28782f70a62630bb8d1b480b49dbce422eafbb338de17eb00453918618bbd3")
 
@@ -167,14 +167,14 @@ var (
 
 // scanAddress scans a types.UnlockHash from a string.
 func scanAddress(addrStr string) (addr UnlockHash, err error) {
-        err = addr.LoadString(addrStr)
-        if err != nil {
-                return UnlockHash{}, err
-        }
-        return addr, nil
+	err = addr.LoadString(addrStr)
+	if err != nil {
+		return UnlockHash{}, err
+	}
+	return addr, nil
 }
 
-func unlockHashFromAddrStr(addrStr string) (addr UnlockHash){
+func unlockHashFromAddrStr(addrStr string) (addr UnlockHash) {
 	dest, err := scanAddress(addrStr)
 	if err != nil {
 		return UnlockHash{}
@@ -219,10 +219,9 @@ func init() {
 			},
 			{
 				Value:      AirdropPoolValue,
-                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+				UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
 			},
 		}
-
 
 		GenesisSiafundAllocation = []SiafundOutput{
 			{
@@ -271,14 +270,13 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+				UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
 			},
 			{
 				Value:      AirdropPoolValue,
-                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+				UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
 			},
 		}
-
 
 		GenesisSiafundAllocation = []SiafundOutput{
 			{
@@ -397,14 +395,13 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+				UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
 			},
 			{
 				Value:      AirdropPoolValue,
-                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+				UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
 			},
 		}
-
 
 		GenesisSiafundAllocation = []SiafundOutput{
 			{

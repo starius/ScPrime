@@ -357,7 +357,7 @@ func New(params NodeParams) (*Node, error) {
 		}
 		return p, nil
 	}()
- 	// Stratum Miner.
+	// Stratum Miner.
 	sm, err := func() (modules.StratumMiner, error) {
 		if params.CreateStratumMiner && params.StratumMiner != nil {
 			return nil, errors.New("cannot create stratum miner and also use custom stratum miner")
@@ -408,4 +408,3 @@ func New(params NodeParams) (*Node, error) {
 		Dir: dir,
 	}, nil
 }
-

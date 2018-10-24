@@ -125,7 +125,7 @@ func (b Block) CalculateSubsidies(height BlockHeight) (Currency, Currency) {
 		devFundPercentage = devFundInitialPercentage
 		for height > tempHeight && devFundPercentage > devFundFinalPercentage {
 			devFundPercentage = devFundPercentage - float64(.01)
-			tempHeight = tempHeight+BlockHeight(devFundDecaySchedule)
+			tempHeight = tempHeight + BlockHeight(devFundDecaySchedule)
 		}
 		devSubsidy = coinbase.MulFloat(devFundPercentage)
 	}
