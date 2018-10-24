@@ -594,7 +594,7 @@ func (srv *Server) loadModules() error {
 		}
 		srv.moduleClosers = append(srv.moduleClosers, moduleCloser{name: "stratumminer", Closer: sm})
 	}
- 	var idx modules.Index
+	var idx modules.Index
 	if strings.Contains(srv.config.Siad.Modules, "i") {
 		i++
 		fmt.Printf("(%d/%d) Loading index...\n", i, len(srv.config.Siad.Modules))
@@ -670,4 +670,3 @@ func (srv *Server) Close() error {
 
 	return build.JoinErrors(errs, "\n")
 }
-

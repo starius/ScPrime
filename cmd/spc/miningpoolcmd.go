@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	"gitlab.com/SiaPrime/Sia/node/api"
 	"github.com/spf13/cobra"
+	"gitlab.com/SiaPrime/Sia/node/api"
 )
 
 var (
