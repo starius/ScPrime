@@ -21,7 +21,7 @@ var (
 	// chosen to hardcode known-stable peers.
 	BootstrapPeers = build.Select(build.Var{
 		Standard: []NetAddress{
-			"127.0.0.1:9981",
+			"50.116.9.206:4281",
 		},
 		Dev:     []NetAddress(nil),
 		Testing: []NetAddress(nil),
