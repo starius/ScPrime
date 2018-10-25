@@ -18,7 +18,7 @@ import (
 const (
 	// minNumOutbound is the minimum number of outbound peers required before ibd
 	// is confident we are synced.
-	minNumOutbound = 5
+	minNumOutbound = 1
 )
 
 var (
@@ -50,9 +50,9 @@ var (
 	// other. Those nodes will likely have to wait minIBDWaitTime on every startup
 	// before IBD is done.
 	minIBDWaitTime = build.Select(build.Var{
-		Standard: 90 * time.Minute,
-		Dev:      80 * time.Second,
-		Testing:  10 * time.Second,
+		Standard: 5 * time.Minute,
+		Dev:      1 * time.Second,
+		Testing:  1 * time.Second,
 	}).(time.Duration)
 
 	// relayHeaderTimeout is the timeout for the RelayHeader RPC.
@@ -205,10 +205,19 @@ func (cs *ConsensusSet) managedReceiveBlocks(conn modules.PeerConn) (returnErr e
 
 	// Read blocks off of the wire and add them to the consensus set until
 	// there are no more blocks available.
+	firstIteration := true
 	moreAvailable := true
+	var newBlocks []types.Block
+	if err := encoding.ReadObject(conn, &newBlocks, uint64(MaxCatchUpBlocks)*types.BlockSizeLimit); err != nil {
+		moreAvailable = false
+	}
 	for moreAvailable {
 		// Read a slice of blocks from the wire.
-		var newBlocks []types.Block
+		if !firstIteration {
+                	if err := encoding.ReadObject(conn, &newBlocks, uint64(MaxCatchUpBlocks)*types.BlockSizeLimit); err != nil {
+				return err
+                	}
+		}
 		if err := encoding.ReadObject(conn, &newBlocks, uint64(MaxCatchUpBlocks)*types.BlockSizeLimit); err != nil {
 			return err
 		}
@@ -232,6 +241,7 @@ func (cs *ConsensusSet) managedReceiveBlocks(conn modules.PeerConn) (returnErr e
 		if acceptErr != nil && acceptErr != modules.ErrNonExtendingBlock && acceptErr != modules.ErrBlockKnown {
 			return acceptErr
 		}
+		firstIteration = false
 	}
 	return nil
 }
