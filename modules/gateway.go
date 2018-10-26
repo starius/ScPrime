@@ -22,6 +22,7 @@ var (
 	BootstrapPeers = build.Select(build.Var{
 		Standard: []NetAddress{
 			"50.116.9.206:4281",
+			"45.79.100.217:4281",
 		},
 		Dev:     []NetAddress(nil),
 		Testing: []NetAddress(nil),
