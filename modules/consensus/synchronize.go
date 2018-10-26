@@ -18,7 +18,7 @@ import (
 const (
 	// minNumOutbound is the minimum number of outbound peers required before ibd
 	// is confident we are synced.
-	minNumOutbound = 5
+	minNumOutbound = 1
 )
 
 var (
@@ -50,9 +50,9 @@ var (
 	// other. Those nodes will likely have to wait minIBDWaitTime on every startup
 	// before IBD is done.
 	minIBDWaitTime = build.Select(build.Var{
-		Standard: 90 * time.Minute,
-		Dev:      80 * time.Second,
-		Testing:  10 * time.Second,
+		Standard: 5 * time.Minute,
+		Dev:      1 * time.Second,
+		Testing:  1 * time.Second,
 	}).(time.Duration)
 
 	// relayHeaderTimeout is the timeout for the RelayHeader RPC.
