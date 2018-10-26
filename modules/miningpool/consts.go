@@ -22,7 +22,7 @@ const (
 	SiaCoinID = 1318
 	// SiaCoinSymbol is the coin symbol used by yiimp to associate various records
 	// with Siacoin
-	SiaCoinSymbol = "SIAPRIME"
+	SiaCoinSymbol = "SCP"
 	// SiaCoinAlgo is the algo used by yiimp to associate various records
 	// with blake2b mining
 	SiaCoinAlgo = "blake2b"
