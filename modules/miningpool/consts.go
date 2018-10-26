@@ -19,10 +19,10 @@ const (
 	MinorVersion = 3
 	// SiaCoinID is the coin id used by yiimp to associate various records
 	// with Siacoin
-	SiaCoinID = 1316
+	SiaCoinID = 1318
 	// SiaCoinSymbol is the coin symbol used by yiimp to associate various records
 	// with Siacoin
-	SiaCoinSymbol = "SC"
+	SiaCoinSymbol = "SIAPRIME"
 	// SiaCoinAlgo is the algo used by yiimp to associate various records
 	// with blake2b mining
 	SiaCoinAlgo = "blake2b"
