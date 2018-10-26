@@ -205,19 +205,10 @@ func (cs *ConsensusSet) managedReceiveBlocks(conn modules.PeerConn) (returnErr e
 
 	// Read blocks off of the wire and add them to the consensus set until
 	// there are no more blocks available.
-	firstIteration := true
 	moreAvailable := true
-	var newBlocks []types.Block
-	if err := encoding.ReadObject(conn, &newBlocks, uint64(MaxCatchUpBlocks)*types.BlockSizeLimit); err != nil {
-		moreAvailable = false
-	}
 	for moreAvailable {
 		// Read a slice of blocks from the wire.
-		if !firstIteration {
-                	if err := encoding.ReadObject(conn, &newBlocks, uint64(MaxCatchUpBlocks)*types.BlockSizeLimit); err != nil {
-				return err
-                	}
-		}
+		var newBlocks []types.Block
 		if err := encoding.ReadObject(conn, &newBlocks, uint64(MaxCatchUpBlocks)*types.BlockSizeLimit); err != nil {
 			return err
 		}
@@ -241,7 +232,6 @@ func (cs *ConsensusSet) managedReceiveBlocks(conn modules.PeerConn) (returnErr e
 		if acceptErr != nil && acceptErr != modules.ErrNonExtendingBlock && acceptErr != modules.ErrBlockKnown {
 			return acceptErr
 		}
-		firstIteration = false
 	}
 	return nil
 }
