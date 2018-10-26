@@ -36,7 +36,7 @@ var (
 	// DevFundUnlockHash is the unlock hash for the dev fund subsidy
 	// Do not set this to the Zero address as doing so will cause the test that
 	// verifies that a dev fee is set to fail
-	DevFundUnlockHash = unlockHashFromAddrStr("e68b2c8e7a1e1c28782f70a62630bb8d1b480b49dbce422eafbb338de17eb00453918618bbd3")
+	DevFundUnlockHash = unlockHashFromAddrStr("2b29d4e2cf951472ef8146e6fdf3065eea16ff8a7e7a33461953cc1fb31b3ee04e5dc0a3b43f")
 
 	// EndOfTime is value to be used when a date in the future is needed for
 	// validation
