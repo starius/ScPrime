@@ -415,6 +415,10 @@ func TestUnitAcceptableVersion(t *testing.T) {
 		"0.3.9.9.9.9.9.9.9.9.9.9",
 		"0.3.9999999999",
 		"1.3.0",
+		"1.3.1",
+		"1.3.2",
+		"1.3.3",
+		"1.3.4",
 	}
 	for _, v := range insufficientVersions {
 		err := acceptableVersion(v)

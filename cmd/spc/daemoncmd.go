@@ -24,8 +24,8 @@ var (
 
 	updateCmd = &cobra.Command{
 		Use:   "update",
-		Short: "Update Sia",
-		Long:  "Check for (and/or download) available updates for Sia.",
+		Short: "Update SiaPrime",
+		Long:  "Check for (and/or download) available updates for SiaPrime.",
 		Run:   wrap(updatecmd),
 	}
 
@@ -39,7 +39,7 @@ var (
 
 // version prints the version of siac and siad.
 func versioncmd() {
-	fmt.Println("Sia Client")
+	fmt.Println("SiaPrime Client")
 	if build.ReleaseTag == "" {
 		fmt.Println("\tVersion " + build.Version)
 	} else {

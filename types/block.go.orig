@@ -5,10 +5,12 @@ package types
 
 import (
 	"bytes"
+	"encoding/hex"
+	"hash"
+	"unsafe"
 
 	"gitlab.com/SiaPrime/Sia/build"
 	"gitlab.com/SiaPrime/Sia/crypto"
-	"gitlab.com/SiaPrime/Sia/encoding"
 )
 
 const (
@@ -116,6 +118,27 @@ func (b Block) CalculateSubsidies(height BlockHeight) (Currency, Currency) {
 	devFundDecayEndBlockHeight := float64(DevFundDecayEndBlockHeight)
 	devFundInitialPercentage := DevFundInitialPercentage
 	devFundFinalPercentage := DevFundFinalPercentage
+<<<<<<< HEAD
+	devSubsidy := coinbase.MulFloat(0)
+
+	devFundPercentage := float64(0)
+	tempHeight := devFundInitialBlockHeight
+	if height > tempHeight {
+		devFundPercentage = devFundInitialPercentage
+		for height > tempHeight && devFundPercentage > devFundFinalPercentage {
+			devFundPercentage = devFundPercentage - float64(.01)
+			tempHeight = tempHeight + BlockHeight(devFundDecaySchedule)
+		}
+		devSubsidy = coinbase.MulFloat(devFundPercentage)
+	}
+	minerSubsidy := coinbase.Sub(devSubsidy)
+	for _, txn := range b.Transactions {
+		for _, fee := range txn.MinerFees {
+			minerSubsidy = minerSubsidy.Add(fee)
+		}
+	}
+=======
+>>>>>>> master
 
         devFundPercentageRange := devFundInitialPercentage-devFundFinalPercentage
         devFundDecayPercentage := float64(1)

@@ -83,7 +83,7 @@ var (
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List the status of all files",
-		Long:    "List the status of all files known to the renter on the Sia network.",
+		Long:    "List the status of all files known to the renter on the SiaPrime network.",
 		Run:     wrap(renterfileslistcmd),
 	}
 
@@ -98,7 +98,7 @@ var (
 	renterFilesUploadCmd = &cobra.Command{
 		Use:   "upload [source] [path]",
 		Short: "Upload a file",
-		Long:  "Upload a file to [path] on the Sia network.",
+		Long:  "Upload a file to [path] on the SiaPrime network.",
 		Run:   wrap(renterfilesuploadcmd),
 	}
 
@@ -117,13 +117,13 @@ and if no allowance is set an allowance of 500SC, 12w period, 50 hosts, and 4w r
 		Short: "Set the allowance",
 		Long: `Set the amount of money that can be spent over a given period.
 
-amount is given in currency units (SC, KS, etc.)
+amount is given in currency units (SPC, KS, etc.)
 
 period is given in either blocks (b), hours (h), days (d), or weeks (w). A
 block is approximately 10 minutes, so one hour is six blocks, a day is 144
 blocks, and a week is 1008 blocks.
 
-The Sia renter module spreads data across more than one Sia server computer
+The SiaPrime renter module spreads data across more than one SiaPrime server computer
 or "host". The "hosts" parameter for the setallowance command determines
 how many different hosts the renter will spread the data across.
 

@@ -20,8 +20,8 @@ import (
 var (
 	utilsCmd = &cobra.Command{
 		Use:   "utils",
-		Short: "various utilities for working with Sia's types",
-		Long: `Various utilities for working with Sia's types.
+		Short: "various utilities for working with SiaPrimes's types",
+		Long: `Various utilities for working with SiaPrimes's types.
 These commands do not require spd.`,
 		// Run field not provided; utils requires a subcommand.
 	}

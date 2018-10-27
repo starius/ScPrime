@@ -96,6 +96,19 @@ func TestCheckMinerPayoutsWithoutDevFee(t *testing.T) {
         devFundInitialPercentage := float64(0.2)
         devFundFinalPercentage := float64(0.1)
 
+<<<<<<< HEAD
+	devFundPercentage := float64(0)
+	tempHeight := devFundInitialBlockHeight
+	if height > tempHeight {
+		devFundPercentage = devFundInitialPercentage
+		for height > tempHeight && devFundPercentage > devFundFinalPercentage {
+			devFundPercentage = devFundPercentage - float64(.01)
+			tempHeight = tempHeight + types.BlockHeight(devFundDecaySchedule)
+		}
+		devSubsidy = coinbase.MulFloat(devFundPercentage)
+	}
+	minerSubsidy := coinbase.Sub(devSubsidy)
+=======
         devFundPercentageRange := devFundInitialPercentage-devFundFinalPercentage
         devFundDecayPercentage := float64(1)
         if float64(height) >= devFundDecayEndBlockHeight {
@@ -110,6 +123,7 @@ func TestCheckMinerPayoutsWithoutDevFee(t *testing.T) {
                 devSubsidy = coinbase.MulFloat(devFundPercentage)
         }
         minerSubsidy := coinbase.Sub(devSubsidy)
+>>>>>>> master
 
 	// Create a block with a single valid payout.
 	b := types.Block{
@@ -180,6 +194,19 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
         devFundInitialPercentage := float64(0.2)
         devFundFinalPercentage := float64(0.1)
 
+<<<<<<< HEAD
+	devFundPercentage := float64(0)
+	tempHeight := devFundInitialBlockHeight
+	if height > tempHeight {
+		devFundPercentage = devFundInitialPercentage
+		for height > tempHeight && devFundPercentage > devFundFinalPercentage {
+			devFundPercentage = devFundPercentage - float64(.01)
+			tempHeight = tempHeight + types.BlockHeight(devFundDecaySchedule)
+		}
+		devSubsidy = coinbase.MulFloat(devFundPercentage)
+	}
+	minerSubsidy := coinbase.Sub(devSubsidy)
+=======
         devFundPercentageRange := devFundInitialPercentage-devFundFinalPercentage
         devFundDecayPercentage := float64(1)
         if float64(height) >= devFundDecayEndBlockHeight {
@@ -194,6 +221,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
                 devSubsidy = coinbase.MulFloat(devFundPercentage)
         }
         minerSubsidy := coinbase.Sub(devSubsidy)
+>>>>>>> master
 
 	// Create a block with a single coinbase payout, and no dev fund payout.
 	b := types.Block{
