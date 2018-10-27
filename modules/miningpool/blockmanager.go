@@ -68,7 +68,7 @@ func (p *Pool) blockForWorkWithDevFund() types.Block {
 // blockForWork returns a block that is ready for nonce grinding, including
 // correct miner payouts.
 func (p *Pool) blockForWork() types.Block {
-        if p.persist.BlockHeight + 1 >= types.DevFundInitialBlockHeight {
+        if types.DevFundEnabled && p.persist.BlockHeight + 1 >= types.DevFundInitialBlockHeight {
                 return p.blockForWorkWithDevFund()
         }
         return p.blockForWorkWithoutDevFund()
