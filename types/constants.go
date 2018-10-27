@@ -22,21 +22,23 @@ var (
 	// that is permitted by the consensus rules.
 	BlockSizeLimit = uint64(2e6)
 	// DevFundInitialBlockHeight is the height at which the dev fund became mandatory
-	DevFundInitialBlockHeight = BlockHeight(0)
-	// DevFundInitialPercentage is the percentage of the block subsidy that goes
-	// to support development of the network instead of the miners at the time of the
-	// DevFundInitialBlockHeight
-	DevFundInitialPercentage = float64(0.21)
-	// DevFundInitialPercentage is the percentage of the block subsidy that goes
-	// to support development of the network instead of the miners at the time of the
-	// DevFundInitialBlockHeight
-	DevFundFinalPercentage = float64(0.15)
-	// DevFundDecaySchedule is the rate at which the DevFundInitialPercentage decays
-	DevFundDecaySchedule = uint64(43200)
+	DevFundInitialBlockHeight = BlockHeight(1)
+	// DevFundDecayStartBlockHeight is the height at which the DevFundInitialPercentage 
+	// begins to linearly decay to the DevFundFinalPercentage
+	DevFundDecayStartBlockHeight = BlockHeight(30000)
+	// DevFundDecayEndBlockHeight is the height at which the DevFundInitialPercentage 
+	// has fully decayed to the DevFundFinalPercentage
+	DevFundDecayEndBlockHeight = BlockHeight(105000)
+	// DevFundInitialPercentage is the initial percentage of the block reward that is 
+	// sent to the DevFundUnlockHash before any dev fund percentage decay happens
+	DevFundInitialPercentage = float64(0.2)
+	// DevFundFinalPercentage is the final percentage of the block reward that is sent
+	//  to the DevFundUnlockHash after the dev fund percentage is fully decayed
+	DevFundFinalPercentage = float64(0.1)
 	// DevFundUnlockHash is the unlock hash for the dev fund subsidy
 	// Do not set this to the Zero address as doing so will cause the test that 
 	// verifies that a dev fee is set to fail
-	DevFundUnlockHash = unlockHashFromAddrStr("e68b2c8e7a1e1c28782f70a62630bb8d1b480b49dbce422eafbb338de17eb00453918618bbd3")
+	DevFundUnlockHash = UnlockHashFromAddrStr("aefe0af2713c112ba4d10dee7753726e5c4de3f237ea455151342615c95d0e797d7a8cce7b05")
 
 	// EndOfTime is value to be used when a date in the future is needed for
 	// validation
@@ -174,7 +176,7 @@ func scanAddress(addrStr string) (addr UnlockHash, err error) {
         return addr, nil
 }
 
-func unlockHashFromAddrStr(addrStr string) (addr UnlockHash){
+func UnlockHashFromAddrStr(addrStr string) (addr UnlockHash){
 	dest, err := scanAddress(addrStr)
 	if err != nil {
 		return UnlockHash{}
@@ -215,11 +217,11 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-				UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 			{
 				Value:      AirdropPoolValue,
-                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+                                UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
 		}
 
@@ -271,11 +273,11 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+                                UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 			{
 				Value:      AirdropPoolValue,
-                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+                                UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
 		}
 
@@ -397,11 +399,11 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+                                UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 			{
 				Value:      AirdropPoolValue,
-                                UnlockHash: unlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+                                UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
 		}
 
