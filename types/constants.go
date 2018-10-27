@@ -217,11 +217,11 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-				UnlockHash: UnlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 			{
 				Value:      AirdropPoolValue,
-                                UnlockHash: UnlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+                                UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
 		}
 
@@ -273,11 +273,11 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-                                UnlockHash: UnlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+                                UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 			{
 				Value:      AirdropPoolValue,
-                                UnlockHash: UnlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+                                UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
 		}
 
@@ -399,11 +399,11 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-                                UnlockHash: UnlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+                                UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 			{
 				Value:      AirdropPoolValue,
-                                UnlockHash: UnlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"),
+                                UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
 		}
 
