@@ -246,8 +246,8 @@ func (h *Handler) handleStratumSubscribe(m *types.StratumRequest) error {
 	}
 
 	if len(m.Params) > 0 && m.Params[0].(string) == "sgminer/4.4.2" {
-		h.s.SetHighestDifficulty(4812.8)
-		h.s.SetCurrentDifficulty(4812.8)
+		h.s.SetHighestDifficulty(11500)
+		h.s.SetCurrentDifficulty(11500)
 		h.s.SetDisableVarDiff(true)
 	}
 	if len(m.Params) > 0 && m.Params[0].(string) == "cgminer/4.9.0" {
@@ -255,9 +255,21 @@ func (h *Handler) handleStratumSubscribe(m *types.StratumRequest) error {
 		h.s.SetCurrentDifficulty(1024)
 		h.s.SetDisableVarDiff(true)
 	}
+	if len(m.Params) > 0 && m.Params[0].(string) == "cgminer/4.10.0" {
+		h.s.SetHighestDifficulty(700)
+		h.s.SetCurrentDifficulty(700)
+		h.s.SetDisableVarDiff(true)
+	}
 	if len(m.Params) > 0 && m.Params[0].(string) == "gominer" {
-		h.s.SetHighestDifficulty(0.1)
-		h.s.SetCurrentDifficulty(0.1)
+		h.s.SetHighestDifficulty(0.03)
+		h.s.SetCurrentDifficulty(0.03)
+		h.s.SetDisableVarDiff(true)
+	}
+	if len(m.Params) > 0 && m.Params[0].(string) == "NiceHash/1.0.0" {
+		r := types.StratumResponse{ID: m.ID}
+		r.Result = false
+		r.Error = interfaceify([]string{"NiceHash client is not supported"})
+		return h.sendResponse(r)
 	}
 
 	r := types.StratumResponse{ID: m.ID}
