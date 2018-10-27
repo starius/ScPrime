@@ -86,7 +86,10 @@ func (m *Miner) blockForWorkWithDevFund() types.Block {
 // miners show support for the SiaPrime softfork before the soft fork block
 // height is reached.
 func (m *Miner) blockForWork() types.Block {
-	return m.blockForWorkWithDevFund()
+	if m.persist.Height + 1 >= types.DevFundInitialBlockHeight {
+		return m.blockForWorkWithDevFund()
+	}
+	return m.blockForWorkWithoutDevFund()
 }
 
 // newSourceBlock creates a new source block for the block manager so that new
