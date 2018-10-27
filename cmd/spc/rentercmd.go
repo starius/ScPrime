@@ -117,7 +117,7 @@ and if no allowance is set an allowance of 500SC, 12w period, 50 hosts, and 4w r
 		Short: "Set the allowance",
 		Long: `Set the amount of money that can be spent over a given period.
 
-amount is given in currency units (SPC, KS, etc.)
+amount is given in currency units (SCP, KS, etc.)
 
 period is given in either blocks (b), hours (h), days (d), or weeks (w). A
 block is approximately 10 minutes, so one hour is six blocks, a day is 144

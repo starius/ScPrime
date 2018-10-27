@@ -68,15 +68,15 @@ be valid. txn may be either JSON, base64, or a file containing either.`,
 
 Units:
 The smallest unit of siaprimecoins is the hasting. One siaprimecoin is 10^24 hastings. Other supported units are:
-  pS (pico,  10^-12 SPC)
-  nS (nano,  10^-9 SPC)
-  uS (micro, 10^-6 SPC)
-  mS (milli, 10^-3 SPC)
-  SPC
-  KS (kilo, 10^3 SPC)
-  MS (mega, 10^6 SPC)
-  GS (giga, 10^9 SPC)
-  TS (tera, 10^12 SPC)`,
+  pS (pico,  10^-12 SCP)
+  nS (nano,  10^-9 SCP)
+  uS (micro, 10^-6 SCP)
+  mS (milli, 10^-3 SCP)
+  SCP
+  KS (kilo, 10^3 SCP)
+  MS (mega, 10^6 SCP)
+  GS (giga, 10^9 SCP)
+  TS (tera, 10^12 SCP)`,
 		Run: wrap(walletbalancecmd),
 	}
 
@@ -617,7 +617,7 @@ func wallettransactionscmd() {
 		} else {
 			fmt.Printf(" unconfirmed")
 		}
-		fmt.Printf("%67v%15.2f SPC", txn.TransactionID, incomingSiacoinsFloat-outgoingSiacoinsFloat)
+		fmt.Printf("%67v%15.2f SCP", txn.TransactionID, incomingSiacoinsFloat-outgoingSiacoinsFloat)
 		// For siafunds, need to avoid having a negative types.Currency.
 		if incomingSiafunds.Cmp(outgoingSiafunds) >= 0 {
 			fmt.Printf("%14v SPF\n", incomingSiafunds.Sub(outgoingSiafunds))

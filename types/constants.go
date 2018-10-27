@@ -21,6 +21,9 @@ var (
 	// BlockSizeLimit is the maximum size of a binary-encoded Block
 	// that is permitted by the consensus rules.
 	BlockSizeLimit = uint64(2e6)
+	// DevFundEnabled is a boolean that when set to true will enable the ability to 
+	// configure a dev fund
+	DevFundEnabled = true
 	// DevFundInitialBlockHeight is the height at which the dev fund became mandatory
 	DevFundInitialBlockHeight = BlockHeight(1)
 	// DevFundDecayStartBlockHeight is the height at which the DevFundInitialPercentage 
