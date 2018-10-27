@@ -5,10 +5,12 @@ package types
 
 import (
 	"bytes"
+	"encoding/hex"
+	"hash"
+	"unsafe"
 
 	"gitlab.com/SiaPrime/Sia/build"
 	"gitlab.com/SiaPrime/Sia/crypto"
-	"gitlab.com/SiaPrime/Sia/encoding"
 )
 
 const (
