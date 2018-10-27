@@ -42,7 +42,7 @@ var (
 	walletBalanceCmd = &cobra.Command{
 		Use:   "balance",
 		Short: "View wallet balance",
-		Long:  "View wallet balance, including confirmed and unconfirmed siacoins and siafunds.",
+		Long:  "View wallet balance, including confirmed and unconfirmed siaprimecoins and siaprimefunds.",
 		Run:   wrap(walletbalancecmd),
 	}
 
@@ -67,16 +67,16 @@ be valid. txn may be either JSON, base64, or a file containing either.`,
 		Long: `Generate a new address, send coins to another wallet, or view info about the wallet.
 
 Units:
-The smallest unit of siacoins is the hasting. One siacoin is 10^24 hastings. Other supported units are:
-  pS (pico,  10^-12 SC)
-  nS (nano,  10^-9 SC)
-  uS (micro, 10^-6 SC)
-  mS (milli, 10^-3 SC)
-  SC
-  KS (kilo, 10^3 SC)
-  MS (mega, 10^6 SC)
-  GS (giga, 10^9 SC)
-  TS (tera, 10^12 SC)`,
+The smallest unit of siaprimecoins is the hasting. One siaprimecoin is 10^24 hastings. Other supported units are:
+  pS (pico,  10^-12 SPC)
+  nS (nano,  10^-9 SPC)
+  uS (micro, 10^-6 SPC)
+  mS (milli, 10^-3 SPC)
+  SPC
+  KS (kilo, 10^3 SPC)
+  MS (mega, 10^6 SPC)
+  GS (giga, 10^9 SPC)
+  TS (tera, 10^12 SPC)`,
 		Run: wrap(walletbalancecmd),
 	}
 
@@ -95,16 +95,9 @@ By default the wallet encryption / unlock password is the same as the generated 
 		Run:   wrap(walletinitseedcmd),
 	}
 
-	walletLoad033xCmd = &cobra.Command{
-		Use:   "033x [filepath]",
-		Short: "Load a v0.3.3.x wallet",
-		Long:  "Load a v0.3.3.x wallet into the current wallet",
-		Run:   wrap(walletload033xcmd),
-	}
-
 	walletLoadCmd = &cobra.Command{
 		Use:   "load",
-		Short: "Load a wallet seed, v0.3.3.x wallet, or siag keyset",
+		Short: "Load a wallet seed or saipg keyset",
 		// Run field is not set, as the load command itself is not a valid command.
 		// A subcommand must be provided.
 	}
@@ -117,10 +110,10 @@ By default the wallet encryption / unlock password is the same as the generated 
 	}
 
 	walletLoadSiagCmd = &cobra.Command{
-		Use:     `siag [filepath,...]`,
-		Short:   "Load siag key(s) into the wallet",
-		Long:    "Load siag key(s) into the wallet - typically used for siafunds.",
-		Example: "spc wallet load siag key1.siakey,key2.siakey",
+		Use:     `saipg [filepath,...]`,
+		Short:   "Load saipg key(s) into the wallet",
+		Long:    "Load saipg key(s) into the wallet - typically used for siaprimefunds.",
+		Example: "spc wallet load saipg key1.siapkey,key2.siapkey",
 		Run:     wrap(walletloadsiagcmd),
 	}
 
@@ -140,16 +133,16 @@ By default the wallet encryption / unlock password is the same as the generated 
 
 	walletSendCmd = &cobra.Command{
 		Use:   "send",
-		Short: "Send either siacoins or siafunds to an address",
-		Long:  "Send either siacoins or siafunds to an address",
+		Short: "Send either siaprimecoins or siaprimefunds to an address",
+		Long:  "Send either siaprimecoins or siaprimefunds to an address",
 		// Run field is not set, as the send command itself is not a valid command.
 		// A subcommand must be provided.
 	}
 
 	walletSendSiacoinsCmd = &cobra.Command{
-		Use:   "siacoins [amount] [dest]",
-		Short: "Send siacoins to an address",
-		Long: `Send siacoins to an address. 'dest' must be a 76-byte hexadecimal address.
+		Use:   "siaprimecoins [amount] [dest]",
+		Short: "Send siaprimecoins to an address",
+		Long: `Send siaprimecoins to an address. 'dest' must be a 76-byte hexadecimal address.
 'amount' can be specified in units, e.g. 1.23KS. Run 'wallet --help' for a list of units.
 If no unit is supplied, hastings will be assumed.
 
@@ -158,9 +151,9 @@ A dynamic transaction fee is applied depending on the size of the transaction an
 	}
 
 	walletSendSiafundsCmd = &cobra.Command{
-		Use:   "siafunds [amount] [dest]",
-		Short: "Send siafunds",
-		Long: `Send siafunds to an address, and transfer the claim siacoins to your wallet.
+		Use:   "siaprimefunds [amount] [dest]",
+		Short: "Send siaprimefunds",
+		Long: `Send siaprimefunds to an address, and transfer the claim siaprimecoins to your wallet.
 Run 'wallet send --help' to see a list of available units.`,
 		Run: wrap(walletsendsiafundscmd),
 	}
@@ -168,7 +161,7 @@ Run 'wallet send --help' to see a list of available units.`,
 	walletSignCmd = &cobra.Command{
 		Use:   "sign [txn] [tosign]",
 		Short: "Sign a transaction",
-		Long: `Sign a transaction. If siad is running with an unlocked wallet, the
+		Long: `Sign a transaction. If spd is running with an unlocked wallet, the
 /wallet/sign API call will be used. Otherwise, sign will prompt for the wallet
 seed, and the signing key(s) will be regenerated.
 
@@ -182,8 +175,8 @@ provided, the wallet will fill in every TransactionSignature it has keys for.`,
 
 	walletSweepCmd = &cobra.Command{
 		Use:   "sweep",
-		Short: "Sweep siacoins and siafunds from a seed.",
-		Long: `Sweep siacoins and siafunds from a seed. The outputs belonging to the seed
+		Short: "Sweep siaprimecoins and siaprimefunds from a seed.",
+		Long: `Sweep siaprimecoins and siaprimefunds from a seed. The outputs belonging to the seed
 will be sent to your wallet.`,
 		Run: wrap(walletsweepcmd),
 	}
@@ -191,7 +184,7 @@ will be sent to your wallet.`,
 	walletTransactionsCmd = &cobra.Command{
 		Use:   "transactions",
 		Short: "View transactions",
-		Long:  "View transactions related to addresses spendable by the wallet, providing a net flow of siacoins and siafunds for each transaction",
+		Long:  "View transactions related to addresses spendable by the wallet, providing a net flow of siaprimecoins and siaprimefunds for each transaction",
 		Run:   wrap(wallettransactionscmd),
 	}
 
@@ -325,19 +318,6 @@ func walletinitseedcmd() {
 	}
 }
 
-// walletload033xcmd loads a v0.3.3.x wallet into the current wallet.
-func walletload033xcmd(source string) {
-	password, err := passwordPrompt(askPasswordText)
-	if err != nil {
-		die("Reading password failed:", err)
-	}
-	err = httpClient.Wallet033xPost(abs(source), password)
-	if err != nil {
-		die("Loading wallet failed:", err)
-	}
-	fmt.Println("Wallet loading successful.")
-}
-
 // walletloadseedcmd adds a seed to the wallet's list of seeds
 func walletloadseedcmd() {
 	seed, err := passwordPrompt("New seed: ")
@@ -363,7 +343,7 @@ func walletloadsiagcmd(keyfiles string) {
 	}
 	err = httpClient.WalletSiagKeyPost(keyfiles, password)
 	if err != nil {
-		die("Loading siag key failed:", err)
+		die("Loading saipg key failed:", err)
 	}
 	fmt.Println("Wallet loading successful.")
 }
@@ -415,7 +395,7 @@ func walletsendsiacoinscmd(amount, dest string) {
 	}
 	_, err = httpClient.WalletSiacoinsPost(value, hash)
 	if err != nil {
-		die("Could not send siacoins:", err)
+		die("Could not send siaprimecoins:", err)
 	}
 	fmt.Printf("Sent %s hastings to %s\n", hastings, dest)
 }
@@ -432,9 +412,9 @@ func walletsendsiafundscmd(amount, dest string) {
 	}
 	_, err := httpClient.WalletSiafundsPost(value, hash)
 	if err != nil {
-		die("Could not send siafunds:", err)
+		die("Could not send siaprimefunds:", err)
 	}
-	fmt.Printf("Sent %s siafunds to %s\n", amount, dest)
+	fmt.Printf("Sent %s siaprimefunds to %s\n", amount, dest)
 }
 
 // walletbalancecmd retrieves and displays information about the wallet.
@@ -471,10 +451,10 @@ Unlock the wallet to view balance
 %s, Unlocked
 Height:              %v
 Confirmed Balance:   %v
-Unconfirmed Delta:  %v
+Unconfirmed Delta:   %v
 Exact:               %v H
-Siafunds:            %v SF
-Siafund Claims:      %v H
+Siaprimefunds:       %v SPF
+Siaprimefund Claims: %v H
 
 Estimated Fee:       %v / KB
 `, encStatus, status.Height, currencyUnits(status.ConfirmedSiacoinBalance), delta,
@@ -506,7 +486,7 @@ func walletsweepcmd() {
 	if err != nil {
 		die("Could not sweep seed:", err)
 	}
-	fmt.Printf("Swept %v and %v SF from seed.\n", currencyUnits(swept.Coins), swept.Funds)
+	fmt.Printf("Swept %v and %v SPF from seed.\n", currencyUnits(swept.Coins), swept.Funds)
 }
 
 // walletsigncmd signs a transaction.
@@ -540,7 +520,7 @@ func walletsigncmd(cmd *cobra.Command, args []string) {
 		// if siad is running, but the wallet is locked, assume the user
 		// wanted to sign with siad
 		if strings.Contains(err.Error(), modules.ErrLockedWallet.Error()) {
-			die("Signing via API failed: siad is running, but the wallet is locked.")
+			die("Signing via API failed: spd is running, but the wallet is locked.")
 		}
 
 		// siad is not running; fallback to offline keygen
@@ -558,7 +538,7 @@ func walletsigncmd(cmd *cobra.Command, args []string) {
 // walletsigncmdoffline is a helper for walletsigncmd that handles signing
 // transactions without siad.
 func walletsigncmdoffline(txn *types.Transaction, toSign []crypto.Hash) {
-	fmt.Println("Enter your wallet seed to generate the signing key(s) now and sign without siad.")
+	fmt.Println("Enter your wallet seed to generate the signing key(s) now and sign without spd.")
 	seedString, err := passwordPrompt("Seed: ")
 	if err != nil {
 		die("Reading seed failed:", err)
@@ -592,7 +572,7 @@ func wallettransactionscmd() {
 	if err != nil {
 		die("Could not fetch transaction history:", err)
 	}
-	fmt.Println("             [timestamp]    [height]                                                   [transaction id]    [net siacoins]   [net siafunds]")
+	fmt.Println("             [timestamp]    [height]                                                   [transaction id]    [net siaprimecoins]   [net siaprimefunds]")
 	txns := append(wtg.ConfirmedTransactions, wtg.UnconfirmedTransactions...)
 	for _, txn := range txns {
 		// Determine the number of outgoing siacoins and siafunds.
@@ -637,12 +617,12 @@ func wallettransactionscmd() {
 		} else {
 			fmt.Printf(" unconfirmed")
 		}
-		fmt.Printf("%67v%15.2f SC", txn.TransactionID, incomingSiacoinsFloat-outgoingSiacoinsFloat)
+		fmt.Printf("%67v%15.2f SPC", txn.TransactionID, incomingSiacoinsFloat-outgoingSiacoinsFloat)
 		// For siafunds, need to avoid having a negative types.Currency.
 		if incomingSiafunds.Cmp(outgoingSiafunds) >= 0 {
-			fmt.Printf("%14v SF\n", incomingSiafunds.Sub(outgoingSiafunds))
+			fmt.Printf("%14v SPF\n", incomingSiafunds.Sub(outgoingSiafunds))
 		} else {
-			fmt.Printf("-%14v SF\n", outgoingSiafunds.Sub(incomingSiafunds))
+			fmt.Printf("-%14v SPF\n", outgoingSiafunds.Sub(incomingSiafunds))
 		}
 	}
 }
