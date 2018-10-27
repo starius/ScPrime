@@ -112,29 +112,31 @@ func (b Block) CalculateSubsidy(height BlockHeight) Currency {
 func (b Block) CalculateSubsidies(height BlockHeight) (Currency, Currency) {
 	coinbase := CalculateCoinbase(height)
 	devFundInitialBlockHeight := DevFundInitialBlockHeight
-	devFundDecaySchedule := DevFundDecaySchedule
+	devFundDecayStartBlockHeight := float64(DevFundDecayStartBlockHeight)
+	devFundDecayEndBlockHeight := float64(DevFundDecayEndBlockHeight)
 	devFundInitialPercentage := DevFundInitialPercentage
 	devFundFinalPercentage := DevFundFinalPercentage
-	devSubsidy := coinbase.MulFloat(0)
 
-	devFundPercentage := float64(0)
-	tempHeight := devFundInitialBlockHeight
-	if height > tempHeight {
-		devFundPercentage = devFundInitialPercentage
-		for height > tempHeight && devFundPercentage > devFundFinalPercentage {
-			devFundPercentage = devFundPercentage - float64(.01)
-			tempHeight = tempHeight+BlockHeight(devFundDecaySchedule)
-		}
-		devSubsidy = coinbase.MulFloat(devFundPercentage)
-	}
-	minerSubsidy := coinbase.Sub(devSubsidy)
-	for _, txn := range b.Transactions {
-		for _, fee := range txn.MinerFees {
-			minerSubsidy = minerSubsidy.Add(fee)
-		}
-	}
+        devFundPercentageRange := devFundInitialPercentage-devFundFinalPercentage
+        devFundDecayPercentage := float64(1)
+        if float64(height) >= devFundDecayEndBlockHeight {
+                devFundDecayPercentage = float64(0)
+        } else if float64(height) >= devFundDecayStartBlockHeight {
+                devFundDecayPercentage = 1-(float64(height) - devFundDecayStartBlockHeight)/(devFundDecayEndBlockHeight - devFundDecayStartBlockHeight)
+        }
+        devFundPercentage := devFundFinalPercentage+devFundPercentageRange*devFundDecayPercentage
 
-	return minerSubsidy, devSubsidy
+        devSubsidy := coinbase.MulFloat(0)
+        if height >= devFundInitialBlockHeight {
+                devSubsidy = coinbase.MulFloat(devFundPercentage)
+        }
+        minerSubsidy := coinbase.Sub(devSubsidy)
+        for _, txn := range b.Transactions {
+                for _, fee := range txn.MinerFees {
+                        minerSubsidy = minerSubsidy.Add(fee)
+                }
+        }
+        return minerSubsidy, devSubsidy
 }
 
 // Header returns the header of a block.
