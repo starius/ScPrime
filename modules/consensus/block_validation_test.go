@@ -90,13 +90,14 @@ func TestCheckMinerPayoutsWithoutDevFee(t *testing.T) {
 	// All tests are done at height = 0
 	height := types.BlockHeight(0)
         coinbase := types.CalculateCoinbase(height)
-        devFundInitialBlockHeight := types.BlockHeight(1)
-        devFundDecayStartBlockHeight := float64(30000)
-        devFundDecayEndBlockHeight := float64(105000)
-        devFundInitialPercentage := float64(0.2)
-        devFundFinalPercentage := float64(0.1)
+        devFundEnabled := types.DevFundEnabled
+        devFundInitialBlockHeight := types.DevFundInitialBlockHeight
+        devFundDecayStartBlockHeight := float64(types.DevFundDecayStartBlockHeight)
+        devFundDecayEndBlockHeight := float64(types.DevFundDecayEndBlockHeight)
+        devFundInitialPercentage := types.DevFundInitialPercentage
+        devFundFinalPercentage := types.DevFundFinalPercentage
 
-        devFundPercentageRange := devFundInitialPercentage-devFundFinalPercentage
+	devFundPercentageRange := devFundInitialPercentage-devFundFinalPercentage
         devFundDecayPercentage := float64(1)
         if float64(height) >= devFundDecayEndBlockHeight {
                 devFundDecayPercentage = float64(0)
@@ -106,7 +107,7 @@ func TestCheckMinerPayoutsWithoutDevFee(t *testing.T) {
         devFundPercentage := devFundFinalPercentage+devFundPercentageRange*devFundDecayPercentage
 
         devSubsidy := coinbase.MulFloat(0)
-        if height >= devFundInitialBlockHeight {
+        if devFundEnabled && height >= devFundInitialBlockHeight {
                 devSubsidy = coinbase.MulFloat(devFundPercentage)
         }
         minerSubsidy := coinbase.Sub(devSubsidy)
@@ -166,19 +167,16 @@ func TestCheckMinerPayoutsWithoutDevFee(t *testing.T) {
 }
 
 // TestCheckMinerPayoutsWithDevFee probes the checkMinerPayouts function.
-//
-// Not sure why I have to use types.BlockHeight(265400) here instead of
-// DevFundInitialBlockHeight and float64(0.2) instead of
-// DevFundInitialPercentage but will look into that later.
 func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 	// All tests are done at height = 1.
 	height := types.BlockHeight(1)
         coinbase := types.CalculateCoinbase(height)
-	devFundInitialBlockHeight := types.BlockHeight(1)
-        devFundDecayStartBlockHeight := float64(30000)
-        devFundDecayEndBlockHeight := float64(105000)
-        devFundInitialPercentage := float64(0.2)
-        devFundFinalPercentage := float64(0.1)
+        devFundEnabled := types.DevFundEnabled
+        devFundInitialBlockHeight := types.DevFundInitialBlockHeight
+        devFundDecayStartBlockHeight := float64(types.DevFundDecayStartBlockHeight)
+        devFundDecayEndBlockHeight := float64(types.DevFundDecayEndBlockHeight)
+        devFundInitialPercentage := types.DevFundInitialPercentage
+        devFundFinalPercentage := types.DevFundFinalPercentage
 
         devFundPercentageRange := devFundInitialPercentage-devFundFinalPercentage
         devFundDecayPercentage := float64(1)
@@ -190,7 +188,7 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
         devFundPercentage := devFundFinalPercentage+devFundPercentageRange*devFundDecayPercentage
 
         devSubsidy := coinbase.MulFloat(0)
-        if height >= devFundInitialBlockHeight {
+        if devFundEnabled && height >= devFundInitialBlockHeight {
                 devSubsidy = coinbase.MulFloat(devFundPercentage)
         }
         minerSubsidy := coinbase.Sub(devSubsidy)
@@ -201,8 +199,11 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: coinbase},
 		},
 	}
-	if checkMinerPayouts(b, height) {
-		t.Error("payouts evaluated incorrectly when there is a coinbase payout but not dev fund payout.")
+	if devFundEnabled && checkMinerPayouts(b, height) {
+		t.Error("payouts evaluated incorrectly when the dev fund is enabled and there is a coinbase payout but not a dev fund payout.")
+	}
+	if !devFundEnabled && !checkMinerPayouts(b, height) {
+		t.Error("payouts evaluated incorrectly when the dev fund is disabled and there is a coinbase payout and a dev fund payout.")
 	}
 	// Create a block with a valid miner payout, and a dev fund payout with no unlock hash.
 	b = types.Block{
@@ -230,9 +231,12 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: minerSubsidy},
 		},
 	}
-	if checkMinerPayouts(b, height) {
-		t.Error("payouts evaluated incorrectly when we are missing the dev fund payout but have a proper miner payout.")
+	if devFundEnabled && checkMinerPayouts(b, height) {
+		t.Error("payouts evaluated incorrectly when the dev fund is enabled and we are missing the dev fund payout but have a proper miner payout.")
 	}
+        if !devFundEnabled && !checkMinerPayouts(b, height) {
+                t.Error("payouts evaluated incorrectly when the dev fund is disabled and we have a proper miner payout.")
+        }
 	// Create a block with a valid dev fund payout, but no miner payout.
 	b = types.Block{
 		MinerPayouts: []types.SiacoinOutput{
@@ -249,9 +253,12 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: devSubsidy, UnlockHash: types.DevFundUnlockHash},
 		},
 	}
-	if !checkMinerPayouts(b, height) {
-		t.Error("payouts evaluated incorrectly when there are only two payouts.")
+	if devFundEnabled && !checkMinerPayouts(b, height) {
+		t.Error("payouts evaluated incorrectly when there are only two payouts and the dev fund is enabled.")
 	}
+        if !devFundEnabled && checkMinerPayouts(b, height) {
+                t.Error("payouts evaluated incorrectly when there are only two payouts and the dev fund is disabled.")
+        }
 
 	// Try a block with an incorrect payout.
 	b = types.Block{
@@ -273,9 +280,12 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 			{Value: devSubsidy, UnlockHash: types.DevFundUnlockHash},
 		},
 	}
-	if !checkMinerPayouts(b, height) {
-		t.Error("payouts evaluated incorrectly when there are 3 payouts")
+	if devFundEnabled && !checkMinerPayouts(b, height) {
+		t.Error("payouts evaluated incorrectly when there are 3 payouts and the dev fund is enabled.")
 	}
+        if !devFundEnabled && checkMinerPayouts(b, height) {
+                t.Error("payouts evaluated incorrectly when there are 3 payouts and the dev fund is disabled.")
+        }
 
 	// Try a block with 2 payouts that are too large.
 	b = types.Block{
