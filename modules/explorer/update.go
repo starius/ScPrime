@@ -530,6 +530,12 @@ func dbAddGenesisBlock(tx *bolt.Tx) {
 	dbAddBlockID(tx, id, 0)
 	txid := types.GenesisBlock.Transactions[0].ID()
 	dbAddTransactionID(tx, txid, 0)
+        for i, sco := range types.GenesisAirdropAllocation {
+                scoid := types.GenesisBlock.Transactions[0].SiacoinOutputID(uint64(i))
+                dbAddSiacoinOutputID(tx, scoid, txid)
+                dbAddUnlockHash(tx, sco.UnlockHash, txid)
+                dbAddSiacoinOutput(tx, scoid, sco)
+        }
 	for i, sfo := range types.GenesisSiafundAllocation {
 		sfoid := types.GenesisBlock.Transactions[0].SiafundOutputID(uint64(i))
 		dbAddSiafundOutputID(tx, sfoid, txid)
@@ -544,6 +550,7 @@ func dbAddGenesisBlock(tx *bolt.Tx) {
 			Target:             types.RootTarget,
 			TotalCoins:         types.CalculateCoinbase(0),
 			TransactionCount:   1,
+			SiacoinOutputCount: uint64(len(types.GenesisAirdropAllocation)),
 			SiafundOutputCount: uint64(len(types.GenesisSiafundAllocation)),
 		},
 		Timestamp: types.GenesisBlock.Timestamp,
