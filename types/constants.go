@@ -21,25 +21,25 @@ var (
 	// BlockSizeLimit is the maximum size of a binary-encoded Block
 	// that is permitted by the consensus rules.
 	BlockSizeLimit = uint64(2e6)
-	// DevFundEnabled is a boolean that when set to true will enable the ability to 
+	// DevFundEnabled is a boolean that when set to true will enable the ability to
 	// configure a dev fund
 	DevFundEnabled = true
 	// DevFundInitialBlockHeight is the height at which the dev fund became mandatory
 	DevFundInitialBlockHeight = BlockHeight(1)
-	// DevFundDecayStartBlockHeight is the height at which the DevFundInitialPercentage 
+	// DevFundDecayStartBlockHeight is the height at which the DevFundInitialPercentage
 	// begins to linearly decay to the DevFundFinalPercentage
 	DevFundDecayStartBlockHeight = BlockHeight(30000)
-	// DevFundDecayEndBlockHeight is the height at which the DevFundInitialPercentage 
+	// DevFundDecayEndBlockHeight is the height at which the DevFundInitialPercentage
 	// has fully decayed to the DevFundFinalPercentage
 	DevFundDecayEndBlockHeight = BlockHeight(105000)
-	// DevFundInitialPercentage is the initial percentage of the block reward that is 
+	// DevFundInitialPercentage is the initial percentage of the block reward that is
 	// sent to the DevFundUnlockHash before any dev fund percentage decay happens
 	DevFundInitialPercentage = float64(0.2)
 	// DevFundFinalPercentage is the final percentage of the block reward that is sent
 	//  to the DevFundUnlockHash after the dev fund percentage is fully decayed
 	DevFundFinalPercentage = float64(0.1)
 	// DevFundUnlockHash is the unlock hash for the dev fund subsidy
-	// Do not set this to the Zero address as doing so will cause the test that 
+	// Do not set this to the Zero address as doing so will cause the test that
 	// verifies that a dev fee is set to fail
 	DevFundUnlockHash = UnlockHashFromAddrStr("aefe0af2713c112ba4d10dee7753726e5c4de3f237ea455151342615c95d0e797d7a8cce7b05")
 
@@ -172,14 +172,14 @@ var (
 
 // scanAddress scans a types.UnlockHash from a string.
 func scanAddress(addrStr string) (addr UnlockHash, err error) {
-        err = addr.LoadString(addrStr)
-        if err != nil {
-                return UnlockHash{}, err
-        }
-        return addr, nil
+	err = addr.LoadString(addrStr)
+	if err != nil {
+		return UnlockHash{}, err
+	}
+	return addr, nil
 }
 
-func UnlockHashFromAddrStr(addrStr string) (addr UnlockHash){
+func UnlockHashFromAddrStr(addrStr string) (addr UnlockHash) {
 	dest, err := scanAddress(addrStr)
 	if err != nil {
 		return UnlockHash{}
@@ -224,7 +224,7 @@ func init() {
 			},
 			{
 				Value:      AirdropPoolValue,
-                                UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
+				UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
 		}
 
@@ -275,11 +275,11 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-                                UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 			{
 				Value:      AirdropPoolValue,
-                                UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
+				UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
 		}
 
@@ -400,11 +400,11 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-                                UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 			{
 				Value:      AirdropPoolValue,
-                                UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
+				UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
 		}
 

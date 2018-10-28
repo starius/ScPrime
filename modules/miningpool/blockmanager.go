@@ -13,65 +13,65 @@ var (
 )
 
 func (p *Pool) blockForWorkWithoutDevFund() types.Block {
-        p.persist.mu.Lock()
-        defer p.persist.mu.Unlock()
+	p.persist.mu.Lock()
+	defer p.persist.mu.Unlock()
 
-        b := p.sourceBlock
-        b.Transactions = p.blockTxns.transactions()
+	b := p.sourceBlock
+	b.Transactions = p.blockTxns.transactions()
 
-        // Update the timestamp.
-        if b.Timestamp < types.CurrentTimestamp() {
-                b.Timestamp = types.CurrentTimestamp()
-        }
+	// Update the timestamp.
+	if b.Timestamp < types.CurrentTimestamp() {
+		b.Timestamp = types.CurrentTimestamp()
+	}
 
-        payoutVal := b.CalculateSubsidy(p.persist.BlockHeight + 1)
-        p.log.Printf("building a new source block, block id is: %s\n", b.ID())
-        p.log.Printf("miner fees cost: %s", b.CalculateMinerFees().String())
-        p.log.Printf("# transactions: %d", len(b.Transactions))
-        p.log.Printf("payout value is: %s", payoutVal.String())
-        b.MinerPayouts = []types.SiacoinOutput{{
-                Value:      payoutVal,
-                UnlockHash: p.persist.Settings.PoolWallet,
-        }}
+	payoutVal := b.CalculateSubsidy(p.persist.BlockHeight + 1)
+	p.log.Printf("building a new source block, block id is: %s\n", b.ID())
+	p.log.Printf("miner fees cost: %s", b.CalculateMinerFees().String())
+	p.log.Printf("# transactions: %d", len(b.Transactions))
+	p.log.Printf("payout value is: %s", payoutVal.String())
+	b.MinerPayouts = []types.SiacoinOutput{{
+		Value:      payoutVal,
+		UnlockHash: p.persist.Settings.PoolWallet,
+	}}
 
-        return b
+	return b
 }
 
 func (p *Pool) blockForWorkWithDevFund() types.Block {
-        p.persist.mu.Lock()
-        defer p.persist.mu.Unlock()
+	p.persist.mu.Lock()
+	defer p.persist.mu.Unlock()
 
-        b := p.sourceBlock
-        b.Transactions = p.blockTxns.transactions()
+	b := p.sourceBlock
+	b.Transactions = p.blockTxns.transactions()
 
-        // Update the timestamp.
-        if b.Timestamp < types.CurrentTimestamp() {
-                b.Timestamp = types.CurrentTimestamp()
-        }
+	// Update the timestamp.
+	if b.Timestamp < types.CurrentTimestamp() {
+		b.Timestamp = types.CurrentTimestamp()
+	}
 
 	minerPayoutVal, devPayoutVal := b.CalculateSubsidies(p.persist.BlockHeight + 1)
-        p.log.Printf("building a new source block, block id is: %s\n", b.ID())
-        p.log.Printf("miner fees cost: %s", b.CalculateMinerFees().String())
-        p.log.Printf("# transactions: %d", len(b.Transactions))
-        p.log.Printf("payout value is: %s", minerPayoutVal.String())
-        b.MinerPayouts = []types.SiacoinOutput{{
-                Value:      minerPayoutVal,
-                UnlockHash: p.persist.Settings.PoolWallet,
-        }, {
-                Value:      devPayoutVal,
-                UnlockHash: types.DevFundUnlockHash,
-        }}
+	p.log.Printf("building a new source block, block id is: %s\n", b.ID())
+	p.log.Printf("miner fees cost: %s", b.CalculateMinerFees().String())
+	p.log.Printf("# transactions: %d", len(b.Transactions))
+	p.log.Printf("payout value is: %s", minerPayoutVal.String())
+	b.MinerPayouts = []types.SiacoinOutput{{
+		Value:      minerPayoutVal,
+		UnlockHash: p.persist.Settings.PoolWallet,
+	}, {
+		Value:      devPayoutVal,
+		UnlockHash: types.DevFundUnlockHash,
+	}}
 
-        return b
+	return b
 }
 
 // blockForWork returns a block that is ready for nonce grinding, including
 // correct miner payouts.
 func (p *Pool) blockForWork() types.Block {
-        if types.DevFundEnabled && p.persist.BlockHeight + 1 >= types.DevFundInitialBlockHeight {
-                return p.blockForWorkWithDevFund()
-        }
-        return p.blockForWorkWithoutDevFund()
+	if types.DevFundEnabled && p.persist.BlockHeight+1 >= types.DevFundInitialBlockHeight {
+		return p.blockForWorkWithDevFund()
+	}
+	return p.blockForWorkWithoutDevFund()
 }
 
 // newSourceBlock creates a new source block for the block manager so that new

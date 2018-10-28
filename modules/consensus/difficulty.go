@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"gitlab.com/SiaPrime/Sia/build"
 	"gitlab.com/SiaPrime/Sia/types"
 
 	"github.com/coreos/bbolt"
@@ -60,14 +59,6 @@ import (
 // child block to influence the target of the following block, which makes abuse
 // easier in selfish mining scenarios.
 func (cs *ConsensusSet) childTargetOak(parentTotalTime int64, parentTotalTarget, currentTarget types.Target, parentHeight types.BlockHeight, parentTimestamp types.Timestamp) types.Target {
-	// This is the public launch of the network
-	// Sia target at height 164433
-	// [0 0 0 0 0 0 0 0 105 202 12 225 144 224 144 183 167 243 233 188 79 177 239 138 67 214 220 16 80 74 216 60]
-	// We target about 1%
-	if parentHeight == types.BlockHeight(7) && build.Release == "standard" {
-		// TODO Adjust based on current Sia height
-		return types.Target{0, 0, 0, 0, 0, 0, 0, 40}
-	}
 	// Determine the delta of the current total time vs. the desired total time.
 	// The desired total time is the difference between the genesis block
 	// timestamp and the current block timestamp.
