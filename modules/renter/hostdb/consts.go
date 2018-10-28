@@ -16,11 +16,11 @@ const (
 	historicInteractionDecayLimit = 500
 
 	// hostRequestTimeout indicates how long a host has to respond to a dial.
-	hostRequestTimeout = 2 * time.Minute
+	hostRequestTimeout = 1 * time.Minute
 
 	// hostScanDeadline indicates how long a host has to complete an entire
 	// scan.
-	hostScanDeadline = 4 * time.Minute
+	hostScanDeadline = 2 * time.Minute
 
 	// maxHostDowntime specifies the maximum amount of time that a host is
 	// allowed to be offline while still being in the hostdb.
@@ -32,7 +32,7 @@ const (
 
 	// minScans specifies the number of scans that a host should have before the
 	// scans start getting compressed.
-	minScans = 12
+	minScans = 3
 
 	// minScansForSpeedup is the number of successful scan that needs to be
 	// completed before the dial up timeout for scans is reduced. This ensures
@@ -74,6 +74,7 @@ var (
 
 	// scanningThreads is the number of threads that will be probing hosts for
 	// their settings and checking for reliability.
+
 	maxScanningThreads = build.Select(build.Var{
 		Standard: int(80),
 		Dev:      int(4),
@@ -85,7 +86,7 @@ var (
 	// maxScanSleep is the maximum amount of time that the hostdb will sleep
 	// between performing scans of the hosts.
 	maxScanSleep = build.Select(build.Var{
-		Standard: time.Hour * 8,
+		Standard: time.Hour * 6,
 		Dev:      time.Minute * 10,
 		Testing:  time.Second * 5,
 	}).(time.Duration)

@@ -196,9 +196,9 @@ func init() {
 		// can coordinate their actions over a the developer testnets, but fast
 		// enough that there isn't much time wasted on waiting for things to
 		// happen.
-		BlockFrequency = 12                      // 12 seconds: slow enough for developers to see ~each block, fast enough that blocks don't waste time.
-		MaturityDelay = 10                       // 60 seconds before a delayed output matures.
-		GenesisTimestamp = Timestamp(1424139000) // Change as necessary.
+		BlockFrequency = 120                     // 12 seconds: slow enough for developers to see ~each block, fast enough that blocks don't waste time.
+		MaturityDelay = 100                      // 60 seconds before a delayed output matures.
+		GenesisTimestamp = Timestamp(1528293910) // Change as necessary.
 		RootTarget = Target{0, 0, 2}             // Standard developer CPUs will be able to mine blocks with the race library activated.
 
 		TargetWindow = 20                              // Difficulty is adjusted based on prior 20 blocks.
@@ -227,7 +227,6 @@ func init() {
                                 UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
 		}
-
 
 		GenesisSiafundAllocation = []SiafundOutput{
 			{
@@ -284,7 +283,6 @@ func init() {
 			},
 		}
 
-
 		GenesisSiafundAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(2000),
@@ -322,7 +320,7 @@ func init() {
 		// The genesis timestamp is set to June 6th, because that is when the
 		// 100-block developer premine started. The trailing zeroes are a
 		// bonus, and make the timestamp easier to memorize.
-		GenesisTimestamp = Timestamp(1433600000) // June 6th, 2015 @ 2:13pm UTC.
+		GenesisTimestamp = Timestamp(1433600001) // June 6th, 2015 @ 2:13pm UTC.
 
 		// The RootTarget was set such that the developers could reasonable
 		// premine 100 blocks in a day. It was known to the developers at launch
@@ -409,7 +407,6 @@ func init() {
                                 UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
 		}
-
 
 		GenesisSiafundAllocation = []SiafundOutput{
 			{

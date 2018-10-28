@@ -14,13 +14,16 @@ import (
 	"time"
 
 	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/config"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/modules"
 	"gitlab.com/SiaPrime/Sia/modules/consensus"
 	"gitlab.com/SiaPrime/Sia/modules/explorer"
 	"gitlab.com/SiaPrime/Sia/modules/gateway"
 	"gitlab.com/SiaPrime/Sia/modules/host"
+	"gitlab.com/SiaPrime/Sia/modules/index"
 	"gitlab.com/SiaPrime/Sia/modules/miner"
+	"gitlab.com/SiaPrime/Sia/modules/miningpool"
 	"gitlab.com/SiaPrime/Sia/modules/renter"
 	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
 	"gitlab.com/SiaPrime/Sia/modules/wallet"
@@ -65,6 +68,7 @@ func (srv *Server) Close() error {
 		{"host", srv.api.host},
 		{"renter", srv.api.renter},
 		{"miner", srv.api.miner},
+		{"stratumminer", srv.api.stratumminer},
 		{"wallet", srv.api.wallet},
 		{"tpool", srv.api.tpool},
 		{"consensus", srv.api.cs},
@@ -103,13 +107,13 @@ func (srv *Server) Serve() error {
 // the empty string. Usernames are ignored for authentication. This type of
 // authentication sends passwords in plaintext and should therefore only be
 // used if the APIaddr is localhost.
-func NewServer(APIaddr string, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet) (*Server, error) {
+func NewServer(APIaddr string, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, mp modules.Pool, sm modules.StratumMiner, i modules.Index) (*Server, error) {
 	listener, err := net.Listen("tcp", APIaddr)
 	if err != nil {
 		return nil, err
 	}
 
-	api := New(requiredUserAgent, requiredPassword, cs, e, g, h, m, r, tp, w)
+	api := New(requiredUserAgent, requiredPassword, cs, e, g, h, m, r, tp, w, mp, sm, i)
 	srv := &Server{
 		api: api,
 		apiServer: &http.Server{
@@ -183,7 +187,7 @@ func assembleServerTester(key crypto.TwofishKey, testdir string) (*serverTester,
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.New(cs, g, tp, w, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := host.New(cs, tp, w, "localhost:0", filepath.Join(testdir, modules.HostDir))
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +195,7 @@ func assembleServerTester(key crypto.TwofishKey, testdir string) (*serverTester,
 	if err != nil {
 		return nil, err
 	}
-	srv, err := NewServer("localhost:0", "SiaPrime-Agent", "", cs, nil, g, h, m, r, tp, w)
+	srv, err := NewServer("localhost:0", "SiaPrime-Agent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +271,7 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Twofi
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.New(cs, g, tp, w, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := host.New(cs, tp, w, "localhost:0", filepath.Join(testdir, modules.HostDir))
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +279,15 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Twofi
 	if err != nil {
 		return nil, err
 	}
-	srv, err := NewServer("localhost:0", "SiaPrime-Agent", requiredPassword, cs, nil, g, h, m, r, tp, w)
+	mp, err := pool.New(cs, tp, g, w, filepath.Join(testdir, modules.PoolDir), config.MiningPoolConfig{})
+	if err != nil {
+		return nil, err
+	}
+	idx, err := index.New(cs, tp, g, w, filepath.Join(testdir, modules.IndexDir), config.IndexConfig{})
+	if err != nil {
+		return nil, err
+	}
+	srv, err := NewServer("localhost:0", "SiaPrime-Agent", requiredPassword, cs, nil, g, h, m, r, tp, w, mp, nil, idx)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +341,7 @@ func assembleExplorerServerTester(testdir string) (*serverTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	srv, err := NewServer("localhost:0", "", "", cs, e, g, nil, nil, nil, nil, nil)
+	srv, err := NewServer("localhost:0", "", "", cs, e, g, nil, nil, nil, nil, nil, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}

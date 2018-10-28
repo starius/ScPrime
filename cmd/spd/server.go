@@ -27,8 +27,11 @@ import (
 	"gitlab.com/SiaPrime/Sia/modules/explorer"
 	"gitlab.com/SiaPrime/Sia/modules/gateway"
 	"gitlab.com/SiaPrime/Sia/modules/host"
+	index "gitlab.com/SiaPrime/Sia/modules/index"
 	"gitlab.com/SiaPrime/Sia/modules/miner"
+	pool "gitlab.com/SiaPrime/Sia/modules/miningpool"
 	"gitlab.com/SiaPrime/Sia/modules/renter"
+	"gitlab.com/SiaPrime/Sia/modules/stratumminer"
 	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
 	"gitlab.com/SiaPrime/Sia/modules/wallet"
 	"gitlab.com/SiaPrime/Sia/node/api"
@@ -571,6 +574,36 @@ func (srv *Server) loadModules() error {
 		}
 		srv.moduleClosers = append(srv.moduleClosers, moduleCloser{name: "renter", Closer: r})
 	}
+	var p modules.Pool
+	if strings.Contains(srv.config.Siad.Modules, "p") {
+		i++
+		fmt.Printf("(%d/%d) Loading pool...\n", i, len(srv.config.Siad.Modules))
+		p, err = pool.New(cs, tpool, g, w, filepath.Join(srv.config.Siad.SiaDir, modules.PoolDir), srv.config.MiningPoolConfig)
+		if err != nil {
+			return err
+		}
+		srv.moduleClosers = append(srv.moduleClosers, moduleCloser{name: "pool", Closer: p})
+	}
+	var sm modules.StratumMiner
+	if strings.Contains(srv.config.Siad.Modules, "s") {
+		i++
+		fmt.Printf("(%d/%d) Loading stratum miner...\n", i, len(srv.config.Siad.Modules))
+		sm, err = stratumminer.New(filepath.Join(srv.config.Siad.SiaDir, modules.StratumMinerDir))
+		if err != nil {
+			return err
+		}
+		srv.moduleClosers = append(srv.moduleClosers, moduleCloser{name: "stratumminer", Closer: sm})
+	}
+	var idx modules.Index
+	if strings.Contains(srv.config.Siad.Modules, "i") {
+		i++
+		fmt.Printf("(%d/%d) Loading index...\n", i, len(srv.config.Siad.Modules))
+		idx, err = index.New(cs, tpool, g, w, filepath.Join(srv.config.Siad.SiaDir, modules.IndexDir), srv.config.IndexConfig)
+		if err != nil {
+			return err
+		}
+		srv.moduleClosers = append(srv.moduleClosers, moduleCloser{name: "idx", Closer: idx})
+	}
 
 	// Create the Sia API
 	a := api.New(
@@ -584,6 +617,9 @@ func (srv *Server) loadModules() error {
 		r,
 		tpool,
 		w,
+		p,
+		sm,
+		idx,
 	)
 
 	// connect the API to the server

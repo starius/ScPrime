@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/Sia/config"
 )
 
 var (
@@ -47,6 +48,9 @@ type Config struct {
 		ProfileDir string
 		SiaDir     string
 	}
+
+	MiningPoolConfig config.MiningPoolConfig
+	IndexConfig      config.IndexConfig
 }
 
 // die prints its arguments to stderr, then exits the program with the default
@@ -64,13 +68,13 @@ func versionCmd(*cobra.Command, []string) {
 	}
 	switch build.Release {
 	case "dev":
-		fmt.Println("SiaPrime Daemon v" + version + "-dev")
+		fmt.Println("Sia Daemon v" + build.Version + "-dev")
 	case "standard":
-		fmt.Println("SiaPrime Daemon v" + version)
+		fmt.Println("Sia Daemon v" + build.Version)
 	case "testing":
-		fmt.Println("SiaPrime Daemon v" + version + "-testing")
+		fmt.Println("Sia Daemon v" + build.Version + "-testing")
 	default:
-		fmt.Println("SiaPrime Daemon v" + version + "-???")
+		fmt.Println("Sia Daemon v" + build.Version + "-???")
 	}
 }
 
@@ -126,13 +130,25 @@ Miner (m):
 	The miner requires the consensus set, transaction pool, and wallet.
 	Example:
 		spd -M gctwm
+Mining Pool (p):
+	The pool provides a decentralized pool as well as an API for external
+	clients (web pages) to access for user stats.
+	The pool requires the gateway,consensus set, transactions pool and wallet.
+	Example:
+		siad -M gctwp
 Explorer (e):
 	The explorer provides statistics about the blockchain and can be
 	queried for information about specific transactions or other objects on
 	the blockchain.
 	The explorer requires the consenus set.
 	Example:
-		spd -M gce`)
+		spd -M gce
+Stratum Miner (s):
+	The stratum miner provides a CPU stratum mining client as well an as API
+	for monitoring statistics and controlling the miner.
+	The stratum miner requires no other modules to run.
+	Example:
+		siad -M s`)
 }
 
 // main establishes a set of commands and flags using the cobra package.

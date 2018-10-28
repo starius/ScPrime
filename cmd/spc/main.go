@@ -108,6 +108,12 @@ func main() {
 	root.AddCommand(minerCmd)
 	minerCmd.AddCommand(minerStartCmd, minerStopCmd)
 
+	root.AddCommand(poolCmd)
+	poolCmd.AddCommand(poolConfigCmd, poolClientsCmd)
+
+	root.AddCommand(stratumminerCmd)
+	stratumminerCmd.AddCommand(stratumminerStartCmd, stratumminerStopCmd)
+
 	root.AddCommand(walletCmd)
 	walletCmd.AddCommand(walletAddressCmd, walletAddressesCmd, walletChangepasswordCmd, walletInitCmd, walletInitSeedCmd,
 		walletLoadCmd, walletLockCmd, walletSeedsCmd, walletSendCmd, walletSweepCmd, walletSignCmd,

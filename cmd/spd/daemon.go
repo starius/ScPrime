@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"strconv"
@@ -12,14 +10,15 @@ import (
 	"time"
 
 	"gitlab.com/SiaPrime/Sia/build"
+	fileConfig "gitlab.com/SiaPrime/Sia/config"
 	"gitlab.com/SiaPrime/Sia/crypto"
 	"gitlab.com/SiaPrime/Sia/modules"
 	"gitlab.com/SiaPrime/Sia/profile"
 	mnemonics "gitlab.com/SiaPrime/entropy-mnemonics"
 	"gitlab.com/SiaPrime/errors"
-	"gitlab.com/SiaPrime/fastrand"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -70,7 +69,7 @@ func processNetAddr(addr string) string {
 // invalid module character.
 func processModules(modules string) (string, error) {
 	modules = strings.ToLower(modules)
-	validModules := "cghmrtwe"
+	validModules := "cghmrtwepsi"
 	invalidModules := modules
 	for _, m := range validModules {
 		invalidModules = strings.Replace(invalidModules, string(m), "", 1)
@@ -134,64 +133,100 @@ func unlockWallet(w modules.Wallet, password string) error {
 	return modules.ErrBadEncryptionKey
 }
 
-// apiPassword discovers the API password, which may be specified in an
-// environment variable, stored in a file on disk, or supplied by the user via
-// stdin.
-func apiPassword(siaDir string) (string, error) {
-	// Check the environment variable.
-	pw := os.Getenv("SIAPRIME_API_PASSWORD")
-	if pw != "" {
-		fmt.Println("Using SIAPRIME_API_PASSWORD environment variable")
-		return pw, nil
-	}
+func readFileConfig(config Config) error {
+	viper.SetConfigType("yaml")
+	viper.SetConfigName("sia")
+	viper.AddConfigPath(".")
 
-	// Try to read the password from disk.
-	path := build.APIPasswordFile(siaDir)
-	pwFile, err := ioutil.ReadFile(path)
-	if err == nil {
-		// This is the "normal" case, so don't print anything.
-		return strings.TrimSpace(string(pwFile)), nil
-	} else if !os.IsNotExist(err) {
-		return "", err
+	if strings.Contains(config.Siad.Modules, "p") {
+		err := viper.ReadInConfig() // Find and read the config file
+		if err != nil {             // Handle errors reading the config file
+			return err
+		}
+		poolViper := viper.Sub("miningpool")
+		poolViper.SetDefault("name", "")
+		poolViper.SetDefault("id", "")
+		poolViper.SetDefault("acceptingcontracts", false)
+		poolViper.SetDefault("operatorpercentage", 0.0)
+		poolViper.SetDefault("operatorwallet", "")
+		poolViper.SetDefault("networkport", 3355)
+		poolViper.SetDefault("dbaddress", "127.0.0.1")
+		poolViper.SetDefault("dbname", "miningpool")
+		poolViper.SetDefault("dbport", "3306")
+		if !poolViper.IsSet("poolwallet") {
+			return errors.New("Must specify a poolwallet")
+		}
+		if !poolViper.IsSet("dbuser") {
+			return errors.New("Must specify a dbuser")
+		}
+		if !poolViper.IsSet("dbpass") {
+			return errors.New("Must specify a dbpass")
+		}
+		dbUser := poolViper.GetString("dbuser")
+		dbPass := poolViper.GetString("dbpass")
+		dbAddress := poolViper.GetString("dbaddress")
+		dbPort := poolViper.GetString("dbport")
+		dbName := poolViper.GetString("dbname")
+		dbConnection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbAddress, dbPort, dbName)
+		poolConfig := fileConfig.MiningPoolConfig{
+			PoolNetworkPort:  int(poolViper.GetInt("networkport")),
+			PoolName:         poolViper.GetString("name"),
+			PoolID:           uint64(poolViper.GetInt("id")),
+			PoolDBConnection: dbConnection,
+			PoolWallet:       poolViper.GetString("poolwallet"),
+		}
+		globalConfig.MiningPoolConfig = poolConfig
 	}
-
-	// No password file; generate a secure one.
-	// Generate a password file.
-	if err := os.MkdirAll(siaDir, 0700); err != nil {
-		return "", err
+	if strings.Contains(config.Siad.Modules, "i") {
+		err := viper.ReadInConfig() // Find and read the config file
+		if err != nil {             // Handle errors reading the config file
+			return err
+		}
+		poolViper := viper.Sub("index")
+		poolViper.SetDefault("dbaddress", "127.0.0.1")
+		poolViper.SetDefault("dbname", "siablocks")
+		poolViper.SetDefault("dbport", "3306")
+		if !poolViper.IsSet("dbuser") {
+			return errors.New("Must specify a dbuser")
+		}
+		if !poolViper.IsSet("dbpass") {
+			return errors.New("Must specify a dbpass")
+		}
+		dbUser := poolViper.GetString("dbuser")
+		dbPass := poolViper.GetString("dbpass")
+		dbAddress := poolViper.GetString("dbaddress")
+		dbPort := poolViper.GetString("dbport")
+		dbName := poolViper.GetString("dbname")
+		dbConnection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbAddress, dbPort, dbName)
+		globalConfig.IndexConfig = fileConfig.IndexConfig{
+			PoolDBConnection: dbConnection,
+		}
 	}
-	pw = hex.EncodeToString(fastrand.Bytes(16))
-	if err := ioutil.WriteFile(path, []byte(pw+"\n"), 0600); err != nil {
-		return "", err
-	}
-	fmt.Println("A secure API password has been written to", path)
-	fmt.Println("This password will be used automatically the next time you run spd.")
-	return pw, nil
+	return nil
 }
 
 // startDaemon uses the config parameters to initialize Sia modules and start
 // siad.
 func startDaemon(config Config) (err error) {
 	if config.Siad.AuthenticateAPI {
-		if config.Siad.TempPassword {
+		password := os.Getenv("SIA_API_PASSWORD")
+		if password != "" {
+			fmt.Println("Using SIA_API_PASSWORD environment variable")
+			config.APIPassword = password
+		} else {
+			// Prompt user for API password.
 			config.APIPassword, err = passwordPrompt("Enter API password: ")
 			if err != nil {
 				return err
-			} else if config.APIPassword == "" {
-				return errors.New("password cannot be blank")
 			}
-		} else {
-			// load API password from environment variable or file.
-			// TODO: allow user to specify location of password file.
-			config.APIPassword, err = apiPassword(build.DefaultSiaDir())
-			if err != nil {
-				return err
+			if config.APIPassword == "" {
+				return errors.New("password cannot be blank")
 			}
 		}
 	}
 
 	// Print the siad Version and GitRevision
-	fmt.Println("SiaPrime Daemon v" + build.Version)
+	fmt.Println("Sia Daemon v" + build.Version)
 	if build.GitRevision == "" {
 		fmt.Println("WARN: compiled without build commit or version. To compile correctly, please use the makefile")
 	} else {
@@ -257,6 +292,12 @@ func startDaemon(config Config) (err error) {
 // startDaemonCmd is a passthrough function for startDaemon.
 func startDaemonCmd(cmd *cobra.Command, _ []string) {
 	var profileCPU, profileMem, profileTrace bool
+
+	configErr := readFileConfig(globalConfig)
+	if configErr != nil {
+		fmt.Println("Configuration error: ", configErr.Error())
+		os.Exit(exitCodeGeneral)
+	}
 
 	profileCPU = strings.Contains(globalConfig.Siad.Profile, "c")
 	profileMem = strings.Contains(globalConfig.Siad.Profile, "m")

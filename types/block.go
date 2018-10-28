@@ -5,10 +5,12 @@ package types
 
 import (
 	"bytes"
+	"encoding/hex"
+	"hash"
+	"unsafe"
 
 	"gitlab.com/SiaPrime/Sia/build"
 	"gitlab.com/SiaPrime/Sia/crypto"
-	"gitlab.com/SiaPrime/Sia/encoding"
 )
 
 const (
@@ -157,13 +159,11 @@ func (b Block) ID() BlockID {
 	return b.Header().ID()
 }
 
-// MerkleRoot calculates the Merkle root of a Block. The leaves of the Merkle
-// tree are composed of the miner outputs (one leaf per payout), and the
-// transactions (one leaf per transaction).
-func (b Block) MerkleRoot() crypto.Hash {
+// MerkleTree return the MerkleTree of the block
+func (b Block) MerkleTree() *crypto.MerkleTree {
 	tree := crypto.NewTree()
 	var buf bytes.Buffer
-	e := encoding.NewEncoder(&buf)
+	e := encoder(&buf)
 	for _, payout := range b.MinerPayouts {
 		payout.MarshalSia(e)
 		tree.Push(buf.Bytes())
@@ -189,8 +189,14 @@ func (b Block) MerkleRoot() crypto.Hash {
 			panic("Block MerkleRoot implementation is broken")
 		}
 	}
+	return tree
+}
 
-	return tree.Root()
+// MerkleRoot calculates the Merkle root of a Block. The leaves of the Merkle
+// tree are composed of the miner outputs (one leaf per payout), and the
+// transactions (one leaf per transaction).
+func (b Block) MerkleRoot() crypto.Hash {
+	return b.MerkleTree().Root()
 }
 
 // MinerPayoutID returns the ID of the miner payout at the given index, which
@@ -201,4 +207,49 @@ func (b Block) MinerPayoutID(i uint64) SiacoinOutputID {
 		b.ID(),
 		i,
 	))
+}
+
+// MerkleBranches returns the merkle branches of a block, as used in stratum
+// mining.
+func (b Block) MerkleBranches() []string {
+	mbranch := crypto.NewTree()
+	var buf bytes.Buffer
+	for _, payout := range b.MinerPayouts {
+		payout.MarshalSia(&buf)
+		mbranch.Push(buf.Bytes())
+		buf.Reset()
+	}
+
+	for _, txn := range b.Transactions {
+		txn.MarshalSia(&buf)
+		mbranch.Push(buf.Bytes())
+		buf.Reset()
+	}
+	//
+	// This whole approach needs to be revisited.  I basically am cheating to look
+	// inside the merkle tree struct to determine if the head is a leaf or not
+	//
+	type SubTree struct {
+		next   *SubTree
+		height int // Int is okay because a height over 300 is physically unachievable.
+		sum    []byte
+	}
+
+	type Tree struct {
+		head         *SubTree
+		hash         hash.Hash
+		currentIndex uint64
+		proofIndex   uint64
+		proofSet     [][]byte
+		cachedTree   bool
+	}
+	tr := *(*Tree)(unsafe.Pointer(mbranch))
+
+	var merkle []string
+	//	h.log.Debugf("mBranch Hash %s\n", mbranch.Root().String())
+	for st := tr.head; st != nil; st = st.next {
+		//		h.log.Debugf("Height %d Hash %x\n", st.height, st.sum)
+		merkle = append(merkle, hex.EncodeToString(st.sum))
+	}
+	return merkle
 }

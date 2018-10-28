@@ -280,7 +280,7 @@ func assembleHostPort(key crypto.TwofishKey, hostHostname string, testdir string
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.New(cs, g, tp, w, hostHostname, filepath.Join(testdir, modules.HostDir))
+	h, err := host.New(cs, tp, w, hostHostname, filepath.Join(testdir, modules.HostDir))
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +288,7 @@ func assembleHostPort(key crypto.TwofishKey, hostHostname string, testdir string
 	if err != nil {
 		return nil, err
 	}
-	srv, err := NewServer("localhost:0", "SiaPrime-Agent", "", cs, nil, g, h, m, r, tp, w)
+	srv, err := NewServer("localhost:0", "Sia-PrimeAgent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}
