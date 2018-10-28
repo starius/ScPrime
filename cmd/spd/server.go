@@ -39,7 +39,7 @@ import (
 	"github.com/kardianos/osext"
 )
 
-var errEmptyUpdateResponse = errors.New("API call to https://api.github.com/repos/NebulousLabs/Sia/releases/latest is returning an empty response")
+var errEmptyUpdateResponse = errors.New("API call to https://api.github.com/repos/SiaPrime/Sia/releases/latest is returning an empty response")
 
 type (
 	// Server creates and serves a HTTP server that offers communication with a
@@ -185,7 +185,7 @@ func latestRelease(releases []githubRelease) (githubRelease, error) {
 // fetchLatestRelease returns metadata about the most recent non-LTS GitHub
 // release.
 func fetchLatestRelease() (githubRelease, error) {
-	req, err := http.NewRequest("GET", "https://api.github.com/repos/NebulousLabs/Sia/releases", nil)
+	req, err := http.NewRequest("GET", "https://api.github.com/repos/SiaPrime/Sia/releases", nil)
 	if err != nil {
 		return githubRelease{}, err
 	}
