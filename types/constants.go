@@ -76,13 +76,13 @@ var (
 	// GenesisTimestamp is the timestamp when genesis block was mined
 	GenesisTimestamp Timestamp
 	// InitialCoinbase is the coinbase reward of the Genesis block.
-	InitialCoinbase = uint64(300e3)
+	InitialCoinbase = uint64(360e3)
 	// AirdropCommunityValue is the total amount of coins the community members will split
 	// from the genesis block airdrop.
-	AirdropCommunityValue = NewCurrency64(2000000000).Mul(SiacoinPrecision).Div(NewCurrency64(10))
+	AirdropCommunityValue = NewCurrency64(10000000000).Mul(SiacoinPrecision).Div(NewCurrency64(10))
 	// AirdropPoolValue is the total amount of coins a pool gets from the genesis block
 	// airdrop so that they can pay out miners in the first 144 blocks
-	AirdropPoolValue = NewCurrency64(45000000).Mul(SiacoinPrecision).Div(NewCurrency64(10))
+	AirdropPoolValue = NewCurrency64(200000000).Mul(SiacoinPrecision).Div(NewCurrency64(10))
 	// MaturityDelay specifies the number of blocks that a maturity-required output
 	// is required to be on hold before it can be spent on the blockchain.
 	// Outputs are maturity-required if they are highly likely to be altered or
@@ -207,7 +207,7 @@ func init() {
 		FutureThreshold = 2 * 60                       // 2 minutes.
 		ExtremeFutureThreshold = 4 * 60                // 4 minutes.
 
-		MinimumCoinbase = 30e3
+		MinimumCoinbase = 50e3
 
 		OakHardforkBlock = 100
 		OakHardforkFixBlock = 105
@@ -225,6 +225,10 @@ func init() {
 			{
 				Value:      AirdropPoolValue,
                                 UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
+			},
+			{
+				Value:      NewCurrency64(300000000).Mul(SiacoinPrecision).Div(NewCurrency64(10)),
+				UnlockHash: UnlockHashFromAddrStr("7d0c44f7664e2d34e53efde0661a6f628ec9264785ae8e3cd7c973e8d190c3c97b5e3ecbc567"),
 			},
 		}
 
@@ -360,7 +364,7 @@ func init() {
 		// decreases by 1 every time, it means that Sia's coinbase will have an
 		// increasingly potent dropoff for about 5 years, until inflation more
 		// or less permanently settles around 2%.
-		MinimumCoinbase = 30e3
+		MinimumCoinbase = 50e3
 
 		// The oak difficulty adjustment hardfork is set to trigger at block
 		// 135,000, which is just under 6 months after the hardfork was first
