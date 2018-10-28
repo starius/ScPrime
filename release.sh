@@ -20,7 +20,7 @@ if [ ! -f $keyfile ]; then
     exit 1
 fi
 keysum=$(shasum -a 256 $keyfile | cut -c -64)
-if [ $keysum != "735320b4698010500d230c487e970e12776e88f33ad777ab380a493691dadb1b" ]; then
+if [ $keysum != "92269cd84af7dabdf3aa358ff3d154ad68bcfd837e29d32356eda13eb9771089" ]; then
     echo "Wrong key file: checksum does not match developer key file."
     exit 1
 fi
@@ -31,7 +31,7 @@ ldflags="-s -w -X 'gitlab.com/SiaPrime/Sia/build.GitRevision=`git rev-parse --sh
 for os in darwin linux windows; do
 	echo Packaging ${os}...
 	# create workspace
-	folder=release/Sia-$version-$os-amd64
+	folder=release/SiaPrime-$version-$os-amd64
 	rm -rf $folder
 	mkdir -p $folder
 	# compile and sign binaries
@@ -53,6 +53,6 @@ for os in darwin linux windows; do
 	# zip
 	(
 		cd release
-		zip -rq Sia-$version-$os-amd64.zip Sia-$version-$os-amd64
+		zip -rq SiaPrime-$version-$os-amd64.zip SiaPrime-$version-$os-amd64
 	)
 done
