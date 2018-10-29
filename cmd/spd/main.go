@@ -135,7 +135,7 @@ Mining Pool (p):
 	clients (web pages) to access for user stats.
 	The pool requires the gateway,consensus set, transactions pool and wallet.
 	Example:
-		siad -M gctwp
+		spd -M gctwp
 Explorer (e):
 	The explorer provides statistics about the blockchain and can be
 	queried for information about specific transactions or other objects on
@@ -148,7 +148,7 @@ Stratum Miner (s):
 	for monitoring statistics and controlling the miner.
 	The stratum miner requires no other modules to run.
 	Example:
-		siad -M s`)
+		spd -M s`)
 }
 
 // main establishes a set of commands and flags using the cobra package.
