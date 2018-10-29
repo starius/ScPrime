@@ -173,7 +173,7 @@ func apiPassword(siaDir string) (string, error) {
 
 func readFileConfig(config Config) error {
 	viper.SetConfigType("yaml")
-	viper.SetConfigName("sia")
+	viper.SetConfigName("siaprime")
 	viper.AddConfigPath(".")
 
 	if strings.Contains(config.Siad.Modules, "p") {
