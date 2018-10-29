@@ -54,5 +54,10 @@ for os in darwin linux windows; do
 	(
 		cd release
 		zip -rq SiaPrime-$version-$os-amd64.zip SiaPrime-$version-$os-amd64
+		openssl dgst -sha256 -sign $keyfile -out SiaPrime-$version-$os-amd64.zip.sig SiaPrime-$version-$os-amd64.zip
+		# verify signature
+		if [[ -n $pubkeyfile ]]; then
+			openssl dgst -sha256 -verify $pubkeyfile -signature SiaPrime-$version-$os-amd64.zip.sig SiaPrime-$version-$os-amd64.zip
+		fi
 	)
 done
