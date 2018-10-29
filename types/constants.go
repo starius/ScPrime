@@ -34,10 +34,10 @@ var (
 	DevFundDecayEndBlockHeight = BlockHeight(105000)
 	// DevFundInitialPercentage is the initial percentage of the block reward that is
 	// sent to the DevFundUnlockHash before any dev fund percentage decay happens
-	DevFundInitialPercentage = float64(0.2)
+	DevFundInitialPercentage = uint64(20)
 	// DevFundFinalPercentage is the final percentage of the block reward that is sent
 	//  to the DevFundUnlockHash after the dev fund percentage is fully decayed
-	DevFundFinalPercentage = float64(0.1)
+	DevFundFinalPercentage = uint64(10)
 	// DevFundUnlockHash is the unlock hash for the dev fund subsidy
 	// Do not set this to the Zero address as doing so will cause the test that
 	// verifies that a dev fee is set to fail
