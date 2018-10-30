@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"bytes"
 	"math/big"
 	"testing"
 
@@ -244,6 +243,7 @@ func TestChildTargetOak(t *testing.T) {
 // TestStoreBlockTotals checks features of the storeBlockTotals and
 // getBlockTotals code.
 func TestStoreBlockTotals(t *testing.T) {
+
 	// NOTE: Test must not be run in parallel.
 	if testing.Short() {
 		t.SkipNow()
@@ -336,35 +336,5 @@ func TestStoreBlockTotals(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
-	}
-}
-
-// TestOakHardforkMechanic mines blocks until the oak hardfork kicks in,
-// verifying that nothing unusual happens, and that the difficulty adjustments
-// begin happening every block.
-func TestHardforkMechanic(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	cst, err := createConsensusSetTester(t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cst.Close()
-
-	// Mine blocks until the oak hardfork height, printing the current target at
-	// each height.
-	var prevTarg types.Target
-	for i := types.BlockHeight(0); i < types.OakHardforkBlock*2; i++ {
-		b, err := cst.miner.AddBlock()
-		if err != nil {
-			t.Fatal(err)
-		}
-		targ, _ := cst.cs.ChildTarget(b.ID())
-		if i > types.OakHardforkBlock && bytes.Compare(targ[:], prevTarg[:]) >= 0 {
-			t.Error("target is not adjusting down during mining every block")
-		}
-		prevTarg = targ
-
 	}
 }

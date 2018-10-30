@@ -8,7 +8,6 @@ package consensus
 
 import (
 	"errors"
-
 	"gitlab.com/SiaPrime/Sia/encoding"
 	"gitlab.com/SiaPrime/Sia/modules"
 	"gitlab.com/SiaPrime/Sia/persist"
@@ -145,8 +144,8 @@ func NewCustomConsensusSet(gateway modules.Gateway, bootstrap bool, persistDir s
 	}
 
 	// Create the diffs for the genesis siafund outputs.
-	for i, siafundOutput := range types.GenesisBlock.Transactions[0].SiafundOutputs {
-		sfid := types.GenesisBlock.Transactions[0].SiafundOutputID(uint64(i))
+	for i, siafundOutput := range types.GenesisBlock.Transactions[1].SiafundOutputs {
+		sfid := types.GenesisBlock.Transactions[1].SiafundOutputID(uint64(i))
 		sfod := modules.SiafundOutputDiff{
 			Direction:     modules.DiffApply,
 			ID:            sfid,

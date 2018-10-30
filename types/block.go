@@ -70,7 +70,7 @@ func CalculateCoinbase(height BlockHeight) Currency {
 // CalculateNumSiacoins calculates the number of siacoins in circulation at a
 // given height.
 func CalculateNumSiacoins(height BlockHeight) Currency {
-	airdropCoins := AirdropCommunityValue.Add(AirdropPoolValue).Add(AirdropNebuleousValue).Add(AirdropSiaPrimeValue)
+	airdropCoins := AirdropCommunityValue.Add(AirdropPoolValue).Add(AirdropNebulousLabsValue).Add(AirdropSiaPrimeValue)
 
 	deflationBlocks := BlockHeight(InitialCoinbase - MinimumCoinbase)
 	avgDeflationSiacoins := CalculateCoinbase(0).Add(CalculateCoinbase(height)).Div(NewCurrency64(2))
