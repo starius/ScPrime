@@ -49,7 +49,7 @@ func (cst *consensusSetTester) addSiafunds() {
 	// the wallet address (output only available during testing).
 	txn := types.Transaction{
 		SiafundInputs: []types.SiafundInput{{
-			ParentID:         cst.cs.blockRoot.Block.Transactions[0].SiafundOutputID(2),
+			ParentID:         cst.cs.blockRoot.Block.Transactions[1].SiafundOutputID(2),
 			UnlockConditions: types.UnlockConditions{},
 		}},
 		SiafundOutputs: []types.SiafundOutput{{

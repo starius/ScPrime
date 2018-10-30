@@ -83,9 +83,9 @@ var (
 	// AirdropPoolValue is the total amount of coins the pools get
 	// airdrop so that they can pay out miners in the first 144 blocks
 	AirdropPoolValue = NewCurrency64(51840000).Mul(SiacoinPrecision)
-	// AirdropNebuleousValue is a gift to the Nebuleous Team to acknowledge all their 
+	// AirdropNebulousLabsValue is a gift to the NebulousLabs Team to acknowledge all their
 	// effort and hard work. THANK YOU!
-	AirdropNebuleousValue = NewCurrency64(300000000).Mul(SiacoinPrecision)
+	AirdropNebulousLabsValue = NewCurrency64(300000000).Mul(SiacoinPrecision)
 	// AirdropSiaPrimeValue is the total amount of coins SiaPrime gets to help bootstrap
 	// expenses
 	AirdropSiaPrimeValue = NewCurrency64(200000000).Mul(SiacoinPrecision)
@@ -232,14 +232,14 @@ func init() {
 				Value:      AirdropPoolValue,
 				UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
- 			{
-				Value:      AirdropNebuleousValue,
+			{
+				Value:      AirdropNebulousLabsValue,
 				UnlockHash: UnlockHashFromAddrStr("7d0c44f7664e2d34e53efde0661a6f628ec9264785ae8e3cd7c973e8d190c3c97b5e3ecbc567"),
 			},
-                        {       
-                                Value:      AirdropSiaPrimeValue,
-                                UnlockHash: UnlockHashFromAddrStr("aefe0af2713c112ba4d10dee7753726e5c4de3f237ea455151342615c95d0e797d7a8cce7b05"),
-                        },
+			{
+				Value:      AirdropSiaPrimeValue,
+				UnlockHash: UnlockHashFromAddrStr("aefe0af2713c112ba4d10dee7753726e5c4de3f237ea455151342615c95d0e797d7a8cce7b05"),
+			},
 		}
 
 		GenesisSiafundAllocation = []SiafundOutput{
@@ -295,14 +295,14 @@ func init() {
 				Value:      AirdropPoolValue,
 				UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
-                        {
-                                Value:      AirdropNebuleousValue,
-                                UnlockHash: UnlockHashFromAddrStr("7d0c44f7664e2d34e53efde0661a6f628ec9264785ae8e3cd7c973e8d190c3c97b5e3ecbc567"),
-                        },
-                        {       
-                                Value:      AirdropSiaPrimeValue,
-                                UnlockHash: UnlockHashFromAddrStr("aefe0af2713c112ba4d10dee7753726e5c4de3f237ea455151342615c95d0e797d7a8cce7b05"),
-                        },
+			{
+				Value:      AirdropNebulousLabsValue,
+				UnlockHash: UnlockHashFromAddrStr("7d0c44f7664e2d34e53efde0661a6f628ec9264785ae8e3cd7c973e8d190c3c97b5e3ecbc567"),
+			},
+			{
+				Value:      AirdropSiaPrimeValue,
+				UnlockHash: UnlockHashFromAddrStr("aefe0af2713c112ba4d10dee7753726e5c4de3f237ea455151342615c95d0e797d7a8cce7b05"),
+			},
 		}
 
 		GenesisSiafundAllocation = []SiafundOutput{
@@ -428,14 +428,14 @@ func init() {
 				Value:      AirdropPoolValue,
 				UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
 			},
-                        {
-                                Value:      AirdropNebuleousValue,
-                                UnlockHash: UnlockHashFromAddrStr("7d0c44f7664e2d34e53efde0661a6f628ec9264785ae8e3cd7c973e8d190c3c97b5e3ecbc567"),
-                        },
-                        {
-                                Value:      AirdropSiaPrimeValue,
-                                UnlockHash: UnlockHashFromAddrStr("aefe0af2713c112ba4d10dee7753726e5c4de3f237ea455151342615c95d0e797d7a8cce7b05"),
-                        },
+			{
+				Value:      AirdropNebulousLabsValue,
+				UnlockHash: UnlockHashFromAddrStr("7d0c44f7664e2d34e53efde0661a6f628ec9264785ae8e3cd7c973e8d190c3c97b5e3ecbc567"),
+			},
+			{
+				Value:      AirdropSiaPrimeValue,
+				UnlockHash: UnlockHashFromAddrStr("aefe0af2713c112ba4d10dee7753726e5c4de3f237ea455151342615c95d0e797d7a8cce7b05"),
+			},
 		}
 
 		GenesisSiafundAllocation = []SiafundOutput{
