@@ -377,9 +377,9 @@ func TestStratumStartStopMiningGoodAddress(t *testing.T) {
 }
 
 func TestStratumMineBlocks(t *testing.T) {
-	// if !build.POOL {
-	// 	return
-	// }
+	if !build.POOL {
+		return
+	}
 	pt, err := newPoolTester("TestStratumMineBlocks", 0)
 	defer pt.Close()
 	if err != nil {
@@ -420,67 +420,74 @@ func TestStratumMineBlocksMiningUncleanShutdown(t *testing.T) {
 		return
 	}
 	pt, err := newPoolTester("TestStratumMineBlocksMiningUncleanShutdown", 0)
-	defer pt.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
-	testdir := build.TempDir(modules.PoolDir, "TestStratumMineBlocksMiningUncleanShutdownMiner")
-	sm, err := stratumminer.New(testdir)
-	if err != nil {
-		t.Fatal(err)
+	if pt != nil {
+		defer pt.Close()
+		testdir := build.TempDir(modules.PoolDir, "TestStratumMineBlocksMiningUncleanShutdownMiner")
+		sm, err := stratumminer.New(testdir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		settings := pt.mpool.InternalSettings()
+		port := strconv.FormatInt(int64(settings.PoolNetworkPort), 10)
+		username := "06cc9f9196afb1a1efa21f72160d508f0cc192b581770fde57420cab795a2913fb4e1c85aa30"
+		url := fmt.Sprintf("stratum+tcp://localhost:%s", port)
+		sm.StartStratumMining(url, username)
+		time.Sleep(time.Millisecond * 20)
+		if !sm.Connected() {
+			t.Fatal(errors.New("stratum server is running, but we are not connected"))
+		}
+		// don't stop mining, just let the server shutdown
 	}
-	settings := pt.mpool.InternalSettings()
-	port := strconv.FormatInt(int64(settings.PoolNetworkPort), 10)
-	username := "06cc9f9196afb1a1efa21f72160d508f0cc192b581770fde57420cab795a2913fb4e1c85aa30"
-	url := fmt.Sprintf("stratum+tcp://localhost:%s", port)
-	sm.StartStratumMining(url, username)
-	time.Sleep(time.Millisecond * 20)
-	if !sm.Connected() {
-		t.Fatal(errors.New("stratum server is running, but we are not connected"))
-	}
-	// don't stop mining, just let the server shutdown
 }
 
 func TestStratumMiningWhileRestart(t *testing.T) {
-	// if !build.POOL {
-	// 	return
-	// }
+	if !build.POOL {
+		return
+	}
 	pt, err := newPoolTester(t.Name(), 0)
-	time.Sleep(time.Millisecond * 2)
-	settings := pt.mpool.InternalSettings()
-	port := strconv.FormatInt(int64(settings.PoolNetworkPort), 10)
-	username := "06cc9f9196afb1a1efa21f72160d508f0cc192b581770fde57420cab795a2913fb4e1c85aa30"
-	url := fmt.Sprintf("stratum+tcp://localhost:%s", port)
-	testdir := build.TempDir(modules.PoolDir, "TestStratumMineBlocksMiningUncleanShutdownMiner")
-	sm, err := stratumminer.New(testdir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sm.StartStratumMining(url, username)
-	time.Sleep(time.Millisecond * 20)
-	if !sm.Connected() {
-		t.Fatal(errors.New("stratum server is running, but we are not connected"))
+	if pt != nil {
+		time.Sleep(time.Millisecond * 2)
+		settings := pt.mpool.InternalSettings()
+		port := strconv.FormatInt(int64(settings.PoolNetworkPort), 10)
+		username := "06cc9f9196afb1a1efa21f72160d508f0cc192b581770fde57420cab795a2913fb4e1c85aa30"
+		url := fmt.Sprintf("stratum+tcp://localhost:%s", port)
+		testdir := build.TempDir(modules.PoolDir, "TestStratumMineBlocksMiningUncleanShutdownMiner")
+		sm, err := stratumminer.New(testdir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sm.StartStratumMining(url, username)
+		time.Sleep(time.Millisecond * 20)
+		if !sm.Connected() {
+			t.Fatal(errors.New("stratum server is running, but we are not connected"))
+		}
+		time.Sleep(time.Millisecond * 20)
+		if !sm.Mining() {
+			t.Fatal(errors.New("stratum server is running and we are connected, but we are not mining"))
+		}
+		time.Sleep(time.Millisecond * 10000)
+		if sm.Hashrate() == 0 {
+			t.Fatal(errors.New("we've been mining for a while but hashrate is 0"))
+		}
+		if sm.Submissions() == 0 {
+			t.Fatal(errors.New("we've been mining for a while but have no submissions"))
+		}
+		pt.Close()
+		time.Sleep(time.Millisecond * 200)
+		if sm.Connected() {
+			t.Fatal(errors.New("stratum server is closed, but we are connected"))
+		}
+		pt, err = newPoolTester(t.Name(), settings.PoolNetworkPort)
+		time.Sleep(time.Millisecond * 5000)
+		if !sm.Connected() {
+			t.Fatal(errors.New("stratum server is restarted and running, but we are not connected"))
+		}
+		sm.StopStratumMining()
 	}
-	time.Sleep(time.Millisecond * 20)
-	if !sm.Mining() {
-		t.Fatal(errors.New("stratum server is running and we are connected, but we are not mining"))
-	}
-	time.Sleep(time.Millisecond * 10000)
-	if sm.Hashrate() == 0 {
-		t.Fatal(errors.New("we've been mining for a while but hashrate is 0"))
-	}
-	if sm.Submissions() == 0 {
-		t.Fatal(errors.New("we've been mining for a while but have no submissions"))
-	}
-	pt.Close()
-	time.Sleep(time.Millisecond * 200)
-	if sm.Connected() {
-		t.Fatal(errors.New("stratum server is closed, but we are connected"))
-	}
-	pt, err = newPoolTester(t.Name(), settings.PoolNetworkPort)
-	time.Sleep(time.Millisecond * 5000)
-	if !sm.Connected() {
-		t.Fatal(errors.New("stratum server is restarted and running, but we are not connected"))
-	}
-	sm.StopStratumMining()
 }
