@@ -76,7 +76,7 @@ var (
 	// GenesisTimestamp is the timestamp when genesis block was mined
 	GenesisTimestamp Timestamp
 	// InitialCoinbase is the coinbase reward of the Genesis block.
-	InitialCoinbase = uint64(360e3)
+	InitialCoinbase = uint64(300e3)
 	// AirdropCommunityValue is the total amount of coins the community members will split
 	// from the genesis block airdrop.
 	AirdropCommunityValue = NewCurrency64(10000000000).Mul(SiacoinPrecision)
@@ -376,11 +376,11 @@ func init() {
 		FutureThreshold = 3 * 60 * 60        // 3 hours.
 		ExtremeFutureThreshold = 5 * 60 * 60 // 5 hours.
 
-		// The minimum coinbase is set to 30,000. Because the coinbase
+		// The minimum coinbase is set to 50,000. Because the coinbase
 		// decreases by 1 every time, it means that Sia's coinbase will have an
 		// increasingly potent dropoff for about 5 years, until inflation more
 		// or less permanently settles around 2%.
-		MinimumCoinbase = 30e3
+		MinimumCoinbase = 50e3
 
 		// The oak difficulty adjustment hardfork is set to trigger at block
 		// 135,000, which is just under 6 months after the hardfork was first
