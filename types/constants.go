@@ -343,7 +343,7 @@ func init() {
 		// The genesis timestamp is set to June 6th, because that is when the
 		// 100-block developer premine started. The trailing zeroes are a
 		// bonus, and make the timestamp easier to memorize.
-		GenesisTimestamp = Timestamp(1433600001) // June 6th, 2015 @ 2:13pm UTC.
+		GenesisTimestamp = Timestamp(1540955779)
 
 		// The RootTarget was set such that the developers could reasonable
 		// premine 100 blocks in a day. It was known to the developers at launch
