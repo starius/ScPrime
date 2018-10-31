@@ -88,7 +88,7 @@ type ConsensusBlock struct {
 
 // Scods is a list of Siacoin output diffs
 type Scods struct {
-	scods []modules.SiacoinOutputDiff `json:"scods"`
+	Scods []modules.SiacoinOutputDiff `json:"scods"`
 }
 
 // ConsensusBlocksGet contains all fields of a types.Block and additional

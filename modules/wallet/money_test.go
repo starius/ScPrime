@@ -29,7 +29,11 @@ func TestSendSiacoins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !confirmedBal.Equals(types.CalculateCoinbase(1)) {
+
+	devSubsidy := types.CalculateDevSubsidy(1)
+	expectedBalance := types.CalculateCoinbase(1).Sub(devSubsidy)
+
+	if !confirmedBal.Equals(expectedBalance) {
 		t.Error("unexpected confirmed balance")
 	}
 	if !unconfirmedOut.Equals(types.ZeroCurrency) {
@@ -78,7 +82,11 @@ func TestSendSiacoins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !confirmedBal3.Equals(confirmedBal2.Add(types.CalculateCoinbase(2)).Sub(sendValue).Sub(tpoolFee)) {
+
+	devSubsidy3 := types.CalculateDevSubsidy(2)
+	expectedBalance3 := types.CalculateCoinbase(2).Sub(devSubsidy3)
+
+	if !confirmedBal3.Equals(confirmedBal2.Add(expectedBalance3).Sub(sendValue).Sub(tpoolFee)) {
 		t.Error("confirmed balance did not adjust to the expected value")
 	}
 	if !unconfirmedOut3.Equals(types.ZeroCurrency) {

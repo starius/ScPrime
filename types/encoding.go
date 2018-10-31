@@ -901,7 +901,7 @@ func (t Transaction) MarshalSia(w io.Writer) error {
 	return e.Err()
 }
 
-// marshalSiaNoSignatures is a helper function for calculating certain hashes
+// MarshalSiaNoSignatures is a helper function for calculating certain hashes
 // that do not include the transaction's signatures.
 func (t Transaction) MarshalSiaNoSignatures(w io.Writer) {
 	e := encoder(w)

@@ -89,28 +89,28 @@ func TestUnitValidateBlock(t *testing.T) {
 func TestCheckMinerPayoutsWithoutDevFee(t *testing.T) {
 	// All tests are done at height = 0
 	height := types.BlockHeight(0)
-        coinbase := types.CalculateCoinbase(height)
-        devFundEnabled := types.DevFundEnabled
-        devFundInitialBlockHeight := types.DevFundInitialBlockHeight
-        devFundDecayStartBlockHeight := uint64(types.DevFundDecayStartBlockHeight)
-        devFundDecayEndBlockHeight := uint64(types.DevFundDecayEndBlockHeight)
-        devFundInitialPercentage := types.DevFundInitialPercentage
-        devFundFinalPercentage := types.DevFundFinalPercentage
-        devFundPercentageRange := devFundInitialPercentage - devFundFinalPercentage
-        devFundDecayPercentage := uint64(100)
-        if uint64(height) >= devFundDecayEndBlockHeight {
-                devFundDecayPercentage = uint64(0)
-        } else if uint64(height) >= devFundDecayStartBlockHeight {
-                devFundDecayPercentage = uint64(100) - (uint64(height)-devFundDecayStartBlockHeight)*uint64(100)/(devFundDecayEndBlockHeight-devFundDecayStartBlockHeight)
-        }
-        devFundPercentage := devFundFinalPercentage*uint64(100) + devFundPercentageRange*devFundDecayPercentage
-        devSubsidy := coinbase.MulFloat(0)
-        if devFundEnabled && height >= devFundInitialBlockHeight {
-                devSubsidy = coinbase.Mul(types.NewCurrency64(devFundPercentage).Div(types.NewCurrency64(10000)))
-        }
-        minerSubsidy := coinbase.Sub(devSubsidy)
-	
-        // Create a block with a single coinbase payout, and no dev fund payout.
+	coinbase := types.CalculateCoinbase(height)
+	devFundEnabled := types.DevFundEnabled
+	devFundInitialBlockHeight := types.DevFundInitialBlockHeight
+	devFundDecayStartBlockHeight := uint64(types.DevFundDecayStartBlockHeight)
+	devFundDecayEndBlockHeight := uint64(types.DevFundDecayEndBlockHeight)
+	devFundInitialPercentage := types.DevFundInitialPercentage
+	devFundFinalPercentage := types.DevFundFinalPercentage
+	devFundPercentageRange := devFundInitialPercentage - devFundFinalPercentage
+	devFundDecayPercentage := uint64(100)
+	if uint64(height) >= devFundDecayEndBlockHeight {
+		devFundDecayPercentage = uint64(0)
+	} else if uint64(height) >= devFundDecayStartBlockHeight {
+		devFundDecayPercentage = uint64(100) - (uint64(height)-devFundDecayStartBlockHeight)*uint64(100)/(devFundDecayEndBlockHeight-devFundDecayStartBlockHeight)
+	}
+	devFundPercentage := devFundFinalPercentage*uint64(100) + devFundPercentageRange*devFundDecayPercentage
+	devSubsidy := coinbase.MulFloat(0)
+	if devFundEnabled && height >= devFundInitialBlockHeight {
+		devSubsidy = coinbase.Mul(types.NewCurrency64(devFundPercentage).Div(types.NewCurrency64(10000)))
+	}
+	minerSubsidy := coinbase.Sub(devSubsidy)
+
+	// Create a block with a single coinbase payout, and no dev fund payout.
 	b := types.Block{
 		MinerPayouts: []types.SiacoinOutput{
 			{Value: minerSubsidy},
@@ -168,26 +168,26 @@ func TestCheckMinerPayoutsWithoutDevFee(t *testing.T) {
 func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 	// All tests are done at height = 1.
 	height := types.BlockHeight(80000)
-        coinbase := types.CalculateCoinbase(height)
-        devFundEnabled := types.DevFundEnabled
-        devFundInitialBlockHeight := types.DevFundInitialBlockHeight
-        devFundDecayStartBlockHeight := uint64(types.DevFundDecayStartBlockHeight)
-        devFundDecayEndBlockHeight := uint64(types.DevFundDecayEndBlockHeight)
-        devFundInitialPercentage := types.DevFundInitialPercentage
-        devFundFinalPercentage := types.DevFundFinalPercentage
-        devFundPercentageRange := devFundInitialPercentage - devFundFinalPercentage
-        devFundDecayPercentage := uint64(100)
-        if uint64(height) >= devFundDecayEndBlockHeight {
-                devFundDecayPercentage = uint64(0)
-        } else if uint64(height) >= devFundDecayStartBlockHeight {
-                devFundDecayPercentage = uint64(100) - (uint64(height)-devFundDecayStartBlockHeight)*uint64(100)/(devFundDecayEndBlockHeight-devFundDecayStartBlockHeight)
-        }
-        devFundPercentage := devFundFinalPercentage*uint64(100) + devFundPercentageRange*devFundDecayPercentage
-        devSubsidy := coinbase.MulFloat(0)
-        if devFundEnabled && height >= devFundInitialBlockHeight {
-                devSubsidy = coinbase.Mul(types.NewCurrency64(devFundPercentage)).Div(types.NewCurrency64(uint64(10000)))
-        }
-        minerSubsidy := coinbase.Sub(devSubsidy)
+	coinbase := types.CalculateCoinbase(height)
+	devFundEnabled := types.DevFundEnabled
+	devFundInitialBlockHeight := types.DevFundInitialBlockHeight
+	devFundDecayStartBlockHeight := uint64(types.DevFundDecayStartBlockHeight)
+	devFundDecayEndBlockHeight := uint64(types.DevFundDecayEndBlockHeight)
+	devFundInitialPercentage := types.DevFundInitialPercentage
+	devFundFinalPercentage := types.DevFundFinalPercentage
+	devFundPercentageRange := devFundInitialPercentage - devFundFinalPercentage
+	devFundDecayPercentage := uint64(100)
+	if uint64(height) >= devFundDecayEndBlockHeight {
+		devFundDecayPercentage = uint64(0)
+	} else if uint64(height) >= devFundDecayStartBlockHeight {
+		devFundDecayPercentage = uint64(100) - (uint64(height)-devFundDecayStartBlockHeight)*uint64(100)/(devFundDecayEndBlockHeight-devFundDecayStartBlockHeight)
+	}
+	devFundPercentage := devFundFinalPercentage*uint64(100) + devFundPercentageRange*devFundDecayPercentage
+	devSubsidy := coinbase.MulFloat(0)
+	if devFundEnabled && height >= devFundInitialBlockHeight {
+		devSubsidy = coinbase.Mul(types.NewCurrency64(devFundPercentage)).Div(types.NewCurrency64(uint64(10000)))
+	}
+	minerSubsidy := coinbase.Sub(devSubsidy)
 
 	// Create a block with a single coinbase payout, and no dev fund payout.
 	b := types.Block{
@@ -230,9 +230,9 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 	if devFundEnabled && checkMinerPayouts(b, height) {
 		t.Error("payouts evaluated incorrectly when the dev fund is enabled and we are missing the dev fund payout but have a proper miner payout.")
 	}
-        if !devFundEnabled && !checkMinerPayouts(b, height) {
-                t.Error("payouts evaluated incorrectly when the dev fund is disabled and we have a proper miner payout.")
-        }
+	if !devFundEnabled && !checkMinerPayouts(b, height) {
+		t.Error("payouts evaluated incorrectly when the dev fund is disabled and we have a proper miner payout.")
+	}
 	// Create a block with a valid dev fund payout, but no miner payout.
 	b = types.Block{
 		MinerPayouts: []types.SiacoinOutput{
@@ -252,9 +252,9 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 	if devFundEnabled && !checkMinerPayouts(b, height) {
 		t.Error("payouts evaluated incorrectly when there are only two payouts and the dev fund is enabled.")
 	}
-        if !devFundEnabled && checkMinerPayouts(b, height) {
-                t.Error("payouts evaluated incorrectly when there are only two payouts and the dev fund is disabled.")
-        }
+	if !devFundEnabled && checkMinerPayouts(b, height) {
+		t.Error("payouts evaluated incorrectly when there are only two payouts and the dev fund is disabled.")
+	}
 
 	// Try a block with an incorrect payout.
 	b = types.Block{
@@ -279,9 +279,9 @@ func TestCheckMinerPayoutsWithDevFee(t *testing.T) {
 	if devFundEnabled && !checkMinerPayouts(b, height) {
 		t.Error("payouts evaluated incorrectly when there are 3 payouts and the dev fund is enabled.")
 	}
-        if !devFundEnabled && checkMinerPayouts(b, height) {
-                t.Error("payouts evaluated incorrectly when there are 3 payouts and the dev fund is disabled.")
-        }
+	if !devFundEnabled && checkMinerPayouts(b, height) {
+		t.Error("payouts evaluated incorrectly when there are 3 payouts and the dev fund is disabled.")
+	}
 
 	// Try a block with 2 payouts that are too large.
 	b = types.Block{

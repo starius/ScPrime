@@ -78,9 +78,12 @@ func checkMinerPayoutsWithDevFund(b types.Block, height types.BlockHeight) bool 
 	if !devSubsidyPayout.Value.Equals(devBlockSubsidy) {
 		return false
 	}
+
+	// TODO Keep this or remove?
 	if bytes.Compare(devSubsidyPayout.UnlockHash[:], types.DevFundUnlockHash[:]) != 0 {
 		return false
 	}
+
 	// Finally, make sure the miner subsidy is correct
 	return minerBlockSubsidy.Equals(minerPayoutSum)
 }

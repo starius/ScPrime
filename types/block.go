@@ -55,6 +55,31 @@ type (
 	BlockNonce [8]byte
 )
 
+// CalculateDevSubsidy takes a block and a height and determines the block
+// subsidies for the dev fund.
+func CalculateDevSubsidy(height BlockHeight) Currency {
+	coinbase := CalculateCoinbase(height)
+
+	devSubsidy := NewCurrency64(0)
+	if DevFundEnabled && (height >= DevFundInitialBlockHeight) {
+		devFundDecayPercentage := uint64(100)
+		if height >= DevFundDecayEndBlockHeight {
+			devFundDecayPercentage = uint64(0)
+		} else if height >= DevFundDecayStartBlockHeight {
+			devFundDecayStartBlockHeight := uint64(DevFundDecayStartBlockHeight)
+			devFundDecayEndBlockHeight := uint64(DevFundDecayEndBlockHeight)
+			devFundDecayPercentage = uint64(100) - (uint64(height)-devFundDecayStartBlockHeight)*uint64(100)/(devFundDecayEndBlockHeight-devFundDecayStartBlockHeight)
+		}
+
+		devFundPercentageRange := DevFundInitialPercentage - DevFundFinalPercentage
+		devFundPercentage := DevFundFinalPercentage*uint64(100) + devFundPercentageRange*devFundDecayPercentage
+
+		devSubsidy = coinbase.Mul(NewCurrency64(devFundPercentage)).Div(NewCurrency64(10000))
+	}
+
+	return devSubsidy
+}
+
 // CalculateCoinbase calculates the coinbase for a given height. The coinbase
 // equation is:
 //

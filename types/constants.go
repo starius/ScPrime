@@ -185,6 +185,7 @@ func scanAddress(addrStr string) (addr UnlockHash, err error) {
 	return addr, nil
 }
 
+// UnlockHashFromAddrStr convert string address to UnlockHash
 func UnlockHashFromAddrStr(addrStr string) (addr UnlockHash) {
 	dest, err := scanAddress(addrStr)
 	if err != nil {
@@ -274,7 +275,7 @@ func init() {
 		FutureThreshold = 3        // 3 seconds
 		ExtremeFutureThreshold = 6 // 6 seconds
 
-		MinimumCoinbase = 299990 // Minimum coinbase is hit after 10 blocks to make testing minimum-coinbase code easier.
+		MinimumCoinbase = 50e3 // Minimum coinbase is hit after 10 blocks to make testing minimum-coinbase code easier.
 
 		// Do not let the difficulty change rapidly - blocks will be getting
 		// mined far faster than the difficulty can adjust to.
