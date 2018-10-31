@@ -393,8 +393,8 @@ func init() {
 		// There was a bug in the original Oak hardfork that had to be quickly
 		// followed up with another fix. The height of that fix is the
 		// OakHardforkFixBlock.
-		OakHardforkBlock = 135e3
-		OakHardforkFixBlock = 139e3
+		OakHardforkBlock = 1500
+		OakHardforkFixBlock = 1500
 
 		// The decay is kept at 995/1000, or a decay of about 0.5% each block.
 		// This puts the halflife of a block's relevance at about 1 day. This
