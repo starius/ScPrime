@@ -1,6 +1,14 @@
 Version History
 ---------------
 
+Oct 2018:
+
+v1.3.5.1
+- Fixed difficulty adjustment
+
+v1.3.5
+- SiaPrime initial launch
+
 Sep 2018:
 
 v1.3.4 (patch release)
