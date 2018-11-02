@@ -21,7 +21,7 @@ support them. As they build key features into the network, we'll extend
 into an easy-to-use application suite with versions geared at different
 customer profiles and market verticals.
 
-![UI](https://gitlab.com/SiaPrime/Sia/blob/master/doc/assets/prime_wallet.png)
+![UI](https://gitlab.com/SiaPrime/Sia/raw/master/doc/assets/prime_wallet.png)
 
 Traditional cloud storage is dominated by a small number of companies, with
 most based in Silicon Valley. China is also dominated by a few entities
