@@ -308,7 +308,7 @@ choice for the dictionary is going to be 'english'. The underlying seed is the
 same no matter what dictionary is used for the encoding. The encoding also
 contains a small checksum of the seed, to help catch simple mistakes when
 copying. The library
-[entropy-mnemonics](https://gitlab.com/NebulousLabs/entropy-mnemonics) is used
+[entropy-mnemonics](https://gitlab.com/SiaPrime/entropy-mnemonics) is used
 when encoding.
 
 ###### Query String Parameters
@@ -351,7 +351,7 @@ transaction pool.
 
 ###### Query String Parameters
 ```
-// Number of hastings being sent. A hasting is the smallest unit in Sia. There
+// Number of hastings being sent. A hasting is the smallest unit in SiaPrime. There
 // are 10^24 hastings in a siacoin.
 amount      // hastings
 
@@ -651,7 +651,7 @@ gets the transaction associated with a specific transaction id.
     // transaction (the rest of the fields in this object) are usually what is
     // desired.
     "transaction": {
-      // See types.Transaction in https://gitlab.com/NebulousLabs/Sia/blob/master/types/transactions.go
+      // See types.Transaction in https://gitlab.com/SiaPrime/Sia/blob/master/types/transactions.go
     },
 
     // ID of the transaction from which the wallet transaction was derived.

@@ -13,7 +13,7 @@ Overview
 --------
 
 The daemon is responsible for starting and stopping the modules which make up
-the rest of Sia. It also provides endpoints for viewing build constants.
+the rest of SiaPrime. It also provides endpoints for viewing build constants.
 
 Index
 -----
@@ -103,12 +103,12 @@ standard success or error response. See
 
 #### /daemon/version [GET]
 
-returns the version of the Sia daemon currently running.
+returns the version of the SiaPrime daemon currently running.
 
 ###### JSON Response
 ```javascript
 {
-  // Version number of the running Sia Daemon. This number is visible to its
+  // Version number of the running SiaPrime Daemon. This number is visible to its
   // peers on the network.
   "version": "1.0.0"
 }

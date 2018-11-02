@@ -1,57 +1,52 @@
-# Running and Writing Tests for Sia
-Improving test coverage is a great way to start contributing to Sia.  
+# Running and Writing Tests for SiaPrime
+Improving test coverage is a great way to start contributing to SiaPrime.  
 
-This guide focuses on how to write tests.  To learn about making pull requests
-to submit the code you've written, see
-[doc/Guide to Contributing to Sia.md][guide].  You should also read
-[doc/Developers.md][developers] to learn about Sia code conventions and quality
-standards.
+This guide focuses on how to write tests. You should also read
+[doc/Developers.md][developers] to learn about SiaPrime code conventions and 
+quality standards.
 
 
 #### Table of Contents
-* [Running tests for Sia](#existing)
+* [Running tests for SiaPrime](#existing)
   * [Updating code before testing](#update)
   * [Testing the entire build](#entire)
   * [Testing a particular package](#particular)
-* [Writing new tests for Sia](#write)
+* [Writing new tests for SiaPrime](#write)
   * [A few guidelines](#naming)
   * [Basic test format](#basic)
   * [Table-driven tests](#table)
-  * [Siatest Package](#siatest)
+  * [SiaPrimetest Package](#siaPrimetest)
 * [Questions?](#questions)
 
 <a name="existing"></a>
-## Running tests for Sia
+## Running tests for SiaPrime
 Go's comprehensive [test package][pkg/testing] makes testing straightforward,
 particularly when you use the bundled tools included in the
-[Sia makefile][makefile], including `make test`, `make cover`, `make bench`,
+[SiaPrime makefile][makefile], including `make test`, `make cover`, `make bench`,
 and their variants.
 
 <a name="update"></a>
 ### Updating code before testing
 If you just want to run existing tests on the codebase as is, you just need to
-pull the latest version of the original repo to your master branch.  (If that 
-sentence didn't make sense, go read
-[doc/Guide to Contributing to Sia.md][guide].)
+pull the latest version of the original repo to your master branch.
 
 ```bash
 # Make sure you are in the right directory.
-$ cd $GOPATH/src/github.com/<your Github username>/Sia
+$ cd $GOPATH/src/github.com/<your Github username>/SiaPrime
 # Also make sure you're working with the right branch.
 $ git checkout master
-# Pull latest changes from origin, the original Sia repo. 
+# Pull latest changes from origin, the original SiaPrime repo. 
 $ git pull origin master
 # Update your fork of the repo, which should be set up as a remote.
 $ git push <remote>  master
 ```
 
 If you want to run tests on the new code you've added, first make sure the rest
-of the code is up to date. New code should be on its own branch (again, see
-[doc/Guide to Contributing to Sia.md][guide]).
+of the code is up to date. New code should be on its own branch.
 
 ```bash
 # Make sure you are in the right directory.
-$ cd $GOPATH/src/github.com/<your Github username>/Sia
+$ cd $GOPATH/src/github.com/<your Github username>/SiaPrime
 # Checkout the branch you made the changes on.
 $ git checkout <branch name>
 # Stash any tracked but uncommitted changes.
@@ -128,12 +123,12 @@ go test -v -race -tags='testing debug' -timeout=300s ./persist -run=Test
 === RUN   TestRelativePathSafeFile
 --- PASS: TestRelativePathSafeFile (0.00s)
 PASS
-ok  	gitlab.com/NebulousLabs/Sia/persist	1.485s
+ok  	gitlab.com/SiaPrime/Sia/persist	1.485s
 $
 ``` 
 
 <a name="write"></a>
-## Writing new tests for Sia
+## Writing new tests for SiaPrime
 When you run `make cover`, you'll notice that many files have pretty low
 coverage.  We're working on fixing that, but we could use your help.
 
@@ -185,7 +180,7 @@ func TestFoo(t *testing.T) {
 ### Table-driven tests in Go
 If you're looking to test a bunch of inputs, write a [table-driven test][table]
 with a slice of anonymous structs. For example, see `TestParseFileSize` in 
-[siac/parse_test.go][parse_test]:
+[spc/parse_test.go][parse_test]:
 
 ```go
 func TestParseFilesize(t *testing.T) {
@@ -227,25 +222,25 @@ func TestParseFilesize(t *testing.T) {
 }
 ```
 
-<a name="siatest">
-### Siatest Package
-When deciding what tests to write for Sia, you should consider whether the best
-test is a unit test or a siatest. Ideally both a unit test and a siatest is
-written for new code. A unit test should explicitly test the new code
-functionality and a siatest should test the integration of the code and how it
-affects the rest of the platform. All the tests in the siatest package should
-use the API to execute the test. The idea is that everything that is trying to
-be tested should be able to be controlled and verified through the API. If you
-are looking for a place to start, there are many examples of older tests that
-could be upgraded to siatests.
+<a name="siaPrimetest">
+### SiaPrimetest Package
+When deciding what tests to write for SiaPrime, you should consider whether the 
+best test is a unit test or a siaprimetest. Ideally both a unit test and a 
+siaprimetest is written for new code. A unit test should explicitly test the new
+code functionality and a siaprimetest should test the integration of the code 
+and how itaffects the rest of the platform. All the tests in the siaprimetest
+package should use the API to execute the test. The idea is that everything that
+is trying to be tested should be able to be controlled and verified through the 
+API. If you are looking for a place to start, there are many examples of older 
+tests that could be upgraded to siaprimetests.
 
 <a name="questions"></a>
 ## Questions?
 Read these if you haven't already:
-* [doc/Guide to Contributing to Sia.md][guide]: getting started with Go, Sia,
-    and git
-* [doc/Developers.md][developers]: conventions and quality standards for Sia
-    code
+* getting started with Go 
+* SiaPrime, and git
+* [doc/Developers.md][developers]: conventions and quality standards for 
+* SiaPrime code
 
 Some other useful resources, some of which have been linked to already:
 * [Golang.org page on the go testing package][pkg/testing]
@@ -253,18 +248,18 @@ Some other useful resources, some of which have been linked to already:
 * [How to Write Benchmarks in Go][cheney-benchmarks]
 * [How to into git and GitHub][luke]: an essential introduction to git
 
-And feel free to ask questions on the [#core-dev channel][discord] on the Sia Discord. 
+And feel free to ask questions on the [#development channel][discord] on the 
+SiaPrime Discord. 
 Odds are, someone else is wondering the same thing.
 
 [pkg/testing]: https://golang.org/pkg/testing/
-[makefile]: https://gitlab.com/NebulousLabs/Sia/blob/master/Makefile
+[makefile]: https://gitlab.com/SiaPrime/Sia/blob/master/Makefile
 [luke]: https://gist.github.com/lukechampine/6418449
-[guide]: https://gitlab.com/NebulousLabs/Sia/blob/master/doc/Guide%20to%20Contributing%20to%20Sia.md
-[developers]: https://gitlab.com/NebulousLabs/Sia/blob/master/doc/Developers.md
+[developers]: https://gitlab.com/SiaPrime/Sia/blob/master/doc/Developers.md
 [table]: http://dave.cheney.net/2013/06/09/writing-table-driven-tests-in-go
-[boltdb_test.go]: https://gitlab.com/NebulousLabs/Sia/blob/master/persist/boltdb_test.go
+[boltdb_test.go]: https://gitlab.com/SiaPrime/Sia/blob/master/persist/boltdb_test.go
 [cheney-benchmarks]: http://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go
 [pkg/testing]: https://golang.org/pkg/testing/
-[discord]: https://discord.gg/sia
-[parse_test]: https://gitlab.com/NebulousLabs/Sia/blob/master/siac/parse_test.go
+[discord]: https://discord.gg/5DAgTn8
+[parse_test]: https://gitlab.com/SiaPrime/Sia/blob/master/spc/parse_test.go
 [global]: http://c2.com/cgi/wiki?GlobalVariablesAreBad

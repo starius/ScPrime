@@ -586,7 +586,7 @@ overall.
     // below 90%.
     "uptimeadjustment": 0.1234,
 
-    // The multiplier that gets applied to a host based on the version of Sia
+    // The multiplier that gets applied to a host based on the version of SiaPrime
     // that they are running. Versions get penalties if there are known bugs,
     // scaling limitations, performance limitations, etc. Generally, the most
     // recent version is always the one with the highest score.

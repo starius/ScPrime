@@ -9,5 +9,5 @@
 ## How to reproduce it (as minimally and precisely as possible)
 
 ## Environment
-* Sia version:
+* SiaPrime version:
 * OS:

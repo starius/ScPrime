@@ -10,7 +10,7 @@ ldflags= -X gitlab.com/SiaPrime/Sia/build.GitRevision=${GIT_DIRTY}${GIT_REVISION
 all: release
 
 # dependencies installs all of the dependencies that are required for building
-# Sia.
+# SiaPrime.
 dependencies:
 	# Consensus Dependencies
 	go get -u gitlab.com/SiaPrime/demotemutex

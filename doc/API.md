@@ -1,7 +1,7 @@
 Siad API
 ========
 
-Sia uses semantic versioning and is backwards compatible to version v1.0.0.
+SiaPrime uses semantic versioning and is backwards compatible to version v1.0.0.
 
 API calls return either JSON or no content. Success is indicated by 2xx HTTP
 status codes, while errors are indicated by 4xx and 5xx HTTP status codes. If
@@ -13,7 +13,7 @@ guaranteed to be supported beyond the current release, and should not be used
 in production.
 
 Notes:
-- Requests must set their User-Agent string to contain the substring "Sia-Agent".
+- Requests must set their User-Agent string to contain the substring "SiaPrime-Agent".
 - By default, siad listens on "localhost:4280". This can be changed using the
   `--api-addr` flag when running siad.
 - **Do not bind or expose the API to a non-loopback address unless you are
@@ -21,12 +21,12 @@ Notes:
 
 Example GET curl call:
 ```
-curl -A "Sia-Agent" "localhost:4280/wallet/transactions?startheight=1&endheight=250"
+curl -A "SiaPrime-Agent" "localhost:4280/wallet/transactions?startheight=1&endheight=250"
 ```
 
 Example POST curl call:
 ```
-curl -A "Sia-Agent" --data "amount=123&destination=abcd" "localhost:4280/wallet/siacoins"
+curl -A "SiaPrime-Agent" --data "amount=123&destination=abcd" "localhost:4280/wallet/siacoins"
 ```
 
 Standard responses
@@ -145,7 +145,7 @@ standard success or error response. See
 
 #### /daemon/version [GET]
 
-returns the version of the Sia daemon currently running.
+returns the version of the SiaPrime daemon currently running.
 
 ###### JSON Response [(with comments)](/doc/api/Daemon.md#json-response-1)
 ```javascript
@@ -1678,7 +1678,7 @@ gets the transaction associated with a specific transaction id.
 {
   "transaction": {
     "transaction": {
-      // See types.Transaction in https://gitlab.com/NebulousLabs/Sia/blob/master/types/transactions.go
+      // See types.Transaction in https://gitlab.com/SiaPrime/Sia/blob/master/types/transactions.go
     },
     "transactionid":         "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "confirmationheight":    50000,

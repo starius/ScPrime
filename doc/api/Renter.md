@@ -128,7 +128,7 @@ period // block height
 
 // Renew window specifies how many blocks before the expiration of the current
 // contracts the renter will wait before renewing the contracts. A smaller
-// renew window means that Sia must be run more frequently, but also means
+// renew window means that SiaPrime must be run more frequently, but also means
 // fewer total transaction fees. Storage spending is not affected by the renew
 // window size.
 renewwindow // block height
@@ -480,7 +480,7 @@ period // block height
 
 // Renew window specifies how many blocks before the expiration of the current
 // contracts the renter will wait before renewing the contracts. A smaller
-// renew window means that Sia must be run more frequently, but also means
+// renew window means that SiaPrime must be run more frequently, but also means
 // fewer total transaction fees. Storage spending is not affected by the renew
 // window size.
 renewwindow // block height
@@ -631,7 +631,7 @@ standard success with the requested data in the body or error response. See
 
 #### /renter/upload/___*siapath___ [POST]
 
-starts a file upload to the Sia network from the local filesystem.
+starts a file upload to the SiaPrime network from the local filesystem.
 
 ###### Path Parameters
 

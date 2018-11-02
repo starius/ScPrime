@@ -1,5 +1,4 @@
 ### Please read the necessary contributing documentation before contributing
-* [Guide to contributing][guide]
 * [Developers][developers]
 * [Other relevant documentation][doc]
 * Ask questions in the relevant [Discord][discord] channels
@@ -57,7 +56,6 @@
 * Google Inc.
 
 
-[guide]: https://gitlab.com/NebulousLabs/Sia/blob/master/doc/Guide%20to%20Contributing%20to%20Sia.md
-[developers]: https://gitlab.com/NebulousLabs/Sia/blob/master/doc/Developers.md
-[doc]: https://gitlab.com/NebulousLabs/Sia/tree/master/doc
-[discord]: https://discord.gg/sia
+[developers]: https://gitlab.com/SiaPrime/Sia/blob/master/doc/Developers.md
+[doc]: https://gitlab.com/SiaPrime/Sia/tree/master/doc
+[discord]: https://discord.gg/Cvxj5pQ

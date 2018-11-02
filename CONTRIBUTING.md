@@ -1,13 +1,13 @@
-# Contributing to Sia
+# Contributing to SiaPrime
 
 #### Table of Contents
 * [Get started with Go](#go)
   * [Install Go](#install-go)
-  * [Learn Go]("learn-go")
-* [Build Sia](#build-sia)
+  * [Learn Go](#learn-go)
+* [Build SiaPrime](#build-siaprime)
 * [Contribute to the codebase](#contribute)
   * [Set up git](#setup-git)
-  * [Fork the Sia repository](#fork)
+  * [Fork the SiaPrime repository](#fork)
   * [Write some code](#write)
   * [Submit your code for review](#pull)
   * [More git resources](#git-resources)
@@ -27,7 +27,7 @@ To install Go on your computer, follow the
 
 You should install the latest [official Go binary][binary] for your system (if 
 not available, [install from source][source]).  If you plan to cross compile 
-Sia, see [Cross Compilation with Go 1.5][cross] by Dave Cheney.  
+SiaPrime, see [Cross Compilation with Go 1.5][cross] by Dave Cheney.  
 
 <a name="learn-go"/>
 
@@ -38,21 +38,21 @@ Sia, see [Cross Compilation with Go 1.5][cross] by Dave Cheney.
 and use the go tool.
 * Finish with the [Effective Go][effective] guide.
 
-<a name="build-sia"/>
+<a name="build-siaprime"/>
 
-## Build Sia
+## Build SiaPrime
 
-To build Sia on your machine, enter the following on the command line:
+To build SiaPrime on your machine, enter the following on the command line:
 
 ```bash
 # Download Sia and its dependencies
 # Binaries will be installed in $GOPATH/bin
-$ go get -u gitlab.com/NebulousLabs/Sia/...
+$ go get -u gitlab.com/SiaPrime/Sia/...
 
 # Switch to directory containing Sia source code
-$ cd $GOPATH/src/gitlab.com/NebulousLabs/Sia
+$ cd $GOPATH/src/gitlab.com/SiaPrime/Sia
 
-# You have three Sia builds to choose from.
+# You have three SiaPrime builds to choose from.
 # To build the standard release binary:
 $ make release
 # Or to build the release binary with race detection and an array debugging 
@@ -94,19 +94,19 @@ $ git config --global credential.helper "cache --timeout=[seconds]"
 ```
 <a name="fork"/>
 
-### Fork the Sia repository
+### Fork the SiaPrime repository
 
-While logged into your GitLab account, navigate to the [Sia repository][sia] 
-and click the 'Fork' button in the upper righthand corner.  Your account now 
+While logged into your GitLab account, navigate to the [SiaPrime repository][siaprime] 
+and click the 'Fork' button in the upper right hand corner.  Your account now 
 has a 'forked' copy of the original repo at 
 `https://gitlab.com/<your GitLab username>/Sia`.
 
-When you installed Sia using `go get`, the go tool put the Sia source code in 
-$GOPATH/src/gitlab.com/NebulousLabs/Sia. Change to that directory and set up
+When you installed SiaPrime using `go get`, the go tool put the SiaPrime source code in 
+$GOPATH/src/gitlab.com/SiaPrime/Sia. Change to that directory and set up
 your fork as a git [remote][remote]:
 
 ```bash
-$ cd $GOPATH/src/gitlab.com/NebulousLabs/Sia
+$ cd $GOPATH/src/gitlab.com/SiaPrime/Sia
 # Add your fork as a remote.  Name it whatever is convenient,
 # e.g your GitLab username
 $ git remote add <remote name> https://gitlab.com/<username>/Sia.git
@@ -120,13 +120,13 @@ $ git remote add <remote name> git@gitlab.com:<username>/Sia.git
 
 Right now your git local repository only has one branch (called 'master' by 
 default). If you want to make changes, add a new branch and make your changes 
-there. You should maintain master as an up-to-date copy of the NebulousLabs/Sia 
+there. You should maintain master as an up-to-date copy of the SiaPrime/Sia 
 repository's master branch.
 
 To create and checkout a new branch:
 ```bash
 # If you're not already in the right directory:
-$ cd $GOPATH/src/gitlab.com/NebulousLabs/Sia
+$ cd $GOPATH/src/gitlab.com/SiaPrime/Sia
 # Make sure you're on branch master
 $ git checkout master
 # Create and checkout a new branch
@@ -236,8 +236,8 @@ $ git push <fork remote> master
 
 ## Where to start
 
-If you'd like to contribute to Sia but don't have any specific ideas, writing 
-tests is a good way to get your feet wet.  See [doc/Running and Writing Tests for Sia.md](Running%20and%20Writing%20Tests%20for%20Sia.md) to get started.
+If you'd like to contribute to SiaPrime but don't have any specific ideas, writing 
+tests is a good way to get your feet wet.  See [doc/Running and Writing Tests for SiaPrime.md](Running%20and%20Writing%20Tests%20for%20SiaPrime.md) to get started.
 
 <a name="contact"/>
 
@@ -256,13 +256,13 @@ Feel free to ask for help on the #core-dev channel on [discord][discord].
 [install-go]: https://golang.org/doc/install
 [signup]: https://github.com/join?source=header-home
 [effective]: https://golang.org/doc/effective_go.html
-[sia]: https://gitlab.com/NebulousLabs/Sia
+[siaprime]: https://gitlab.com/SiaPrime/Sia
 [branch]: http://blog.scottlowe.org/2015/01/27/using-fork-branch-git-workflow/
-[developers.md]: https://gitlab.com/NebulousLabs/Sia/blob/master/doc/Developers.md
+[developers.md]: https://gitlab.com/SiaPrime/Sia/blob/master/doc/Developers.md
 [gofmt]: https://golang.org/cmd/gofmt/
 [nutshell]: https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell
 [discord]: https://discord.gg/sia
 [install-git]: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
-[test-doc]: https://gitlab.com/NebulousLabs/Sia/blob/master/doc/Testing.md
+[test-doc]: https://gitlab.com/SiaPrime/Sia/blob/master/doc/Testing.md
 [stashing]: https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning
 [remote]: https://git-scm.com/book/en/v2/Git-Basics-Working-with-Remotes
