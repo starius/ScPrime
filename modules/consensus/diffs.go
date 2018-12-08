@@ -230,6 +230,39 @@ func generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) error {
 	// the miner payouts to the list of delayed outputs.
 	applyMaintenance(tx, pb)
 
+	// Fx the siaprimefund allocation
+	if pb.Height == 6000 {
+		// Remove Genesis Siafunds
+		for i, siafundOutput := range types.GenesisBlock.Transactions[1].SiafundOutputs {
+			sfid := types.GenesisBlock.Transactions[1].SiafundOutputID(uint64(i))
+			sfod := modules.SiafundOutputDiff{
+				Direction: modules.DiffRevert,
+				ID:        sfid,
+				SiafundOutput: types.SiafundOutput{
+					Value:      types.NewCurrency64(0),
+					UnlockHash: siafundOutput.UnlockHash,
+				},
+			}
+			pb.SiafundOutputDiffs = append(pb.SiafundOutputDiffs, sfod)
+			commitSiafundOutputDiff(tx, sfod, modules.DiffApply)
+			//removeSiafundOutput(tx, sfod.ID)
+		}
+
+		// Add ForkedGenesisSiafundAllocation
+		for _, siafundOutput := range types.ForkedGenesisSiafundAllocation {
+			sfid := types.SiafundOutputID(siafundOutput.UnlockHash)
+			sfod := modules.SiafundOutputDiff{
+				Direction:     modules.DiffApply,
+				ID:            sfid,
+				SiafundOutput: siafundOutput,
+			}
+			pb.SiafundOutputDiffs = append(pb.SiafundOutputDiffs, sfod)
+			commitSiafundOutputDiff(tx, sfod, modules.DiffApply)
+			//addSiafundOutput(tx, sfod.ID, sfod.SiafundOutput)
+			//dbAddSiafundOutput(types.SiafundOutputID{}, siafundOutput)
+		}
+	}
+
 	// DiffsGenerated are only set to true after the block has been fully
 	// validated and integrated. This is required to prevent later blocks from
 	// being accepted on top of an invalid block - if the consensus set ever

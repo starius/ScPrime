@@ -79,6 +79,9 @@ var (
 	// GenesisSiafundAllocation is the set of SiafundOutputs created in the Genesis
 	// block.
 	GenesisSiafundAllocation []SiafundOutput
+	// ForkedGenesisSiafundAllocation is the set of SiafundOutputs created in the Genesis
+	// block.
+	ForkedGenesisSiafundAllocation []SiafundOutput
 	// GenesisTimestamp is the timestamp when genesis block was mined
 	GenesisTimestamp Timestamp
 	// InitialCoinbase is the coinbase reward of the Genesis block.
@@ -263,6 +266,8 @@ func init() {
 				UnlockHash: UnlockConditions{}.UnlockHash(),
 			},
 		}
+
+		ForkedGenesisSiafundAllocation = GenesisSiafundAllocation
 	} else if build.Release == "testing" {
 		// 'testing' settings are for automatic testing, and create much faster
 		// environments than a human can interact with.
@@ -326,6 +331,8 @@ func init() {
 				UnlockHash: UnlockConditions{}.UnlockHash(),
 			},
 		}
+
+		ForkedGenesisSiafundAllocation = GenesisSiafundAllocation
 	} else if build.Release == "standard" {
 		// 'standard' settings are for the full network. They are slow enough
 		// that the network is secure in a real-world byzantine environment.
@@ -442,6 +449,13 @@ func init() {
 			{
 				Value:      AirdropSiaPrimeValue,
 				UnlockHash: UnlockHashFromAddrStr("aefe0af2713c112ba4d10dee7753726e5c4de3f237ea455151342615c95d0e797d7a8cce7b05"),
+			},
+		}
+
+		ForkedGenesisSiafundAllocation = []SiafundOutput{
+			{
+				Value:      NewCurrency64(10000),
+				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 		}
 
