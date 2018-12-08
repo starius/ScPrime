@@ -21,6 +21,12 @@ var (
 	// BlockSizeLimit is the maximum size of a binary-encoded Block
 	// that is permitted by the consensus rules.
 	BlockSizeLimit = uint64(2e6)
+	// BurnAddressBlockHeight is the height at which the dev fund will be burnt
+	// instead of being claimed by the dev fund. Setting this value to 0 will
+	// prevent the dev fund from being burnt at any height.
+	BurnAddressBlockHeight = BlockHeight(105000)
+	// BurnAddressUnlockHash is the unlock hash for where to send coins to burn.
+	BurnAddressUnlockHash = UnlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69")
 	// DevFundEnabled is a boolean that when set to true will enable the ability to
 	// configure a dev fund
 	DevFundEnabled = true
@@ -381,7 +387,7 @@ func init() {
 		// decreases by 1 every time, it means that Sia's coinbase will have an
 		// increasingly potent dropoff for about 5 years, until inflation more
 		// or less permanently settles around 2%.
-		MinimumCoinbase = 50e3
+		MinimumCoinbase = 10e3
 
 		// The oak difficulty adjustment hardfork is set to trigger at block
 		// 135,000, which is just under 6 months after the hardfork was first

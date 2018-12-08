@@ -63,13 +63,17 @@ func (m *Miner) blockForWorkWithDevFund() types.Block {
 	if err != nil {
 		m.log.Println(err)
 	}
-	minerPayoutVal, devPayoutVal := b.CalculateSubsidies(m.persist.Height + 1)
+	minerPayoutVal, subsidyPayoutVal := b.CalculateSubsidies(m.persist.Height + 1)
+	subsidyUnlockHash := types.DevFundUnlockHash
+	if types.BurnAddressBlockHeight != types.BlockHeight(0) && (m.persist.Height+1) >= types.BurnAddressBlockHeight {
+		subsidyUnlockHash = types.BurnAddressUnlockHash
+	}
 	b.MinerPayouts = []types.SiacoinOutput{{
 		Value:      minerPayoutVal,
 		UnlockHash: m.persist.Address,
 	}, {
-		Value:      devPayoutVal,
-		UnlockHash: types.DevFundUnlockHash,
+		Value:      subsidyPayoutVal,
+		UnlockHash: subsidyUnlockHash,
 	}}
 
 	// Add an arb-data txn to the block to create a unique merkle root.
