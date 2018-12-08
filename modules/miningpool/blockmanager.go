@@ -49,7 +49,11 @@ func (p *Pool) blockForWorkWithDevFund() types.Block {
 		b.Timestamp = types.CurrentTimestamp()
 	}
 
-	minerPayoutVal, devPayoutVal := b.CalculateSubsidies(p.persist.BlockHeight + 1)
+	minerPayoutVal, subsidyPayoutVal := b.CalculateSubsidies(p.persist.BlockHeight + 1)
+	subsidyUnlockHash := types.DevFundUnlockHash
+	if types.BurnAddressBlockHeight != types.BlockHeight(0) && (p.persist.BlockHeight+1) >= types.BurnAddressBlockHeight {
+		subsidyUnlockHash = types.BurnAddressUnlockHash
+	}
 	p.log.Printf("building a new source block, block id is: %s\n", b.ID())
 	p.log.Printf("miner fees cost: %s", b.CalculateMinerFees().String())
 	p.log.Printf("# transactions: %d", len(b.Transactions))
@@ -58,8 +62,8 @@ func (p *Pool) blockForWorkWithDevFund() types.Block {
 		Value:      minerPayoutVal,
 		UnlockHash: p.persist.Settings.PoolWallet,
 	}, {
-		Value:      devPayoutVal,
-		UnlockHash: types.DevFundUnlockHash,
+		Value:      subsidyPayoutVal,
+		UnlockHash: subsidyUnlockHash,
 	}}
 
 	return b
