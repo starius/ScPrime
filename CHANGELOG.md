@@ -3,6 +3,12 @@ Version History
 
 Oct 2018:
 
+v1.3.5.2
+- SiaPrimeFund airdrop fix
+- Tokenomics Changes
+  - Min block reward now 10k
+  - Dev Fund Burn at block 105000
+
 v1.3.5.1
 - Fixed difficulty adjustment
 
