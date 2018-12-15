@@ -419,6 +419,8 @@ func TestUnitAcceptableVersion(t *testing.T) {
 		"1.3.2",
 		"1.3.3",
 		"1.3.4",
+		"1.3.5",
+		"1.3.5.1",
 	}
 	for _, v := range insufficientVersions {
 		err := acceptableVersion(v)
@@ -429,8 +431,6 @@ func TestUnitAcceptableVersion(t *testing.T) {
 	validVersions := []string{
 		minimumAcceptablePeerVersion,
 		"1.4.0",
-		"1.3.5",
-		"1.3.5.1",
 		"1.3.5.2",
 		"1.6.0",
 		"1.6.1",
