@@ -3,7 +3,7 @@ package renter
 import (
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/SiaPrime/build"
 )
 
 // managedDropChunk will remove a worker from the responsibility of tracking a chunk.

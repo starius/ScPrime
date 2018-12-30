@@ -1,7 +1,7 @@
 package siatest
 
 import (
-	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
 )
 
 type (

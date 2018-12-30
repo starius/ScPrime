@@ -1,7 +1,7 @@
 package wallet
 
 import (
-	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/SiaPrime/build"
 )
 
 const (

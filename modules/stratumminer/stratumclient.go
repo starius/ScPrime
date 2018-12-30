@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/crypto"
-	"gitlab.com/SiaPrime/Sia/encoding"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/encoding"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	siasync "gitlab.com/SiaPrime/Sia/sync"
+	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
 )
 
 type stratumJob struct {

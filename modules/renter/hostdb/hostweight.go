@@ -4,10 +4,10 @@ import (
 	"math"
 	"math/big"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/modules/renter/hostdb/hosttree"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb/hosttree"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 const (

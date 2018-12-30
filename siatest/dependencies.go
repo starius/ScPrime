@@ -4,7 +4,7 @@ import (
 	"net"
 	"sync"
 
-	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
 )
 
 type (

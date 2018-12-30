@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/persist"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 
 	"github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/errors"

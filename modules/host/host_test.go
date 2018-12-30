@@ -6,17 +6,17 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/crypto"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/modules/consensus"
-	"gitlab.com/SiaPrime/Sia/modules/gateway"
-	"gitlab.com/SiaPrime/Sia/modules/miner"
-	// "gitlab.com/SiaPrime/Sia/modules/renter"
-	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
-	"gitlab.com/SiaPrime/Sia/modules/wallet"
-	siasync "gitlab.com/SiaPrime/Sia/sync"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
+	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
+	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
+	// "gitlab.com/SiaPrime/SiaPrime/modules/renter"
+	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
+	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
+	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // A hostTester is the helper object for host testing, including helper modules

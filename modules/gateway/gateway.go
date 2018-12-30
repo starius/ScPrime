@@ -102,9 +102,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/persist"
-	siasync "gitlab.com/SiaPrime/Sia/sync"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/persist"
+	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
 	"gitlab.com/SiaPrime/errors"
 	"gitlab.com/SiaPrime/fastrand"
 )

@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/node"
-	"gitlab.com/SiaPrime/Sia/node/api/client"
-	"gitlab.com/SiaPrime/Sia/siatest"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/node"
+	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
+	"gitlab.com/SiaPrime/SiaPrime/siatest"
 	"gitlab.com/SiaPrime/errors"
 )
 

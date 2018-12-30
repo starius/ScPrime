@@ -6,9 +6,9 @@ import (
 	"net/url"
 	"strconv"
 
-	"gitlab.com/SiaPrime/Sia/crypto"
-	"gitlab.com/SiaPrime/Sia/node/api"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/node/api"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // WalletAddressGet requests a new address from the /wallet/address endpoint

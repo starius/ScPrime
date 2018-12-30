@@ -21,28 +21,28 @@ import (
 	"syscall"
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/modules/consensus"
-	"gitlab.com/SiaPrime/Sia/modules/explorer"
-	"gitlab.com/SiaPrime/Sia/modules/gateway"
-	"gitlab.com/SiaPrime/Sia/modules/host"
-	index "gitlab.com/SiaPrime/Sia/modules/index"
-	"gitlab.com/SiaPrime/Sia/modules/miner"
-	pool "gitlab.com/SiaPrime/Sia/modules/miningpool"
-	"gitlab.com/SiaPrime/Sia/modules/renter"
-	"gitlab.com/SiaPrime/Sia/modules/stratumminer"
-	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
-	"gitlab.com/SiaPrime/Sia/modules/wallet"
-	"gitlab.com/SiaPrime/Sia/node/api"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
+	"gitlab.com/SiaPrime/SiaPrime/modules/explorer"
+	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
+	"gitlab.com/SiaPrime/SiaPrime/modules/host"
+	index "gitlab.com/SiaPrime/SiaPrime/modules/index"
+	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
+	pool "gitlab.com/SiaPrime/SiaPrime/modules/miningpool"
+	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
+	"gitlab.com/SiaPrime/SiaPrime/modules/stratumminer"
+	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
+	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
+	"gitlab.com/SiaPrime/SiaPrime/node/api"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 
 	"github.com/inconshreveable/go-update"
 	"github.com/julienschmidt/httprouter"
 	"github.com/kardianos/osext"
 )
 
-var errEmptyUpdateResponse = errors.New("API call to https://api.github.com/repos/SiaPrime/Sia/releases/latest is returning an empty response")
+var errEmptyUpdateResponse = errors.New("API call to https://api.github.com/repos/SiaPrime/SiaPrime/releases/latest is returning an empty response")
 
 type (
 	// Server creates and serves a HTTP server that offers communication with a
@@ -188,7 +188,7 @@ func latestRelease(releases []githubRelease) (githubRelease, error) {
 // fetchLatestRelease returns metadata about the most recent non-LTS GitHub
 // release.
 func fetchLatestRelease() (githubRelease, error) {
-	req, err := http.NewRequest("GET", "https://api.github.com/repos/SiaPrime/Sia/releases", nil)
+	req, err := http.NewRequest("GET", "https://api.github.com/repos/SiaPrime/SiaPrime/releases", nil)
 	if err != nil {
 		return githubRelease{}, err
 	}

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/SiaPrime/build"
 )
 
 // TestSaveLoadJSON creates a simple object and then tries saving and loading

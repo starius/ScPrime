@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/node"
-	"gitlab.com/SiaPrime/Sia/siatest"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/node"
+	"gitlab.com/SiaPrime/SiaPrime/siatest"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // TestApiHeight checks if the consensus api endpoint works

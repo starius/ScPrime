@@ -1,6 +1,6 @@
 package client
 
-import "gitlab.com/SiaPrime/Sia/node/api"
+import "gitlab.com/SiaPrime/SiaPrime/node/api"
 
 // DaemonVersionGet requests the /daemon/version resource
 func (c *Client) DaemonVersionGet() (dvg api.DaemonVersionGet, err error) {

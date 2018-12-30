@@ -3,7 +3,7 @@ package node
 import (
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/SiaPrime/build"
 )
 
 // TestNew is a basic smoke test for New that uses all of the templates to

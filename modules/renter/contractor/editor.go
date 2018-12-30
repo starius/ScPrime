@@ -4,10 +4,10 @@ import (
 	"errors"
 	"sync"
 
-	"gitlab.com/SiaPrime/Sia/crypto"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/modules/renter/proto"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 var errInvalidEditor = errors.New("editor has been invalidated because its contract is being renewed")

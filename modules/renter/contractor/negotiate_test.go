@@ -4,16 +4,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/crypto"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/modules/consensus"
-	"gitlab.com/SiaPrime/Sia/modules/gateway"
-	"gitlab.com/SiaPrime/Sia/modules/miner"
-	"gitlab.com/SiaPrime/Sia/modules/renter/hostdb"
-	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
-	modWallet "gitlab.com/SiaPrime/Sia/modules/wallet" // name conflicts with type
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
+	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
+	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
+	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb"
+	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
+	modWallet "gitlab.com/SiaPrime/SiaPrime/modules/wallet" // name conflicts with type
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // contractorTester contains all of the modules that are used while testing the contractor.

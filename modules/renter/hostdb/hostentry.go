@@ -3,8 +3,8 @@ package hostdb
 import (
 	"math"
 
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // updateHostDBEntry updates a HostDBEntries's historic interactions if more

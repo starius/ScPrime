@@ -11,8 +11,8 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/SiaPrime/Sia/encoding"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/encoding"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 var errUnableToParseSize = errors.New("unable to parse size")

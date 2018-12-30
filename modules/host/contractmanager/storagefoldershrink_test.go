@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/crypto"
-	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
 )
 
 // TestShrinkStorageFolder checks that a storage folder can be successfully

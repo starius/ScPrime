@@ -8,7 +8,7 @@ import (
 
 	"github.com/sasha-s/go-deadlock"
 
-	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/SiaPrime/persist"
 )
 
 // Dispatcher contains a map of ip addresses to handlers

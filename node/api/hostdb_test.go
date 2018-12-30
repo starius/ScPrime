@@ -10,16 +10,16 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/crypto"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/modules/consensus"
-	"gitlab.com/SiaPrime/Sia/modules/gateway"
-	"gitlab.com/SiaPrime/Sia/modules/host"
-	"gitlab.com/SiaPrime/Sia/modules/miner"
-	"gitlab.com/SiaPrime/Sia/modules/renter"
-	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
-	"gitlab.com/SiaPrime/Sia/modules/wallet"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
+	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
+	"gitlab.com/SiaPrime/SiaPrime/modules/host"
+	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
+	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
+	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
+	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
 )
 
 // TestHostDBHostsActiveHandler checks the behavior of the call to

@@ -6,7 +6,7 @@ import (
 	"net"
 	"os"
 
-	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/fastrand"
 )
 

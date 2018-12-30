@@ -132,9 +132,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/persist"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 
 	"gitlab.com/SiaPrime/errors"
 )

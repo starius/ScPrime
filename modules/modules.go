@@ -6,7 +6,7 @@ package modules
 import (
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/SiaPrime/build"
 )
 
 var (

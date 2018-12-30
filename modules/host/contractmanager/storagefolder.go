@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/sync"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/sync"
 	"gitlab.com/SiaPrime/fastrand"
 )
 

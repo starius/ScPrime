@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 
 	"github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/errors"
