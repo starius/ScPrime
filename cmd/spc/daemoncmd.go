@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/SiaPrime/build"
 )
 
 var (

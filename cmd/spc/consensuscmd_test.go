@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // TestEstimatedHeightAt tests that the expectedHeightAt function correctly

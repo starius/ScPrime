@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"io"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/errors"
 )
 

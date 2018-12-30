@@ -1,10 +1,10 @@
 package transactionpool
 
 import (
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/encoding"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/encoding"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // updateSubscribersTransactions sends a new transaction pool update to all

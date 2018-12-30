@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 
 	"github.com/coreos/bbolt"
 )

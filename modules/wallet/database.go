@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/encoding"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/encoding"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 	"gitlab.com/SiaPrime/errors"
 	"gitlab.com/SiaPrime/fastrand"
 

@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
 )
 
 // peerConn is a simple type that implements the modules.PeerConn interface.

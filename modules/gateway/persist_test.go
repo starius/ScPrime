@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/persist"
 )
 
 func TestLoad(t *testing.T) {

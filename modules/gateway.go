@@ -3,7 +3,7 @@ package modules
 import (
 	"net"
 
-	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/SiaPrime/build"
 )
 
 const (

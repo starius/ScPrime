@@ -5,13 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/modules/consensus"
-	"gitlab.com/SiaPrime/Sia/modules/gateway"
-	"gitlab.com/SiaPrime/Sia/modules/transactionpool"
-	"gitlab.com/SiaPrime/Sia/modules/wallet"
-	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
+	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
+	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
+	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
+	"gitlab.com/SiaPrime/SiaPrime/persist"
 )
 
 const (

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"math"
 
-	"gitlab.com/SiaPrime/Sia/crypto"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // UnspentOutputs returns the unspent outputs tracked by the wallet.

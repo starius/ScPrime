@@ -3,7 +3,7 @@ package contractmanager
 import (
 	"sync/atomic"
 
-	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
 )
 
 type (

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
 )
 
 // countFileLines is a helper function that will count the number of lines in a

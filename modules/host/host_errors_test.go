@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/persist"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/persist"
 )
 
 // dependencyErrMkdirAll is a dependency set that returns an error when MkdirAll

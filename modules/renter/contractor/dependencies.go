@@ -3,9 +3,9 @@ package contractor
 import (
 	"path/filepath"
 
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/persist"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // These interfaces define the HostDB's dependencies. Using the smallest

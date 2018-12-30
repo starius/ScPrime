@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/node/api/client"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
 )
 
 var (

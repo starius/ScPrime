@@ -3,8 +3,8 @@ package types
 import (
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/crypto"
-	"gitlab.com/SiaPrime/Sia/encoding"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/encoding"
 )
 
 // TestCalculateCoinbase probes the CalculateCoinbase function. The test code

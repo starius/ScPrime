@@ -3,8 +3,8 @@ package wallet
 import (
 	"math"
 
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 	"gitlab.com/SiaPrime/errors"
 
 	"github.com/coreos/bbolt"

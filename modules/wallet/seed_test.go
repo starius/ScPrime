@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/crypto"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/modules/miner"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // TestPrimarySeed checks that the correct seed is returned when calling

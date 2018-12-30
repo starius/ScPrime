@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/SiaPrime/build"
 )
 
 // Logger is a wrapper for the standard library logger that enforces logging

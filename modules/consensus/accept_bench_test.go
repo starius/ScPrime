@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/modules/gateway"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // BenchmarkAcceptEmptyBlocks measures how quckly empty blocks are integrated

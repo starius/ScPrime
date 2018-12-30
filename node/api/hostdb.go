@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 
 	"github.com/julienschmidt/httprouter"
 )

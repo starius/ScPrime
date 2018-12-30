@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
 )
 
 // TestGrowStorageFolder checks that a storage folder can be successfully

@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // TestFileNumChunks checks the numChunks method of the file type.

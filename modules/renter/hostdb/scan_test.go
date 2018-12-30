@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // TestUpdateEntry checks that the various components of updateEntry are

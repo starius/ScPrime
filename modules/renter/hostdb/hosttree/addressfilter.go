@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
 )
 
 const (

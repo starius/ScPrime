@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
 
 	"github.com/julienschmidt/httprouter"
 )

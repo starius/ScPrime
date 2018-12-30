@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/node/api"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/node/api"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 const scanHistoryLen = 30

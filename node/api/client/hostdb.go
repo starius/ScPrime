@@ -1,8 +1,8 @@
 package client
 
 import (
-	"gitlab.com/SiaPrime/Sia/node/api"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/node/api"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // HostDbGet requests the /hostdb endpoint's resources.

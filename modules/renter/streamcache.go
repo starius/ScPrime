@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/build"
+	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/errors"
 )
 

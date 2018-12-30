@@ -6,7 +6,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	"gitlab.com/SiaPrime/Sia/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
 )
 
 var (

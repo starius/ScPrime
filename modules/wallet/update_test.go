@@ -3,8 +3,8 @@ package wallet
 import (
 	"testing"
 
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // TestUpdate tests that the wallet processes consensus updates properly.

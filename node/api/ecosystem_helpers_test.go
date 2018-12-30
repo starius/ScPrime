@@ -17,8 +17,8 @@ import (
 	"net/url"
 	"time"
 
-	"gitlab.com/SiaPrime/Sia/build"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // addStorageToAllHosts adds a storage folder with a bunch of storage to each

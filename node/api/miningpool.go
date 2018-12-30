@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
-	"gitlab.com/SiaPrime/Sia/modules"
-	"gitlab.com/SiaPrime/Sia/types"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 type (
