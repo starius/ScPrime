@@ -3,13 +3,18 @@ Version History
 
 Oct 2018:
 
-v1.3.5.2
+v1.3.5.3 (patch release)
+- Add offline signing functionality
+- Overhaul hostdb weighting
+- Add siac utils
+
+v1.3.5.2 (patch release)
 - SiaPrimeFund airdrop fix
 - Tokenomics Changes
   - Min block reward now 10k
   - Dev Fund Burn at block 105000
 
-v1.3.5.1
+v1.3.5.1 (patch release)
 - Fixed difficulty adjustment
 
 v1.3.5

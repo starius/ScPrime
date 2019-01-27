@@ -11,10 +11,23 @@ import (
 	"math/big"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/NebulousLabs/Sia/build"
 )
 
 var (
+	// ASICHardforkHeight is the height at which the hardfork targeting
+	// selected ASICs was activated.
+	ASICHardforkHeight BlockHeight
+
+	// ASICHardforkFactor is the factor by which the hashrate of targeted
+	// ASICs will be reduced.
+	ASICHardforkFactor = uint64(1)
+
+	// ASICHardforkReplayProtectionPrefix is a byte that prefixes
+	// SiacoinInputs and SiafundInputs when calculating SigHashes to protect
+	// against replay attacks.
+	ASICHardforkReplayProtectionPrefix = []byte(nil)
+
 	// BlockFrequency is the desired number of seconds that
 	// should elapse, on average, between successive Blocks.
 	BlockFrequency BlockHeight
@@ -212,8 +225,10 @@ func init() {
 		// can coordinate their actions over a the developer testnets, but fast
 		// enough that there isn't much time wasted on waiting for things to
 		// happen.
-		BlockFrequency = 120                     // 12 seconds: slow enough for developers to see ~each block, fast enough that blocks don't waste time.
-		MaturityDelay = 100                      // 60 seconds before a delayed output matures.
+		ASICHardforkHeight = 20
+
+		BlockFrequency = 12                      // 12 seconds: slow enough for developers to see ~each block, fast enough that blocks don't waste time.
+		MaturityDelay = 10                       // 60 seconds before a delayed output matures.
 		GenesisTimestamp = Timestamp(1528293910) // Change as necessary.
 		RootTarget = Target{0, 0, 2}             // Standard developer CPUs will be able to mine blocks with the race library activated.
 
@@ -223,7 +238,7 @@ func init() {
 		FutureThreshold = 2 * 60                       // 2 minutes.
 		ExtremeFutureThreshold = 4 * 60                // 4 minutes.
 
-		MinimumCoinbase = 50e3
+		MinimumCoinbase = 30e3
 
 		OakHardforkBlock = 100
 		OakHardforkFixBlock = 105
@@ -271,6 +286,8 @@ func init() {
 	} else if build.Release == "testing" {
 		// 'testing' settings are for automatic testing, and create much faster
 		// environments than a human can interact with.
+		ASICHardforkHeight = 5
+
 		BlockFrequency = 1 // As fast as possible
 		MaturityDelay = 3
 		GenesisTimestamp = CurrentTimestamp() - 1e6
@@ -286,7 +303,7 @@ func init() {
 		FutureThreshold = 3        // 3 seconds
 		ExtremeFutureThreshold = 6 // 6 seconds
 
-		MinimumCoinbase = 50e3 // Minimum coinbase is hit after 10 blocks to make testing minimum-coinbase code easier.
+		MinimumCoinbase = 299990 // Minimum coinbase is hit after 10 blocks to make testing minimum-coinbase code easier.
 
 		// Do not let the difficulty change rapidly - blocks will be getting
 		// mined far faster than the difficulty can adjust to.
@@ -336,6 +353,7 @@ func init() {
 	} else if build.Release == "standard" {
 		// 'standard' settings are for the full network. They are slow enough
 		// that the network is secure in a real-world byzantine environment.
+		ASICHardforkHeight = 179000
 
 		// A block time of 1 block per 10 minutes is chosen to follow Bitcoin's
 		// example. The security lost by lowering the block time is not
@@ -390,7 +408,7 @@ func init() {
 		FutureThreshold = 3 * 60 * 60        // 3 hours.
 		ExtremeFutureThreshold = 5 * 60 * 60 // 5 hours.
 
-		// The minimum coinbase is set to 50,000. Because the coinbase
+		// The minimum coinbase is set to 10,000. Because the coinbase
 		// decreases by 1 every time, it means that Sia's coinbase will have an
 		// increasingly potent dropoff for about 5 years, until inflation more
 		// or less permanently settles around 2%.
