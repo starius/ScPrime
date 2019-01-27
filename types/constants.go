@@ -225,7 +225,7 @@ func init() {
 		// can coordinate their actions over a the developer testnets, but fast
 		// enough that there isn't much time wasted on waiting for things to
 		// happen.
-		ASICHardforkHeight = 20
+		ASICHardforkHeight = math.MaxInt64
 
 		BlockFrequency = 12                      // 12 seconds: slow enough for developers to see ~each block, fast enough that blocks don't waste time.
 		MaturityDelay = 10                       // 60 seconds before a delayed output matures.
@@ -286,7 +286,7 @@ func init() {
 	} else if build.Release == "testing" {
 		// 'testing' settings are for automatic testing, and create much faster
 		// environments than a human can interact with.
-		ASICHardforkHeight = 5
+		ASICHardforkHeight = math.MaxInt64
 
 		BlockFrequency = 1 // As fast as possible
 		MaturityDelay = 3
@@ -353,7 +353,7 @@ func init() {
 	} else if build.Release == "standard" {
 		// 'standard' settings are for the full network. They are slow enough
 		// that the network is secure in a real-world byzantine environment.
-		ASICHardforkHeight = 179000
+		ASICHardforkHeight = math.MaxInt64
 
 		// A block time of 1 block per 10 minutes is chosen to follow Bitcoin's
 		// example. The security lost by lowering the block time is not
