@@ -14,7 +14,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/NebulousLabs/errors"
 
 	"github.com/julienschmidt/httprouter"
 )

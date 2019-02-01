@@ -9,8 +9,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	"gitlab.com/SiaPrime/errors"
-	"gitlab.com/SiaPrime/fastrand"
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TestIntegrationAutoRenew tests that contracts are automatically renewed at

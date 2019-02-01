@@ -18,8 +18,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
 	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/errors"
-	"gitlab.com/SiaPrime/fastrand"
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TestWalletGETEncrypted probes the GET call to /wallet when the

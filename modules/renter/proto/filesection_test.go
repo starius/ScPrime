@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/fastrand"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // SafeReadAt is a wrapper for ReadAt that recovers from a potential panic and

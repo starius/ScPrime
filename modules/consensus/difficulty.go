@@ -8,7 +8,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
 	"github.com/coreos/bbolt"
-	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // difficulty.go defines the Oak difficulty adjustment algorithm.

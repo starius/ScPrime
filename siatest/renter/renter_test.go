@@ -24,8 +24,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/siatest"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	"gitlab.com/SiaPrime/errors"
-	"gitlab.com/SiaPrime/fastrand"
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // Test Limitations

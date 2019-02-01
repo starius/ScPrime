@@ -9,7 +9,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // contractorPersist defines what Contractor data persists across sessions.

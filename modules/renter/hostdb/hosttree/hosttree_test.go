@@ -13,7 +13,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/fastrand"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 func verifyTree(tree *HostTree, nentries int) error {

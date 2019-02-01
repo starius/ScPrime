@@ -9,7 +9,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 
-	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // downloadPieceInfo contains all the information required to download and

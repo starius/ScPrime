@@ -12,8 +12,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/node/api"
 
-	"gitlab.com/SiaPrime/errors"
-	"gitlab.com/SiaPrime/fastrand"
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // DownloadToDisk downloads a previously uploaded file. The file will be downloaded

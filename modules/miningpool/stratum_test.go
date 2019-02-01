@@ -10,7 +10,7 @@ import (
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // TestStratumServer would test before and after a connections is made to the server

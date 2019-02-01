@@ -10,8 +10,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/errors"
-	"gitlab.com/SiaPrime/writeaheadlog"
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/writeaheadlog"
 )
 
 const (
