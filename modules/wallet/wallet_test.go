@@ -13,7 +13,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
 	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/fastrand"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // A Wallet tester contains a ConsensusTester and has a bunch of helpful

@@ -15,7 +15,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
 	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/fastrand"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // renterTester contains all of the modules that are used while testing the renter.

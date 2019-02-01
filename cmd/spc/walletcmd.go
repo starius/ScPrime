@@ -21,7 +21,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/entropy-mnemonics"
+	"gitlab.com/NebulousLabs/entropy-mnemonics"
 )
 
 var (

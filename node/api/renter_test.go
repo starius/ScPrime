@@ -19,7 +19,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/fastrand"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 const (

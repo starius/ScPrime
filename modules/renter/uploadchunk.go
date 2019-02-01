@@ -7,7 +7,7 @@ import (
 
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 
-	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // uploadChunkID is a unique identifier for each chunk in the renter.

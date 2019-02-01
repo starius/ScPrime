@@ -8,10 +8,10 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/ratelimit"
+	"gitlab.com/NebulousLabs/ratelimit"
 
-	"gitlab.com/SiaPrime/errors"
-	"gitlab.com/SiaPrime/writeaheadlog"
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/writeaheadlog"
 )
 
 // A ContractSet provides safe concurrent access to a set of contracts. Its

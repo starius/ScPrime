@@ -18,8 +18,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/persist"
 	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/errors"
-	"gitlab.com/SiaPrime/threadgroup"
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/threadgroup"
 )
 
 const (

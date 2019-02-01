@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/errors"
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // streamHeap is a priority queue and implements heap.Interface and holds chunkData
