@@ -1,4 +1,4 @@
-# [![SiaPrime Logo](https://siaprime.net/imagestore/primelogo_cb_256x256.png)](http://siaprime.net) v1.3.5.2
+# [![SiaPrime Logo](https://siaprime.net/imagestore/primelogo_cb_256x256.png)](http://siaprime.net) v1.3.8
 
 [![Build Status](https://gitlab.com/SiaPrime/SiaPrime/badges/master/build.svg)](https://gitlab.com/SiaPrime/SiaPrime/commits/master)
 [![Coverage Report](https://gitlab.com/SiaPrime/SiaPrime/badges/master/coverage.svg)](https://gitlab.com/SiaPrime/SiaPrime/commits/master)

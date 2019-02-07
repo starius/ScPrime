@@ -1,7 +1,13 @@
 Version History
 ---------------
 
-Oct 2018:
+Feb 2019::
+
+v1.3.8 (parch release)
+- Revert Dependency Lib Paths
+- Fix `US` Host Support
+
+Jan 2019:
 
 v1.3.7 (patch release)
 - Adjust difficulty for ASIC hardfork
@@ -13,6 +19,8 @@ v1.3.5.3 (patch release)
 - Add offline signing functionality
 - Overhaul hostdb weighting
 - Add siac utils
+
+Oct 2018:
 
 v1.3.5.2 (patch release)
 - SiaPrimeFund airdrop fix
