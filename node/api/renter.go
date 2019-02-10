@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/NebulousLabs/errors"
 
 	"github.com/julienschmidt/httprouter"
 )

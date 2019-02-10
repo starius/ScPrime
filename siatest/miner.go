@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"unsafe"
 
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/NebulousLabs/errors"
 )
 
 // MineBlock makes the underlying node mine a single block and broadcast it.

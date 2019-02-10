@@ -13,11 +13,11 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/NebulousLabs/threadgroup"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb/hosttree"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/NebulousLabs/threadgroup"
 
 	"gitlab.com/NebulousLabs/errors"
 )

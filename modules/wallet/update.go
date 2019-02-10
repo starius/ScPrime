@@ -3,9 +3,9 @@ package wallet
 import (
 	"math"
 
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/NebulousLabs/errors"
 
 	"github.com/coreos/bbolt"
 )
