@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/SiaPrime/build"
 )
 
 func TestBlockForWork(t *testing.T) {

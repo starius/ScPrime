@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
 )
 
 type (

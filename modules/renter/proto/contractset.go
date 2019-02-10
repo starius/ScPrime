@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"sync"
 
+	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/NebulousLabs/ratelimit"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/writeaheadlog"

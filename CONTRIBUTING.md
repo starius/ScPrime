@@ -50,7 +50,7 @@ To build SiaPrime on your machine, enter the following on the command line:
 $ go get -u gitlab.com/SiaPrime/SiaPrime/...
 
 # Switch to directory containing Sia source code
-$ cd $GOPATH/src/gitlab.com/SiaPrime/Sia
+$ cd $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
 
 # You have three SiaPrime builds to choose from.
 # To build the standard release binary:
@@ -102,11 +102,11 @@ has a 'forked' copy of the original repo at
 `https://gitlab.com/<your GitLab username>/Sia`.
 
 When you installed SiaPrime using `go get`, the go tool put the SiaPrime source code in 
-$GOPATH/src/gitlab.com/SiaPrime/Sia. Change to that directory and set up
+$GOPATH/src/gitlab.com/SiaPrime/SiaPrime. Change to that directory and set up
 your fork as a git [remote][remote]:
 
 ```bash
-$ cd $GOPATH/src/gitlab.com/SiaPrime/Sia
+$ cd $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
 # Add your fork as a remote.  Name it whatever is convenient,
 # e.g your GitLab username
 $ git remote add <remote name> https://gitlab.com/<username>/Sia.git
@@ -126,7 +126,7 @@ repository's master branch.
 To create and checkout a new branch:
 ```bash
 # If you're not already in the right directory:
-$ cd $GOPATH/src/gitlab.com/SiaPrime/Sia
+$ cd $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
 # Make sure you're on branch master
 $ git checkout master
 # Create and checkout a new branch

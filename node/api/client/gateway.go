@@ -1,9 +1,9 @@
 package client
 
 import (
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/node/api"
-	"gitlab.com/NebulousLabs/errors"
 )
 
 var (

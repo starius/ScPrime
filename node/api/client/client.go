@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/SiaPrime/SiaPrime/node/api"
 )
 
 // A Client makes requests to the siad HTTP API.
