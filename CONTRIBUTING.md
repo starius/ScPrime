@@ -120,7 +120,7 @@ $ git remote add <remote name> git@gitlab.com:<username>/Sia.git
 
 Right now your git local repository only has one branch (called 'master' by 
 default). If you want to make changes, add a new branch and make your changes 
-there. You should maintain master as an up-to-date copy of the SiaPrime/Sia 
+there. You should maintain master as an up-to-date copy of the SiaPrime/SiaPrime 
 repository's master branch.
 
 To create and checkout a new branch:
@@ -203,9 +203,6 @@ Once you have made the pull request, we will review your code.  We will reject
 code that is unsafe, difficult to read, or otherwise violates the conventions 
 outlined in [docs/Developers.md][developers.md].
 
-Here's a sample code review comment:
-![Screenshot](assets/codereview.png)
-
 If you want to tweak code for which you've already submitted a pull request,
 push the updated code to your fork with `git push -f <fork remote> <branch>` and
 summarize the changes you've made in a comment on the pull request page on 
@@ -243,7 +240,7 @@ tests is a good way to get your feet wet.  See [doc/Running and Writing Tests fo
 
 ## Contact us
 
-Feel free to ask for help on the #core-dev channel on [discord][discord].
+Feel free to ask for help on the #general-dev channel on [discord][discord].
 
 [cross]: http://dave.cheney.net/2015/08/22/cross-compilation-with-go-1-5
 [binary]: https://golang.org/dl/
@@ -256,12 +253,12 @@ Feel free to ask for help on the #core-dev channel on [discord][discord].
 [install-go]: https://golang.org/doc/install
 [signup]: https://github.com/join?source=header-home
 [effective]: https://golang.org/doc/effective_go.html
-[siaprime]: https://gitlab.com/SiaPrime/Sia
+[siaprime]: https://gitlab.com/SiaPrime/SiaPrime
 [branch]: http://blog.scottlowe.org/2015/01/27/using-fork-branch-git-workflow/
 [developers.md]: https://gitlab.com/SiaPrime/SiaPrime/blob/master/doc/Developers.md
 [gofmt]: https://golang.org/cmd/gofmt/
 [nutshell]: https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell
-[discord]: https://discord.gg/sia
+[discord]: https://discord.gg/GkeJ58H
 [install-git]: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
 [test-doc]: https://gitlab.com/SiaPrime/SiaPrime/blob/master/doc/Testing.md
 [stashing]: https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning
