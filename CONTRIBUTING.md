@@ -45,11 +45,11 @@ and use the go tool.
 To build SiaPrime on your machine, enter the following on the command line:
 
 ```bash
-# Download Sia and its dependencies
+# Download SiaPrime and its dependencies
 # Binaries will be installed in $GOPATH/bin
 $ go get -u gitlab.com/SiaPrime/SiaPrime/...
 
-# Switch to directory containing Sia source code
+# Switch to directory containing SiaPrime source code
 $ cd $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
 
 # You have three SiaPrime builds to choose from.
@@ -163,7 +163,7 @@ To learn more about branching, see
 For more on stashing, see [Pro Git - Stashing and Cleaning][stashing].
   
 Be sure to follow the conventions detailed in 
-[docs/Developers.md][developers.md].  We will reject pull requests that do not 
+[docs/Developers.md][developers.md].  We will reject merge requests that do not 
 satisfy these best practices.
 
 Once you've finished making changes, stage and commit your changes then update 
@@ -176,7 +176,7 @@ $ git pull origin master
 # Checkout branch with changes.
 $ git checkout <branch>
 $ git rebase master
-# Before every pull request, you should run `make test-long`
+# Before every merge request, you should run `make test-long`
 # to test your code and fix formatting and style problems.
 $ make test-long
 # If all goes well, proceed to staging your changed files:
@@ -197,9 +197,9 @@ $ git push <fork remote> <branch>
 Once you've tested your new code and pushed changes to your fork, navigate to 
 your fork at `https://gitlab.com/<username>/Sia` in your browser.  
 Switch to the branch you've made changes on by selecting it from the list on 
-the upper left.  Then click 'New pull request' on the upper right.
+the upper left.  Then click 'New merge request' on the upper right.
 
-Once you have made the pull request, we will review your code.  We will reject 
+Once you have made the merge request, we will review your code.  We will reject 
 code that is unsafe, difficult to read, or otherwise violates the conventions 
 outlined in [docs/Developers.md][developers.md].
 
