@@ -99,7 +99,7 @@ $ git config --global credential.helper "cache --timeout=[seconds]"
 While logged into your GitLab account, navigate to the [SiaPrime repository][siaprime] 
 and click the 'Fork' button in the upper right hand corner.  Your account now 
 has a 'forked' copy of the original repo at 
-`https://gitlab.com/<your GitLab username>/Sia`.
+`https://gitlab.com/<your GitLab username>/SiaPrime`.
 
 When you installed SiaPrime using `go get`, the go tool put the SiaPrime source code in 
 $GOPATH/src/gitlab.com/SiaPrime/SiaPrime. Change to that directory and set up
@@ -109,9 +109,9 @@ your fork as a git [remote][remote]:
 $ cd $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
 # Add your fork as a remote.  Name it whatever is convenient,
 # e.g your GitLab username
-$ git remote add <remote name> https://gitlab.com/<username>/Sia.git
+$ git remote add <remote name> https://gitlab.com/<username>/SiaPrime.git
 # Or if you use an SSH key, create the remote with the following
-$ git remote add <remote name> git@gitlab.com:<username>/Sia.git
+$ git remote add <remote name> git@gitlab.com:<username>/SiaPrime.git
 ```
 
 <a name="write"/>
