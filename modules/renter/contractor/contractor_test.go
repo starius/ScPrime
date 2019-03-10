@@ -38,7 +38,7 @@ func (newStub) CheckForIPViolations([]types.SiaPublicKey) []types.SiaPublicKey  
 func (newStub) Host(types.SiaPublicKey) (settings modules.HostDBEntry, ok bool) { return }
 func (newStub) IncrementSuccessfulInteractions(key types.SiaPublicKey)          { return }
 func (newStub) IncrementFailedInteractions(key types.SiaPublicKey)              { return }
-func (newStub) RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
+func (newStub) RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey, bool) ([]modules.HostDBEntry, error) {
 	return nil, nil
 }
 func (newStub) ScoreBreakdown(modules.HostDBEntry) modules.HostScoreBreakdown {
@@ -115,7 +115,7 @@ func (stubHostDB) Host(types.SiaPublicKey) (h modules.HostDBEntry, ok bool)     
 func (stubHostDB) IncrementSuccessfulInteractions(key types.SiaPublicKey)         { return }
 func (stubHostDB) IncrementFailedInteractions(key types.SiaPublicKey)             { return }
 func (stubHostDB) PublicKey() (spk types.SiaPublicKey)                            { return }
-func (stubHostDB) RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey) (hs []modules.HostDBEntry, _ error) {
+func (stubHostDB) RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey, bool) (hs []modules.HostDBEntry, _ error) {
 	return
 }
 func (stubHostDB) ScoreBreakdown(modules.HostDBEntry) modules.HostScoreBreakdown {
@@ -155,7 +155,7 @@ func TestAllowanceSpending(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = build.Retry(50, 100*time.Millisecond, func() error {
-		hosts, err := c.hdb.RandomHosts(1, nil, nil)
+		hosts, err := c.hdb.RandomHosts(1, nil, nil, false)
 		if err != nil {
 			return err
 		}
@@ -295,7 +295,7 @@ func TestIntegrationSetAllowance(t *testing.T) {
 	}
 
 	// wait for hostdb to scan
-	hosts, err := c.hdb.RandomHosts(1, nil, nil)
+	hosts, err := c.hdb.RandomHosts(1, nil, nil, false)
 	if err != nil {
 		t.Fatal("failed to get hosts", err)
 	}
