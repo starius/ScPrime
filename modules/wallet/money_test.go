@@ -166,13 +166,15 @@ func TestIntegrationSpendUnconfirmed(t *testing.T) {
 	}
 	defer wt.closeWt()
 
+	// Balance is 239999.2 coins.
+
 	// Spend the only output.
 	halfPlus := types.SiacoinPrecision.Mul64(200e3)
 	_, err = wt.wallet.SendSiacoins(halfPlus, types.UnlockHash{})
 	if err != nil {
 		t.Error("unexpected error: ", err)
 	}
-	someMore := types.SiacoinPrecision.Mul64(75e3)
+	someMore := types.SiacoinPrecision.Mul64(39e3)
 	_, err = wt.wallet.SendSiacoins(someMore, types.UnlockHash{1})
 	if err != nil {
 		t.Error("wallet appears to be struggling to spend unconfirmed outputs")

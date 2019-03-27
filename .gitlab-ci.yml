@@ -16,6 +16,7 @@ before_script:
   - git clone https://github.com/golang/text $GOPATH/src/golang.org/x/text
   - (cd $GOPATH/src/golang.org/x/text && git remote set-url origin https://go.googlesource.com/text)
   - make dependencies
+  - mkdir -p $GOPATH/src/gitlab.com/SiaPrime
   - cp -R $CI_PROJECT_DIR $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
   - cd $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
 

@@ -32,7 +32,7 @@ const (
 
 	// minScans specifies the number of scans that a host should have before the
 	// scans start getting compressed.
-	minScans = 3
+	minScans = 12
 
 	// minScansForSpeedup is the number of successful scan that needs to be
 	// completed before the dial up timeout for scans is reduced. This ensures
