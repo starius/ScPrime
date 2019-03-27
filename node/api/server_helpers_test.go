@@ -23,7 +23,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules/host"
 	"gitlab.com/SiaPrime/SiaPrime/modules/index"
 	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miningpool"
+	pool "gitlab.com/SiaPrime/SiaPrime/modules/miningpool"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
 	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
 	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
@@ -229,7 +229,7 @@ func assembleServerTester(key crypto.TwofishKey, testdir string) (*serverTester,
 // assembleAuthenticatedServerTester creates a bunch of modules and assembles
 // them into a server tester that requires authentication with the given
 // requiredPassword. No directories are created and no blocks are mined.
-func assembleAuthenticatedServerTester(requiredPassword string, key crypto.TwofishKey, testdir string) (*serverTester, error) {
+func assembleAuthenticatedServerTester(requiredPassword string, key crypto.TwofishKey, testdir string, withPool bool) (*serverTester, error) {
 	// assembleAuthenticatedServerTester should not get called during short
 	// tests, as it takes a long time to run.
 	if testing.Short() {
@@ -279,13 +279,17 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Twofi
 	if err != nil {
 		return nil, err
 	}
-	mp, err := pool.New(cs, tp, g, w, filepath.Join(testdir, modules.PoolDir), config.MiningPoolConfig{})
-	if err != nil {
-		return nil, err
-	}
-	idx, err := index.New(cs, tp, g, w, filepath.Join(testdir, modules.IndexDir), config.IndexConfig{})
-	if err != nil {
-		return nil, err
+	var mp *pool.Pool
+	var idx *index.Index
+	if withPool {
+		mp, err = pool.New(cs, tp, g, w, filepath.Join(testdir, modules.PoolDir), config.MiningPoolConfig{})
+		if err != nil {
+			return nil, err
+		}
+		idx, err = index.New(cs, tp, g, w, filepath.Join(testdir, modules.IndexDir), config.IndexConfig{})
+		if err != nil {
+			return nil, err
+		}
 	}
 	srv, err := NewServer("localhost:0", "SiaPrime-Agent", requiredPassword, cs, nil, g, h, m, r, tp, w, mp, nil, idx)
 	if err != nil {
@@ -418,7 +422,7 @@ func createServerTester(name string) (*serverTester, error) {
 // createAuthenticatedServerTester creates an authenticated server tester
 // object that is ready for testing, including money in the wallet and all
 // modules initialized.
-func createAuthenticatedServerTester(name string, password string) (*serverTester, error) {
+func createAuthenticatedServerTester(name string, password string, withPool bool) (*serverTester, error) {
 	// createAuthenticatedServerTester should not get called during short
 	// tests, as it takes a long time to run.
 	if testing.Short() {
@@ -429,7 +433,7 @@ func createAuthenticatedServerTester(name string, password string) (*serverTeste
 	testdir := build.TempDir("authenticated-api", name)
 
 	key := crypto.GenerateTwofishKey()
-	st, err := assembleAuthenticatedServerTester(password, key, testdir)
+	st, err := assembleAuthenticatedServerTester(password, key, testdir, withPool)
 	if err != nil {
 		return nil, err
 	}

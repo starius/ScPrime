@@ -222,7 +222,7 @@ func TestAllowanceSpending(t *testing.T) {
 	}
 	for _, txn := range txns {
 		for _, so := range txn.Outputs {
-			if so.FundType == types.SpecifierMinerPayout {
+			if so.FundType == types.SpecifierMinerPayout && so.RelatedAddress != types.DevFundUnlockHash {
 				minerRewards = minerRewards.Add(so.Value)
 			}
 		}

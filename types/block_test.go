@@ -1,6 +1,7 @@
 package types
 
 import (
+	"math/big"
 	"testing"
 
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
@@ -209,6 +210,33 @@ func TestBlockCalculateSubsidy(t *testing.T) {
 	minerSubsidy, devSubsidy = b.CalculateSubsidies(0)
 	if (minerSubsidy.Add(devSubsidy)).Cmp(expected) != 0 {
 		t.Error("subsidy is miscalculated with empty transactions.")
+	}
+}
+
+// TestCalculateDevSubsidy probes the CalculateDevSubsidy function.
+func TestCalculateDevSubsidy(t *testing.T) {
+	cases := []struct {
+		height BlockHeight
+		want   string
+	}{
+		{0, "0"},
+		{1, "59999800000000000000000000000"},
+		{2, "59999600000000000000000000000"},
+		{3, "59999400000000000000000000000"},
+		{10, "59998000000000000000000000000"},
+		{1000, "59998000000000000000000000000"},
+		{1000000, "29999000000000000000000000000"},
+	}
+	for _, tc := range cases {
+		got := CalculateDevSubsidy(tc.height)
+		wantInt, ok := new(big.Int).SetString(tc.want, 10)
+		if !ok {
+			t.Fatalf("failed to parse number %s", tc.want)
+		}
+		want := NewCurrency(wantInt)
+		if !got.Equals(want) {
+			t.Errorf("CalculateDevSubsidy(%d) returned %s, want %s", tc.height, got, want)
+		}
 	}
 }
 
