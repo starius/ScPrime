@@ -229,7 +229,7 @@ func (hdb *HostDB) AllHosts() (allHosts []modules.HostDBEntry) {
 // AverageContractPrice returns the average price of a host.
 func (hdb *HostDB) AverageContractPrice() (totalPrice types.Currency) {
 	sampleSize := 32
-	hosts := hdb.hostTree.SelectRandom(sampleSize, nil, nil)
+	hosts := hdb.hostTree.SelectRandom(sampleSize, nil, nil, false)
 	if len(hosts) == 0 {
 		return totalPrice
 	}
@@ -312,14 +312,14 @@ func (hdb *HostDB) InitialScanComplete() (complete bool, err error) {
 // RandomHosts implements the HostDB interface's RandomHosts() method. It takes
 // a number of hosts to return, and a slice of netaddresses to ignore, and
 // returns a slice of entries.
-func (hdb *HostDB) RandomHosts(n int, blacklist, addressBlacklist []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
+func (hdb *HostDB) RandomHosts(n int, blacklist, addressBlacklist []types.SiaPublicKey, filterSubnet bool) ([]modules.HostDBEntry, error) {
 	hdb.mu.RLock()
 	initialScanComplete := hdb.initialScanComplete
 	hdb.mu.RUnlock()
 	if !initialScanComplete {
 		return []modules.HostDBEntry{}, ErrInitialScanIncomplete
 	}
-	return hdb.hostTree.SelectRandom(n, blacklist, addressBlacklist), nil
+	return hdb.hostTree.SelectRandom(n, blacklist, addressBlacklist, filterSubnet), nil
 }
 
 // RandomHostsWithAllowance works as RandomHosts but uses a temporary hosttree
@@ -345,7 +345,7 @@ func (hdb *HostDB) RandomHostsWithAllowance(n int, blacklist, addressBlacklist [
 	}
 
 	// Select hosts from the temporary hosttree.
-	return ht.SelectRandom(n, blacklist, addressBlacklist), insertErrs
+	return ht.SelectRandom(n, blacklist, addressBlacklist, allowance.FilterHostsSubnet), insertErrs
 }
 
 // SetAllowance updates the allowance used by the hostdb for weighing hosts by

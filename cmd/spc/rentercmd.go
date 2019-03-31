@@ -392,6 +392,9 @@ func rentersetallowancecmd(cmd *cobra.Command, args []string) {
 			die("Could not parse renew window:", err)
 		}
 	}
+
+	allowance.FilterHostsSubnet = renterFilterHostsSubnet
+
 	err = httpClient.RenterPostAllowance(allowance)
 	if err != nil {
 		die("Could not set allowance:", err)

@@ -15,16 +15,17 @@ import (
 
 var (
 	// Flags.
-	hostContractOutputType string // output type for host contracts
-	hostVerbose            bool   // display additional host info
-	initForce              bool   // destroy and re-encrypt the wallet on init if it already exists
-	initPassword           bool   // supply a custom password when creating a wallet
-	renterAllContracts     bool   // Show all active and expired contracts
-	renterDownloadAsync    bool   // Downloads files asynchronously
-	renterListVerbose      bool   // Show additional info about uploaded files.
-	renterShowHistory      bool   // Show download history in addition to download queue.
-	siaDir                 string // Path to sia data dir
-	walletRawTxn           bool   // Encode/decode transactions in base64-encoded binary.
+	hostContractOutputType  string // output type for host contracts
+	hostVerbose             bool   // display additional host info
+	initForce               bool   // destroy and re-encrypt the wallet on init if it already exists
+	initPassword            bool   // supply a custom password when creating a wallet
+	renterAllContracts      bool   // Show all active and expired contracts
+	renterDownloadAsync     bool   // Downloads files asynchronously
+	renterListVerbose       bool   // Show additional info about uploaded files.
+	renterShowHistory       bool   // Show download history in addition to download queue.
+	renterFilterHostsSubnet bool   // Filter hosts from same subnet.
+	siaDir                  string // Path to sia data dir
+	walletRawTxn            bool   // Encode/decode transactions in base64-encoded binary.
 )
 
 var (
@@ -143,6 +144,7 @@ func main() {
 	renterFilesListCmd.Flags().BoolVarP(&renterListVerbose, "verbose", "v", false, "Show additional file info such as redundancy")
 	renterExportCmd.AddCommand(renterExportContractTxnsCmd)
 
+	renterSetAllowanceCmd.Flags().BoolVarP(&renterFilterHostsSubnet, "filter-subnet", "", false, "Filter hosts from same subnet")
 	root.AddCommand(gatewayCmd)
 	gatewayCmd.AddCommand(gatewayConnectCmd, gatewayDisconnectCmd, gatewayAddressCmd, gatewayListCmd)
 
