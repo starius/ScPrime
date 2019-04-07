@@ -2,6 +2,7 @@ package proto
 
 import (
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,12 +29,15 @@ type Downloader struct {
 	height types.BlockHeight
 }
 
-// Sector retrieves the sector with the specified Merkle root, and revises
-// the underlying contract to pay the host proportionally to the data
-// retrieve.
-func (hd *Downloader) Sector(root crypto.Hash) (_ modules.RenterContract, _ []byte, err error) {
+// Download retrieves the requested sector data and revises the underlying
+// contract to pay the host proportionally to the data retrieved.
+func (hd *Downloader) Download(root crypto.Hash, offset, length uint32) (_ modules.RenterContract, _ []byte, err error) {
 	// Reset deadline when finished.
 	defer extendDeadline(hd.conn, time.Hour) // TODO: Constant.
+
+	if uint64(offset)+uint64(length) > modules.SectorSize {
+		return modules.RenterContract{}, nil, errors.New("illegal offset and/or length")
+	}
 
 	// Acquire the contract.
 	// TODO: why not just lock the SafeContract directly?
@@ -83,10 +87,12 @@ func (hd *Downloader) Sector(root crypto.Hash) (_ modules.RenterContract, _ []by
 
 	// Increase Successful/Failed interactions accordingly
 	defer func() {
-		if err != nil {
+		// Ignore ErrStopResponse and closed network connecton errors since
+		// they are not considered a failed interaction with the host.
+		if err != nil && err != modules.ErrStopResponse && !strings.Contains(err.Error(), "use of closed network connection") {
 			hd.hdb.IncrementFailedInteractions(contract.HostPublicKey())
 			err = errors.Extend(err, modules.ErrHostFault)
-		} else if err == nil {
+		} else {
 			hd.hdb.IncrementSuccessfulInteractions(contract.HostPublicKey())
 		}
 	}()
@@ -101,9 +107,9 @@ func (hd *Downloader) Sector(root crypto.Hash) (_ modules.RenterContract, _ []by
 	extendDeadline(hd.conn, connTimeout)
 	signedTxn, err := negotiateRevision(hd.conn, rev, contract.SecretKey, hd.height)
 	if err == modules.ErrStopResponse {
-		// if host gracefully closed, close our connection as well; this will
-		// cause the next download to fail. However, we must delay closing
-		// until we've finished downloading the sector.
+		// If the host wants to stop communicating after this iteration, close
+		// our connection; this will cause the next download to fail. However,
+		// we must delay closing until we've finished downloading the sector.
 		defer hd.conn.Close()
 	} else if err != nil {
 		return modules.RenterContract{}, nil, err
@@ -135,7 +141,8 @@ func (hd *Downloader) Sector(root crypto.Hash) (_ modules.RenterContract, _ []by
 		return modules.RenterContract{}, nil, err
 	}
 
-	return sc.Metadata(), sector, nil
+	// return the subset of requested data
+	return sc.Metadata(), sector[offset:][:length], nil
 }
 
 // shutdown terminates the revision loop and signals the goroutine spawned in

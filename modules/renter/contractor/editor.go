@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 
+	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
@@ -115,8 +116,9 @@ func (he *hostEditor) Upload(data []byte) (_ crypto.Hash, err error) {
 // delete sectors on a host.
 func (c *Contractor) Editor(pk types.SiaPublicKey, cancel <-chan struct{}) (_ Editor, err error) {
 	c.mu.RLock()
-	id, gotID := c.pubKeysToContractID[string(pk.Key)]
+	id, gotID := c.pubKeysToContractID[pk.String()]
 	cachedEditor, haveEditor := c.editors[id]
+	cachedSession, haveSession := c.sessions[id]
 	height := c.blockHeight
 	renewing := c.renewing[id]
 	c.mu.RUnlock()
@@ -133,6 +135,12 @@ func (c *Contractor) Editor(pk types.SiaPublicKey, cancel <-chan struct{}) (_ Ed
 		cachedEditor.clients++
 		cachedEditor.mu.Unlock()
 		return cachedEditor, nil
+	} else if haveSession {
+		// This session already exists.
+		cachedSession.mu.Lock()
+		cachedSession.clients++
+		cachedSession.mu.Unlock()
+		return cachedSession, nil
 	}
 
 	// Check that the contract and host are both available, and run some brief
@@ -146,10 +154,17 @@ func (c *Contractor) Editor(pk types.SiaPublicKey, cancel <-chan struct{}) (_ Ed
 		return nil, errors.New("contract has already ended")
 	} else if !haveHost {
 		return nil, errors.New("no record of that host")
+	} else if host.Filtered {
+		return nil, errors.New("host is blacklisted")
 	} else if host.StoragePrice.Cmp(maxStoragePrice) > 0 {
 		return nil, errTooExpensive
 	} else if host.UploadBandwidthPrice.Cmp(maxUploadPrice) > 0 {
 		return nil, errTooExpensive
+	}
+
+	// If host is >= 1.4.0, use the new renter-host protocol.
+	if build.VersionCmp(host.Version, "1.4.0") >= 0 {
+		return c.Session(pk, cancel)
 	}
 
 	// Create the editor.

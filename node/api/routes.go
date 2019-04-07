@@ -36,7 +36,8 @@ func (api *API) buildHTTPRoutes(requiredUserAgent string, requiredPassword strin
 
 	// Gateway API Calls
 	if api.gateway != nil {
-		router.GET("/gateway", api.gatewayHandler)
+		router.GET("/gateway", api.gatewayHandlerGET)
+		router.POST("/gateway", api.gatewayHandlerPOST)
 		router.POST("/gateway/connect/:netaddress", RequirePassword(api.gatewayConnectHandler, requiredPassword))
 		router.POST("/gateway/disconnect/:netaddress", RequirePassword(api.gatewayDisconnectHandler, requiredPassword))
 	}
@@ -82,6 +83,8 @@ func (api *API) buildHTTPRoutes(requiredUserAgent string, requiredPassword strin
 	if api.renter != nil {
 		router.GET("/renter", api.renterHandlerGET)
 		router.POST("/renter", RequirePassword(api.renterHandlerPOST, requiredPassword))
+		router.POST("/renter/backup", RequirePassword(api.renterBackupHandlerPOST, requiredPassword))
+		router.POST("/renter/recoverbackup", RequirePassword(api.renterLoadBackupHandlerPOST, requiredPassword))
 		router.POST("/renter/contract/cancel", RequirePassword(api.renterContractCancelHandler, requiredPassword))
 		router.GET("/renter/contracts", api.renterContractsHandler)
 		router.GET("/renter/downloads", api.renterDownloadsHandler)
@@ -89,6 +92,8 @@ func (api *API) buildHTTPRoutes(requiredUserAgent string, requiredPassword strin
 		router.GET("/renter/files", api.renterFilesHandler)
 		router.GET("/renter/file/*siapath", api.renterFileHandlerGET)
 		router.GET("/renter/prices", api.renterPricesHandler)
+		router.POST("/renter/recoveryscan", RequirePassword(api.renterRecoveryScanHandlerPOST, requiredPassword))
+		router.GET("/renter/recoveryscan", api.renterRecoveryScanHandlerGET)
 
 		// TODO: re-enable these routes once the new .sia format has been
 		// standardized and implemented.
@@ -105,11 +110,16 @@ func (api *API) buildHTTPRoutes(requiredUserAgent string, requiredPassword strin
 		router.POST("/renter/upload/*siapath", RequirePassword(api.renterUploadHandler, requiredPassword))
 		router.POST("/renter/file/*siapath", RequirePassword(api.renterFileHandlerPOST, requiredPassword))
 
+		// Directory endpoints
+		router.POST("/renter/dir/*siapath", RequirePassword(api.renterDirHandlerPOST, requiredPassword))
+		router.GET("/renter/dir/*siapath", api.renterDirHandlerGET)
+
 		// HostDB endpoints.
 		router.GET("/hostdb", api.hostdbHandler)
 		router.GET("/hostdb/active", api.hostdbActiveHandler)
 		router.GET("/hostdb/all", api.hostdbAllHandler)
 		router.GET("/hostdb/hosts/:pubkey", api.hostdbHostsHandler)
+		router.POST("/hostdb/filtermode", RequirePassword(api.hostdbFilterModeHandlerPOST, requiredPassword))
 	}
 
 	if api.stratumminer != nil {
@@ -135,6 +145,7 @@ func (api *API) buildHTTPRoutes(requiredUserAgent string, requiredPassword strin
 		router.POST("/wallet/033x", RequirePassword(api.wallet033xHandler, requiredPassword))
 		router.GET("/wallet/address", RequirePassword(api.walletAddressHandler, requiredPassword))
 		router.GET("/wallet/addresses", api.walletAddressesHandler)
+		router.GET("/wallet/seedaddrs", api.walletSeedAddressesHandler)
 		router.GET("/wallet/backup", RequirePassword(api.walletBackupHandler, requiredPassword))
 		router.POST("/wallet/init", RequirePassword(api.walletInitHandler, requiredPassword))
 		router.POST("/wallet/init/seed", RequirePassword(api.walletInitSeedHandler, requiredPassword))

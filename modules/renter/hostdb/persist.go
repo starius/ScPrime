@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb/hosttree"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 )
@@ -24,16 +25,22 @@ var (
 
 // hdbPersist defines what HostDB data persists across sessions.
 type hdbPersist struct {
-	AllHosts    []modules.HostDBEntry
-	BlockHeight types.BlockHeight
-	LastChange  modules.ConsensusChangeID
+	AllHosts                 []modules.HostDBEntry
+	BlockHeight              types.BlockHeight
+	DisableIPViolationsCheck bool
+	LastChange               modules.ConsensusChangeID
+	FilteredHosts            map[string]types.SiaPublicKey
+	FilterMode               modules.FilterMode
 }
 
 // persistData returns the data in the hostdb that will be saved to disk.
 func (hdb *HostDB) persistData() (data hdbPersist) {
 	data.AllHosts = hdb.hostTree.All()
 	data.BlockHeight = hdb.blockHeight
+	data.DisableIPViolationsCheck = hdb.disableIPViolationCheck
 	data.LastChange = hdb.lastChange
+	data.FilteredHosts = hdb.filteredHosts
+	data.FilterMode = hdb.filterMode
 	return data
 }
 
@@ -46,6 +53,7 @@ func (hdb *HostDB) saveSync() error {
 func (hdb *HostDB) load() error {
 	// Fetch the data from the file.
 	var data hdbPersist
+	data.FilteredHosts = make(map[string]types.SiaPublicKey)
 	err := hdb.deps.LoadFile(persistMetadata, &data, filepath.Join(hdb.persistDir, persistFilename))
 	if err != nil {
 		return err
@@ -53,9 +61,16 @@ func (hdb *HostDB) load() error {
 
 	// Set the hostdb internal values.
 	hdb.blockHeight = data.BlockHeight
+	hdb.disableIPViolationCheck = data.DisableIPViolationsCheck
 	hdb.lastChange = data.LastChange
+	hdb.filteredHosts = data.FilteredHosts
+	hdb.filterMode = data.FilterMode
 
-	// Load each of the hosts into the host tree.
+	if len(hdb.filteredHosts) > 0 {
+		hdb.filteredTree = hosttree.New(hdb.weightFunc, modules.ProdDependencies.Resolver())
+	}
+
+	// Load each of the hosts into the host trees.
 	for _, host := range data.AllHosts {
 		// COMPATv1.1.0
 		//
@@ -66,9 +81,9 @@ func (hdb *HostDB) load() error {
 			host.FirstSeen = hdb.blockHeight
 		}
 
-		err := hdb.hostTree.Insert(host)
+		err := hdb.insert(host)
 		if err != nil {
-			hdb.log.Debugln("ERROR: could not insert host while loading:", host.NetAddress)
+			hdb.log.Debugln("ERROR: could not insert host into hosttree while loading:", host.NetAddress)
 		}
 
 		// Make sure that all hosts have gone through the initial scanning.
@@ -82,13 +97,19 @@ func (hdb *HostDB) load() error {
 // threadedSaveLoop saves the hostdb to disk every 2 minutes, also saving when
 // given the shutdown signal.
 func (hdb *HostDB) threadedSaveLoop() {
+	err := hdb.tg.Add()
+	if err != nil {
+		return
+	}
+	defer hdb.tg.Done()
+
 	for {
 		select {
 		case <-hdb.tg.StopChan():
 			return
 		case <-time.After(saveFrequency):
 			hdb.mu.Lock()
-			err := hdb.saveSync()
+			err = hdb.saveSync()
 			hdb.mu.Unlock()
 			if err != nil {
 				hdb.log.Println("Difficulties saving the hostdb:", err)

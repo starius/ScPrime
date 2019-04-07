@@ -36,7 +36,7 @@ func (h *Host) managedVerifyChallengeResponse(fcid types.FileContractID, challen
 	// Grab a lock before it is possible to perform any operations on the
 	// storage obligation. Defer a call to unlock in the event of an error. If
 	// there is no error, the storage obligation will be returned with a lock.
-	err = h.managedTryLockStorageObligation(fcid)
+	err = h.managedTryLockStorageObligation(fcid, obligationLockTimeout)
 	if err != nil {
 		err = extendErr("could not get "+fcid.String()+" lock: ", ErrorInternal(err.Error()))
 		return storageObligation{}, types.FileContractRevision{}, nil, err

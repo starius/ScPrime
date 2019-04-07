@@ -3,7 +3,6 @@ package wallet
 import (
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
@@ -22,8 +21,7 @@ func TestScanLargeIndex(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer wt.closeWt()
-	var masterKey crypto.TwofishKey
-	fastrand.Read(masterKey[:])
+	masterKey := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
 	_, err = wt.wallet.Encrypt(masterKey)
 	if err != nil {
 		t.Fatal(err)

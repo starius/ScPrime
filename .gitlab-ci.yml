@@ -1,4 +1,4 @@
-image: golang:1.10
+image: golang:1.12
 
 stages:
   - lint
@@ -25,6 +25,7 @@ lint:
     - go get -u github.com/alecthomas/gometalinter
     - gometalinter --install
     - gometalinter --deadline=300s --vendor --disable-all --enable=vet --enable=gofmt ./...
+    - make test
 
 legacy-tests:
   stage: test
@@ -52,7 +53,7 @@ package-tests:
       - $CI_PROJECT_DIR/cover/cover.out
     when: always
   script: 
-    - make test-long run=. pkgs="./build ./cmd/spc ./cmd/spd ./compatibility ./crypto ./encoding ./modules ./modules/consensus ./modules/explorer ./modules/gateway ./modules/host ./modules/host/contractmanager ./modules/renter ./modules/renter/contractor ./modules/renter/hostdb ./modules/renter/hostdb/hosttree ./modules/renter/proto ./modules/miner ./modules/wallet ./modules/transactionpool ./persist ./sync ./types"
+    - make test-long run=. pkgs="./build ./cmd/spc ./cmd/spd ./compatibility ./crypto ./encoding ./modules ./modules/consensus ./modules/explorer ./modules/gateway ./modules/host ./modules/host/contractmanager ./modules/renter ./modules/renter/contractor ./modules/renter/hostdb ./modules/renter/hostdb/hosttree ./modules/renter/proto ./modules/renter/siadir ./modules/renter/siafile ./modules/miner ./modules/wallet ./modules/transactionpool ./persist ./sync ./types"
     - cp -R /tmp/SiaTesting $CI_PROJECT_DIR/SiaTesting
     - cp -R ./cover $CI_PROJECT_DIR/cover
 
@@ -112,7 +113,7 @@ integration-tests-nightly:
       - $CI_PROJECT_DIR/cover/cover.out
     when: always
   script:
-    - make test-vlong run=. pkgs="./siatest ./siatest/consensus ./siatest/renter ./siatest/wallet"
+    - make test-vlong run=. pkgs="./siatest ./siatest/consensus ./siatest/gateway ./siatest/renter ./siatest/wallet"
     - cp -R /tmp/SiaTesting $CI_PROJECT_DIR/SiaTesting
     - cp -R ./cover $CI_PROJECT_DIR/cover
 
@@ -120,7 +121,7 @@ deploy:
   stage: deploy
   only:
     refs:
-      - master
+      - master@SiaPrime/SiaPrime
   artifacts:
     name: "Binaries"
     paths:

@@ -1,6 +1,13 @@
 Version History
 ---------------
 
+Apr 2018:
+
+v1.4.0 (minor release)
+- Support "snapshot" backups
+- Switch to new renter-host protocol
+- Further scalability improvements
+
 Feb 2019::
 
 v1.3.8 (parch release)

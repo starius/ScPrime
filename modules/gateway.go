@@ -19,6 +19,8 @@ var (
 	// bootstrap point. While the bootstrap point could be a central service,
 	// it can also be a list of peers that are known to be stable. We have
 	// chosen to hardcode known-stable peers.
+	//
+	// These peers have been verified to be v1.3.7 or higher
 	BootstrapPeers = build.Select(build.Var{
 		Standard: []NetAddress{
 			"50.116.9.206:4281",
@@ -70,7 +72,7 @@ type (
 		// of the gateway. Contrary to Address, DiscoverAddress is blocking and
 		// might take multiple minutes to return. A channel to cancel the
 		// discovery can be supplied optionally.
-		DiscoverAddress(cancel <-chan struct{}) (NetAddress, error)
+		DiscoverAddress(cancel <-chan struct{}) (net.IP, error)
 
 		// ForwardPort adds a port mapping to the router. It will block until
 		// the mapping is established or until it is interrupted by a shutdown.
@@ -85,6 +87,13 @@ type (
 		// RegisterRPC registers a function to handle incoming connections that
 		// supply the given RPC ID.
 		RegisterRPC(string, RPCFunc)
+
+		// RateLimits returns the currently set bandwidth limits of the gateway.
+		RateLimits() (int64, int64)
+
+		// SetRateLimits changes the rate limits for the peer-connections of the
+		// gateway.
+		SetRateLimits(downloadSpeed, uploadSpeed int64) error
 
 		// UnregisterRPC unregisters an RPC and removes all references to the RPCFunc
 		// supplied in the corresponding RegisterRPC call. References to RPCFuncs

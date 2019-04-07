@@ -23,7 +23,7 @@ type contractorTester struct {
 	miner     modules.TestMiner
 	tpool     modules.TransactionPool
 	wallet    modules.Wallet
-	walletKey crypto.TwofishKey
+	walletKey crypto.CipherKey
 	hdb       hostDB
 
 	contractor *Contractor
@@ -62,7 +62,7 @@ func newContractorTester(name string) (*contractorTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	key := crypto.GenerateTwofishKey()
+	key := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
 	_, err = w.Encrypt(key)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func newContractorTester(name string) (*contractorTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	hdb, err := hostdb.New(g, cs, filepath.Join(testdir, modules.RenterDir))
+	hdb, err := hostdb.New(g, cs, tp, filepath.Join(testdir, modules.RenterDir))
 	if err != nil {
 		return nil, err
 	}

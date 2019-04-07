@@ -10,7 +10,7 @@ ldflags= -X gitlab.com/SiaPrime/SiaPrime/build.GitRevision=${GIT_DIRTY}${GIT_REV
 all: release
 
 # dependencies installs all of the dependencies that are required for building
-# SiaPrime.
+# Sia.
 dependencies:
 	# Consensus Dependencies
 	go get -u gitlab.com/NebulousLabs/demotemutex
@@ -34,13 +34,16 @@ dependencies:
 	go get -u github.com/go-sql-driver/mysql
 	go get -u github.com/lib/pq
 	go get github.com/sasha-s/go-deadlock/...
+	go get -u github.com/dchest/threefish
+	go get -u golang.org/x/crypto/curve25519
+	go get -u golang.org/x/crypto/chacha20poly1305
 	# Frontend Dependencies
 	go get -u golang.org/x/crypto/ssh/terminal
-	go get -u github.com/spf13/cobra/...
+	go get -u github.com/spf13/cobra/doc
 	go get -u github.com/spf13/viper
 	go get -u github.com/inconshreveable/mousetrap
 	# Developer Dependencies
-	#go install -race std
+	go install -race std
 	go get -u github.com/client9/misspell/cmd/misspell
 	go get -u golang.org/x/lint/golint
 	go get -u gitlab.com/NebulousLabs/glyphcheck
@@ -50,9 +53,9 @@ dependencies:
 run = .
 pkgs = ./build ./cmd/spc ./cmd/spd ./compatibility ./crypto ./encoding ./modules ./modules/consensus ./modules/explorer \
        ./modules/gateway ./modules/host ./modules/host/contractmanager ./modules/renter ./modules/renter/contractor       \
-       ./modules/renter/hostdb ./modules/renter/hostdb/hosttree ./modules/renter/proto ./modules/miner ./modules/miningpool \
-       ./modules/wallet ./modules/transactionpool ./modules/stratumminer ./node ./node/api ./persist ./siatest \
-       ./siatest/consensus ./siatest/renter ./siatest/wallet ./node/api/server ./sync ./types
+       ./modules/renter/hostdb ./modules/renter/hostdb/hosttree ./modules/renter/proto ./modules/renter/siadir            \
+       ./modules/renter/siafile ./modules/miner ./modules/wallet ./modules/transactionpool ./modules/stratumminer ./node ./node/api ./persist    \
+	   ./siatest ./siatest/consensus ./siatest/renter ./siatest/wallet ./node/api/server ./sync ./types
 
 # fmt calls go fmt on all packages.
 fmt:
@@ -91,7 +94,7 @@ release-race:
 # clean removes all directories that get automatically created during
 # development.
 clean:
-	rm -rf cover doc/whitepaper.aux doc/whitepaper.log doc/whitepaper.pdf release
+	rm -rf cover doc/whitepaper.aux doc/whitepaper.log doc/whitepaper.pdf release 
 
 test:
 	go test -short -tags='debug testing netgo' -timeout=5s $(pkgs) -run=$(run)

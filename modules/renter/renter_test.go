@@ -25,7 +25,7 @@ type renterTester struct {
 	miner     modules.TestMiner
 	tpool     modules.TransactionPool
 	wallet    modules.Wallet
-	walletKey crypto.TwofishKey
+	walletKey crypto.CipherKey
 
 	renter *Renter
 	dir    string
@@ -60,7 +60,7 @@ func newRenterTester(name string) (*renterTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	key := crypto.GenerateTwofishKey()
+	key := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
 	_, err = w.Encrypt(key)
 	if err != nil {
 		return nil, err
@@ -109,18 +109,22 @@ func (stubHostDB) ActiveHosts() []modules.HostDBEntry   { return nil }
 func (stubHostDB) AllHosts() []modules.HostDBEntry      { return nil }
 func (stubHostDB) AverageContractPrice() types.Currency { return types.Currency{} }
 func (stubHostDB) Close() error                         { return nil }
-func (stubHostDB) IsOffline(modules.NetAddress) bool    { return true }
+func (stubHostDB) Filter() (modules.FilterMode, map[string]types.SiaPublicKey) {
+	return 0, make(map[string]types.SiaPublicKey)
+}
+func (stubHostDB) SetFilterMode(fm modules.FilterMode, hosts []types.SiaPublicKey) error { return nil }
+func (stubHostDB) IsOffline(modules.NetAddress) bool                                     { return true }
 func (stubHostDB) RandomHosts(int, []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
 	return []modules.HostDBEntry{}, nil
 }
-func (stubHostDB) EstimateHostScore(modules.HostDBEntry, modules.Allowance) modules.HostScoreBreakdown {
-	return modules.HostScoreBreakdown{}
+func (stubHostDB) EstimateHostScore(modules.HostDBEntry, modules.Allowance) (modules.HostScoreBreakdown, error) {
+	return modules.HostScoreBreakdown{}, nil
 }
 func (stubHostDB) Host(types.SiaPublicKey) (modules.HostDBEntry, bool) {
 	return modules.HostDBEntry{}, false
 }
-func (stubHostDB) ScoreBreakdown(modules.HostDBEntry) modules.HostScoreBreakdown {
-	return modules.HostScoreBreakdown{}
+func (stubHostDB) ScoreBreakdown(modules.HostDBEntry) (modules.HostScoreBreakdown, error) {
+	return modules.HostScoreBreakdown{}, nil
 }
 
 // stubContractor is the minimal implementation of the hostContractor
@@ -147,6 +151,7 @@ type pricesStub struct {
 }
 
 func (pricesStub) InitialScanComplete() (bool, error) { return true, nil }
+func (pricesStub) IPViolationsCheck() bool            { return true }
 
 func (ps pricesStub) RandomHosts(_ int, _, _ []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
 	return ps.dbEntries, nil
@@ -154,6 +159,7 @@ func (ps pricesStub) RandomHosts(_ int, _, _ []types.SiaPublicKey) ([]modules.Ho
 func (ps pricesStub) RandomHostsWithAllowance(_ int, _, _ []types.SiaPublicKey, _ modules.Allowance) ([]modules.HostDBEntry, error) {
 	return ps.dbEntries, nil
 }
+func (ps pricesStub) SetIPViolationCheck(enabled bool) { return }
 
 // TestRenterPricesDivideByZero verifies that the Price Estimation catches
 // divide by zero errors.
@@ -260,40 +266,5 @@ func TestRenterPricesVolatility(t *testing.T) {
 		t.Log(initial)
 		t.Log(after)
 		t.Fatal("expected renter price estimation to be constant")
-	}
-}
-
-// TestRenterSiapathValidate verifies that the validateSiapath function correctly validates SiaPaths.
-func TestRenterSiapathValidate(t *testing.T) {
-	var pathtests = []struct {
-		in    string
-		valid bool
-	}{
-		{"valid/siapath", true},
-		{"../../../directory/traversal", false},
-		{"testpath", true},
-		{"valid/siapath/../with/directory/traversal", false},
-		{"validpath/test", true},
-		{"..validpath/..test", true},
-		{"./invalid/path", false},
-		{".../path", true},
-		{"valid./path", true},
-		{"valid../path", true},
-		{"valid/path./test", true},
-		{"valid/path../test", true},
-		{"test/path", true},
-		{"/leading/slash", false},
-		{"foo/./bar", false},
-		{"", false},
-		{"blank/end/", false},
-	}
-	for _, pathtest := range pathtests {
-		err := validateSiapath(pathtest.in)
-		if err != nil && pathtest.valid {
-			t.Fatal("validateSiapath failed on valid path: ", pathtest.in)
-		}
-		if err == nil && !pathtest.valid {
-			t.Fatal("validateSiapath succeeded on invalid path: ", pathtest.in)
-		}
 	}
 }

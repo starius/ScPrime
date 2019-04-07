@@ -28,10 +28,14 @@ func TestIntegrationAutoRenew(t *testing.T) {
 
 	// form a contract with the host
 	a := modules.Allowance{
-		Funds:       types.SiacoinPrecision.Mul64(100), // 100 SC
-		Hosts:       1,
-		Period:      50,
-		RenewWindow: 10,
+		Funds:              types.SiacoinPrecision.Mul64(100), // 100 SC
+		Hosts:              1,
+		Period:             50,
+		RenewWindow:        10,
+		ExpectedStorage:    modules.DefaultAllowance.ExpectedStorage,
+		ExpectedUpload:     modules.DefaultAllowance.ExpectedUpload,
+		ExpectedDownload:   modules.DefaultAllowance.ExpectedDownload,
+		ExpectedRedundancy: modules.DefaultAllowance.ExpectedRedundancy,
 	}
 	err = c.SetAllowance(a)
 	if err != nil {
@@ -100,10 +104,14 @@ func TestIntegrationRenewInvalidate(t *testing.T) {
 
 	// form a contract with the host
 	a := modules.Allowance{
-		Funds:       types.SiacoinPrecision.Mul64(100), // 100 SC
-		Hosts:       1,
-		Period:      50,
-		RenewWindow: 10,
+		Funds:              types.SiacoinPrecision.Mul64(100), // 100 SC
+		Hosts:              1,
+		Period:             50,
+		RenewWindow:        10,
+		ExpectedStorage:    modules.DefaultAllowance.ExpectedStorage,
+		ExpectedUpload:     modules.DefaultAllowance.ExpectedUpload,
+		ExpectedDownload:   modules.DefaultAllowance.ExpectedDownload,
+		ExpectedRedundancy: modules.DefaultAllowance.ExpectedRedundancy,
 	}
 	err = c.SetAllowance(a)
 	if err != nil {
@@ -156,7 +164,7 @@ func TestIntegrationRenewInvalidate(t *testing.T) {
 
 	// editor should have been invalidated
 	_, err = editor.Upload(make([]byte, modules.SectorSize))
-	if err != errInvalidEditor {
+	if err != errInvalidEditor && err != errInvalidSession {
 		t.Error("expected invalid editor error; got", err)
 	}
 	editor.Close()
@@ -180,8 +188,8 @@ func TestIntegrationRenewInvalidate(t *testing.T) {
 		// wait for goroutine in ProcessConsensusChange to finish
 		c.maintenanceLock.Lock()
 		c.maintenanceLock.Unlock()
-		_, err2 := downloader.Sector(crypto.Hash{})
-		if err2 != errInvalidDownloader {
+		_, err2 := downloader.Download(crypto.Hash{}, 0, 0)
+		if err2 != errInvalidDownloader && err2 != errInvalidSession {
 			return errors.AddContext(err, "expected invalid downloader error")
 		}
 		return downloader.Close()

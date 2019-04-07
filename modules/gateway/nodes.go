@@ -61,7 +61,7 @@ func (g *Gateway) staticPingNode(addr modules.NetAddress) error {
 		return err
 	}
 
-	if build.VersionCmp(remoteVersion, minimumAcceptablePeerVersion) < 0 {
+	if err := acceptableVersion(remoteVersion); err != nil {
 		return nil // for older versions, this is where pinging ends
 	}
 
@@ -70,7 +70,7 @@ func (g *Gateway) staticPingNode(addr modules.NetAddress) error {
 	// inaccurate NetAddress.
 	ourHeader := sessionHeader{
 		GenesisID:  types.GenesisID,
-		UniqueID:   g.staticId,
+		UniqueID:   g.staticID,
 		NetAddress: modules.NetAddress(conn.LocalAddr().String()),
 	}
 	if err := exchangeOurHeader(conn, ourHeader); err != nil {

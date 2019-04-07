@@ -9,6 +9,7 @@ import (
 	"hash"
 	"unsafe"
 
+	"gitlab.com/NebulousLabs/Sia/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 )
@@ -183,7 +184,7 @@ func (b Block) ID() BlockID {
 func (b Block) MerkleTree() *crypto.MerkleTree {
 	tree := crypto.NewTree()
 	var buf bytes.Buffer
-	e := encoder(&buf)
+	e := encoding.NewEncoder(&buf)
 	for _, payout := range b.MinerPayouts {
 		payout.MarshalSia(e)
 		tree.Push(buf.Bytes())

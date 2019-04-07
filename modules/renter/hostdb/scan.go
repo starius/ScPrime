@@ -5,6 +5,7 @@ package hostdb
 // settings of the hosts.
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"sort"
@@ -16,6 +17,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb/hosttree"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // equalIPNets checks if two slices of IP subnets contain the same subnets.
@@ -36,6 +38,45 @@ func equalIPNets(ipNetsA, ipNetsB []string) bool {
 		}
 	}
 	return true
+}
+
+// feeChangeSignificant determines if the difference between two transaction
+// fees is significant enough to warrant rebuilding the hosttree.
+func feeChangeSignificant(oldTxnFees, newTxnFees types.Currency) bool {
+	maxChange := oldTxnFees.MulFloat(txnFeesUpdateRatio)
+	return newTxnFees.Cmp(oldTxnFees.Sub(maxChange)) <= 0 || newTxnFees.Cmp(oldTxnFees.Add(maxChange)) >= 0
+}
+
+// managedUpdateTxnFees checks if the txnFees have changed significantly since
+// the last time they were updated and updates them if necessary.
+func (hdb *HostDB) managedUpdateTxnFees() {
+	// Get the old txnFees from the hostdb.
+	hdb.mu.RLock()
+	allowance := hdb.allowance
+	oldTxnFees := hdb.txnFees
+	hdb.mu.RUnlock()
+
+	// Get the new fees from the tpool.
+	_, newTxnFees := hdb.tpool.FeeEstimation()
+
+	// If the change is not significant we are done.
+	if !feeChangeSignificant(oldTxnFees, newTxnFees) {
+		hdb.log.Debugf("No need to update txnFees oldFees %v newFees %v",
+			oldTxnFees.HumanString(), newTxnFees.HumanString())
+		return
+	}
+	// Update the txnFees.
+	hdb.mu.Lock()
+	hdb.txnFees = newTxnFees
+	hdb.mu.Unlock()
+	// Recompute the host weight function.
+	hwf := hdb.managedCalculateHostWeightFn(allowance)
+	// Set the weight funtion.
+	if err := hdb.managedSetWeightFunction(hwf); err != nil {
+		// This shouldn't happen.
+		build.Critical("Failed to set the new weight function", err)
+	}
+	hdb.log.Println("Updated the hostdb txnFees to", newTxnFees.HumanString())
 }
 
 // queueScan will add a host to the queue to be scanned. The host will be added
@@ -170,7 +211,7 @@ func (hdb *HostDB) updateEntry(entry modules.HostDBEntry, netErr error) {
 		return
 	}
 
-	// Grab the host from the host tree, and update it with the neew settings.
+	// Grab the host from the host tree, and update it with the new settings.
 	newEntry, exists := hdb.hostTree.Select(entry.PublicKey)
 	if exists {
 		newEntry.HostExternalSettings = entry.HostExternalSettings
@@ -235,7 +276,8 @@ func (hdb *HostDB) updateEntry(entry modules.HostDBEntry, netErr error) {
 	// hostdb. Only delete if there have been enough scans over a long enough
 	// period to be confident that the host really is offline for good.
 	if time.Now().Sub(newEntry.ScanHistory[0].Timestamp) > maxHostDowntime && !recentUptime && len(newEntry.ScanHistory) >= minScans {
-		err := hdb.hostTree.Remove(newEntry.PublicKey)
+		// Remove from hosttrees
+		err := hdb.remove(newEntry.PublicKey)
 		if err != nil {
 			hdb.log.Println("ERROR: unable to remove host newEntry which has had a ton of downtime:", err)
 		}
@@ -258,14 +300,16 @@ func (hdb *HostDB) updateEntry(entry modules.HostDBEntry, netErr error) {
 
 	// Add the updated entry
 	if !exists {
-		err := hdb.hostTree.Insert(newEntry)
+		// Insert into Hosttrees
+		err := hdb.insert(newEntry)
 		if err != nil {
 			hdb.log.Println("ERROR: unable to insert entry which is was thought to be new:", err)
 		} else {
 			hdb.log.Debugf("Adding host %v to the hostdb. Net error: %v\n", newEntry.PublicKey.String(), netErr)
 		}
 	} else {
-		err := hdb.hostTree.Modify(newEntry)
+		// Modify hosttrees
+		err := hdb.modify(newEntry)
 		if err != nil {
 			hdb.log.Println("ERROR: unable to modify entry which is thought to exist:", err)
 		} else {
@@ -380,19 +424,78 @@ func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
 		defer close(connCloseChan)
 		conn.SetDeadline(time.Now().Add(hostScanDeadline))
 
+		// Assume that the host supports the new protocol, and request its
+		// settings. If we are talking to an old host, they will not recognize
+		// the request and will close the connection.
+		tryNewProtoErr := func() error {
+			s, _, err := modules.NewRenterSession(conn, pubKey)
+			if err != nil {
+				return err
+			}
+			if err := s.WriteRequest(modules.RPCLoopSettings, nil); err != nil {
+				return err
+			}
+			var resp modules.LoopSettingsResponse
+			if err := s.ReadResponse(&resp, maxSettingsLen); err != nil {
+				return err
+			}
+			return json.Unmarshal(resp.Settings, &settings)
+		}()
+		if tryNewProtoErr == nil {
+			return nil
+		}
+
+		// Failed to get settings with the new protocol; fall back to the old
+		// protocol, filling in the missing fields with default values.
+		conn.Close()
+		conn2, err := dialer.Dial("tcp", string(netAddr))
+		if err != nil {
+			return err
+		}
+		// NOTE: we can't assign the result of Dial directly to conn, because if
+		// the Dial fails and conn is nil, then the deferred call to Close will
+		// segfault.
+		conn = conn2
 		err = encoding.WriteObject(conn, modules.RPCSettings)
 		if err != nil {
 			return err
 		}
 		var pubkey crypto.PublicKey
 		copy(pubkey[:], pubKey.Key)
-		return crypto.ReadSignedObject(conn, &settings, maxSettingsLen, pubkey)
+		var oldSettings modules.HostOldExternalSettings
+		err = crypto.ReadSignedObject(conn, &oldSettings, maxSettingsLen, pubkey)
+		if err != nil {
+			return err
+		}
+		settings = modules.HostExternalSettings{
+			AcceptingContracts:     oldSettings.AcceptingContracts,
+			MaxDownloadBatchSize:   oldSettings.MaxDownloadBatchSize,
+			MaxDuration:            oldSettings.MaxDuration,
+			MaxReviseBatchSize:     oldSettings.MaxReviseBatchSize,
+			NetAddress:             oldSettings.NetAddress,
+			RemainingStorage:       oldSettings.RemainingStorage,
+			SectorSize:             oldSettings.SectorSize,
+			TotalStorage:           oldSettings.TotalStorage,
+			UnlockHash:             oldSettings.UnlockHash,
+			WindowSize:             oldSettings.WindowSize,
+			Collateral:             oldSettings.Collateral,
+			MaxCollateral:          oldSettings.MaxCollateral,
+			ContractPrice:          oldSettings.ContractPrice,
+			DownloadBandwidthPrice: oldSettings.DownloadBandwidthPrice,
+			StoragePrice:           oldSettings.StoragePrice,
+			UploadBandwidthPrice:   oldSettings.UploadBandwidthPrice,
+			RevisionNumber:         oldSettings.RevisionNumber,
+			Version:                oldSettings.Version,
+			// New fields are set to zero.
+			BaseRPCPrice:      types.ZeroCurrency,
+			SectorAccessPrice: types.ZeroCurrency,
+		}
+		return nil
 	}()
 	if err != nil {
-		hdb.log.Debugf("Scan of host at %v failed: %v", netAddr, err)
-
+		hdb.log.Debugf("Scan of host at %v failed: %v", pubKey, err)
 	} else {
-		hdb.log.Debugf("Scan of host at %v succeeded.", netAddr)
+		hdb.log.Debugf("Scan of host at %v succeeded.", pubKey)
 		entry.HostExternalSettings = settings
 	}
 	success := err == nil
@@ -507,7 +610,11 @@ func (hdb *HostDB) threadedScan() {
 	hdb.mu.Unlock()
 
 	for {
-		// Set up a scan for the hostCheckupQuanity most valuable hosts in the
+		// Before we start a new iteration of the scanloop we check if the
+		// txnFees need to be updated.
+		hdb.managedUpdateTxnFees()
+
+		// Set up a scan for the hostCheckupQuantity most valuable hosts in the
 		// hostdb. Hosts that fail their scans will be docked significantly,
 		// pushing them further back in the hierarchy, ensuring that for the
 		// most part only online hosts are getting scanned unless there are

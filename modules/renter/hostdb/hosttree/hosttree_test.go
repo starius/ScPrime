@@ -16,6 +16,27 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
+// customScoreBreakdown is a helper struct to create scoreBreakdown's for
+// testing which return a specific Score.
+type customScoreBreakdown struct {
+	score types.Currency
+}
+
+func (sb customScoreBreakdown) Score() types.Currency {
+	return sb.score
+}
+func (sb customScoreBreakdown) ConversionRate(_ types.Currency) float64 {
+	return 0.0
+}
+func (sb customScoreBreakdown) HostScoreBreakdown(_ types.Currency, _, _ bool) modules.HostScoreBreakdown {
+	return modules.HostScoreBreakdown{}
+}
+func newCustomScoreBreakdown(score types.Currency) ScoreBreakdown {
+	return customScoreBreakdown{
+		score: score,
+	}
+}
+
 func verifyTree(tree *HostTree, nentries int) error {
 	expectedWeight := tree.root.entry.weight.Mul64(uint64(nentries))
 	if tree.root.weight.Cmp(expectedWeight) != 0 {
@@ -40,7 +61,7 @@ func verifyTree(tree *HostTree, nentries int) error {
 			if len(entries) == 0 {
 				return errors.New("no hosts")
 			}
-			selectionMap[string(entries[0].PublicKey.Key)]++
+			selectionMap[entries[0].PublicKey.String()]++
 		}
 
 		// See if each host was selected enough times.
@@ -61,7 +82,7 @@ func verifyTree(tree *HostTree, nentries int) error {
 		randWeight := fastrand.BigIntn(tree.root.weight.Big())
 		node := tree.root.nodeAtWeight(types.NewCurrency(randWeight))
 		node.remove()
-		delete(tree.hosts, string(node.entry.PublicKey.Key))
+		delete(tree.hosts, node.entry.PublicKey.String())
 
 		// remove the entry from the hostdb so it won't be selected as a
 		// repeat
@@ -89,8 +110,8 @@ func makeHostDBEntry() modules.HostDBEntry {
 }
 
 func TestHostTree(t *testing.T) {
-	tree := New(func(hdbe modules.HostDBEntry) types.Currency {
-		return types.NewCurrency64(20)
+	tree := New(func(hdbe modules.HostDBEntry) ScoreBreakdown {
+		return newCustomScoreBreakdown(types.NewCurrency64(20))
 	}, modules.ProductionResolver{})
 
 	// Create a bunch of host entries of equal weight.
@@ -145,8 +166,8 @@ func TestHostTreeParallel(t *testing.T) {
 		t.SkipNow()
 	}
 
-	tree := New(func(dbe modules.HostDBEntry) types.Currency {
-		return types.NewCurrency64(10)
+	tree := New(func(dbe modules.HostDBEntry) ScoreBreakdown {
+		return newCustomScoreBreakdown(types.NewCurrency64(10))
 	}, modules.ProductionResolver{})
 
 	// spin up 100 goroutines all randomly inserting, removing, modifying, and
@@ -182,7 +203,7 @@ func TestHostTreeParallel(t *testing.T) {
 						if err != nil {
 							t.Error(err)
 						}
-						inserted[string(entry.PublicKey.Key)] = entry
+						inserted[entry.PublicKey.String()] = entry
 
 						mu.Lock()
 						nelements++
@@ -198,7 +219,7 @@ func TestHostTreeParallel(t *testing.T) {
 						if err != nil {
 							t.Error(err)
 						}
-						delete(inserted, string(entry.PublicKey.Key))
+						delete(inserted, entry.PublicKey.String())
 
 						mu.Lock()
 						nelements--
@@ -218,7 +239,7 @@ func TestHostTreeParallel(t *testing.T) {
 						if err != nil {
 							t.Error(err)
 						}
-						inserted[string(entry.PublicKey.Key)] = newentry
+						inserted[entry.PublicKey.String()] = newentry
 
 					// FETCH
 					case 3:
@@ -243,8 +264,8 @@ func TestHostTreeParallel(t *testing.T) {
 }
 
 func TestHostTreeModify(t *testing.T) {
-	tree := New(func(dbe modules.HostDBEntry) types.Currency {
-		return types.NewCurrency64(10)
+	tree := New(func(dbe modules.HostDBEntry) ScoreBreakdown {
+		return newCustomScoreBreakdown(types.NewCurrency64(10))
 	}, modules.ProductionResolver{})
 
 	treeSize := 100
@@ -260,13 +281,13 @@ func TestHostTreeModify(t *testing.T) {
 
 	// should fail with a nonexistent key
 	err := tree.Modify(modules.HostDBEntry{})
-	if err != errNoSuchHost {
+	if err != ErrNoSuchHost {
 		t.Fatalf("modify should fail with ErrNoSuchHost when provided a nonexistent public key. Got error: %v\n", err)
 	}
 
 	targetKey := keys[fastrand.Intn(treeSize)]
 
-	oldEntry := tree.hosts[string(targetKey.Key)].entry
+	oldEntry := tree.hosts[targetKey.String()].entry
 	newEntry := makeHostDBEntry()
 	newEntry.AcceptingContracts = false
 	newEntry.PublicKey = oldEntry.PublicKey
@@ -276,7 +297,7 @@ func TestHostTreeModify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if tree.hosts[string(targetKey.Key)].entry.AcceptingContracts {
+	if tree.hosts[targetKey.String()].entry.AcceptingContracts {
 		t.Fatal("modify did not update host entry")
 	}
 }
@@ -293,8 +314,8 @@ func TestVariedWeights(t *testing.T) {
 	// will be tallied up as hosts are created.
 	i := 0
 
-	tree := New(func(dbe modules.HostDBEntry) types.Currency {
-		return types.NewCurrency64(uint64(i))
+	tree := New(func(dbe modules.HostDBEntry) ScoreBreakdown {
+		return newCustomScoreBreakdown(types.NewCurrency64(uint64(i)))
 	}, modules.ProductionResolver{})
 
 	hostCount := 5
@@ -314,7 +335,7 @@ func TestVariedWeights(t *testing.T) {
 		if len(randEntry) == 0 {
 			t.Fatal("no hosts!")
 		}
-		node, exists := tree.hosts[string(randEntry[0].PublicKey.Key)]
+		node, exists := tree.hosts[randEntry[0].PublicKey.String()]
 		if !exists {
 			t.Fatal("can't find randomly selected node in tree")
 		}
@@ -345,8 +366,8 @@ func TestRepeatInsert(t *testing.T) {
 		t.SkipNow()
 	}
 
-	tree := New(func(dbe modules.HostDBEntry) types.Currency {
-		return types.NewCurrency64(10)
+	tree := New(func(dbe modules.HostDBEntry) ScoreBreakdown {
+		return newCustomScoreBreakdown(types.NewCurrency64(10))
 	}, modules.ProductionResolver{})
 
 	entry1 := makeHostDBEntry()
@@ -355,7 +376,7 @@ func TestRepeatInsert(t *testing.T) {
 	tree.Insert(entry1)
 	tree.Insert(entry2)
 	if len(tree.hosts) != 1 {
-		t.Error("insterting the same entry twice should result in only 1 entry")
+		t.Error("inserting the same entry twice should result in only 1 entry")
 	}
 }
 
@@ -363,8 +384,8 @@ func TestRepeatInsert(t *testing.T) {
 func TestNodeAtWeight(t *testing.T) {
 	weight := types.NewCurrency64(10)
 	// create hostTree
-	tree := New(func(dbe modules.HostDBEntry) types.Currency {
-		return weight
+	tree := New(func(dbe modules.HostDBEntry) ScoreBreakdown {
+		return newCustomScoreBreakdown(weight)
 	}, modules.ProductionResolver{})
 
 	entry := makeHostDBEntry()
@@ -374,7 +395,7 @@ func TestNodeAtWeight(t *testing.T) {
 	}
 
 	h := tree.root.nodeAtWeight(weight)
-	if string(h.entry.HostDBEntry.PublicKey.Key) != string(entry.PublicKey.Key) {
+	if h.entry.HostDBEntry.PublicKey.String() != entry.PublicKey.String() {
 		t.Errorf("nodeAtWeight returned wrong node: expected %v, got %v", entry, h.entry)
 	}
 }
@@ -383,9 +404,9 @@ func TestNodeAtWeight(t *testing.T) {
 func TestRandomHosts(t *testing.T) {
 	calls := 0
 	// Create the tree.
-	tree := New(func(dbe modules.HostDBEntry) types.Currency {
+	tree := New(func(dbe modules.HostDBEntry) ScoreBreakdown {
 		calls++
-		return types.NewCurrency64(uint64(calls))
+		return newCustomScoreBreakdown(types.NewCurrency64(uint64(calls)))
 	}, modules.ProductionResolver{})
 
 	// Empty.
@@ -502,9 +523,9 @@ func TestHostTreeFilter(t *testing.T) {
 	entry3.NetAddress = "host3:1234"
 
 	// Create the tree.
-	tree := New(func(dbe modules.HostDBEntry) types.Currency {
+	tree := New(func(dbe modules.HostDBEntry) ScoreBreakdown {
 		// All entries have the same weight.
-		return types.NewCurrency64(uint64(10))
+		return newCustomScoreBreakdown(types.NewCurrency64(uint64(10)))
 	}, testHostTreeFilterResolver{})
 
 	// Insert host1 and host2. Both should be returned by SelectRandom.
@@ -515,9 +536,9 @@ func TestHostTreeFilter(t *testing.T) {
 	}
 
 	// Get a new empty tree.
-	tree = New(func(dbe modules.HostDBEntry) types.Currency {
+	tree = New(func(dbe modules.HostDBEntry) ScoreBreakdown {
 		// All entries have the same weight.
-		return types.NewCurrency64(uint64(10))
+		return newCustomScoreBreakdown(types.NewCurrency64(uint64(10)))
 	}, testHostTreeFilterResolver{})
 
 	// Insert host1 and host3. Only a single host should be returned.

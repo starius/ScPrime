@@ -44,12 +44,27 @@ var (
 		Hosts:       5,
 		Period:      50,
 		RenewWindow: 24,
+
+		ExpectedStorage:    modules.SectorSize,
+		ExpectedUpload:     modules.SectorSize / 50,
+		ExpectedDownload:   modules.SectorSize / 50,
+		ExpectedRedundancy: 5.0,
 	}
+
+	// testGroupBuffer is a buffer channel to control the number of testgroups
+	// and nodes created at once
+	testGroupBuffer = NewGroupBuffer(NumberOfParallelGroups)
 )
 
 // NewGroup creates a group of TestNodes from node params. All the nodes will
 // be connected, synced and funded. Hosts nodes are also announced.
 func NewGroup(groupDir string, nodeParams ...node.NodeParams) (*TestGroup, error) {
+	// Wait until there is an available buffer
+	<-testGroupBuffer
+	defer func() {
+		testGroupBuffer <- struct{}{}
+	}()
+
 	// Create and init group
 	tg := &TestGroup{
 		nodes:   make(map[*TestNode]struct{}),
@@ -97,6 +112,15 @@ func NewGroup(groupDir string, nodeParams ...node.NodeParams) (*TestGroup, error
 	}
 	// Fully connect nodes
 	return tg, tg.setupNodes(tg.hosts, tg.nodes, tg.renters)
+}
+
+// NewGroupBuffer creates a new buffer channel and fills it
+func NewGroupBuffer(size int) chan struct{} {
+	buffer := make(chan struct{}, size)
+	for i := 0; i < size; i++ {
+		buffer <- struct{}{}
+	}
+	return buffer
 }
 
 // NewGroupFromTemplate will create hosts, renters and miners according to the
@@ -255,7 +279,7 @@ func hostsInRenterDBCheck(miner *TestNode, renters map[*TestNode]struct{}, hosts
 				}
 				// Check if the renter has the host in its db.
 				err := errors.AddContext(renter.KnowsHost(host), "renter doesn't know host")
-				if err != nil && numRetries%100 == 0 {
+				if err != nil && numRetries%50 == 0 {
 					return errors.Compose(err, miner.MineBlock())
 				}
 				if err != nil {
@@ -614,6 +638,15 @@ func (tg *TestGroup) RemoveNode(tn *TestNode) error {
 
 	// Close node.
 	return tn.StopNode()
+}
+
+// RestartNode stops a node and then starts it again while conducting a few
+// checks and guaranteeing that the node is connected to the group afterwards.
+func (tg *TestGroup) RestartNode(tn *TestNode) error {
+	if err := tg.StopNode(tn); err != nil {
+		return err
+	}
+	return tg.StartNode(tn)
 }
 
 // StartNode starts a node from the group that has previously been stopped.

@@ -1,6 +1,9 @@
 package client
 
 import (
+	"encoding/json"
+
+	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/node/api"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 )
@@ -20,6 +23,22 @@ func (c *Client) HostDbActiveGet() (hdag api.HostdbActiveGET, err error) {
 // HostDbAllGet requests the /hostdb/all endpoint's resources.
 func (c *Client) HostDbAllGet() (hdag api.HostdbAllGET, err error) {
 	err = c.get("/hostdb/all", &hdag)
+	return
+}
+
+// HostDbFilterModePost requests the /hostdb/filtermode endpoint
+func (c *Client) HostDbFilterModePost(fm modules.FilterMode, hosts []types.SiaPublicKey) (err error) {
+	filterMode := fm.String()
+	hdblp := api.HostdbFilterModePOST{
+		FilterMode: filterMode,
+		Hosts:      hosts,
+	}
+
+	data, err := json.Marshal(hdblp)
+	if err != nil {
+		return err
+	}
+	err = c.post("/hostdb/FilterMode", string(data), nil)
 	return
 }
 

@@ -3,6 +3,10 @@ package modules
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"regexp"
+	"strings"
+	"unicode"
 
 	"gitlab.com/NebulousLabs/entropy-mnemonics"
 
@@ -102,6 +106,15 @@ type (
 
 		Inputs  []ProcessedInput  `json:"inputs"`
 		Outputs []ProcessedOutput `json:"outputs"`
+	}
+
+	// ValuedTransaction is a transaction that has been given incoming and
+	// outgoing siacoin value fields.
+	ValuedTransaction struct {
+		ProcessedTransaction
+
+		ConfirmedIncomingValue types.Currency `json:"confirmedincomingvalue"`
+		ConfirmedOutgoingValue types.Currency `json:"confirmedoutgoingvalue"`
 	}
 
 	// A UnspentOutput is a SiacoinOutput or SiafundOutput that the wallet
@@ -251,7 +264,7 @@ type (
 		// and will return an error on subsequent calls (even after restarting
 		// the wallet). To reset the wallet, the wallet files must be moved to
 		// a different directory or deleted.
-		Encrypt(masterKey crypto.TwofishKey) (Seed, error)
+		Encrypt(masterKey crypto.CipherKey) (Seed, error)
 
 		// Reset will reset the wallet, clearing the database and returning it to
 		// the unencrypted state. Reset can only be called on a wallet that has
@@ -267,7 +280,7 @@ type (
 		// Unlike Encrypt, the blockchain will be scanned to determine the
 		// seed's progress. For this reason, InitFromSeed should not be called
 		// until the blockchain is fully synced.
-		InitFromSeed(masterKey crypto.TwofishKey, seed Seed) error
+		InitFromSeed(masterKey crypto.CipherKey, seed Seed) error
 
 		// Lock deletes all keys in memory and prevents the wallet from being
 		// used to spend coins or extract keys until 'Unlock' is called.
@@ -280,11 +293,11 @@ type (
 		//
 		// All items in the wallet are encrypted using different keys which are
 		// derived from the master key.
-		Unlock(masterKey crypto.TwofishKey) error
+		Unlock(masterKey crypto.CipherKey) error
 
 		// ChangeKey changes the wallet's materKey from masterKey to newKey,
 		// re-encrypting the wallet with the provided key.
-		ChangeKey(masterKey crypto.TwofishKey, newKey crypto.TwofishKey) error
+		ChangeKey(masterKey crypto.CipherKey, newKey crypto.CipherKey) error
 
 		// Unlocked returns true if the wallet is currently unlocked, false
 		// otherwise.
@@ -310,25 +323,29 @@ type (
 		// filepath. The backup will have all seeds and keys.
 		CreateBackup(string) error
 
+		// LastAddresses returns the last n addresses starting at the last seedProgress
+		// for which an address was generated.
+		LastAddresses(n uint64) ([]types.UnlockHash, error)
+
 		// LoadBackup will load a backup of the wallet from the provided
 		// address. The backup wallet will be added as an auxiliary seed, not
 		// as a primary seed.
-		// LoadBackup(masterKey, backupMasterKey crypto.TwofishKey, string) error
+		// LoadBackup(masterKey, backupMasterKey crypto.SiaKey, string) error
 
 		// Load033xWallet will load a version 0.3.3.x wallet from disk and add all of
 		// the keys in the wallet as unseeded keys.
-		Load033xWallet(crypto.TwofishKey, string) error
+		Load033xWallet(crypto.CipherKey, string) error
 
 		// LoadSeed will recreate a wallet file using the recovery phrase.
 		// LoadSeed only needs to be called if the original seed file or
 		// encryption password was lost. The master key is used to encrypt the
 		// recovery seed before saving it to disk.
-		LoadSeed(crypto.TwofishKey, Seed) error
+		LoadSeed(crypto.CipherKey, Seed) error
 
 		// LoadSiagKeys will take a set of filepaths that point to a siag key
 		// and will have the siag keys loaded into the wallet so that they will
 		// become spendable.
-		LoadSiagKeys(crypto.TwofishKey, []string) error
+		LoadSiagKeys(crypto.CipherKey, []string) error
 
 		// NextAddress returns a new coin addresses generated from the
 		// primary seed.
@@ -494,10 +511,46 @@ func SeedToString(seed Seed, did mnemonics.DictionaryID) (string, error) {
 
 // StringToSeed converts a string to a wallet seed.
 func StringToSeed(str string, did mnemonics.DictionaryID) (Seed, error) {
+	// Ensure the string is all lowercase letters and spaces
+	for _, char := range str {
+		if unicode.IsUpper(char) {
+			return Seed{}, errors.New("seed is not valid: all words must be lowercase")
+		}
+		if !unicode.IsLetter(char) && !unicode.IsSpace(char) {
+			return Seed{}, fmt.Errorf("seed is not valid: illegal character '%v'", char)
+		}
+	}
+
 	// Decode the string into the checksummed byte slice.
 	checksumSeedBytes, err := mnemonics.FromString(str, did)
 	if err != nil {
 		return Seed{}, err
+	}
+
+	// ToDo: Add other languages
+	switch {
+	case did == "english":
+		// Check seed has 28 or 29 words
+		if len(strings.Fields(str)) != 28 && len(strings.Fields(str)) != 29 {
+			return Seed{}, errors.New("seed is not valid: must be 28 or 29 words")
+		}
+
+		// Check for other formatting errors (English only)
+		IsFormat := regexp.MustCompile(`^([a-z]{4,12}){1}( {1}[a-z]{4,12}){27,28}$`).MatchString
+		if !IsFormat(str) {
+			return Seed{}, errors.New("seed is not valid: invalid formatting")
+		}
+	case did == "german":
+	case did == "japanese":
+	default:
+		return Seed{}, fmt.Errorf("seed is not valid: unsupported dictionary '%v'", did)
+	}
+
+	// Ensure the seed is 38 bytes (this check is not too helpful since it doesn't
+	// give any hints about what is wrong to the end user, which is why it's the
+	// last thing checked)
+	if len(checksumSeedBytes) != 38 {
+		return Seed{}, fmt.Errorf("seed is not valid: illegal number of bytes '%v'", len(checksumSeedBytes))
 	}
 
 	// Copy the seed from the checksummed slice.

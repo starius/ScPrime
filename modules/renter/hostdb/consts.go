@@ -7,6 +7,13 @@ import (
 )
 
 const (
+	// expectedContractFeesMultiplier is the total number of times we expect to
+	// pay the contract and transacation fees in a relationship with a host
+	// during one renew period. Users tend to fixate on the fees quite a bit, so
+	// we bias this number to be slightly higher than what we actually expect so
+	// that the hostdb slightly prefers to avoid fees.
+	expectedContractFeesMultiplier = 2.0
+
 	// historicInteractionDecay defines the decay of the HistoricSuccessfulInteractions
 	// and HistoricFailedInteractions after every block for a host entry.
 	historicInteractionDecay = 0.9995
@@ -61,6 +68,10 @@ const (
 	// scanCheckInterval is the interval used when waiting for the scanList to
 	// empty itself and for waiting on the consensus set to be synced.
 	scanCheckInterval = time.Second
+
+	// txnFeesUpdateRatio is the amount of change we tolerate in the txnFees
+	// before we rebuild the hosttree.
+	txnFeesUpdateRatio = 0.05 // 5%
 )
 
 var (

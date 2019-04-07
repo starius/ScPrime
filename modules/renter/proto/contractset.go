@@ -1,12 +1,14 @@
 package proto
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
@@ -62,7 +64,7 @@ func (cs *ContractSet) Delete(c *SafeContract) {
 		return
 	}
 	delete(cs.contracts, c.header.ID())
-	delete(cs.pubKeys, string(c.header.HostPublicKey().Key))
+	delete(cs.pubKeys, c.header.HostPublicKey().String())
 	cs.mu.Unlock()
 	c.mu.Unlock()
 	// delete contract file
@@ -83,6 +85,22 @@ func (cs *ContractSet) IDs() []types.FileContractID {
 		pks = append(pks, fcid)
 	}
 	return pks
+}
+
+// InsertContract inserts an existing contract into the set.
+func (cs *ContractSet) InsertContract(rc modules.RecoverableContract, revTxn types.Transaction, roots []crypto.Hash, sk crypto.SecretKey) (modules.RenterContract, error) {
+	return cs.managedInsertContract(contractHeader{
+		Transaction:      revTxn,
+		SecretKey:        sk,
+		StartHeight:      rc.StartHeight,
+		DownloadSpending: types.NewCurrency64(1), // TODO set this
+		StorageSpending:  types.NewCurrency64(1), // TODO set this
+		UploadSpending:   types.NewCurrency64(1), // TODO set this
+		TotalCost:        types.NewCurrency64(1), // TODO set this
+		ContractFee:      types.NewCurrency64(1), // TODO set this
+		TxnFee:           rc.TxnFee,
+		SiafundFee:       types.Tax(rc.StartHeight, rc.Payout),
+	}, roots)
 }
 
 // Len returns the number of contracts in the set.
@@ -204,7 +222,8 @@ func NewContractSet(dir string, deps modules.Dependencies) (*ContractSet, error)
 		}
 		path := filepath.Join(dir, filename)
 		if err := cs.loadSafeContract(path, walTxns); err != nil {
-			return nil, err
+			extErr := fmt.Errorf("failed to load safecontract %v", path)
+			return nil, errors.Compose(extErr, err)
 		}
 	}
 

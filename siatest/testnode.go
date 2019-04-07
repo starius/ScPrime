@@ -1,8 +1,12 @@
 package siatest
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
+	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/node"
 	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
 	"gitlab.com/SiaPrime/SiaPrime/node/api/server"
@@ -18,6 +22,9 @@ type TestNode struct {
 	client.Client
 	params      node.NodeParams
 	primarySeed string
+
+	downloadDir *LocalDir
+	filesDir    *LocalDir
 }
 
 // PrintDebugInfo prints out helpful debug information when debug tests and ndfs, the
@@ -46,10 +53,23 @@ func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterI
 			t.Log("    EndHeight", c.EndHeight)
 		}
 		t.Log()
+		rce, err := tn.RenterExpiredContractsGet()
+		if err != nil {
+			t.Log(err)
+		}
+		t.Log("Expired Contracts")
+		for _, c := range rce.ExpiredContracts {
+			t.Log("    ID", c.ID)
+			t.Log("    HostPublicKey", c.HostPublicKey)
+			t.Log("    GoodForUpload", c.GoodForUpload)
+			t.Log("    GoodForRenew", c.GoodForRenew)
+			t.Log("    EndHeight", c.EndHeight)
+		}
+		t.Log()
 	}
 
 	if hostInfo {
-		hdbag, err := tn.HostDbActiveGet()
+		hdbag, err := tn.HostDbAllGet()
 		if err != nil {
 			t.Log(err)
 		}
@@ -58,6 +78,7 @@ func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterI
 			t.Log("    Host:", host.NetAddress)
 			t.Log("        pk", host.PublicKey)
 			t.Log("        Accepting Contracts", host.HostExternalSettings.AcceptingContracts)
+			t.Log("        Filtered", host.Filtered)
 			t.Log("        LastIPNetChange", host.LastIPNetChange.String())
 			t.Log("        Subnets")
 			for _, subnet := range host.IPNets {
@@ -73,10 +94,15 @@ func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterI
 			t.Log(err)
 		}
 		t.Log("CP:", rg.CurrentPeriod)
+		cg, err := tn.ConsensusGet()
+		if err != nil {
+			t.Log(err)
+		}
+		t.Log("BH:", cg.Height)
 		settings := rg.Settings
-		t.Log("Allowance Funds:", settings.Allowance.Funds)
+		t.Log("Allowance Funds:", settings.Allowance.Funds.HumanString())
 		fm := rg.FinancialMetrics
-		t.Log("Unspent Funds:", fm.Unspent)
+		t.Log("Unspent Funds:", fm.Unspent.HumanString())
 		t.Log()
 	}
 }
@@ -103,6 +129,9 @@ func (tn *TestNode) StartNode() error {
 	}
 	tn.Server = s
 	tn.Client.Address = s.APIAddress()
+	if !tn.params.CreateWallet && tn.params.Wallet == nil {
+		return nil
+	}
 	return tn.WalletUnlockPost(tn.primarySeed)
 }
 
@@ -149,14 +178,35 @@ func NewCleanNode(nodeParams node.NodeParams) (*TestNode, error) {
 	c.Password = password
 
 	// Create TestNode
-	tn := &TestNode{s, *c, nodeParams, ""}
+	tn := &TestNode{
+		Server:      s,
+		Client:      *c,
+		params:      nodeParams,
+		primarySeed: "",
+	}
+	if err = tn.initRootDirs(); err != nil {
+		return nil, errors.AddContext(err, "failed to create root directories")
+	}
+
+	// If there is no wallet we are done.
+	if !nodeParams.CreateWallet && nodeParams.Wallet == nil {
+		return tn, nil
+	}
 
 	// Init wallet
-	wip, err := tn.WalletInitPost("", false)
-	if err != nil {
-		return nil, err
+	if nodeParams.PrimarySeed != "" {
+		err := tn.WalletInitSeedPost(nodeParams.PrimarySeed, "", false)
+		if err != nil {
+			return nil, err
+		}
+		tn.primarySeed = nodeParams.PrimarySeed
+	} else {
+		wip, err := tn.WalletInitPost("", false)
+		if err != nil {
+			return nil, err
+		}
+		tn.primarySeed = wip.PrimarySeed
 	}
-	tn.primarySeed = wip.PrimarySeed
 
 	// Unlock wallet
 	if err := tn.WalletUnlockPost(tn.primarySeed); err != nil {
@@ -165,4 +215,27 @@ func NewCleanNode(nodeParams node.NodeParams) (*TestNode, error) {
 
 	// Return TestNode
 	return tn, nil
+}
+
+// initRootDirs creates the download and upload directories for the TestNode
+func (tn *TestNode) initRootDirs() error {
+	tn.downloadDir = &LocalDir{
+		path: filepath.Join(tn.RenterDir(), "downloads"),
+	}
+	if err := os.MkdirAll(tn.downloadDir.path, 0777); err != nil {
+		return err
+	}
+	tn.filesDir = &LocalDir{
+		path: filepath.Join(tn.RenterDir(), modules.SiapathRoot),
+	}
+	if err := os.MkdirAll(tn.filesDir.path, 0777); err != nil {
+		return err
+	}
+	return nil
+}
+
+// SiaPath returns the siapath of a local file or directory to be used for
+// uploading
+func (tn *TestNode) SiaPath(path string) string {
+	return strings.TrimPrefix(path, tn.filesDir.path+string(filepath.Separator))
 }

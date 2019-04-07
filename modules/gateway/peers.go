@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
@@ -36,6 +37,7 @@ func (s invalidVersionError) Error() string {
 
 type peer struct {
 	modules.Peer
+	rl   *ratelimit.RateLimit
 	sess streamSession
 }
 
@@ -53,6 +55,7 @@ func (p *peer) open() (modules.PeerConn, error) {
 	if err != nil {
 		return nil, err
 	}
+	conn = ratelimit.NewRLConn(conn, p.rl, nil)
 	return &peerConn{conn, p.NetAddress}, nil
 }
 
@@ -153,7 +156,7 @@ func (g *Gateway) threadedAcceptConn(conn net.Conn) {
 		return
 	}
 
-	if build.VersionCmp(remoteVersion, minimumAcceptablePeerVersion) >= 0 {
+	if err = acceptableVersion(remoteVersion); err == nil {
 		err = g.managedAcceptConnPeer(conn, remoteVersion)
 	} else {
 		err = errors.New("version number is below threshold")
@@ -192,9 +195,10 @@ func (g *Gateway) managedAcceptConnPeer(conn net.Conn, remoteVersion string) err
 	g.mu.RLock()
 	ourHeader := sessionHeader{
 		GenesisID:  types.GenesisID,
-		UniqueID:   g.staticId,
+		UniqueID:   g.staticID,
 		NetAddress: g.myAddr,
 	}
+	rl := g.rl
 	g.mu.RUnlock()
 
 	remoteHeader, err := exchangeRemoteHeader(conn, ourHeader)
@@ -224,6 +228,7 @@ func (g *Gateway) managedAcceptConnPeer(conn net.Conn, remoteVersion string) err
 			NetAddress: remoteAddr,
 			Version:    remoteVersion,
 		},
+		rl:   rl,
 		sess: newServerStream(conn, remoteVersion),
 	}
 	g.mu.Lock()
@@ -388,7 +393,7 @@ func (g *Gateway) managedConnectPeer(conn net.Conn, remoteVersion string, remote
 	g.mu.RLock()
 	ourHeader := sessionHeader{
 		GenesisID:  types.GenesisID,
-		UniqueID:   g.staticId,
+		UniqueID:   g.staticID,
 		NetAddress: g.myAddr,
 	}
 	g.mu.RUnlock()
@@ -437,7 +442,7 @@ func (g *Gateway) managedConnect(addr modules.NetAddress) error {
 		return err
 	}
 
-	if build.VersionCmp(remoteVersion, minimumAcceptablePeerVersion) >= 0 {
+	if err = acceptableVersion(remoteVersion); err == nil {
 		err = g.managedConnectPeer(conn, remoteVersion, addr)
 	} else {
 		err = errors.New("version number is below threshold")
@@ -462,6 +467,7 @@ func (g *Gateway) managedConnect(addr modules.NetAddress) error {
 			NetAddress: addr,
 			Version:    remoteVersion,
 		},
+		rl:   g.rl,
 		sess: newClientStream(conn, remoteVersion),
 	})
 	g.addNode(addr)

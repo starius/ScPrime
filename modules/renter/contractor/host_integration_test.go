@@ -31,7 +31,7 @@ func newTestingWallet(testdir string, cs modules.ConsensusSet, tp modules.Transa
 	if err != nil {
 		return nil, err
 	}
-	key := crypto.GenerateTwofishKey()
+	key := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
 	encrypted, err := w.Encrypted()
 	if err != nil {
 		return nil, err
@@ -104,7 +104,7 @@ func newTestingContractor(testdir string, g modules.Gateway, cs modules.Consensu
 	if err != nil {
 		return nil, err
 	}
-	hdb, err := hostdb.New(g, cs, filepath.Join(testdir, "hostdb"))
+	hdb, err := hostdb.New(g, cs, tp, filepath.Join(testdir, "hostdb"))
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func newTestingTrio(name string) (modules.Host, *Contractor, modules.TestMiner, 
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	key := crypto.GenerateTwofishKey()
+	key := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
 	encrypted, err := w.Encrypted()
 	if err != nil {
 		return nil, nil, nil, err
@@ -206,6 +206,12 @@ func TestIntegrationFormContract(t *testing.T) {
 		t.Fatal("no entry for host in db")
 	}
 
+	// set an allowance but don't use SetAllowance to avoid automatic contract
+	// formation.
+	c.mu.Lock()
+	c.allowance = modules.DefaultAllowance
+	c.mu.Unlock()
+
 	// form a contract with the host
 	_, _, err = c.managedNewContract(hostEntry, types.SiacoinPrecision.Mul64(50), c.blockHeight+100)
 	if err != nil {
@@ -233,6 +239,12 @@ func TestIntegrationReviseContract(t *testing.T) {
 	if !ok {
 		t.Fatal("no entry for host in db")
 	}
+
+	// set an allowance but don't use SetAllowance to avoid automatic contract
+	// formation.
+	c.mu.Lock()
+	c.allowance = modules.DefaultAllowance
+	c.mu.Unlock()
 
 	// form a contract with the host
 	_, contract, err := c.managedNewContract(hostEntry, types.SiacoinPrecision.Mul64(50), c.blockHeight+100)
@@ -277,6 +289,12 @@ func TestIntegrationUploadDownload(t *testing.T) {
 		t.Fatal("no entry for host in db")
 	}
 
+	// set an allowance but don't use SetAllowance to avoid automatic contract
+	// formation.
+	c.mu.Lock()
+	c.allowance = modules.DefaultAllowance
+	c.mu.Unlock()
+
 	// form a contract with the host
 	_, contract, err := c.managedNewContract(hostEntry, types.SiacoinPrecision.Mul64(50), c.blockHeight+100)
 	if err != nil {
@@ -303,7 +321,7 @@ func TestIntegrationUploadDownload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	retrieved, err := downloader.Sector(root)
+	retrieved, err := downloader.Download(root, 0, uint32(modules.SectorSize))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,17 +349,20 @@ func TestIntegrationRenew(t *testing.T) {
 	defer h.Close()
 	defer c.Close()
 
-	// get the host's entry from the db
-	hostEntry, ok := c.hdb.Host(h.PublicKey())
-	if !ok {
-		t.Fatal("no entry for host in db")
-	}
-
-	// form a contract with the host
-	_, contract, err := c.managedNewContract(hostEntry, types.SiacoinPrecision.Mul64(50), c.blockHeight+100)
-	if err != nil {
+	// set an allowance and wait for a contract to be formed.
+	if err := c.SetAllowance(modules.DefaultAllowance); err != nil {
 		t.Fatal(err)
 	}
+	if err := build.Retry(10, time.Second, func() error {
+		if len(c.Contracts()) == 0 {
+			return errors.New("no contracts were formed")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	// get the contract
+	contract := c.Contracts()[0]
 
 	// revise the contract
 	editor, err := c.Editor(contract.HostPublicKey, nil)
@@ -384,7 +405,7 @@ func TestIntegrationRenew(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	retrieved, err := downloader.Sector(root)
+	retrieved, err := downloader.Download(root, 0, uint32(modules.SectorSize))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -444,17 +465,20 @@ func TestIntegrationDownloaderCaching(t *testing.T) {
 	defer h.Close()
 	defer c.Close()
 
-	// get the host's entry from the db
-	hostEntry, ok := c.hdb.Host(h.PublicKey())
-	if !ok {
-		t.Fatal("no entry for host in db")
-	}
-
-	// form a contract with the host
-	_, contract, err := c.managedNewContract(hostEntry, types.SiacoinPrecision.Mul64(50), c.blockHeight+100)
-	if err != nil {
+	// set an allowance and wait for a contract to be formed.
+	if err := c.SetAllowance(modules.DefaultAllowance); err != nil {
 		t.Fatal(err)
 	}
+	if err := build.Retry(10, time.Second, func() error {
+		if len(c.Contracts()) == 0 {
+			return errors.New("no contracts were formed")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	// get the contract
+	contract := c.Contracts()[0]
 
 	// create a downloader
 	d1, err := c.Downloader(contract.HostPublicKey, nil)
@@ -478,9 +502,10 @@ func TestIntegrationDownloaderCaching(t *testing.T) {
 	d2.Close()
 
 	c.mu.RLock()
-	_, ok = c.downloaders[contract.ID]
+	_, ok := c.downloaders[contract.ID]
+	_, sok := c.sessions[contract.ID]
 	c.mu.RUnlock()
-	if !ok {
+	if !ok && !sok {
 		t.Fatal("expected downloader to still be present")
 	}
 
@@ -501,8 +526,9 @@ func TestIntegrationDownloaderCaching(t *testing.T) {
 
 	c.mu.RLock()
 	_, ok = c.downloaders[contract.ID]
+	_, sok = c.sessions[contract.ID]
 	c.mu.RUnlock()
-	if ok {
+	if ok || sok {
 		t.Fatal("did not expect downloader to still be present")
 	}
 
@@ -535,17 +561,20 @@ func TestIntegrationEditorCaching(t *testing.T) {
 	defer h.Close()
 	defer c.Close()
 
-	// get the host's entry from the db
-	hostEntry, ok := c.hdb.Host(h.PublicKey())
-	if !ok {
-		t.Fatal("no entry for host in db")
-	}
-
-	// form a contract with the host
-	_, contract, err := c.managedNewContract(hostEntry, types.SiacoinPrecision.Mul64(50), c.blockHeight+100)
-	if err != nil {
+	// set an allowance and wait for a contract to be formed.
+	if err := c.SetAllowance(modules.DefaultAllowance); err != nil {
 		t.Fatal(err)
 	}
+	if err := build.Retry(10, time.Second, func() error {
+		if len(c.Contracts()) == 0 {
+			return errors.New("no contracts were formed")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	// get the contract
+	contract := c.Contracts()[0]
 
 	// create an editor
 	d1, err := c.Editor(contract.HostPublicKey, nil)
@@ -569,9 +598,10 @@ func TestIntegrationEditorCaching(t *testing.T) {
 	d2.Close()
 
 	c.mu.RLock()
-	_, ok = c.editors[contract.ID]
+	_, ok := c.editors[contract.ID]
+	_, sok := c.sessions[contract.ID]
 	c.mu.RUnlock()
-	if !ok {
+	if !ok && !sok {
 		t.Fatal("expected editor to still be present")
 	}
 
@@ -592,8 +622,9 @@ func TestIntegrationEditorCaching(t *testing.T) {
 
 	c.mu.RLock()
 	_, ok = c.editors[contract.ID]
+	_, sok = c.sessions[contract.ID]
 	c.mu.RUnlock()
-	if ok {
+	if ok || sok {
 		t.Fatal("did not expect editor to still be present")
 	}
 
@@ -631,6 +662,12 @@ func TestContractPresenceLeak(t *testing.T) {
 	if !ok {
 		t.Fatal("no entry for host in db")
 	}
+
+	// set an allowance but don't use SetAllowance to avoid automatic contract
+	// formation.
+	c.mu.Lock()
+	c.allowance = modules.DefaultAllowance
+	c.mu.Unlock()
 
 	// form a contract with the host
 	_, contract, err := c.managedNewContract(hostEntry, types.SiacoinPrecision.Mul64(10), c.blockHeight+100)

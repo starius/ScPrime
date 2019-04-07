@@ -30,7 +30,7 @@ type hdbTester struct {
 	miner     modules.TestMiner
 	tpool     modules.TransactionPool
 	wallet    modules.Wallet
-	walletKey crypto.TwofishKey
+	walletKey crypto.CipherKey
 
 	hdb *HostDB
 
@@ -43,8 +43,9 @@ func bareHostDB() *HostDB {
 	hdb := &HostDB{
 		log: persist.NewLogger(ioutil.Discard),
 	}
-	hdb.weightFunc = hdb.calculateHostWeightFn(modules.DefaultAllowance)
+	hdb.weightFunc = hdb.managedCalculateHostWeightFn(modules.DefaultAllowance)
 	hdb.hostTree = hosttree.New(hdb.weightFunc, &modules.ProductionResolver{})
+	hdb.filteredTree = hosttree.New(hdb.weightFunc, &modules.ProductionResolver{})
 	return hdb
 }
 
@@ -96,7 +97,7 @@ func newHDBTesterDeps(name string, deps modules.Dependencies) (*hdbTester, error
 	if err != nil {
 		return nil, err
 	}
-	hdb, err := NewCustomHostDB(g, cs, filepath.Join(testDir, modules.RenterDir), deps)
+	hdb, err := NewCustomHostDB(g, cs, tp, filepath.Join(testDir, modules.RenterDir), deps)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +124,7 @@ func newHDBTesterDeps(name string, deps modules.Dependencies) (*hdbTester, error
 
 // initWallet creates a wallet key, then initializes and unlocks the wallet.
 func (hdbt *hdbTester) initWallet() error {
-	hdbt.walletKey = crypto.GenerateTwofishKey()
+	hdbt.walletKey = crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
 	_, err := hdbt.wallet.Encrypt(hdbt.walletKey)
 	if err != nil {
 		return err
@@ -133,33 +134,6 @@ func (hdbt *hdbTester) initWallet() error {
 		return err
 	}
 	return nil
-}
-
-// TestAverageContractPrice tests the AverageContractPrice method, which also depends on the
-// randomHosts method.
-func TestAverageContractPrice(t *testing.T) {
-	hdb := bareHostDB()
-
-	// empty
-	if avg := hdb.AverageContractPrice(); !avg.IsZero() {
-		t.Error("average of empty hostdb should be zero:", avg)
-	}
-
-	// with one host
-	h1 := makeHostDBEntry()
-	h1.ContractPrice = types.NewCurrency64(100)
-	hdb.hostTree.Insert(h1)
-	if avg := hdb.AverageContractPrice(); avg.Cmp(h1.ContractPrice) != 0 {
-		t.Error("average of one host should be that host's price:", avg)
-	}
-
-	// with two hosts
-	h2 := makeHostDBEntry()
-	h2.ContractPrice = types.NewCurrency64(300)
-	hdb.hostTree.Insert(h2)
-	if avg := hdb.AverageContractPrice(); avg.Cmp64(200) != 0 {
-		t.Error("average of two hosts should be their sum/2:", avg)
-	}
 }
 
 // TestNew tests the New function.
@@ -176,26 +150,35 @@ func TestNew(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	tp, err := transactionpool.New(cs, g, filepath.Join(testDir, modules.TransactionPoolDir))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Vanilla HDB, nothing should go wrong.
 	hdbName := filepath.Join(testDir, modules.RenterDir)
-	_, err = New(g, cs, hdbName+"1")
+	_, err = New(g, cs, tp, hdbName+"1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Nil gateway.
-	_, err = New(nil, cs, hdbName+"2")
+	_, err = New(nil, cs, tp, hdbName+"2")
 	if err != errNilGateway {
 		t.Fatalf("expected %v, got %v", errNilGateway, err)
 	}
 	// Nil consensus set.
-	_, err = New(g, nil, hdbName+"3")
+	_, err = New(g, nil, tp, hdbName+"3")
 	if err != errNilCS {
 		t.Fatalf("expected %v, got %v", errNilCS, err)
 	}
+	// Nil tpool.
+	_, err = New(g, cs, nil, hdbName+"3")
+	if err != errNilTPool {
+		t.Fatalf("expected %v, got %v", errNilTPool, err)
+	}
 	// Bad persistDir.
-	_, err = New(g, cs, "")
+	_, err = New(g, cs, tp, "")
 	if !os.IsNotExist(err) {
 		t.Fatalf("expected invalid directory, got %v", err)
 	}
@@ -228,8 +211,8 @@ func TestRandomHosts(t *testing.T) {
 	nEntries := int(1e3)
 	for i := 0; i < nEntries; i++ {
 		entry := makeHostDBEntry()
-		entries[string(entry.PublicKey.Key)] = entry
-		err := hdbt.hdb.hostTree.Insert(entry)
+		entries[entry.PublicKey.String()] = entry
+		err := hdbt.hdb.filteredTree.Insert(entry)
 		if err != nil {
 			t.Error(err)
 		}
@@ -246,15 +229,15 @@ func TestRandomHosts(t *testing.T) {
 		}
 		dupCheck := make(map[string]modules.HostDBEntry)
 		for _, host := range hosts {
-			_, exists := entries[string(host.PublicKey.Key)]
+			_, exists := entries[host.PublicKey.String()]
 			if !exists {
 				t.Error("hostdb returning host that doesn't exist.")
 			}
-			_, exists = dupCheck[string(host.PublicKey.Key)]
+			_, exists = dupCheck[host.PublicKey.String()]
 			if exists {
 				t.Error("RandomHosts returning duplicates")
 			}
-			dupCheck[string(host.PublicKey.Key)] = host
+			dupCheck[host.PublicKey.String()] = host
 		}
 	}
 
@@ -268,15 +251,15 @@ func TestRandomHosts(t *testing.T) {
 		t.Fatalf("RandomHosts returned few entries. got %v wanted %v\n", len(hosts), nEntries/2)
 	}
 	for _, host := range hosts {
-		_, exists := entries[string(host.PublicKey.Key)]
+		_, exists := entries[host.PublicKey.String()]
 		if !exists {
 			t.Error("hostdb returning host that doesn't exist.")
 		}
-		_, exists = dupCheck1[string(host.PublicKey.Key)]
+		_, exists = dupCheck1[host.PublicKey.String()]
 		if exists {
 			t.Error("RandomHosts returning duplicates")
 		}
-		dupCheck1[string(host.PublicKey.Key)] = host
+		dupCheck1[host.PublicKey.String()] = host
 	}
 
 	// Iterative case. Check that every time you query for random hosts, you
@@ -292,21 +275,21 @@ func TestRandomHosts(t *testing.T) {
 			t.Fatalf("RandomHosts returned few entries. got %v wanted %v\n", len(hosts), nEntries/2)
 		}
 		for _, host := range hosts {
-			_, exists := entries[string(host.PublicKey.Key)]
+			_, exists := entries[host.PublicKey.String()]
 			if !exists {
 				t.Error("hostdb returning host that doesn't exist.")
 			}
-			_, exists = dupCheck2[string(host.PublicKey.Key)]
+			_, exists = dupCheck2[host.PublicKey.String()]
 			if exists {
 				t.Error("RandomHosts returning duplicates")
 			}
-			_, exists = dupCheck1[string(host.PublicKey.Key)]
+			_, exists = dupCheck1[host.PublicKey.String()]
 			if exists {
 				overlap = true
 			} else {
 				disjoint = true
 			}
-			dupCheck2[string(host.PublicKey.Key)] = host
+			dupCheck2[host.PublicKey.String()] = host
 
 		}
 		if !overlap || !disjoint {
@@ -333,7 +316,7 @@ func TestRandomHosts(t *testing.T) {
 		if len(rand) != 1 {
 			t.Fatal("wrong number of hosts returned")
 		}
-		if string(rand[0].PublicKey.Key) != string(hosts[0].PublicKey.Key) {
+		if rand[0].PublicKey.String() != hosts[0].PublicKey.String() {
 			t.Error("exclude list seems to be excluding the wrong hosts.")
 		}
 
@@ -345,7 +328,7 @@ func TestRandomHosts(t *testing.T) {
 		if len(rand) != 1 {
 			t.Fatal("wrong number of hosts returned")
 		}
-		if string(rand[0].PublicKey.Key) != string(hosts[0].PublicKey.Key) {
+		if rand[0].PublicKey.String() != hosts[0].PublicKey.String() {
 			t.Error("exclude list seems to be excluding the wrong hosts.")
 		}
 
@@ -354,7 +337,7 @@ func TestRandomHosts(t *testing.T) {
 		// map.
 		includeMap := make(map[string]struct{})
 		for j := 0; j < 50; j++ {
-			includeMap[string(hosts[j].PublicKey.Key)] = struct{}{}
+			includeMap[hosts[j].PublicKey.String()] = struct{}{}
 		}
 		exclude = exclude[49:]
 
@@ -368,12 +351,12 @@ func TestRandomHosts(t *testing.T) {
 			t.Error("random hosts is returning the wrong number of hosts")
 		}
 		for _, host := range rand {
-			_, exists := dupCheck[string(host.PublicKey.Key)]
+			_, exists := dupCheck[host.PublicKey.String()]
 			if exists {
-				t.Error("RandomHosts is seleccting duplicates")
+				t.Error("RandomHosts is selecting duplicates")
 			}
-			dupCheck[string(host.PublicKey.Key)] = struct{}{}
-			_, exists = includeMap[string(host.PublicKey.Key)]
+			dupCheck[host.PublicKey.String()] = struct{}{}
+			_, exists = includeMap[host.PublicKey.String()]
 			if !exists {
 				t.Error("RandomHosts returning excluded hosts")
 			}
@@ -389,12 +372,12 @@ func TestRandomHosts(t *testing.T) {
 			t.Error("random hosts is returning the wrong number of hosts")
 		}
 		for _, host := range rand {
-			_, exists := dupCheck[string(host.PublicKey.Key)]
+			_, exists := dupCheck[host.PublicKey.String()]
 			if exists {
-				t.Error("RandomHosts is seleccting duplicates")
+				t.Error("RandomHosts is selecting duplicates")
 			}
-			dupCheck[string(host.PublicKey.Key)] = struct{}{}
-			_, exists = includeMap[string(host.PublicKey.Key)]
+			dupCheck[host.PublicKey.String()] = struct{}{}
+			_, exists = includeMap[host.PublicKey.String()]
 			if !exists {
 				t.Error("RandomHosts returning excluded hosts")
 			}
@@ -410,12 +393,12 @@ func TestRandomHosts(t *testing.T) {
 			t.Error("random hosts is returning the wrong number of hosts")
 		}
 		for _, host := range rand {
-			_, exists := dupCheck[string(host.PublicKey.Key)]
+			_, exists := dupCheck[host.PublicKey.String()]
 			if exists {
-				t.Error("RandomHosts is seleccting duplicates")
+				t.Error("RandomHosts is selecting duplicates")
 			}
-			dupCheck[string(host.PublicKey.Key)] = struct{}{}
-			_, exists = includeMap[string(host.PublicKey.Key)]
+			dupCheck[host.PublicKey.String()] = struct{}{}
+			_, exists = includeMap[host.PublicKey.String()]
 			if !exists {
 				t.Error("RandomHosts returning excluded hosts")
 			}

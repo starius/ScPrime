@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // quitAfterLoadDeps will quit startup in newHostDB
@@ -51,17 +54,27 @@ func TestSaveLoad(t *testing.T) {
 	host1.FirstSeen = 1
 	host2.FirstSeen = 2
 	host3.FirstSeen = 3
-	host1.PublicKey.Key = []byte("foo")
-	host2.PublicKey.Key = []byte("bar")
+	host1.PublicKey.Key = fastrand.Bytes(32)
+	host2.PublicKey.Key = fastrand.Bytes(32)
 	host3.PublicKey.Key = []byte("baz")
 	hdbt.hdb.hostTree.Insert(host1)
 	hdbt.hdb.hostTree.Insert(host2)
 	hdbt.hdb.hostTree.Insert(host3)
 
+	// Manually set listed Hosts and filterMode
+	filteredHosts := make(map[string]types.SiaPublicKey)
+	filteredHosts[host1.PublicKey.String()] = host1.PublicKey
+	filteredHosts[host2.PublicKey.String()] = host2.PublicKey
+	filteredHosts[host3.PublicKey.String()] = host3.PublicKey
+	filterMode := modules.HostDBActiveWhitelist
+
 	// Save, close, and reload.
 	hdbt.hdb.mu.Lock()
 	hdbt.hdb.lastChange = modules.ConsensusChangeID{1, 2, 3}
+	hdbt.hdb.disableIPViolationCheck = true
 	stashedLC := hdbt.hdb.lastChange
+	hdbt.hdb.filteredHosts = filteredHosts
+	hdbt.hdb.filterMode = filterMode
 	err = hdbt.hdb.saveSync()
 	hdbt.hdb.mu.Unlock()
 	if err != nil {
@@ -71,17 +84,21 @@ func TestSaveLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	hdbt.hdb, err = NewCustomHostDB(hdbt.gateway, hdbt.cs, filepath.Join(hdbt.persistDir, modules.RenterDir), &quitAfterLoadDeps{})
+	hdbt.hdb, err = NewCustomHostDB(hdbt.gateway, hdbt.cs, hdbt.tpool, filepath.Join(hdbt.persistDir, modules.RenterDir), &quitAfterLoadDeps{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Last change should have been reloaded.
+	// Last change and disableIPViolationCheck should have been reloaded.
 	hdbt.hdb.mu.Lock()
 	lastChange := hdbt.hdb.lastChange
+	disableIPViolationCheck := hdbt.hdb.disableIPViolationCheck
 	hdbt.hdb.mu.Unlock()
 	if lastChange != stashedLC {
 		t.Error("wrong consensus change ID was loaded:", hdbt.hdb.lastChange)
+	}
+	if disableIPViolationCheck != true {
+		t.Error("disableIPViolationCheck should've been true but was false")
 	}
 
 	// Check that AllHosts was loaded.
@@ -99,6 +116,20 @@ func TestSaveLoad(t *testing.T) {
 	}
 	if h3.FirstSeen != 2 {
 		t.Error("h1 block height loaded incorrectly")
+	}
+
+	// Check that FilterMode was saved
+	if hdbt.hdb.filterMode != modules.HostDBActiveWhitelist {
+		t.Error("filter mode should be whitelist")
+	}
+	if _, ok := hdbt.hdb.filteredHosts[host1.PublicKey.String()]; !ok {
+		t.Error("host1 not found in filteredHosts")
+	}
+	if _, ok := hdbt.hdb.filteredHosts[host2.PublicKey.String()]; !ok {
+		t.Error("host2 not found in filteredHosts")
+	}
+	if _, ok := hdbt.hdb.filteredHosts[host3.PublicKey.String()]; !ok {
+		t.Error("host3 not found in filteredHosts")
 	}
 }
 

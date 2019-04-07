@@ -7,7 +7,6 @@ import (
 	"time"
 	"unsafe"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
@@ -24,7 +23,7 @@ type minerTester struct {
 	cs        modules.ConsensusSet
 	tpool     modules.TransactionPool
 	wallet    modules.Wallet
-	walletKey crypto.TwofishKey
+	walletKey crypto.CipherKey
 
 	miner *Miner
 
@@ -53,8 +52,7 @@ func createMinerTester(name string) (*minerTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	var key crypto.TwofishKey
-	fastrand.Read(key[:])
+	key := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
 	_, err = w.Encrypt(key)
 	if err != nil {
 		return nil, err

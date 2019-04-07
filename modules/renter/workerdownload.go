@@ -7,7 +7,39 @@ package renter
 import (
 	"sync/atomic"
 	"time"
+
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
 )
+
+// segmentsForRecovery calculates the first segment and how many segments we
+// need in total to recover the requested data.
+func segmentsForRecovery(chunkFetchOffset, chunkFetchLength uint64, rs modules.ErasureCoder) (uint64, uint64) {
+	// If partialDecoding is not available we need to download the whole
+	// sector.
+	if !rs.SupportsPartialEncoding() {
+		return 0, uint64(modules.SectorSize) / crypto.SegmentSize
+	}
+	// Else we need to figure out what segments of the piece we need to
+	// download for the recovered data to contain the data we want.
+	recoveredSegmentSize := uint64(rs.MinPieces() * crypto.SegmentSize)
+	// Calculate the offset of the download.
+	startSegment := chunkFetchOffset / recoveredSegmentSize
+	// Calculate the length of the download.
+	endSegment := (chunkFetchOffset + chunkFetchLength) / recoveredSegmentSize
+	if (chunkFetchOffset+chunkFetchLength)%recoveredSegmentSize != 0 {
+		endSegment++
+	}
+	return startSegment, endSegment - startSegment
+}
+
+// sectorOffsetAndLength translates the fetch offset and length of the chunk
+// into the offset and length of the sector we need to download for a
+// successful recovery of the requested data.
+func sectorOffsetAndLength(chunkFetchOffset, chunkFetchLength uint64, rs modules.ErasureCoder) (uint64, uint64) {
+	segmentIndex, numSegments := segmentsForRecovery(chunkFetchOffset, chunkFetchLength, rs)
+	return uint64(segmentIndex * crypto.SegmentSize), uint64(numSegments * crypto.SegmentSize)
+}
 
 // managedDownload will perform some download work.
 func (w *worker) managedDownload(udc *unfinishedDownloadChunk) {
@@ -34,7 +66,9 @@ func (w *worker) managedDownload(udc *unfinishedDownloadChunk) {
 		return
 	}
 	defer d.Close()
-	pieceData, err := d.Sector(udc.staticChunkMap[string(w.contract.HostPublicKey.Key)].root)
+	fetchOffset, fetchLength := sectorOffsetAndLength(udc.staticFetchOffset, udc.staticFetchLength, udc.erasureCode)
+	root := udc.staticChunkMap[w.contract.HostPublicKey.String()].root
+	pieceData, err := d.Download(root, uint32(fetchOffset), uint32(fetchLength))
 	if err != nil {
 		w.renter.log.Debugln("worker failed to download sector:", err)
 		udc.managedUnregisterWorker(w)
@@ -50,9 +84,9 @@ func (w *worker) managedDownload(udc *unfinishedDownloadChunk) {
 	// Decrypt the piece. This might introduce some overhead for downloads with
 	// a large overdrive. It shouldn't be a bottleneck though since bandwidth
 	// is usually a lot more scarce than CPU processing power.
-	pieceIndex := udc.staticChunkMap[string(w.contract.HostPublicKey.Key)].index
-	key := deriveKey(udc.masterKey, udc.staticChunkIndex, pieceIndex)
-	decryptedPiece, err := key.DecryptBytesInPlace(pieceData)
+	pieceIndex := udc.staticChunkMap[w.contract.HostPublicKey.String()].index
+	key := udc.masterKey.Derive(udc.staticChunkIndex, pieceIndex)
+	decryptedPiece, err := key.DecryptBytesInPlace(pieceData, uint64(fetchOffset/crypto.SegmentSize))
 	if err != nil {
 		w.renter.log.Debugln("worker failed to decrypt piece:", err)
 		udc.managedUnregisterWorker(w)
@@ -63,7 +97,7 @@ func (w *worker) managedDownload(udc *unfinishedDownloadChunk) {
 	// enough pieces to do so. Chunk recovery is an expensive operation that
 	// should be performed in a separate thread as to not block the worker.
 	udc.mu.Lock()
-	udc.piecesCompleted++
+	udc.markPieceCompleted(pieceIndex)
 	udc.piecesRegistered--
 	if udc.piecesCompleted <= udc.erasureCode.MinPieces() {
 		atomic.AddUint64(&udc.download.atomicDataReceived, udc.staticFetchLength/uint64(udc.erasureCode.MinPieces()))
@@ -146,7 +180,7 @@ func (w *worker) managedQueueDownloadChunk(udc *unfinishedDownloadChunk) {
 func (udc *unfinishedDownloadChunk) managedUnregisterWorker(w *worker) {
 	udc.mu.Lock()
 	udc.piecesRegistered--
-	udc.pieceUsage[udc.staticChunkMap[string(w.contract.HostPublicKey.Key)].index] = false
+	udc.pieceUsage[udc.staticChunkMap[w.contract.HostPublicKey.String()].index] = false
 	udc.mu.Unlock()
 }
 
@@ -171,11 +205,11 @@ func (w *worker) ownedProcessDownloadChunk(udc *unfinishedDownloadChunk) *unfini
 	// worker and return nil. Worker only needs to be removed if worker is being
 	// dropped.
 	udc.mu.Lock()
-	chunkComplete := udc.piecesCompleted >= udc.erasureCode.MinPieces()
+	chunkComplete := udc.piecesCompleted >= udc.erasureCode.MinPieces() || udc.download.staticComplete()
 	chunkFailed := udc.piecesCompleted+udc.workersRemaining < udc.erasureCode.MinPieces()
-	pieceData, workerHasPiece := udc.staticChunkMap[string(w.contract.HostPublicKey.Key)]
-	pieceTaken := udc.pieceUsage[pieceData.index]
-	if chunkComplete || chunkFailed || w.ownedOnDownloadCooldown() || !workerHasPiece || pieceTaken {
+	pieceData, workerHasPiece := udc.staticChunkMap[w.contract.HostPublicKey.String()]
+	pieceCompleted := udc.completedPieces[pieceData.index]
+	if chunkComplete || chunkFailed || w.ownedOnDownloadCooldown() || !workerHasPiece || pieceCompleted {
 		udc.mu.Unlock()
 		udc.managedRemoveWorker()
 		return nil
@@ -221,9 +255,10 @@ func (w *worker) ownedProcessDownloadChunk(udc *unfinishedDownloadChunk) *unfini
 	// number of overdrive workers (typically zero). For our purposes, completed
 	// pieces count as active workers, though the workers have actually
 	// finished.
+	pieceTaken := udc.pieceUsage[pieceData.index]
 	piecesInProgress := udc.piecesRegistered + udc.piecesCompleted
 	desiredPiecesInProgress := udc.erasureCode.MinPieces() + udc.staticOverdrive
-	workersDesired := piecesInProgress < desiredPiecesInProgress
+	workersDesired := piecesInProgress < desiredPiecesInProgress && !pieceTaken
 
 	if workersDesired && meetsExtraCriteria {
 		// Worker can be useful. Register the worker and return the chunk for

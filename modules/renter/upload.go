@@ -3,23 +3,21 @@ package renter
 // upload.go performs basic preprocessing on upload requests and then adds the
 // requested files into the repair heap.
 //
-// TODO: Currently you cannot upload a directory using the api, if you want to
-// upload a directory you must make 1 api call per file in that directory.
-// Perhaps we should extend this endpoint to be able to recursively add files in
-// a directory?
-//
 // TODO: Currently the minimum contracts check is not enforced while testing,
 // which means that code is not covered at all. Enabling enforcement during
 // testing will probably break a ton of existing tests, which means they will
 // all need to be fixed when we do enable it, but we should enable it.
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siadir"
+	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
 )
 
 var (
@@ -27,47 +25,40 @@ var (
 	errUploadDirectory = errors.New("cannot upload directory")
 )
 
-// validateSource verifies that a sourcePath meets the
-// requirements for upload.
-func validateSource(sourcePath string) error {
-	finfo, err := os.Stat(sourcePath)
-	if err != nil {
-		return err
-	}
-	if finfo.IsDir() {
-		return errUploadDirectory
-	}
-
-	return nil
-}
-
 // Upload instructs the renter to start tracking a file. The renter will
 // automatically upload and repair tracked files using a background loop.
 func (r *Renter) Upload(up modules.FileUploadParams) error {
-	// Enforce nickname rules.
-	if err := validateSiapath(up.SiaPath); err != nil {
+	if err := r.tg.Add(); err != nil {
 		return err
 	}
-	// Enforce source rules.
-	if err := validateSource(up.Source); err != nil {
-		return err
+	defer r.tg.Done()
+
+	// Check if the file is a directory.
+	sourceInfo, err := os.Stat(up.Source)
+	if err != nil {
+		return errors.AddContext(err, "unable to stat input file")
+	}
+	if sourceInfo.IsDir() {
+		return errUploadDirectory
 	}
 
-	// Check for a nickname conflict.
-	lockID := r.mu.RLock()
-	_, exists := r.files[up.SiaPath]
-	r.mu.RUnlock(lockID)
-	if exists {
-		return ErrPathOverload
+	// Check for read access.
+	file, err := os.Open(up.Source)
+	if err != nil {
+		return errors.AddContext(err, "unable to open the source file")
+	}
+	file.Close()
+
+	// Delete existing file if overwrite flag is set. Ignore ErrUnknownPath.
+	if up.Force {
+		if err := r.DeleteFile(up.SiaPath); err != nil && err != siafile.ErrUnknownPath {
+			return errors.AddContext(err, "unable to delete existing file")
+		}
 	}
 
 	// Fill in any missing upload params with sensible defaults.
-	fileInfo, err := os.Stat(up.Source)
-	if err != nil {
-		return err
-	}
 	if up.ErasureCode == nil {
-		up.ErasureCode, _ = NewRSCode(defaultDataPieces, defaultParityPieces)
+		up.ErasureCode, _ = siafile.NewRSSubCode(defaultDataPieces, defaultParityPieces, 64)
 	}
 
 	// Check that we have contracts to upload to. We need at least data +
@@ -80,31 +71,45 @@ func (r *Renter) Upload(up modules.FileUploadParams) error {
 		return fmt.Errorf("not enough contracts to upload file: got %v, needed %v", numContracts, (up.ErasureCode.NumPieces()+up.ErasureCode.MinPieces())/2)
 	}
 
-	// Create file object.
-	f := newFile(up.SiaPath, up.ErasureCode, pieceSize, uint64(fileInfo.Size()))
-	f.mode = uint32(fileInfo.Mode())
-
-	// Add file to renter.
-	lockID = r.mu.Lock()
-	r.files[up.SiaPath] = f
-	r.persist.Tracking[up.SiaPath] = trackedFile{
-		RepairPath: up.Source,
-	}
-	r.saveSync()
-	err = r.saveFile(f)
-	r.mu.Unlock(lockID)
+	// Create the directory path on disk. Renter directory is already present so
+	// only files not in top level directory need to have directories created
+	dirSiaPath, err := up.SiaPath.Dir()
 	if err != nil {
 		return err
 	}
+	// Try to create the directory. If ErrPathOverload is returned it already exists.
+	siaDirEntry, err := r.staticDirSet.NewSiaDir(dirSiaPath)
+	if err != siadir.ErrPathOverload && err != nil {
+		return errors.AddContext(err, "unable to create sia directory for new file")
+	} else if err == nil {
+		siaDirEntry.Close()
+	}
 
+	// Create the Siafile and add to renter
+	entry, err := r.staticFileSet.NewSiaFile(up, crypto.GenerateSiaKey(crypto.TypeDefaultRenter), uint64(sourceInfo.Size()), sourceInfo.Mode())
+	if err != nil {
+		return errors.AddContext(err, "could not create a new sia file")
+	}
+	defer entry.Close()
+
+	// No need to upload zero-byte files.
+	if sourceInfo.Size() == 0 {
+		return nil
+	}
+
+	// Bubble the health of the SiaFile directory to ensure the health is
+	// updated with the new file
+	go r.threadedBubbleMetadata(dirSiaPath)
+
+	// Create nil maps for offline and goodForRenew to pass in to
+	// managedBuildAndPushChunks. These maps are used to determine the health of
+	// the file and its chunks. Nil maps will result in the file and its chunks
+	// having the worst possible health which is accurate since the file hasn't
+	// been uploaded yet
+	nilMap := make(map[string]bool)
 	// Send the upload to the repair loop.
 	hosts := r.managedRefreshHostsAndWorkers()
-	id := r.mu.Lock()
-	unfinishedChunks := r.buildUnfinishedChunks(f, hosts)
-	r.mu.Unlock(id)
-	for i := 0; i < len(unfinishedChunks); i++ {
-		r.uploadHeap.managedPush(unfinishedChunks[i])
-	}
+	r.managedBuildAndPushChunks([]*siafile.SiaFileSetEntry{entry}, hosts, targetUnstuckChunks, nilMap, nilMap)
 	select {
 	case r.uploadHeap.newUploads <- struct{}{}:
 	default:

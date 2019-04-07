@@ -6,8 +6,10 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -37,7 +39,7 @@ type unfinishedDownloadChunk struct {
 	// Fetch + Write instructions - read only or otherwise thread safe.
 	destination downloadDestination // Where to write the recovered logical chunk.
 	erasureCode modules.ErasureCoder
-	masterKey   crypto.TwofishKey
+	masterKey   crypto.CipherKey
 
 	// Fetch + Write instructions - read only or otherwise thread safe.
 	staticChunkIndex  uint64                       // Required for deriving the encryption keys for each piece.
@@ -56,6 +58,7 @@ type unfinishedDownloadChunk struct {
 	staticPriority      uint64
 
 	// Download chunk state - need mutex to access.
+	completedPieces   []bool    // Which pieces were downloaded successfully.
 	failed            bool      // Indicates if the chunk has been marked as failed.
 	physicalChunkData [][]byte  // Used to recover the logical data.
 	pieceUsage        []bool    // Which pieces are being actively fetched.
@@ -71,6 +74,9 @@ type unfinishedDownloadChunk struct {
 	// The download object, mostly to update download progress.
 	download *download
 	mu       sync.Mutex
+
+	// The SiaFile from which data is being downloaded.
+	renterFile *siafile.Snapshot
 
 	// Caching related fields
 	staticStreamCache *streamCache
@@ -141,6 +147,27 @@ func (udc *unfinishedDownloadChunk) managedRemoveWorker() {
 	udc.managedCleanUp()
 }
 
+// markPieceCompleted marks the piece with pieceIndex as completed.
+func (udc *unfinishedDownloadChunk) markPieceCompleted(pieceIndex uint64) {
+	udc.completedPieces[pieceIndex] = true
+	udc.piecesCompleted++
+
+	// Sanity check to make sure the slice and counter are consistent.
+	if !build.DEBUG {
+		return
+	}
+	completed := 0
+	for _, b := range udc.completedPieces {
+		if b {
+			completed++
+		}
+	}
+	if completed != udc.piecesCompleted {
+		build.Critical(fmt.Sprintf("pieces completed and completedPieces out of sync %v != %v",
+			completed, udc.piecesCompleted))
+	}
+}
+
 // returnMemory will check on the status of all the workers and pieces, and
 // determine how much memory is safe to return to the renter. This should be
 // called each time a worker returns, and also after the chunk is recovered.
@@ -176,12 +203,14 @@ func (udc *unfinishedDownloadChunk) threadedRecoverLogicalData() error {
 	// succeeds or fails.
 	defer udc.managedCleanUp()
 
+	// Calculate the number of bytes we need to recover. This doesn't
+	// necessarily equal the staticFetchLength
+	btr := bytesToRecover(udc.staticFetchOffset, udc.staticFetchLength, udc.staticChunkSize, udc.erasureCode)
+
 	// Recover the pieces into the logical chunk data.
 	//
-	// TODO: Might be some way to recover into the downloadDestination instead
-	// of creating a buffer and then writing that.
 	recoverWriter := new(bytes.Buffer)
-	err := udc.erasureCode.Recover(udc.physicalChunkData, udc.staticChunkSize, recoverWriter)
+	err := udc.erasureCode.Recover(udc.physicalChunkData, btr, recoverWriter)
 	if err != nil {
 		udc.mu.Lock()
 		udc.fail(err)
@@ -205,8 +234,8 @@ func (udc *unfinishedDownloadChunk) threadedRecoverLogicalData() error {
 	}
 
 	// Write the bytes to the requested output.
-	start := udc.staticFetchOffset
-	end := udc.staticFetchOffset + udc.staticFetchLength
+	start := recoveredDataOffset(udc.staticFetchOffset, udc.erasureCode)
+	end := start + udc.staticFetchLength
 	_, err = udc.destination.WriteAt(recoveredData[start:end], udc.staticWriteOffset)
 	if err != nil {
 		udc.mu.Lock()
@@ -229,13 +258,42 @@ func (udc *unfinishedDownloadChunk) threadedRecoverLogicalData() error {
 	defer udc.download.mu.Unlock()
 	udc.download.chunksRemaining--
 	if udc.download.chunksRemaining == 0 {
-		// Download is complete, send out a notification and close the
-		// destination writer.
-		udc.download.endTime = time.Now()
-		close(udc.download.completeChan)
-		err := udc.download.destination.Close()
-		udc.download.destination = nil
+		// Download is complete, send out a notification.
+		udc.download.markComplete()
 		return err
 	}
 	return nil
+}
+
+// bytesToRecover returns the number of bytes we need to recover from the
+// erasure coded segments. The number of bytes we need to recover doesn't
+// always match the chunkFetchLength. e.g. a user might want to fetch 500 bytes
+// from a segment that is 640 bytes large after recovery. Then the number of
+// bytes to recover would be 640 instead of 500 and the 140 bytes we don't need
+// would be discarded after recovery.
+func bytesToRecover(chunkFetchOffset, chunkFetchLength, chunkSize uint64, rs modules.ErasureCoder) uint64 {
+	// If partialDecoding is not available we downloaded the whole sector and
+	// recovered the whole chunk.
+	if !rs.SupportsPartialEncoding() {
+		return chunkSize
+	}
+	// Else we need to calculate how much data we need to recover.
+	recoveredSegmentSize := uint64(rs.MinPieces() * crypto.SegmentSize)
+	_, numSegments := segmentsForRecovery(chunkFetchOffset, chunkFetchLength, rs)
+	return numSegments * recoveredSegmentSize
+
+}
+
+// recoveredDataOffset translates the fetch offset of the chunk into the offset
+// within the recovered data.
+func recoveredDataOffset(chunkFetchOffset uint64, rs modules.ErasureCoder) uint64 {
+	// If partialDecoding is not available we downloaded the whole sector and
+	// recovered the whole chunk which means the offset and length are actually
+	// equal to the chunkFetchOffset and chunkFetchLength.
+	if !rs.SupportsPartialEncoding() {
+		return chunkFetchOffset
+	}
+	// Else we need to adjust the offset a bit.
+	recoveredSegmentSize := uint64(rs.MinPieces() * crypto.SegmentSize)
+	return chunkFetchOffset % recoveredSegmentSize
 }

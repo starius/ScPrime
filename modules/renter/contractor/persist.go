@@ -3,6 +3,7 @@ package contractor
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
@@ -14,13 +15,14 @@ import (
 
 // contractorPersist defines what Contractor data persists across sessions.
 type contractorPersist struct {
-	Allowance     modules.Allowance               `json:"allowance"`
-	BlockHeight   types.BlockHeight               `json:"blockheight"`
-	CurrentPeriod types.BlockHeight               `json:"currentperiod"`
-	LastChange    modules.ConsensusChangeID       `json:"lastchange"`
-	OldContracts  []modules.RenterContract        `json:"oldcontracts"`
-	RenewedFrom   map[string]types.FileContractID `json:"renewedfrom"`
-	RenewedTo     map[string]types.FileContractID `json:"renewedto"`
+	Allowance            modules.Allowance               `json:"allowance"`
+	BlockHeight          types.BlockHeight               `json:"blockheight"`
+	CurrentPeriod        types.BlockHeight               `json:"currentperiod"`
+	LastChange           modules.ConsensusChangeID       `json:"lastchange"`
+	OldContracts         []modules.RenterContract        `json:"oldcontracts"`
+	RecoverableContracts []modules.RecoverableContract   `json:"recoverablecontracts"`
+	RenewedFrom          map[string]types.FileContractID `json:"renewedfrom"`
+	RenewedTo            map[string]types.FileContractID `json:"renewedto"`
 }
 
 // persistData returns the data in the Contractor that will be saved to disk.
@@ -42,6 +44,9 @@ func (c *Contractor) persistData() contractorPersist {
 	for _, contract := range c.oldContracts {
 		data.OldContracts = append(data.OldContracts, contract)
 	}
+	for _, contract := range c.recoverableContracts {
+		data.RecoverableContracts = append(data.RecoverableContracts, contract)
+	}
 	return data
 }
 
@@ -52,6 +57,20 @@ func (c *Contractor) load() error {
 	if err != nil {
 		return err
 	}
+
+	// COMPATv136 if the allowance is not the empty allowance and "Expected"
+	// fields are not set, set them to the default values.
+	if !reflect.DeepEqual(data.Allowance, modules.Allowance{}) {
+		if data.Allowance.ExpectedStorage == 0 && data.Allowance.ExpectedUpload == 0 &&
+			data.Allowance.ExpectedDownload == 0 && data.Allowance.ExpectedRedundancy == 0 {
+			// Set the fields to the defauls.
+			data.Allowance.ExpectedStorage = modules.DefaultAllowance.ExpectedStorage
+			data.Allowance.ExpectedUpload = modules.DefaultAllowance.ExpectedUpload
+			data.Allowance.ExpectedDownload = modules.DefaultAllowance.ExpectedDownload
+			data.Allowance.ExpectedRedundancy = modules.DefaultAllowance.ExpectedRedundancy
+		}
+	}
+
 	c.allowance = data.Allowance
 	c.blockHeight = data.BlockHeight
 	c.currentPeriod = data.CurrentPeriod
@@ -71,6 +90,9 @@ func (c *Contractor) load() error {
 	}
 	for _, contract := range data.OldContracts {
 		c.oldContracts[contract.ID] = contract
+	}
+	for _, contract := range data.RecoverableContracts {
+		c.recoverableContracts[contract.ID] = contract
 	}
 
 	return nil
