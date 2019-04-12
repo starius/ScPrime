@@ -9,7 +9,7 @@ import (
 	"hash"
 	"unsafe"
 
-	"gitlab.com/NebulousLabs/Sia/encoding"
+	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 )
