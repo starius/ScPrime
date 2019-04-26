@@ -449,6 +449,10 @@ func rentersetallowancecmd(cmd *cobra.Command, args []string) {
 		req = req.WithRenewWindow(renewWindow)
 		changedFields++
 	}
+
+	req = req.WithFilterHostsSubnet(renterFilterHostsSubnet)
+	changedFields++
+
 	// parse expectedStorage
 	if allowanceExpectedStorage != "" {
 		es, err := parseFilesize(allowanceExpectedStorage)

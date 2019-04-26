@@ -11,7 +11,7 @@ import (
 const (
 	// defaultMaxDuration defines the maximum number of blocks into the future
 	// that the host will accept for the duration of an incoming file contract
-	// obligation. 3 months are chosen as the network is in buildout. 
+	// obligation. 3 months are chosen as the network is in buildout.
 	defaultMaxDuration = 144 * 30 * 3 // 3 months.
 
 	// fileContractNegotiationTimeout indicates the amount of time that a

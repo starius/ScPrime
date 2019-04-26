@@ -15,18 +15,18 @@ import (
 
 var (
 	// Flags.
-	dictionaryLanguage     string // dictionary for seed utils
-	hostContractOutputType string // output type for host contracts
-	hostVerbose            bool   // display additional host info
-	initForce              bool   // destroy and re-encrypt the wallet on init if it already exists
-	initPassword           bool   // supply a custom password when creating a wallet
-	renterAllContracts     bool   // Show all active and expired contracts
-	renterDownloadAsync    bool   // Downloads files asynchronously
-	renterListVerbose      bool   // Show additional info about uploaded files.
-	renterShowHistory      bool   // Show download history in addition to download queue.
+	dictionaryLanguage      string // dictionary for seed utils
+	hostContractOutputType  string // output type for host contracts
+	hostVerbose             bool   // display additional host info
+	initForce               bool   // destroy and re-encrypt the wallet on init if it already exists
+	initPassword            bool   // supply a custom password when creating a wallet
+	renterAllContracts      bool   // Show all active and expired contracts
+	renterDownloadAsync     bool   // Downloads files asynchronously
+	renterListVerbose       bool   // Show additional info about uploaded files.
+	renterShowHistory       bool   // Show download history in addition to download queue.
 	renterFilterHostsSubnet bool   // Filter hosts from same subnet.
-	siaDir                 string // Path to sia data dir
-	walletRawTxn           bool   // Encode/decode transactions in base64-encoded binary.
+	siaDir                  string // Path to sia data dir
+	walletRawTxn            bool   // Encode/decode transactions in base64-encoded binary.
 
 	allowanceFunds              string // amount of money to be used within a period
 	allowancePeriod             string // length of period

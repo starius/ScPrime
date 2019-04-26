@@ -53,6 +53,12 @@ func (a *AllowanceRequestPost) WithRenewWindow(renewWindow types.BlockHeight) *A
 	return a
 }
 
+// WithFilterHostsSubnet adds the filterhostssubnet field to the request.
+func (a *AllowanceRequestPost) WithFilterHostsSubnet(filterHostsSubnet bool) *AllowanceRequestPost {
+	a.values.Set("filterhostssubnet", fmt.Sprint(filterHostsSubnet))
+	return a
+}
+
 // WithExpectedStorage adds the expected storage field to the request.
 func (a *AllowanceRequestPost) WithExpectedStorage(expectedStorage uint64) *AllowanceRequestPost {
 	a.values.Set("expectedstorage", fmt.Sprint(expectedStorage))
@@ -289,6 +295,7 @@ func (c *Client) RenterPostAllowance(allowance modules.Allowance) error {
 	a = a.WithHosts(allowance.Hosts)
 	a = a.WithPeriod(allowance.Period)
 	a = a.WithRenewWindow(allowance.RenewWindow)
+	a = a.WithFilterHostsSubnet(allowance.FilterHostsSubnet)
 	a = a.WithExpectedStorage(allowance.ExpectedStorage)
 	a = a.WithExpectedUpload(allowance.ExpectedUpload)
 	a = a.WithExpectedDownload(allowance.ExpectedDownload)

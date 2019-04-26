@@ -159,10 +159,10 @@ type (
 // An Allowance dictates how much the Renter is allowed to spend in a given
 // period. Note that funds are spent on both storage and bandwidth.
 type Allowance struct {
-	Funds       types.Currency    `json:"funds"`
-	Hosts       uint64            `json:"hosts"`
-	Period      types.BlockHeight `json:"period"`
-	RenewWindow types.BlockHeight `json:"renewwindow"`
+	Funds             types.Currency    `json:"funds"`
+	Hosts             uint64            `json:"hosts"`
+	Period            types.BlockHeight `json:"period"`
+	RenewWindow       types.BlockHeight `json:"renewwindow"`
 	FilterHostsSubnet bool              `json:"filterhostssubnet"`
 
 	// ExpectedStorage is the amount of data that we expect to have in a contract.
