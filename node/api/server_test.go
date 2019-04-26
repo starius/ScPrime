@@ -69,7 +69,7 @@ func TestAuthentication(t *testing.T) {
 		t.SkipNow()
 	}
 	t.Parallel()
-	st, err := createAuthenticatedServerTester(t.Name(), "password")
+	st, err := createAuthenticatedServerTester(t.Name(), "password", false)
 	if err != nil {
 		t.Fatal(err)
 	}

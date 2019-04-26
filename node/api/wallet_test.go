@@ -343,7 +343,14 @@ func TestWalletGETSiacoins(t *testing.T) {
 	if !wg.Unlocked {
 		t.Error("Wallet has been unlocked")
 	}
-	if wg.ConfirmedSiacoinBalance.Cmp(types.CalculateCoinbase(1)) != 0 {
+
+	// More proper way to calculate the expected balance is to use function
+	// Block.CalculateSubsidies(1). Here we do not have the block, so the
+	// same calculation is hardcoded. We know that b.CalculateMinerFees() is 0
+	// for a block without transactions.
+	minerReward := types.CalculateCoinbase(1).Sub(types.CalculateDevSubsidy(1))
+
+	if wg.ConfirmedSiacoinBalance.Cmp(minerReward) != 0 {
 		t.Error("reported wallet balance does not reflect the single block that has been mined")
 	}
 	if wg.UnconfirmedOutgoingSiacoins.Cmp64(0) != 0 {
@@ -378,7 +385,7 @@ func TestWalletGETSiacoins(t *testing.T) {
 	if !wg.Unlocked {
 		t.Error("Wallet has been unlocked")
 	}
-	if wg.ConfirmedSiacoinBalance.Cmp(types.CalculateCoinbase(1)) != 0 {
+	if wg.ConfirmedSiacoinBalance.Cmp(minerReward) != 0 {
 		t.Error("reported wallet balance does not reflect the single block that has been mined")
 	}
 	if wg.UnconfirmedOutgoingSiacoins.Cmp64(0) <= 0 {
@@ -589,7 +596,7 @@ func TestWalletTransactionGETid(t *testing.T) {
 	// A call to /wallet/transactions without startheight and endheight parameters
 	// should return a descriptive error message.
 	err = st.getAPI("/wallet/transactions", &wtg)
-	if err == nil || err.Error() != "startheight and endheight must be provided to a /wallet/transactions call." {
+	if err == nil || err.Error() != "startheight and endheight must be provided to a /wallet/transactions call if depth is unspecified." {
 		t.Error("expecting /wallet/transactions call with empty parameters to error")
 	}
 
@@ -604,14 +611,16 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if len(wtgid.Transaction.Inputs) != 0 {
 		t.Error("miner payout should appear as an output, not an input")
 	}
-	if len(wtgid.Transaction.Outputs) != 1 {
+	if len(wtgid.Transaction.Outputs) != 2 {
 		t.Fatal("a single miner payout output should have been created")
 	}
-	if wtgid.Transaction.Outputs[0].FundType != types.SpecifierMinerPayout {
-		t.Error("fund type should be a miner payout")
-	}
-	if wtgid.Transaction.Outputs[0].Value.IsZero() {
-		t.Error("output should have a nonzero value")
+	for i := 0; i < 2; i++ {
+		if wtgid.Transaction.Outputs[i].FundType != types.SpecifierMinerPayout {
+			t.Error("fund type should be a miner payout")
+		}
+		if wtgid.Transaction.Outputs[i].Value.IsZero() {
+			t.Error("output should have a nonzero value")
+		}
 	}
 
 	// Query the details of a transaction where siacoins were sent.
@@ -623,25 +632,29 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(txns) != 1 {
+		t.Fatal("expected a single transaction")
+	}
 	_, err = st.miner.AddBlock()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var wtgid2 WalletTransactionGETid
-	err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", txns[1].ID()), &wtgid2)
+	err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", txns[0].ID()), &wtgid2)
 	if err != nil {
 		t.Fatal(err)
 	}
 	txn := wtgid2.Transaction
-	if txn.TransactionID != txns[1].ID() {
+
+	if txn.TransactionID != txns[0].ID() {
 		t.Error("wrong transaction was fetched")
-	} else if len(txn.Inputs) != 1 || len(txn.Outputs) != 2 {
-		t.Error("expected 1 input and 2 outputs, got", len(txn.Inputs), len(txn.Outputs))
+	} else if len(txn.Inputs) != 1 || len(txn.Outputs) != 3 {
+		t.Error("expected 1 input and 3 outputs, got", len(txn.Inputs), len(txn.Outputs))
 	} else if !txn.Outputs[0].Value.Equals(sentValue) {
 		t.Errorf("expected first output to equal %v, got %v", sentValue, txn.Outputs[0].Value)
-	} else if exp := txn.Inputs[0].Value.Sub(sentValue); !txn.Outputs[1].Value.Equals(exp) {
-		t.Errorf("expected first output to equal %v, got %v", exp, txn.Outputs[1].Value)
+	} else if exp := txn.Inputs[0].Value.Sub(sentValue); !txn.Outputs[1].Value.Add(txn.Outputs[2].Value).Equals(exp) {
+		t.Errorf("expected sum(1 and 2 outputs) to equal %v, got %v", exp, txn.Outputs[1].Value.Add(txn.Outputs[2].Value))
 	}
 
 	// Create a second wallet and send money to that wallet.
@@ -674,8 +687,8 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(wtg.UnconfirmedTransactions) != 2 {
-		t.Fatal("expecting two unconfirmed transactions in sender wallet")
+	if len(wtg.UnconfirmedTransactions) != 1 {
+		t.Fatal("expecting one unconfirmed transaction in sender wallet")
 	}
 
 	// Testing GET :id for unconfirmed transactions
@@ -696,11 +709,11 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(wtg.UnconfirmedTransactions) != 2 {
-		t.Fatal("expecting two unconfirmed transactions in sender wallet")
+	if len(wtg.UnconfirmedTransactions) != 1 {
+		t.Fatal("expecting one unconfirmed transaction in sender wallet")
 	}
 	// Get the id of the non-change output sent to the receiving wallet.
-	expectedOutputID := wtg.UnconfirmedTransactions[1].Outputs[0].ID
+	expectedOutputID := wtg.UnconfirmedTransactions[0].Outputs[0].ID
 
 	// Check the unconfirmed transactions struct to make sure all fields are
 	// filled out correctly in the receiving wallet.
