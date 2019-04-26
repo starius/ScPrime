@@ -163,6 +163,7 @@ type Allowance struct {
 	Hosts       uint64            `json:"hosts"`
 	Period      types.BlockHeight `json:"period"`
 	RenewWindow types.BlockHeight `json:"renewwindow"`
+	FilterHostsSubnet bool              `json:"filterhostssubnet"`
 
 	// ExpectedStorage is the amount of data that we expect to have in a contract.
 	ExpectedStorage uint64 `json:"expectedstorage"`

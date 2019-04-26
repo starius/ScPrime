@@ -369,6 +369,15 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 		// Sane defaults if it hasn't been set before.
 		settings.Allowance.ExpectedRedundancy = modules.DefaultAllowance.ExpectedRedundancy
 	}
+	// Scan the filter option. (optional parameter)
+	if f := req.FormValue("filterhostssubnet"); f != "" {
+		var filterHostsSubnet bool
+		if _, err := fmt.Sscan(f, &filterHostsSubnet); err != nil {
+			WriteError(w, Error{"unable to parse filterhostssubnet"}, http.StatusBadRequest)
+			return
+		}
+		settings.Allowance.FilterHostsSubnet = filterHostsSubnet
+	}
 	// Scan the download speed limit. (optional parameter)
 	if d := req.FormValue("maxdownloadspeed"); d != "" {
 		var downloadSpeed int64
@@ -762,6 +771,15 @@ func (api *API) renterPricesHandler(w http.ResponseWriter, req *http.Request, ps
 		} else {
 			allowance.RenewWindow = types.BlockHeight(renewWindow)
 		}
+	}
+	// Scan the filter option. (optional parameter)
+	if f := req.FormValue("filterhostssubnet"); f != "" {
+		var filterHostsSubnet bool
+		if _, err := fmt.Sscan(f, &filterHostsSubnet); err != nil {
+			WriteError(w, Error{"unable to parse filterhostssubnet"}, http.StatusBadRequest)
+			return
+		}
+		allowance.FilterHostsSubnet = filterHostsSubnet
 	}
 
 	// Check for partially set allowance, which can happen since hosts and renew

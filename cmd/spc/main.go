@@ -24,6 +24,7 @@ var (
 	renterDownloadAsync    bool   // Downloads files asynchronously
 	renterListVerbose      bool   // Show additional info about uploaded files.
 	renterShowHistory      bool   // Show download history in addition to download queue.
+	renterFilterHostsSubnet bool   // Filter hosts from same subnet.
 	siaDir                 string // Path to sia data dir
 	walletRawTxn           bool   // Encode/decode transactions in base64-encoded binary.
 
@@ -155,6 +156,7 @@ func main() {
 	renterFilesListCmd.Flags().BoolVarP(&renterListVerbose, "verbose", "v", false, "Show additional file info such as redundancy")
 	renterExportCmd.AddCommand(renterExportContractTxnsCmd)
 
+	renterSetAllowanceCmd.Flags().BoolVarP(&renterFilterHostsSubnet, "filter-subnet", "", false, "Filter hosts from same subnet")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceFunds, "amount", "", "amount of money in allowance, specified in currency units")
 	renterSetAllowanceCmd.Flags().StringVar(&allowancePeriod, "period", "", "period of allowance in blocks (b), hours (h), days (d) or weeks (w)")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceHosts, "hosts", "", "number of hosts the renter will spread the uploaded data across")

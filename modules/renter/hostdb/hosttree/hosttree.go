@@ -301,7 +301,8 @@ func (ht *HostTree) Select(spk types.SiaPublicKey) (modules.HostDBEntry, bool) {
 // those hosts will be ignored. In most cases those blacklists contain the same
 // elements but sometimes it is useful to block a host without blocking its IP
 // range.
-func (ht *HostTree) SelectRandom(n int, blacklist, addressBlacklist []types.SiaPublicKey) []modules.HostDBEntry {
+// If filterSubnet is true, hosts from same subnet are filtered.
+func (ht *HostTree) SelectRandom(n int, blacklist, addressBlacklist []types.SiaPublicKey, filterSubnet bool) []modules.HostDBEntry {
 	ht.mu.Lock()
 	defer ht.mu.Unlock()
 
@@ -343,7 +344,7 @@ func (ht *HostTree) SelectRandom(n int, blacklist, addressBlacklist []types.SiaP
 		if node.entry.AcceptingContracts &&
 			len(node.entry.ScanHistory) > 0 &&
 			node.entry.ScanHistory[len(node.entry.ScanHistory)-1].Success &&
-			!filter.Filtered(node.entry.NetAddress) {
+			(!filterSubnet || !filter.Filtered(node.entry.NetAddress)) {
 			// The host must be online and accepting contracts to be returned
 			// by the random function. It also has to pass the addressFilter
 			// check.

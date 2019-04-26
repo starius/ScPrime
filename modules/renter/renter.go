@@ -84,7 +84,8 @@ type hostDB interface {
 	// RandomHosts returns a set of random hosts, weighted by their estimated
 	// usefulness / attractiveness to the renter. RandomHosts will not return
 	// any offline or inactive hosts.
-	RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey) ([]modules.HostDBEntry, error)
+	// filterSubnet specifies if hosts from same subnet should be filtered.
+	RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey, bool) ([]modules.HostDBEntry, error)
 
 	// RandomHostsWithAllowance is the same as RandomHosts but accepts an
 	// allowance as an argument to be used instead of the allowance set in the

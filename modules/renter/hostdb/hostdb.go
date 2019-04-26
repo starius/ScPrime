@@ -474,7 +474,7 @@ func (hdb *HostDB) IPViolationsCheck() bool {
 // a number of hosts to return, and a slice of netaddresses to ignore, and
 // returns a slice of entries. If the IP violation check was disabled, the
 // addressBlacklist is ignored.
-func (hdb *HostDB) RandomHosts(n int, blacklist, addressBlacklist []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
+func (hdb *HostDB) RandomHosts(n int, blacklist, addressBlacklist []types.SiaPublicKey, filterSubnet bool) ([]modules.HostDBEntry, error) {
 	hdb.mu.RLock()
 	initialScanComplete := hdb.initialScanComplete
 	ipCheckDisabled := hdb.disableIPViolationCheck
@@ -483,9 +483,9 @@ func (hdb *HostDB) RandomHosts(n int, blacklist, addressBlacklist []types.SiaPub
 		return []modules.HostDBEntry{}, ErrInitialScanIncomplete
 	}
 	if ipCheckDisabled {
-		return hdb.filteredTree.SelectRandom(n, blacklist, nil), nil
+		return hdb.filteredTree.SelectRandom(n, blacklist, nil, filterSubnet), nil
 	}
-	return hdb.filteredTree.SelectRandom(n, blacklist, addressBlacklist), nil
+	return hdb.filteredTree.SelectRandom(n, blacklist, addressBlacklist, filterSubnet), nil
 }
 
 // SetIPViolationCheck enables or disables the IP violation check. If disabled,
@@ -528,7 +528,7 @@ func (hdb *HostDB) RandomHostsWithAllowance(n int, blacklist, addressBlacklist [
 	}
 
 	// Select hosts from the temporary hosttree.
-	return ht.SelectRandom(n, blacklist, addressBlacklist), insertErrs
+	return ht.SelectRandom(n, blacklist, addressBlacklist, allowance.FilterHostsSubnet), insertErrs
 }
 
 // SetAllowance updates the allowance used by the hostdb for weighing hosts by

@@ -251,7 +251,7 @@ func (c *Contractor) managedMarkContractsUtility() error {
 	hostCount := int(c.allowance.Hosts)
 	period := c.allowance.Period
 	c.mu.RUnlock()
-	hosts, err := c.hdb.RandomHosts(hostCount+randomHostsBufferForScore, nil, nil)
+	hosts, err := c.hdb.RandomHosts(hostCount+randomHostsBufferForScore, nil, nil, false)
 	if err != nil {
 		return err
 	}
@@ -1029,7 +1029,7 @@ func (c *Contractor) threadedContractMaintenance() {
 
 	initialContractFunds := c.allowance.Funds.Div64(c.allowance.Hosts).Div64(3)
 	c.mu.RUnlock()
-	hosts, err := c.hdb.RandomHosts(neededContracts*4+randomHostsBufferForScore, blacklist, addressBlacklist)
+	hosts, err := c.hdb.RandomHosts(neededContracts*4+randomHostsBufferForScore, blacklist, addressBlacklist, c.allowance.FilterHostsSubnet)
 	if err != nil {
 		c.log.Println("WARN: not forming new contracts:", err)
 		return
