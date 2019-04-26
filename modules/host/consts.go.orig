@@ -12,7 +12,7 @@ const (
 	// defaultMaxDuration defines the maximum number of blocks into the future
 	// that the host will accept for the duration of an incoming file contract
 	// obligation. 3 months are chosen as the network is in buildout. 
-	defaultMaxDuration = 144 * 30 * 3 // 3 months.
+	defaultMaxDuration = 144 * 30 * 6 // 6 months.
 
 	// fileContractNegotiationTimeout indicates the amount of time that a
 	// renter has to negotiate a file contract with the host. A timeout is
@@ -95,8 +95,14 @@ var (
 
 	// defaultContractPrice defines the default price of creating a contract
 	// with the host. The current default is 0.1. This was chosen since it is
+<<<<<<< HEAD
+	// the minimum fee estimation of the transactionpool for a filecontract
+	// transaction..
+	defaultContractPrice = types.SiacoinPrecision.Div64(100).Div64(1e3).Mul64(modules.EstimatedFileContractRevisionAndProofTransactionSetSize)
+=======
 	// the minimum fee estimation of the transactionpool for 10e3 bytes.
 	defaultContractPrice = types.SiacoinPrecision.Div64(10) // 0.1 SCP
+>>>>>>> dfa4e873
 
 	// defaultDownloadBandwidthPrice defines the default price of upload
 	// bandwidth. The default is set to 500 SCP per gigabyte, because
