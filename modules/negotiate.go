@@ -323,16 +323,18 @@ type (
 
 // New RPC IDs
 var (
-	RPCLoopEnter         = types.Specifier{'L', 'o', 'o', 'p', 'E', 'n', 't', 'e', 'r'}
-	RPCLoopExit          = types.Specifier{'L', 'o', 'o', 'p', 'E', 'x', 'i', 't'}
-	RPCLoopFormContract  = types.Specifier{'L', 'o', 'o', 'p', 'F', 'o', 'r', 'm', 'C', 'o', 'n', 't', 'r', 'a', 'c', 't'}
-	RPCLoopLock          = types.Specifier{'L', 'o', 'o', 'p', 'L', 'o', 'c', 'k'}
-	RPCLoopRead          = types.Specifier{'L', 'o', 'o', 'p', 'R', 'e', 'a', 'd'}
-	RPCLoopRenewContract = types.Specifier{'L', 'o', 'o', 'p', 'R', 'e', 'n', 'e', 'w'}
-	RPCLoopSectorRoots   = types.Specifier{'L', 'o', 'o', 'p', 'S', 'e', 'c', 't', 'o', 'r', 'R', 'o', 'o', 't', 's'}
-	RPCLoopSettings      = types.Specifier{'L', 'o', 'o', 'p', 'S', 'e', 't', 't', 'i', 'n', 'g', 's'}
-	RPCLoopUnlock        = types.Specifier{'L', 'o', 'o', 'p', 'U', 'n', 'l', 'o', 'c', 'k'}
-	RPCLoopWrite         = types.Specifier{'L', 'o', 'o', 'p', 'W', 'r', 'i', 't', 'e'}
+	RPCLoopEnter             = types.Specifier{'L', 'o', 'o', 'p', 'E', 'n', 't', 'e', 'r'}
+	RPCLoopExit              = types.Specifier{'L', 'o', 'o', 'p', 'E', 'x', 'i', 't'}
+	RPCLoopFormContract      = types.Specifier{'L', 'o', 'o', 'p', 'F', 'o', 'r', 'm', 'C', 'o', 'n', 't', 'r', 'a', 'c', 't'}
+	RPCLoopLock              = types.Specifier{'L', 'o', 'o', 'p', 'L', 'o', 'c', 'k'}
+	RPCLoopRead              = types.Specifier{'L', 'o', 'o', 'p', 'R', 'e', 'a', 'd'}
+	RPCLoopRenewContract     = types.Specifier{'L', 'o', 'o', 'p', 'R', 'e', 'n', 'e', 'w'}
+	RPCLoopSectorRoots       = types.Specifier{'L', 'o', 'o', 'p', 'S', 'e', 'c', 't', 'o', 'r', 'R', 'o', 'o', 't', 's'}
+	RPCLoopSettings          = types.Specifier{'L', 'o', 'o', 'p', 'S', 'e', 't', 't', 'i', 'n', 'g', 's'}
+	RPCLoopUnlock            = types.Specifier{'L', 'o', 'o', 'p', 'U', 'n', 'l', 'o', 'c', 'k'}
+	RPCLoopWrite             = types.Specifier{'L', 'o', 'o', 'p', 'W', 'r', 'i', 't', 'e'}
+	RPCLoopTopUpToken        = types.Specifier{'L', 'o', 'o', 'p', 'T', 'o', 'p', 'U', 'p', 'T', 'o', 'k', 'e', 'n'}
+	RPCLoopDownloadWithToken = types.Specifier{'L', 'o', 'o', 'p', 'D', 'o', 'w', 'n', 'l', 'o', 'a', 'd'}
 )
 
 // RPC ciphers
@@ -530,6 +532,35 @@ type (
 	// LoopWriteResponse contains the response data for RPCLoopWrite.
 	LoopWriteResponse struct {
 		Signature []byte
+	}
+
+	// LoopTopUpTokenRequest contains the request parameters for RPCLoopTopUpToken.
+	LoopTopUpTokenRequest struct {
+		NewRevisionNumber    uint64
+		NewValidProofValues  []types.Currency
+		NewMissedProofValues []types.Currency
+		Signature            []byte
+
+		Token [32]byte
+	}
+
+	// LoopTopUpTokenResponse contains the response data for RPCLoopTopUpToken.
+	LoopTopUpTokenResponse struct {
+	}
+
+	// LoopDownloadWithTokenRequest contains the request parameters for RPCLoopDownloadWithToken.
+	LoopDownloadWithTokenRequest struct {
+		Sections    []LoopReadRequestSection
+		MerkleProof bool
+
+		Token [32]byte
+	}
+
+	// LoopDownloadWithTokenResponse contains the response data for RPCLoopDownloadWithToken.
+	LoopDownloadWithTokenResponse struct {
+		Signature   []byte
+		Data        []byte
+		MerkleProof []crypto.Hash
 	}
 )
 

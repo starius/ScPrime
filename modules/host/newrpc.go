@@ -839,3 +839,15 @@ func (h *Host) managedRPCLoopSectorRoots(s *rpcSession) error {
 	}
 	return nil
 }
+
+// managedRPCLoopTopUpToken creates/adds money to the token specified
+// in the request. It also creates new contract revision.
+func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
+	return nil
+}
+
+// managedRPCLoopDownloadWithToken downloads data paying to the host with money from the token.
+// Does not create new contract revision, just decreases the amount of money on the token.
+func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
+	return nil
+}
