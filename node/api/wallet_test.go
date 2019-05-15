@@ -697,11 +697,6 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var wutgid2 WalletTransactionGETid
-	err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", wtg.UnconfirmedTransactions[1].TransactionID), &wutgid2)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	// Check that undocumented API behavior used in Sia-UI still works with
 	// current API.
