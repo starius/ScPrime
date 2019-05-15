@@ -180,7 +180,7 @@ func (m *Miner) HeaderForWork() (types.BlockHeader, types.Target, error) {
 
 // managedSubmitBlock takes a solved block and submits it to the blockchain.
 func (m *Miner) managedSubmitBlock(b types.Block) error {
-	m.log.Println("managedSubmitBlock called on %s: ", b.ID())
+	m.log.Println("managedSubmitBlock called on: ", b.ID())
 	// Give the block to the consensus set.
 	err := m.cs.AcceptBlock(b)
 	// Add the miner to the blocks list if the only problem is that it's stale.
