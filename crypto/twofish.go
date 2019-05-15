@@ -21,19 +21,19 @@ var (
 )
 
 type (
-	// twofishKey is a key used for encrypting and decrypting data.
-	twofishKey [EntropySize]byte
+	// TwofishKey is a key used for encrypting and decrypting data.
+	TwofishKey [EntropySize]byte
 )
 
-// generateTwofishKey produces a twofishKey that can be used for encrypting and
+// generateTwofishKey produces a TwofishKey that can be used for encrypting and
 // decrypting data using Twofish-GCM.
-func generateTwofishKey() (key twofishKey) {
+func generateTwofishKey() (key TwofishKey) {
 	fastrand.Read(key[:])
 	return
 }
 
 // newCipher creates a new Twofish cipher from the key.
-func (key twofishKey) newCipher() cipher.Block {
+func (key TwofishKey) newCipher() cipher.Block {
 	cipher, err := twofish.NewCipher(key[:])
 	if err != nil {
 		panic("NewCipher only returns an error if len(key) != 16, 24, or 32.")
@@ -41,8 +41,8 @@ func (key twofishKey) newCipher() cipher.Block {
 	return cipher
 }
 
-// newTwofishKey creates a new twofishKey from a given entropy.
-func newTwofishKey(entropy []byte) (key twofishKey, err error) {
+// newTwofishKey creates a new TwofishKey from a given entropy.
+func newTwofishKey(entropy []byte) (key TwofishKey, err error) {
 	// check key length
 	if len(entropy) != len(key) {
 		err = fmt.Errorf("twofish key should have size %v but was %v",
@@ -56,7 +56,7 @@ func newTwofishKey(entropy []byte) (key twofishKey, err error) {
 
 // DecryptBytes decrypts a ciphertext created by EncryptPiece. The nonce is
 // expected to be the first 12 bytes of the ciphertext.
-func (key twofishKey) DecryptBytes(ct Ciphertext) ([]byte, error) {
+func (key TwofishKey) DecryptBytes(ct Ciphertext) ([]byte, error) {
 	// Create the cipher.
 	aead, err := cipher.NewGCM(key.newCipher())
 	if err != nil {
@@ -69,7 +69,7 @@ func (key twofishKey) DecryptBytes(ct Ciphertext) ([]byte, error) {
 // nonce is expected to be the first 12 bytes of the ciphertext.
 // DecryptBytesInPlace reuses the memory of ct to be able to operate in-place.
 // This means that ct can't be reused after calling DecryptBytesInPlace.
-func (key twofishKey) DecryptBytesInPlace(ct Ciphertext, blockIndex uint64) ([]byte, error) {
+func (key TwofishKey) DecryptBytesInPlace(ct Ciphertext, blockIndex uint64) ([]byte, error) {
 	if blockIndex != 0 {
 		return nil, errors.New("twofish doesn't support a blockIndex != 0")
 	}
@@ -91,7 +91,7 @@ func (key twofishKey) DecryptBytesInPlace(ct Ciphertext, blockIndex uint64) ([]b
 }
 
 // Derive derives a child key for a given combination of chunk and piece index.
-func (key twofishKey) Derive(chunkIndex, pieceIndex uint64) CipherKey {
+func (key TwofishKey) Derive(chunkIndex, pieceIndex uint64) CipherKey {
 	entropy := HashAll(key, chunkIndex, pieceIndex)
 	ck, err := NewSiaKey(TypeTwofish, entropy[:])
 	if err != nil {
@@ -103,7 +103,7 @@ func (key twofishKey) Derive(chunkIndex, pieceIndex uint64) CipherKey {
 // EncryptBytes encrypts arbitrary data using the TwofishKey, prepending a 12
 // byte nonce to the ciphertext in the process.  GCM and prepends the nonce (12
 // bytes) to the ciphertext.
-func (key twofishKey) EncryptBytes(piece []byte) Ciphertext {
+func (key TwofishKey) EncryptBytes(piece []byte) Ciphertext {
 	// Create the cipher.
 	aead, err := cipher.NewGCM(key.newCipher())
 	if err != nil {
@@ -113,11 +113,11 @@ func (key twofishKey) EncryptBytes(piece []byte) Ciphertext {
 }
 
 // Key returns the twofish key.
-func (key twofishKey) Key() []byte {
+func (key TwofishKey) Key() []byte {
 	return key[:]
 }
 
 // Type returns the type of the twofish key.
-func (twofishKey) Type() CipherType {
+func (TwofishKey) Type() CipherType {
 	return TypeTwofish
 }
