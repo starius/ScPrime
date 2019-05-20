@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"errors"
 	"io"
+	"math/big"
 	"net"
 	"time"
 
@@ -541,7 +542,9 @@ type (
 		NewMissedProofValues []types.Currency
 		Signature            []byte
 
-		Token [32]byte
+		BytesAmount    big.Int
+		SectorAccesses big.Int
+		Token          [32]byte
 	}
 
 	// LoopTopUpTokenResponse contains the response data for RPCLoopTopUpToken.
