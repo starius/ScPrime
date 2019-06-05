@@ -923,14 +923,14 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 		return err
 	}
 
-	// construct the new revision
+	// Construct the new revision.
 	newRevision := buildNewRevision(currentRevision, req.NewRevisionNumber, req.NewValidProofValues, req.NewMissedProofValues)
 
-	// calculate expected cost and verify against renter's revision
+	// Calculate expected cost and verify against renter's revision.
 	var bandwidthCost big.Int
-	bandwidthCost.Mul(settings.DownloadBandwidthPrice, req.BytesAmount)
+	bandwidthCost.Mul(settings.DownloadBandwidthPrice.Big(), &req.BytesAmount)
 	var sectorAccessCost big.Int
-	sectorAccessCost.Mul(settings.SectorAccessPrice, req.SectorAccesses)
+	sectorAccessCost.Mul(settings.SectorAccessPrice.Big(), &req.SectorAccesses)
 	totalCost := settings.BaseRPCPrice.Add(bandwidthCost).Add(sectorAccessCost)
 	err := verifyPaymentRevision(currentRevision, newRevision, blockHeight, totalCost)
 	if err != nil {
