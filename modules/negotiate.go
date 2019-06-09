@@ -5,7 +5,6 @@ import (
 	"crypto/cipher"
 	"errors"
 	"io"
-	"math/big"
 	"net"
 	"time"
 
@@ -542,8 +541,8 @@ type (
 		NewMissedProofValues []types.Currency
 		Signature            []byte
 
-		BytesAmount    big.Int
-		SectorAccesses big.Int
+		BytesAmount    int64
+		SectorAccesses int64
 		Token          [32]byte
 	}
 

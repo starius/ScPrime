@@ -3,7 +3,6 @@ package host
 import (
 	"encoding/json"
 	"errors"
-	"math/big"
 	"math/bits"
 	"sort"
 	"sync/atomic"
@@ -922,15 +921,23 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 	if err := validateProofValues(s, req.NewValidProofValues, req.NewMissedProofValues); err != nil {
 		return err
 	}
+	// TODO: support selling of token fields back to the host (i.e. make negative values for the following parameters sensible).
+	// In such case, money flows from the host to the renter.
+	// This is interesting concept, but before implementing it we have to consider all the possible outcomes, including speculating storage price.
+	// This idea needs deeper economic comprehension.
+	if req.BytesAmount <= 0 {
+		return errors.New("negative bytes amount is requested, but selling bytes back is not yet implemented")
+	}
+	if req.SectorAccesses <= 0 {
+		return errors.New("negative sector accesses number is requested, but selling sector accessess back is not yet implemented")
+	}
 
 	// Construct the new revision.
 	newRevision := buildNewRevision(currentRevision, req.NewRevisionNumber, req.NewValidProofValues, req.NewMissedProofValues)
 
 	// Calculate expected cost and verify against renter's revision.
-	var bandwidthCost big.Int
-	bandwidthCost.Mul(settings.DownloadBandwidthPrice.Big(), &req.BytesAmount)
-	var sectorAccessCost big.Int
-	sectorAccessCost.Mul(settings.SectorAccessPrice.Big(), &req.SectorAccesses)
+	bandwidthCost := settings.DownloadBandwidthPrice.Mul64(uint64(req.BytesAmount))
+	sectorAccessCost := settings.SectorAccessPrice.Mul64(uint64(req.SectorAccesses))
 	totalCost := settings.BaseRPCPrice.Add(bandwidthCost).Add(sectorAccessCost)
 	err := verifyPaymentRevision(currentRevision, newRevision, blockHeight, totalCost)
 	if err != nil {
@@ -950,7 +957,6 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 		s.writeError(err)
 		return err
 	}
-	hostSig := txn.TransactionSignatures[1].Signature
 
 	// Update the storage obligation.
 	paymentTransfer := currentRevision.NewValidProofOutputs[0].Value.Sub(newRevision.NewValidProofOutputs[0].Value)
