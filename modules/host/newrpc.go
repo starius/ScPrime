@@ -970,8 +970,14 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 		return err
 	}
 
-	// TODO: save token to tokens storage here.
-
+	// Save changes to token storage.
+	id := tokenID(req.Token)
+	if err := h.tokenStor.addBytes(&id, req.BytesAmount); err != nil {
+		return err
+	}
+	if err := h.tokenStor.addSectors(&id, req.SectorAccesses); err != nil {
+		return err
+	}
 	return nil
 }
 
