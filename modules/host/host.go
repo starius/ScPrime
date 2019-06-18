@@ -67,6 +67,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -80,6 +81,8 @@ import (
 )
 
 const (
+	// Directory name for token storage.
+	tokenStorDir = "token_storage"
 	// Names of the various persistent files in the host.
 	dbFilename   = modules.HostDir + ".db"
 	logFile      = modules.HostDir + ".log"
@@ -166,6 +169,9 @@ type Host struct {
 	// storage obligations can be long-running, and each storage obligation can
 	// be locked separately.
 	lockedStorageObligations map[types.FileContractID]*siasync.TryMutex
+
+	// Storage of tokens for prepaid downloads.
+	tokenStor *tokenStorage
 
 	// Utilities.
 	db         *persist.BoltDatabase
@@ -254,6 +260,19 @@ func newHost(dependencies modules.Dependencies, cs modules.ConsensusSet, g modul
 
 	// Create the perist directory if it does not yet exist.
 	err = dependencies.MkdirAll(h.persistDir, 0700)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenStorageDir := filepath.Join(h.persistDir, tokenStorDir)
+	if _, err := os.Stat(tokenStorageDir); os.IsNotExist(err) {
+		// Create the token storage directory if it does not yet exist.
+		if err := os.Mkdir(tokenStorageDir, 0755); err != nil {
+			return nil, err
+		}
+	}
+	// Initialize token storage.
+	h.tokenStor, err = newTokenStorage(tokenStorageDir)
 	if err != nil {
 		return nil, err
 	}
