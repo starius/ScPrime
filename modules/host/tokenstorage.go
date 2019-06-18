@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 
 	"github.com/pkg/errors"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 const (
@@ -21,8 +22,10 @@ var (
 	errInvalidDataSize = errors.New("invalid data size")
 )
 
+type tokenID [tokenNameSize]byte
+
 type tokenKey struct {
-	name [tokenNameSize]byte
+	name tokenID
 }
 
 func (k *tokenKey) unmarshalBinary(data []byte) error {
@@ -66,4 +69,93 @@ func (r *tokenRecord) marshalBinary() ([]byte, error) {
 	binary.PutVarint(buf[:8], r.bytesAmount)
 	binary.PutVarint(buf[8:16], r.sectorAccesses)
 	return buf, nil
+}
+
+type tokenStorage struct {
+	db *leveldb.DB
+}
+
+func newTokenStorage(path string) (*tokenStorage, error) {
+	db, err := leveldb.OpenFile(path, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &tokenStorage{db: db}, nil
+}
+
+func (s *tokenStorage) tokenRecord(id *tokenID) (*tokenRecord, error) {
+	key := tokenKey{*id}
+	keyBytes, err := key.marshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	recordBytes, err := s.db.Get(keyBytes, nil)
+	if err != nil {
+		return nil, err
+	}
+	var record tokenRecord
+	if err := record.unmarshalBinary(recordBytes); err != nil {
+		return nil, err
+	}
+	return &record, nil
+}
+
+func (s *tokenStorage) bytesAmount(id *tokenID) (int64, error) {
+	record, err := s.tokenRecord(id)
+	if err != nil {
+		return 0, err
+	}
+	return record.bytesAmount, nil
+}
+
+func (s *tokenStorage) sectorsAmount(id *tokenID) (int64, error) {
+	record, err := s.tokenRecord(id)
+	if err != nil {
+		return 0, err
+	}
+	return record.sectorAccesses, nil
+}
+
+func (s *tokenStorage) setTokenRecord(id *tokenID, r *tokenRecord) error {
+	key := tokenKey{*id}
+	keyBytes, err := key.marshalBinary()
+	if err != nil {
+		return err
+	}
+	recordBytes, err := r.marshalBinary()
+	if err != nil {
+		return err
+	}
+	if err := s.db.Put(keyBytes, recordBytes, nil); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *tokenStorage) addBytes(id *tokenID, amount int64) error {
+	record, err := s.tokenRecord(id)
+	if err == leveldb.ErrNotFound {
+		// Fresh record.
+		record = &tokenRecord{}
+	} else if err != nil {
+		return err
+	}
+	record.bytesAmount += amount
+	return s.setTokenRecord(id, record)
+}
+
+func (s *tokenStorage) addSectors(id *tokenID, amount int64) error {
+	record, err := s.tokenRecord(id)
+	if err == leveldb.ErrNotFound {
+		// Fresh record.
+		record = &tokenRecord{}
+	} else if err != nil {
+		return err
+	}
+	record.sectorAccesses += amount
+	return s.setTokenRecord(id, record)
+}
+
+func (s *tokenStorage) close() error {
+	return s.db.Close()
 }
