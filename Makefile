@@ -26,17 +26,19 @@ dependencies:
 	go get -u gitlab.com/NebulousLabs/ratelimit
 	go get -u gitlab.com/NebulousLabs/threadgroup
 	go get -u gitlab.com/NebulousLabs/writeaheadlog
-	go get -u github.com/klauspost/reedsolomon
-	go get -u github.com/julienschmidt/httprouter
-	go get -u github.com/inconshreveable/go-update
-	go get -u github.com/kardianos/osext
-	go get -u github.com/inconshreveable/mousetrap
-	go get -u github.com/go-sql-driver/mysql
-	go get -u github.com/lib/pq
-	go get github.com/sasha-s/go-deadlock/...
 	go get -u github.com/dchest/threefish
-	go get -u golang.org/x/crypto/curve25519
+	go get -u github.com/go-sql-driver/mysql
+	go get -u github.com/inconshreveable/go-update
+	go get -u github.com/inconshreveable/mousetrap
+	go get -u github.com/julienschmidt/httprouter
+	go get -u github.com/kardianos/osext
+	go get -u github.com/klauspost/reedsolomon
+	go get -u github.com/lib/pq
+	go get -u github.com/stretchr/testify
+	go get -u github.com/syndtr/goleveldb/leveldb
 	go get -u golang.org/x/crypto/chacha20poly1305
+	go get -u golang.org/x/crypto/curve25519
+	go get github.com/sasha-s/go-deadlock/...
 	# Frontend Dependencies
 	go get -u golang.org/x/crypto/ssh/terminal
 	go get -u github.com/spf13/cobra/doc
