@@ -464,21 +464,33 @@ func buildNewRevision(
 	return newRevision
 }
 
-func estimateCost(settings *modules.HostExternalSettings, sections []modules.LoopReadRequestSection) types.Currency {
-	var estBandwidth uint64
+func estimateSectorsAccesses(sections []modules.LoopReadRequestSection) int64 {
 	sectorAccesses := make(map[crypto.Hash]struct{})
+	for _, sec := range sections {
+		sectorAccesses[sec.MerkleRoot] = struct{}{}
+	}
+	return int64(len(sectorAccesses))
+}
+
+func estimateBandwidth(sections []modules.LoopReadRequestSection) int64 {
+	var estBandwidth int64
 	for _, sec := range sections {
 		// use the worst-case proof size of 2*tree depth (this occurs when
 		// proving across the two leaves in the center of the tree)
 		estHashesPerProof := 2 * bits.Len64(modules.SectorSize/crypto.SegmentSize)
-		estBandwidth += uint64(sec.Length) + uint64(estHashesPerProof*crypto.HashSize)
-		sectorAccesses[sec.MerkleRoot] = struct{}{}
+		estBandwidth += int64(sec.Length) + int64(estHashesPerProof*crypto.HashSize)
 	}
 	if estBandwidth < modules.RPCMinLen {
 		estBandwidth = modules.RPCMinLen
 	}
-	bandwidthCost := settings.DownloadBandwidthPrice.Mul64(estBandwidth)
-	sectorAccessCost := settings.SectorAccessPrice.Mul64(uint64(len(sectorAccesses)))
+	return estBandwidth
+}
+
+func estimateCost(settings *modules.HostExternalSettings, sections []modules.LoopReadRequestSection) types.Currency {
+	estBandwidth := estimateBandwidth(sections)
+	sectorAccesses := estimateSectorsAccesses(sections)
+	bandwidthCost := settings.DownloadBandwidthPrice.Mul64(uint64(estBandwidth))
+	sectorAccessCost := settings.SectorAccessPrice.Mul64(uint64(sectorAccesses))
 	totalCost := settings.BaseRPCPrice.Add(bandwidthCost).Add(sectorAccessCost)
 	return totalCost
 }
@@ -889,7 +901,7 @@ func (h *Host) managedRPCLoopSectorRoots(s *rpcSession) error {
 	return nil
 }
 
-// managedRPCLoopTopUpToken creates/adds money to the token specified
+// managedRPCLoopTopUpToken creates/adds resources to the token specified
 // in the request. It also creates new contract revision.
 func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 	s.extendDeadline(modules.NegotiateSettingsTime)
@@ -981,8 +993,8 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 	return nil
 }
 
-// managedRPCLoopDownloadWithToken downloads data paying to the host with money from the token.
-// Does not create new contract revision, just decreases the amount of money on the token.
+// managedRPCLoopDownloadWithToken downloads data paying to the host using the token.
+// Does not create new contract revision, just decreases the amount of resources on the token.
 func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 	s.extendDeadline(modules.NegotiateDownloadTime)
 
@@ -995,5 +1007,86 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 		return err
 	}
 
-	return nil
+	// As soon as we finish reading the request, we must begin listening for
+	// RPCLoopDownloadWithTokenStop, which may arrive at any time, and must arrive before the
+	// RPC is considered complete.
+	stopSignal := make(chan error, 1)
+	startListeningForStopSignal(s, stopSignal, &modules.RPCLoopDownloadWithTokenStop)
+
+	// Validate the request.
+	if err := validateSections(s, req.MerkleProof, req.Sections); err != nil {
+		return err
+	}
+
+	// Make sure token has enough resources to handle this RPC call.
+	id := tokenID(req.Token)
+	estBandwidth := estimateBandwidth(req.Sections)
+	sectorAccesses := estimateSectorsAccesses(req.Sections)
+	availableBandwidth, err := h.tokenStor.bytesAmount(&id)
+	if err != nil {
+		s.writeError(err)
+		return err
+	}
+	if availableBandwidth < estBandwidth {
+		err := errors.New("Token does not have enough bytes available to handle the requested amount of downloading")
+		s.writeError(err)
+		return err
+	}
+	availableSectors, err := h.tokenStor.sectorsAmount(&id)
+	if err != nil {
+		s.writeError(err)
+		return err
+	}
+	if availableSectors < sectorAccesses {
+		err := errors.New("Token does not have enough sector accesses available to handle this request")
+		s.writeError(err)
+		return err
+	}
+	// Decrease token resources.
+	if err := h.tokenStor.addBytes(&id, -estBandwidth); err != nil {
+		s.writeError(err)
+		return err
+	}
+	if err := h.tokenStor.addSectors(&id, -sectorAccesses); err != nil {
+		s.writeError(err)
+		return err
+	}
+
+	// Enter response loop.
+	for _, sec := range req.Sections {
+		// Fetch the requested data.
+		sectorData, err := h.ReadSector(sec.MerkleRoot)
+		if err != nil {
+			s.writeError(err)
+			return err
+		}
+		data := sectorData[sec.Offset : sec.Offset+sec.Length]
+
+		// Construct the Merkle proof, if requested.
+		var proof []crypto.Hash
+		if req.MerkleProof {
+			proofStart := int(sec.Offset) / crypto.SegmentSize
+			proofEnd := int(sec.Offset+sec.Length) / crypto.SegmentSize
+			proof = crypto.MerkleRangeProof(sectorData, proofStart, proofEnd)
+		}
+
+		// Send the response.
+		resp := modules.LoopDownloadWithTokenResponse{
+			Data:        data,
+			MerkleProof: proof,
+		}
+		select {
+		case err := <-stopSignal:
+			if err != nil {
+				return err
+			}
+			return s.writeResponse(resp)
+		default:
+		}
+		if err := s.writeResponse(resp); err != nil {
+			return err
+		}
+	}
+	// The stop signal must arrive before RPC is complete.
+	return <-stopSignal
 }

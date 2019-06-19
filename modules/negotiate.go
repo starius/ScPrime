@@ -353,7 +353,8 @@ var (
 
 // Read interrupt
 var (
-	RPCLoopReadStop = types.Specifier{'R', 'e', 'a', 'd', 'S', 't', 'o', 'p'}
+	RPCLoopReadStop              = types.Specifier{'R', 'e', 'a', 'd', 'S', 't', 'o', 'p'}
+	RPCLoopDownloadWithTokenStop = types.Specifier{'D', 'o', 'w', 'n', 'l', 'o', 'a', 'd', 'S', 't', 'o', 'p'}
 )
 
 var (
@@ -560,7 +561,6 @@ type (
 
 	// LoopDownloadWithTokenResponse contains the response data for RPCLoopDownloadWithToken.
 	LoopDownloadWithTokenResponse struct {
-		Signature   []byte
 		Data        []byte
 		MerkleProof []crypto.Hash
 	}
