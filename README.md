@@ -20,19 +20,9 @@ with Sia core developers to deliver live products as soon as the protocol can
 support them. As time passes, we expect the SiaPrime protocol to diverge from 
 the Sia protocol in some ways as we build an industrial strength version.
 
-Traditional cloud storage is dominated by a small number of companies, with
-most based in Silicon Valley. China is also dominated by a few entities
-creating region specific barriers and firewalls. The individual companies
-decide what level of encryption to offer to users, usually based on the price
-each customer is willing to pay. All of the companies are compliant with
-national laws and even sometimes, with assisting governmental entities to
-restrict or compromise user data. They maintain strict control over customer
-data in ways that can jeopardize customer security and privacy.
-
-We are rapidly seeing a public desire to retake control of private data.
-Users are demanding companies explain their policies in data gathering and use.
-SiaPrime is an important initiative to provide companies, organizations and 
-individuals a comprehensive cloud storage environment uncompromised by inside 
+Traditional cloud storage is dominated by a small number of companies.
+SiaPrime is an initiative to provide small and medium sized business (SMB) a 
+comprehensive cloud storage environment uncompromised by inside 
 or outside interference. This is achieved through fragmenting user data and 
 spreading it across a distributed network of hosts. No single datacenter has 
 access to your complete data.
@@ -42,15 +32,12 @@ disappear, your data is still accessible. Switching to different hosts for
 better geographic coverage, price, speed or reliability is easy as hosts 
 compete with each other to provide the best service offering. 
 
-As we develop and release our product suite for customers, SiaPrime will 
-offer a complete cloud storage solution for file backup, long term archival 
-needs, CDN use cases as well as bridging the gap between online and offline 
-strategies. 
-
-The SiaPrime network allows for highly parallel data transfer, which when 
-coupled with geographic targeting can significantly reduce latency and access 
-to your data no matter if you are storing family photos or large database 
-backups.
+SiaPrime will offer a complete cloud storage solution for file backup, long term 
+archival needs, CDN use cases as well as bridging the gap between online and 
+offline strategies. The SiaPrime network allows for highly parallel data transfer, 
+which when coupled with geographic targeting can significantly reduce latency
+and access to your data no matter if you are storing family photos or large 
+database backups.
 
 The process of choosing hosts on the SiaPrime network allows customers to 
 choose based on latency, lowest price, widest geographic coverage, or even a 
@@ -60,18 +47,10 @@ Dropbox-like web interfaces up to sophisticated client dashboards for
 enterprise clients.
 
 Purchasing storage on the network will have several variants, though all 
-ultimately use our core cryptocurrency utility token called a PrimeToken. 
-PrimeTokens will be available on cryptocurrency exchanges. We will also be 
+ultimately use our core cryptocurrency utility coin called a SiaPrime Coin. 
+SiaPrime Coins will be available on cryptocurrency exchanges. We will also be 
 creating fiat to storage gateways to encourage broad adoption of the SiaPrime 
 storage model. 
-
-Because SiaPrime is based on the core SiaPrime protocol, we expect SiaPrime software 
-and custom integrations to  facilitate purchase of storage on the main SiaPrime 
-network as well as SiaPrime project forks that continue to use the core protocol. 
-As the protocol becomes widely used, it is likely individual SiaPrime blockchains
-will experience typical scaling issues. Though we expect the Nebulous team to 
-work on solutions, multiple chains/networks have the potential to ease scaling 
-issues while providing another layer of redundancy and privacy. 
 
 
 Usage
