@@ -1,4 +1,4 @@
-# [![SiaPrime Logo](https://siaprime.net/imagestore/primelogo_cb_256x256.png)](http://siaprime.net) v1.3.8
+# [![SiaPrime Logo](https://siaprime.net/imagestore/SPRho_256x256.png)](http://siaprime.net) v1.4.0
 
 [![Build Status](https://gitlab.com/SiaPrime/SiaPrime/badges/master/build.svg)](https://gitlab.com/SiaPrime/SiaPrime/commits/master)
 [![Coverage Report](https://gitlab.com/SiaPrime/SiaPrime/badges/master/coverage.svg)](https://gitlab.com/SiaPrime/SiaPrime/commits/master)
@@ -15,13 +15,10 @@ Hosts can include everyone from individual hobbyists up to enterprise-scale
 datacenters with excess capacity to sell. 
 
 The SiaPrime protocol currently provides very basic storage capability. We expect
-the SiaPrime product suite will begin to roll out in 2019 as we work in parallel
-with SiaPrime core developers to deliver live products as soon as the protocol can 
-support them. As they build key features into the network, we'll extend
-into an easy-to-use application suite with versions geared at different
-customer profiles and market verticals.
-
-![UI](https://gitlab.com/SiaPrime/SiaPrime/raw/master/doc/assets/prime_wallet.png)
+the SiaPrime product suite will begin to roll out in 2020 as we work in parallel
+with Sia core developers to deliver live products as soon as the protocol can 
+support them. As time passes, we expect the SiaPrime protocol to diverge from 
+the Sia protocol in some ways as we build an industrial strength version.
 
 Traditional cloud storage is dominated by a small number of companies, with
 most based in Silicon Valley. China is also dominated by a few entities
@@ -55,7 +52,6 @@ coupled with geographic targeting can significantly reduce latency and access
 to your data no matter if you are storing family photos or large database 
 backups.
 
-
 The process of choosing hosts on the SiaPrime network allows customers to 
 choose based on latency, lowest price, widest geographic coverage, or even a 
 strict whitelist of IP addresses or public keys. We expect to provide customers 
@@ -71,22 +67,11 @@ storage model.
 
 Because SiaPrime is based on the core SiaPrime protocol, we expect SiaPrime software 
 and custom integrations to  facilitate purchase of storage on the main SiaPrime 
-network as well as SiaPrime project forks that continue to use the core protocol. As 
-the protocol becomes widely used, it is likely individual SiaPrime blockchains will 
-experience typical scaling issues. Though we expect the Nebulous team to work 
-on solutions, multiple chains/networks have the potential to ease scaling 
+network as well as SiaPrime project forks that continue to use the core protocol. 
+As the protocol becomes widely used, it is likely individual SiaPrime blockchains
+will experience typical scaling issues. Though we expect the Nebulous team to 
+work on solutions, multiple chains/networks have the potential to ease scaling 
 issues while providing another layer of redundancy and privacy. 
-
-
-To get started with SiaPrime, check out the initial SiaPrime guides below. The 
-interface is the same except for our branding. As we launch our own product 
-suite, the core application should still exist but be less useful:
-
-Check out the guides below:
-
-- [How to Store Data on SiaPrime](https://blog.sia.tech/getting-started-with-private-decentralized-cloud-storage-c9565dc8c854)
-- [How to Become a SiaPrime Host](https://blog.sia.tech/how-to-run-a-host-on-sia-2159ebc4725)
-- [Using the SiaPrime API](https://blog.sia.tech/api-quickstart-guide-f1d160c05235)
 
 
 Usage
