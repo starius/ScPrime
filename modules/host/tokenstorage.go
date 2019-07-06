@@ -8,6 +8,9 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
+// TODO: the current version of tokens storage does not support reverting blocks.
+// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
+
 const (
 	tokenNameSize   = 32
 	tokenKeySize    = 1 + tokenNameSize

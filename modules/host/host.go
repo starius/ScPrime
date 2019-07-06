@@ -272,6 +272,8 @@ func newHost(dependencies modules.Dependencies, cs modules.ConsensusSet, g modul
 		}
 	}
 	// Initialize token storage.
+	// TODO: the current version of tokens storage does not support reverting blocks.
+	// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
 	h.tokenStor, err = newTokenStorage(tokenStorageDir)
 	if err != nil {
 		return nil, err
