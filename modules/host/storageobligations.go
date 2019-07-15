@@ -1054,6 +1054,7 @@ func (h *Host) StorageObligations() (sos []modules.StorageObligation) {
 				RiskedCollateral:         so.RiskedCollateral,
 				SectorRootsCount:         uint64(len(so.SectorRoots)),
 				TransactionFeesAdded:     so.TransactionFeesAdded,
+				TransactionID:            so.transactionID(),
 
 				ExpirationHeight:  so.expiration(),
 				NegotiationHeight: so.NegotiationHeight,
