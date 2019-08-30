@@ -25,6 +25,6 @@ require (
 	gitlab.com/NebulousLabs/merkletree v0.0.0-20190207030457-bc4a11e31a0d
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20180716154200-1308156c2eaf
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20180716154133-88a11db9e46c
-	gitlab.com/SiaPrime/writeaheadlog v0.0.0-00010101000000-000000000000
+	gitlab.com/SiaPrime/writeaheadlog v0.0.0-20190830195947-8d9d57b6e40f // indirect
 	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
 )

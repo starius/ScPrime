@@ -140,8 +140,8 @@ gitlab.com/NebulousLabs/ratelimit v0.0.0-20180716154200-1308156c2eaf h1:B0oWvYNY
 gitlab.com/NebulousLabs/ratelimit v0.0.0-20180716154200-1308156c2eaf/go.mod h1:vowDA1cdvtWW678ugB7L/yKT2pCN37aH6zYp9NF5Isc=
 gitlab.com/NebulousLabs/threadgroup v0.0.0-20180716154133-88a11db9e46c h1:psW9YBmnyKKCddPncr7mwJCx6n7FzlIs1EWIiSo7fyQ=
 gitlab.com/NebulousLabs/threadgroup v0.0.0-20180716154133-88a11db9e46c/go.mod h1:w05nvlkvHlk3Vfc7mcU29Toic1X0BcYUnKoTHS0ea2Y=
-gitlab.com/SiaPrime/writeaheadlog v0.0.0-20180919184411-4f883ffbdd01 h1:+OHp3N5WOpApfCIsXenZtFlqOgazB59SBxdYZgTZIj8=
-gitlab.com/SiaPrime/writeaheadlog v0.0.0-20180919184411-4f883ffbdd01/go.mod h1:ieuPu3BGFWgUigjfNfW21pZRxMQ86s6vFRv7VG1x9dY=
+gitlab.com/SiaPrime/writeaheadlog v0.0.0-20190830195947-8d9d57b6e40f h1:ajRtAmgueMOKseu/fHcfjzsBtSDHEbY9GSqKXT9Pzbo=
+gitlab.com/SiaPrime/writeaheadlog v0.0.0-20190830195947-8d9d57b6e40f/go.mod h1:ieuPu3BGFWgUigjfNfW21pZRxMQ86s6vFRv7VG1x9dY=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/multierr v1.1.0/go.mod h1:wR5kodmAFQ0UK8QlbwjlSNy0Z68gJhDJUG5sjR94q/0=
