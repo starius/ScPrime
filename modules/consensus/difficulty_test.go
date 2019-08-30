@@ -4,9 +4,9 @@ import (
 	"math/big"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	bolt "github.com/coreos/bbolt"
 
-	"github.com/coreos/bbolt"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // TestChildTargetOak checks the childTargetOak function, especially for edge

@@ -23,11 +23,13 @@ type (
 		NextAddress() (types.UnlockConditions, error)
 		PrimarySeed() (modules.Seed, uint64, error)
 		StartTransaction() (modules.TransactionBuilder, error)
+		Unlocked() (bool, error)
 	}
 	wallet interface {
 		NextAddress() (types.UnlockConditions, error)
 		PrimarySeed() (modules.Seed, uint64, error)
 		StartTransaction() (transactionBuilder, error)
+		Unlocked() (bool, error)
 	}
 	transactionBuilder interface {
 		AddArbitraryData([]byte) uint64
@@ -58,9 +60,12 @@ type (
 		Host(types.SiaPublicKey) (modules.HostDBEntry, bool)
 		IncrementSuccessfulInteractions(key types.SiaPublicKey)
 		IncrementFailedInteractions(key types.SiaPublicKey)
-		RandomHosts(n int, blacklist, addressBlacklist []types.SiaPublicKey, filterSubnet bool) ([]modules.HostDBEntry, error)
+		RandomHosts(n int, blacklist, addressBlacklist []types.SiaPublicKey) ([]modules.HostDBEntry, error)
+		UpdateContracts([]modules.RenterContract) error
 		ScoreBreakdown(modules.HostDBEntry) (modules.HostScoreBreakdown, error)
 		SetAllowance(allowance modules.Allowance) error
+		IPViolationsCheck() bool
+		SetIPViolationCheck(enabled bool)
 	}
 
 	persister interface {
@@ -85,6 +90,9 @@ func (ws *WalletBridge) PrimarySeed() (modules.Seed, uint64, error) { return ws.
 // StartTransaction creates a new transactionBuilder that can be used to create
 // and sign a transaction.
 func (ws *WalletBridge) StartTransaction() (transactionBuilder, error) { return ws.W.StartTransaction() }
+
+// Unlocked reports whether the wallet bridge is unlocked.
+func (ws *WalletBridge) Unlocked() (bool, error) { return ws.W.Unlocked() }
 
 // stdPersist implements the persister interface. The filename required by
 // these functions is internal to stdPersist.

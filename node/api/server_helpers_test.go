@@ -13,6 +13,9 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/threadgroup"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/config"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
@@ -29,9 +32,6 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/threadgroup"
 )
 
 // A Server is a collection of siad modules that can be communicated with over
@@ -107,13 +107,19 @@ func (srv *Server) Serve() error {
 // the empty string. Usernames are ignored for authentication. This type of
 // authentication sends passwords in plaintext and should therefore only be
 // used if the APIaddr is localhost.
-func NewServer(APIaddr string, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, mp modules.Pool, sm modules.StratumMiner, i modules.Index) (*Server, error) {
+func NewServer(dir string, APIaddr string, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, mp modules.Pool, sm modules.StratumMiner, i modules.Index) (*Server, error) {
 	listener, err := net.Listen("tcp", APIaddr)
 	if err != nil {
 		return nil, err
 	}
 
-	api := New(requiredUserAgent, requiredPassword, cs, e, g, h, m, r, tp, w, mp, sm, i)
+	// Load the config file.
+	cfg, err := modules.NewConfig(filepath.Join(dir, "siad.config"))
+	if err != nil {
+		return nil, errors.AddContext(err, "failed to load siad config")
+	}
+
+	api := New(cfg, requiredUserAgent, requiredPassword, cs, e, g, h, m, r, tp, w, mp, sm, i)
 	srv := &Server{
 		api: api,
 		apiServer: &http.Server{
@@ -195,7 +201,8 @@ func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, 
 	if err != nil {
 		return nil, err
 	}
-	srv, err := NewServer("localhost:0", "SiaPrime-Agent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
+
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +226,7 @@ func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, 
 	// TODO: A more reasonable way of listening for server errors.
 	go func() {
 		listenErr := srv.Serve()
-		if listenErr != nil {
+		if listenErr != nil && !strings.Contains(listenErr.Error(), "ThreadGroup already stopped") {
 			panic(listenErr)
 		}
 	}()
@@ -279,6 +286,7 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 	if err != nil {
 		return nil, err
 	}
+
 	var mp *pool.Pool
 	var idx *index.Index
 	if withPool {
@@ -291,7 +299,8 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 			return nil, err
 		}
 	}
-	srv, err := NewServer("localhost:0", "SiaPrime-Agent", requiredPassword, cs, nil, g, h, m, r, tp, w, mp, nil, idx)
+	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", requiredPassword, cs, nil, g, h, m, r, tp, w, mp, nil, idx)
+
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +354,7 @@ func assembleExplorerServerTester(testdir string) (*serverTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	srv, err := NewServer("localhost:0", "", "", cs, e, g, nil, nil, nil, nil, nil, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "", "", cs, e, g, nil, nil, nil, nil, nil, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -434,6 +443,7 @@ func createAuthenticatedServerTester(name string, password string, withPool bool
 
 	key := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
 	st, err := assembleAuthenticatedServerTester(password, key, testdir, withPool)
+
 	if err != nil {
 		return nil, err
 	}

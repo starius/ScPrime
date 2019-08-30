@@ -6,10 +6,11 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/NebulousLabs/writeaheadlog"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/SiaPrime/writeaheadlog"
 )
 
 // TestSiaFileFaultyDisk simulates interacting with a SiaFile on a faulty disk.
@@ -34,8 +35,11 @@ func TestSiaFileFaultyDisk(t *testing.T) {
 	fdd.disable()
 
 	// Create a new blank siafile.
-	sf, wal, walPath := newBlankTestFileAndWAL()
-	sf.deps = fdd
+	siafile, wal, walPath := newBlankTestFileAndWAL()
+	siafile.deps = fdd
+
+	// Wrap it in a file set entry.
+	sf := dummyEntry(siafile)
 
 	// Create 50 hostkeys from which to choose from.
 	hostkeys := make([]types.SiaPublicKey, 0, 50)
@@ -74,8 +78,18 @@ OUTER:
 			// 80% chance to add a piece.
 			if fastrand.Intn(100) < 80 {
 				spk := hostkeys[fastrand.Intn(len(hostkeys))]
-				offset := uint64(fastrand.Intn(int(sf.staticMetadata.StaticFileSize)))
-				chunkIndex, _ := sf.Snapshot().ChunkIndexByOffset(offset)
+				offset := uint64(fastrand.Intn(int(sf.staticMetadata.FileSize)))
+				snap, err := sf.Snapshot()
+				if err != nil {
+					if errors.Contains(err, errDiskFault) {
+						numRecoveries++
+						break
+					}
+					// If the error wasn't caused by the dependency, the test
+					// fails.
+					t.Fatal(err)
+				}
+				chunkIndex, _ := snap.ChunkIndexByOffset(offset)
 				pieceIndex := uint64(fastrand.Intn(sf.staticMetadata.staticErasureCode.NumPieces()))
 				if err := sf.AddPiece(spk, chunkIndex, pieceIndex, crypto.Hash{}); err != nil {
 					if errors.Contains(err, errDiskFault) {
@@ -129,7 +143,7 @@ OUTER:
 				}
 			}
 			// Load file again.
-			sf, err = loadSiaFile(sf.siaFilePath, wal, fdd)
+			siafile, err = loadSiaFile(sf.siaFilePath, wal, fdd)
 			if err != nil {
 				if errors.Contains(err, errDiskFault) {
 					numRecoveries++
@@ -138,7 +152,8 @@ OUTER:
 					t.Fatal(err)
 				}
 			}
-			sf.deps = fdd
+			siafile.deps = fdd
+			sf = dummyEntry(siafile)
 			break
 		}
 

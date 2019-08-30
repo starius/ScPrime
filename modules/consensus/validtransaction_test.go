@@ -3,12 +3,11 @@ package consensus
 import (
 	"testing"
 
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"github.com/coreos/bbolt"
 )
 
 // TestTryValidTransactionSet submits a valid transaction set to the

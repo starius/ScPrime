@@ -8,17 +8,18 @@ package host
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"github.com/coreos/bbolt"
 )
 
 var (
@@ -204,9 +205,15 @@ func TestBlankStorageObligation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fm = ht.host.FinancialMetrics()
-	if fm.ContractCount != 0 {
-		t.Error("host should have 0 contracts, the contracts were all completed:", fm.ContractCount)
+	err = build.Retry(100, 100*time.Millisecond, func() error {
+		fm = ht.host.FinancialMetrics()
+		if fm.ContractCount != 0 {
+			return fmt.Errorf("host should have 0 contracts, the contracts were all completed: %v", fm.ContractCount)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -82,13 +82,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
 )
 
 type (
@@ -105,7 +105,7 @@ type (
 
 		// downloadCompleteFunc is a slice of functions which are called when
 		// completeChan is closed.
-		downloadCompleteFuncs []downloadCompleteFunc
+		downloadCompleteFuncs []func(error) error
 
 		// Timestamp information.
 		endTime         time.Time // Set immediately before closing 'completeChan'.
@@ -144,12 +144,12 @@ type (
 		overdrive     int           // How many extra pieces to download to prevent slow hosts from being a bottleneck.
 		priority      uint64        // Files with a higher priority will be downloaded first.
 	}
-
-	// downloadCompleteFunc is a function called upon completion of the
-	// download. It accepts an error as an argument and returns an error. That
-	// way it's possible to add custom behavior for failing downloads.
-	downloadCompleteFunc func(error) error
 )
+
+// managedCancel cancels a download by marking it as failed.
+func (d *download) managedCancel() {
+	d.managedFail(modules.ErrDownloadCancelled)
+}
 
 // managedFail will mark the download as complete, but with the provided error.
 // If the download has already failed, the error will be updated to be a
@@ -206,11 +206,13 @@ func (d *download) markComplete() {
 // functions are executed in the same order as they are registered and waiting
 // for the download's completeChan to be closed implies that the registered
 // functions were executed.
-func (d *download) onComplete(f downloadCompleteFunc) {
+func (d *download) onComplete(f func(error) error) {
 	select {
 	case <-d.completeChan:
-		err := f(d.err)
-		d.log.Println("Failed to execute downloadCompleteFunc", err)
+		if err := f(d.err); err != nil {
+			d.log.Println("Failed to execute downloadCompleteFunc", err)
+		}
+		return
 	default:
 	}
 	d.downloadCompleteFuncs = append(d.downloadCompleteFuncs, f)
@@ -240,7 +242,7 @@ func (d *download) Err() (err error) {
 // functions are executed in the same order as they are registered and waiting
 // for the download's completeChan to be closed implies that the registered
 // functions were executed.
-func (d *download) OnComplete(f downloadCompleteFunc) {
+func (d *download) OnComplete(f func(error) error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.onComplete(f)
@@ -268,13 +270,19 @@ func (r *Renter) Download(p modules.RenterDownloadParameters) error {
 
 // DownloadAsync performs a file download using the passed parameters without
 // blocking until the download is finished.
-func (r *Renter) DownloadAsync(p modules.RenterDownloadParameters) error {
+func (r *Renter) DownloadAsync(p modules.RenterDownloadParameters, f func(error) error) (cancel func(), err error) {
 	if err := r.tg.Add(); err != nil {
-		return err
+		return nil, err
 	}
 	defer r.tg.Done()
-	_, err := r.managedDownload(p)
-	return err
+	d, err := r.managedDownload(p)
+	if err != nil {
+		return nil, err
+	}
+	if f != nil {
+		d.onComplete(f)
+	}
+	return d.managedCancel, err
 }
 
 // managedDownload performs a file download using the passed parameters and
@@ -329,7 +337,7 @@ func (r *Renter) managedDownload(p modules.RenterDownloadParameters) (*download,
 		if err != nil {
 			return nil, err
 		}
-		dw = osFile
+		dw = &downloadDestinationFile{deps: r.deps, f: osFile, staticChunkSize: int64(entry.ChunkSize())}
 		destinationType = "file"
 	}
 
@@ -342,12 +350,18 @@ func (r *Renter) managedDownload(p modules.RenterDownloadParameters) (*download,
 		}
 	}
 
+	// Prepare snapshot.
+	snap, err := entry.Snapshot()
+	if err != nil {
+		return nil, err
+	}
+
 	// Create the download object.
 	d, err := r.managedNewDownload(downloadParams{
 		destination:       dw,
 		destinationType:   destinationType,
 		destinationString: p.Destination,
-		file:              entry.SiaFile.Snapshot(),
+		file:              snap,
 
 		latencyTarget: 25e3 * time.Millisecond, // TODO: high default until full latency support is added.
 		length:        p.Length,
@@ -368,6 +382,10 @@ func (r *Renter) managedDownload(p modules.RenterDownloadParameters) (*download,
 		// close the destination if possible.
 		if closer, ok := dw.(io.Closer); ok {
 			return closer.Close()
+		}
+		// sanity check that we close files.
+		if destinationType == "file" {
+			build.Critical("file wasn't closed after download")
 		}
 		return nil
 	})
@@ -464,7 +482,7 @@ func (r *Renter) managedNewDownload(params downloadParams) (*download, error) {
 				// the same chunk.
 				_, exists := chunkMaps[chunkIndex-minChunk][piece.HostPubKey.String()]
 				if exists {
-					r.log.Println("ERROR: Worker has multiple pieces uploaded for the same chunk.")
+					r.log.Println("ERROR: Worker has multiple pieces uploaded for the same chunk.", params.file.SiaPath(), chunkIndex, pieceIndex, piece.HostPubKey.String())
 				}
 				chunkMaps[chunkIndex-minChunk][piece.HostPubKey.String()] = downloadPieceInfo{
 					index: uint64(pieceIndex),
@@ -506,9 +524,8 @@ func (r *Renter) managedNewDownload(params downloadParams) (*download, error) {
 			physicalChunkData: make([][]byte, params.file.ErasureCode().NumPieces()),
 			pieceUsage:        make([]bool, params.file.ErasureCode().NumPieces()),
 
-			download:          d,
-			renterFile:        params.file,
-			staticStreamCache: r.staticStreamCache,
+			download:   d,
+			renterFile: params.file,
 		}
 
 		// Set the fetchOffset - the offset within the chunk that we start
@@ -570,7 +587,7 @@ func (r *Renter) DownloadHistory() []modules.DownloadInfo {
 			DestinationType: d.staticDestinationType,
 			Length:          d.staticLength,
 			Offset:          d.staticOffset,
-			SiaPath:         d.staticSiaPath.String(),
+			SiaPath:         d.staticSiaPath,
 
 			Completed:            d.staticComplete(),
 			EndTime:              d.endTime,

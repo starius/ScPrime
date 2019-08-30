@@ -1,10 +1,13 @@
 Miner API
 =========
 
-This document contains detailed descriptions of the miner's API routes. For an
-overview of the miner's API routes, see [API.md#miner](/doc/API.md#miner).  For
-an overview of all API routes, see [API.md](/doc/API.md)
+The Sia API documentation can be found here:
+[Sia API](https://sia.tech/docs/ "Sia API")
 
+<<<<<<< HEAD
+Updates to the API documentation can be made here:
+[Sia API markdown](./index.html.md "Sia API markdown")
+=======
 There may be functional API calls which are not documented. These are not
 guaranteed to be supported beyond the current release, and should not be used
 in production.
@@ -122,3 +125,4 @@ The request body should contain only the 80 bytes of the encoded header. The
 encoding is the same encoding used in `/miner/header [GET]` endpoint. Refer to
 [#byte-response](#byte-response) for a detailed description of the byte
 encoding.
+>>>>>>> siaprime/master

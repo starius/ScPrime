@@ -5,11 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"github.com/coreos/bbolt"
 )
 
 // TestRescan triggers a rescan in the transaction pool, verifying that the

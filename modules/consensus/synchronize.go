@@ -1,10 +1,11 @@
 package consensus
 
 import (
-	"gitlab.com/NebulousLabs/errors"
 	"net"
 	"sync"
 	"time"
+
+	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
@@ -12,7 +13,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	"github.com/coreos/bbolt"
+	bolt "github.com/coreos/bbolt"
 )
 
 const (

@@ -4,10 +4,9 @@ package consensus
 // compatibility with the test suite.
 
 import (
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"github.com/coreos/bbolt"
 )
 
 // dbBlockHeight is a convenience function allowing blockHeight to be called
@@ -98,9 +97,6 @@ func (cs *ConsensusSet) getArbSiacoinOutput() (scoid types.SiacoinOutputID, sco 
 	})
 	if dbErr != nil {
 		panic(dbErr)
-	}
-	if err != nil {
-		return types.SiacoinOutputID{}, types.SiacoinOutput{}, err
 	}
 	return scoid, sco, nil
 }

@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
 	"golang.org/x/crypto/ssh/terminal"
 
-	"gitlab.com/NebulousLabs/entropy-mnemonics"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"

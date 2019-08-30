@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/node"
 	"gitlab.com/SiaPrime/SiaPrime/siatest"
+	"gitlab.com/SiaPrime/SiaPrime/siatest/dependencies"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
@@ -555,5 +557,50 @@ func TestWalletLastAddresses(t *testing.T) {
 		if addresses[i] != wlag.Addresses[len(wlag.Addresses)-1-i] {
 			t.Fatal("addresses don't match for i =", i)
 		}
+	}
+}
+
+// TestWalletSendUnsynced confirms that the wallet will return an error when
+// trying to send siacoins or siafunds if the consensus is not fully synced
+func TestWalletSendUnsynced(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+
+	// Create a wallet with an unsynced consensus dependency
+	testDir := walletTestDir(t.Name())
+	walletTemplate := node.Wallet(testDir + "/wallet")
+	walletTemplate.WalletDeps = &dependencies.DependencyUnsyncedConsensus{}
+	walletTemplate.CreateMiner = true
+	wallet, err := siatest.NewNode(walletTemplate)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check error returned from siacoins multi post
+	_, err = wallet.WalletSiacoinsMultiPost([]types.SiacoinOutput{})
+	if err == nil {
+		t.Fatal("expected an error to be returned for not being synced")
+	}
+	if !strings.Contains(err.Error(), "cannot send siacoin until fully synced") {
+		t.Fatal("expected to get synced error but got:", err)
+	}
+
+	// Check error returned from single siacoin post
+	_, err = wallet.WalletSiacoinsPost(types.ZeroCurrency, types.UnlockHash{})
+	if err == nil {
+		t.Fatal("expected an error to be returned for not being synced")
+	}
+	if !strings.Contains(err.Error(), "cannot send siacoin until fully synced") {
+		t.Fatal("expected to get synced error but got:", err)
+	}
+
+	// Check error returned from siafund post
+	_, err = wallet.WalletSiafundsPost(types.ZeroCurrency, types.UnlockHash{})
+	if err == nil {
+		t.Fatal("expected an error to be returned for not being synced")
+	}
+	if !strings.Contains(err.Error(), "cannot send siafunds until fully synced") {
+		t.Fatal("expected to get synced error but got:", err)
 	}
 }

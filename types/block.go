@@ -106,8 +106,19 @@ func CalculateNumSiacoins(height BlockHeight) Currency {
 	}
 	deflationSiacoins := avgDeflationSiacoins.Mul(NewCurrency64(uint64(deflationBlocks + 1)))
 	trailingSiacoins := NewCurrency64(uint64(height - deflationBlocks)).Mul(CalculateCoinbase(height))
-	return airdropCoins.Add(deflationSiacoins.Add(trailingSiacoins))
+	return airdropCoins.Add(deflationSiacoins).Add(trailingSiacoins)
 }
+
+var numGenesisSiacoins = func() Currency {
+	// Sum all the values for the genesis siacoin outputs.
+	numGenesisSiacoins := NewCurrency64(0)
+	for _, transaction := range GenesisBlock.Transactions {
+		for _, siacoinOutput := range transaction.SiacoinOutputs {
+			numGenesisSiacoins = numGenesisSiacoins.Add(siacoinOutput.Value)
+		}
+	}
+	return numGenesisSiacoins
+}()
 
 // ID returns the ID of a Block, which is calculated by hashing the header.
 func (h BlockHeader) ID() BlockID {

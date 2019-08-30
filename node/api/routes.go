@@ -12,11 +12,22 @@ import (
 // buildHttpRoutes sets up and returns an * httprouter.Router.
 // it connected the Router to the given api using the required
 // parameters: requiredUserAgent and requiredPassword
-func (api *API) buildHTTPRoutes(requiredUserAgent string, requiredPassword string) {
+func (api *API) buildHTTPRoutes() {
 	router := httprouter.New()
+	requiredPassword := api.requiredPassword
+	requiredUserAgent := api.requiredUserAgent
 
 	router.NotFound = http.HandlerFunc(UnrecognizedCallHandler)
 	router.RedirectTrailingSlash = false
+
+	// Daemon API Calls
+	router.GET("/daemon/constants", api.daemonConstantsHandler)
+	router.GET("/daemon/version", api.daemonVersionHandler)
+	router.GET("/daemon/update", api.daemonUpdateHandlerGET)
+	router.POST("/daemon/update", api.daemonUpdateHandlerPOST)
+	router.GET("/daemon/stop", RequirePassword(api.daemonStopHandler, requiredPassword))
+	router.GET("/daemon/settings", api.daemonSettingsHandlerGET)
+	router.POST("/daemon/settings", api.daemonSettingsHandlerPOST)
 
 	// Consensus API Calls
 	if api.cs != nil {
@@ -83,14 +94,16 @@ func (api *API) buildHTTPRoutes(requiredUserAgent string, requiredPassword strin
 	if api.renter != nil {
 		router.GET("/renter", api.renterHandlerGET)
 		router.POST("/renter", RequirePassword(api.renterHandlerPOST, requiredPassword))
-		router.POST("/renter/backup", RequirePassword(api.renterBackupHandlerPOST, requiredPassword))
-		router.POST("/renter/recoverbackup", RequirePassword(api.renterLoadBackupHandlerPOST, requiredPassword))
+		router.GET("/renter/backups", RequirePassword(api.renterBackupsHandlerGET, requiredPassword))
+		router.POST("/renter/backups/create", RequirePassword(api.renterBackupsCreateHandlerPOST, requiredPassword))
+		router.POST("/renter/backups/restore", RequirePassword(api.renterBackupsRestoreHandlerGET, requiredPassword))
 		router.POST("/renter/contract/cancel", RequirePassword(api.renterContractCancelHandler, requiredPassword))
 		router.GET("/renter/contracts", api.renterContractsHandler)
 		router.GET("/renter/downloads", api.renterDownloadsHandler)
 		router.POST("/renter/downloads/clear", RequirePassword(api.renterClearDownloadsHandler, requiredPassword))
 		router.GET("/renter/files", api.renterFilesHandler)
 		router.GET("/renter/file/*siapath", api.renterFileHandlerGET)
+		router.POST("/renter/file/*siapath", RequirePassword(api.renterFileHandlerPOST, requiredPassword))
 		router.GET("/renter/prices", api.renterPricesHandler)
 		router.POST("/renter/recoveryscan", RequirePassword(api.renterRecoveryScanHandlerPOST, requiredPassword))
 		router.GET("/renter/recoveryscan", api.renterRecoveryScanHandlerGET)
@@ -104,11 +117,13 @@ func (api *API) buildHTTPRoutes(requiredUserAgent string, requiredPassword strin
 
 		router.POST("/renter/delete/*siapath", RequirePassword(api.renterDeleteHandler, requiredPassword))
 		router.GET("/renter/download/*siapath", RequirePassword(api.renterDownloadHandler, requiredPassword))
+		router.POST("/renter/download/cancel", RequirePassword(api.renterCancelDownloadHandler, requiredPassword))
 		router.GET("/renter/downloadasync/*siapath", RequirePassword(api.renterDownloadAsyncHandler, requiredPassword))
 		router.POST("/renter/rename/*siapath", RequirePassword(api.renterRenameHandler, requiredPassword))
 		router.GET("/renter/stream/*siapath", api.renterStreamHandler)
 		router.POST("/renter/upload/*siapath", RequirePassword(api.renterUploadHandler, requiredPassword))
-		router.POST("/renter/file/*siapath", RequirePassword(api.renterFileHandlerPOST, requiredPassword))
+		router.POST("/renter/uploadstream/*siapath", RequirePassword(api.renterUploadStreamHandler, requiredPassword))
+		router.POST("/renter/validatesiapath/*siapath", RequirePassword(api.renterValidateSiaPathHandler, requiredPassword))
 
 		// Directory endpoints
 		router.POST("/renter/dir/*siapath", RequirePassword(api.renterDirHandlerPOST, requiredPassword))
@@ -119,7 +134,12 @@ func (api *API) buildHTTPRoutes(requiredUserAgent string, requiredPassword strin
 		router.GET("/hostdb/active", api.hostdbActiveHandler)
 		router.GET("/hostdb/all", api.hostdbAllHandler)
 		router.GET("/hostdb/hosts/:pubkey", api.hostdbHostsHandler)
+		router.GET("/hostdb/filtermode", api.hostdbFilterModeHandlerGET)
 		router.POST("/hostdb/filtermode", RequirePassword(api.hostdbFilterModeHandlerPOST, requiredPassword))
+
+		// Deprecated endpoints.
+		router.POST("/renter/backup", RequirePassword(api.renterBackupHandlerPOST, requiredPassword))
+		router.POST("/renter/recoverbackup", RequirePassword(api.renterLoadBackupHandlerPOST, requiredPassword))
 	}
 
 	if api.stratumminer != nil {
@@ -171,7 +191,9 @@ func (api *API) buildHTTPRoutes(requiredUserAgent string, requiredPassword strin
 	}
 
 	// Apply UserAgent middleware and return the Router
+	api.routerMu.Lock()
 	api.router = cleanCloseHandler(RequireUserAgent(router, requiredUserAgent))
+	api.routerMu.Unlock()
 	return
 }
 

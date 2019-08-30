@@ -27,6 +27,7 @@ func (newStub) Unsubscribe(modules.ConsensusSetSubscriber) { return }
 func (newStub) NextAddress() (uc types.UnlockConditions, err error)          { return }
 func (newStub) PrimarySeed() (modules.Seed, uint64, error)                   { return modules.Seed{}, 0, nil }
 func (newStub) StartTransaction() (tb modules.TransactionBuilder, err error) { return }
+func (newStub) Unlocked() (bool, error)                                      { return true, nil }
 
 // transaction pool stubs
 func (newStub) AcceptTransactionSet([]types.Transaction) error      { return nil }
@@ -43,13 +44,19 @@ func (newStub) SetFilterMode(fm modules.FilterMode, hosts []types.SiaPublicKey) 
 func (newStub) Host(types.SiaPublicKey) (settings modules.HostDBEntry, ok bool)       { return }
 func (newStub) IncrementSuccessfulInteractions(key types.SiaPublicKey)                { return }
 func (newStub) IncrementFailedInteractions(key types.SiaPublicKey)                    { return }
-func (newStub) RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey, bool) ([]modules.HostDBEntry, error) {
+func (newStub) RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
 	return nil, nil
 }
 func (newStub) ScoreBreakdown(modules.HostDBEntry) (modules.HostScoreBreakdown, error) {
 	return modules.HostScoreBreakdown{}, nil
 }
 func (newStub) SetAllowance(allowance modules.Allowance) error { return nil }
+func (newStub) UpdateContracts([]modules.RenterContract) error { return nil }
+func (newStub) SetIPViolationCheck(enabled bool)               {}
+func (newStub) IPViolationsCheck() bool {
+	return false
+	//hdb.hostTree.FilterByIPEnabled()
+}
 
 // TestNew tests the New function.
 func TestNew(t *testing.T) {
@@ -124,13 +131,20 @@ func (stubHostDB) Host(types.SiaPublicKey) (h modules.HostDBEntry, ok bool)     
 func (stubHostDB) IncrementSuccessfulInteractions(key types.SiaPublicKey)                { return }
 func (stubHostDB) IncrementFailedInteractions(key types.SiaPublicKey)                    { return }
 func (stubHostDB) PublicKey() (spk types.SiaPublicKey)                                   { return }
-func (stubHostDB) RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey, bool) (hs []modules.HostDBEntry, _ error) {
+func (stubHostDB) RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey) (hs []modules.HostDBEntry, _ error) {
 	return
 }
 func (stubHostDB) ScoreBreakdown(modules.HostDBEntry) (modules.HostScoreBreakdown, error) {
 	return modules.HostScoreBreakdown{}, nil
 }
 func (stubHostDB) SetAllowance(allowance modules.Allowance) error { return nil }
+func (stubHostDB) UpdateContracts([]modules.RenterContract) error { return nil }
+
+func (stubHostDB) SetIPViolationCheck(enabled bool) {}
+func (stubHostDB) IPViolationsCheck() bool {
+	return false
+	//hdb.hostTree.FilterByIPEnabled()
+}
 
 // TestAllowanceSpending verifies that the contractor will not spend more or
 // less than the allowance if uploading causes repeated early renewal, and that
@@ -164,7 +178,7 @@ func TestAllowanceSpending(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = build.Retry(50, 100*time.Millisecond, func() error {
-		hosts, err := c.hdb.RandomHosts(1, nil, nil, false)
+		hosts, err := c.hdb.RandomHosts(1, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -308,7 +322,7 @@ func TestIntegrationSetAllowance(t *testing.T) {
 	}
 
 	// wait for hostdb to scan
-	hosts, err := c.hdb.RandomHosts(1, nil, nil, false)
+	hosts, err := c.hdb.RandomHosts(1, nil, nil)
 	if err != nil {
 		t.Fatal("failed to get hosts", err)
 	}
@@ -700,6 +714,7 @@ func (ws *testWalletShim) StartTransaction() (modules.TransactionBuilder, error)
 	ws.startTxnCalled = true
 	return nil, nil
 }
+func (ws *testWalletShim) Unlocked() (bool, error) { return true, nil }
 
 // TestWalletBridge tests the walletBridge type.
 func TestWalletBridge(t *testing.T) {

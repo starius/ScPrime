@@ -4,11 +4,10 @@ package consensus
 // There is an assumption that the transaction has already been verified.
 
 import (
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"github.com/coreos/bbolt"
 )
 
 // applySiacoinInputs takes all of the siacoin inputs in a transaction and

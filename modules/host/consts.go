@@ -95,8 +95,12 @@ var (
 
 	// defaultContractPrice defines the default price of creating a contract
 	// with the host. The current default is 0.1. This was chosen since it is
+	// the minimum fee estimation of the transactionpool for a filecontract
+	// transaction..
 	// the minimum fee estimation of the transactionpool for 10e3 bytes.
 	defaultContractPrice = types.SiacoinPrecision.Div64(10) // 0.1 SCP
+	// TODO: Check this Sia contract price estimation later:
+	//	defaultContractPrice = types.SiacoinPrecision.Div64(100).Div64(1e3).Mul64(modules.EstimatedFileContractRevisionAndProofTransactionSetSize)
 
 	// defaultDownloadBandwidthPrice defines the default price of upload
 	// bandwidth. The default is set to 500 SCP per gigabyte, because

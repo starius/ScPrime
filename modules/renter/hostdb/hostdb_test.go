@@ -41,9 +41,11 @@ type hdbTester struct {
 // dependencies or scanning threads. It is only intended for use in unit tests.
 func bareHostDB() *HostDB {
 	hdb := &HostDB{
-		log: persist.NewLogger(ioutil.Discard),
+		allowance:      modules.DefaultAllowance,
+		log:            persist.NewLogger(ioutil.Discard),
+		knownContracts: make(map[string]contractInfo),
 	}
-	hdb.weightFunc = hdb.managedCalculateHostWeightFn(modules.DefaultAllowance)
+	hdb.weightFunc = hdb.managedCalculateHostWeightFn(hdb.allowance)
 	hdb.hostTree = hosttree.New(hdb.weightFunc, &modules.ProductionResolver{})
 	hdb.filteredTree = hosttree.New(hdb.weightFunc, &modules.ProductionResolver{})
 	return hdb
@@ -51,10 +53,9 @@ func bareHostDB() *HostDB {
 
 // makeHostDBEntry makes a new host entry with a random public key
 func makeHostDBEntry() modules.HostDBEntry {
-	dbe := modules.HostDBEntry{}
+	dbe := DefaultHostDBEntry
 	_, pk := crypto.GenerateKeyPair()
 
-	dbe.AcceptingContracts = true
 	dbe.PublicKey = types.Ed25519PublicKey(pk)
 	dbe.ScanHistory = modules.HostDBScans{{
 		Timestamp: time.Now(),
@@ -220,7 +221,7 @@ func TestRandomHosts(t *testing.T) {
 
 	// Check that all hosts can be queried.
 	for i := 0; i < 25; i++ {
-		hosts, err := hdbt.hdb.RandomHosts(nEntries, nil, nil, false)
+		hosts, err := hdbt.hdb.RandomHosts(nEntries, nil, nil)
 		if err != nil {
 			t.Fatal("Failed to get hosts", err)
 		}
@@ -243,7 +244,7 @@ func TestRandomHosts(t *testing.T) {
 
 	// Base case, fill out a map exposing hosts from a single RH query.
 	dupCheck1 := make(map[string]modules.HostDBEntry)
-	hosts, err := hdbt.hdb.RandomHosts(nEntries/2, nil, nil, false)
+	hosts, err := hdbt.hdb.RandomHosts(nEntries/2, nil, nil)
 	if err != nil {
 		t.Fatal("Failed to get hosts", err)
 	}
@@ -267,7 +268,7 @@ func TestRandomHosts(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		dupCheck2 := make(map[string]modules.HostDBEntry)
 		var overlap, disjoint bool
-		hosts, err = hdbt.hdb.RandomHosts(nEntries/2, nil, nil, false)
+		hosts, err = hdbt.hdb.RandomHosts(nEntries/2, nil, nil)
 		if err != nil {
 			t.Fatal("Failed to get hosts", err)
 		}
@@ -301,7 +302,7 @@ func TestRandomHosts(t *testing.T) {
 	// Try exclude list by excluding every host except for the last one, and
 	// doing a random select.
 	for i := 0; i < 25; i++ {
-		hosts, err := hdbt.hdb.RandomHosts(nEntries, nil, nil, false)
+		hosts, err := hdbt.hdb.RandomHosts(nEntries, nil, nil)
 		if err != nil {
 			t.Fatal("Failed to get hosts", err)
 		}
@@ -309,7 +310,7 @@ func TestRandomHosts(t *testing.T) {
 		for j := 1; j < len(hosts); j++ {
 			exclude = append(exclude, hosts[j].PublicKey)
 		}
-		rand, err := hdbt.hdb.RandomHosts(1, exclude, nil, false)
+		rand, err := hdbt.hdb.RandomHosts(1, exclude, nil)
 		if err != nil {
 			t.Fatal("Failed to get hosts", err)
 		}
@@ -321,7 +322,7 @@ func TestRandomHosts(t *testing.T) {
 		}
 
 		// Try again but request more hosts than are available.
-		rand, err = hdbt.hdb.RandomHosts(5, exclude, nil, false)
+		rand, err = hdbt.hdb.RandomHosts(5, exclude, nil)
 		if err != nil {
 			t.Fatal("Failed to get hosts", err)
 		}
@@ -343,7 +344,7 @@ func TestRandomHosts(t *testing.T) {
 
 		// Select only 20 hosts.
 		dupCheck := make(map[string]struct{})
-		rand, err = hdbt.hdb.RandomHosts(20, exclude, nil, false)
+		rand, err = hdbt.hdb.RandomHosts(20, exclude, nil)
 		if err != nil {
 			t.Fatal("Failed to get hosts", err)
 		}
@@ -364,7 +365,7 @@ func TestRandomHosts(t *testing.T) {
 
 		// Select exactly 50 hosts.
 		dupCheck = make(map[string]struct{})
-		rand, err = hdbt.hdb.RandomHosts(50, exclude, nil, false)
+		rand, err = hdbt.hdb.RandomHosts(50, exclude, nil)
 		if err != nil {
 			t.Fatal("Failed to get hosts", err)
 		}
@@ -385,7 +386,7 @@ func TestRandomHosts(t *testing.T) {
 
 		// Select 100 hosts.
 		dupCheck = make(map[string]struct{})
-		rand, err = hdbt.hdb.RandomHosts(100, exclude, nil, false)
+		rand, err = hdbt.hdb.RandomHosts(100, exclude, nil)
 		if err != nil {
 			t.Fatal("Failed to get hosts", err)
 		}

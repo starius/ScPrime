@@ -540,7 +540,7 @@ func TestCallingRPCFromRPC(t *testing.T) {
 
 	select {
 	case <-barChan:
-	case <-time.After(500 * time.Millisecond):
+	case <-time.After(1 * time.Second):
 		t.Fatal("expected BAR RPC to be called")
 	}
 }
