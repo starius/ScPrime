@@ -211,6 +211,9 @@ func (cs *ConsensusSet) managedReceiveBlocks(conn modules.PeerConn) (returnErr e
 		// Read a slice of blocks from the wire.
 		var newBlocks []types.Block
 		if err := encoding.ReadObject(conn, &newBlocks, uint64(MaxCatchUpBlocks)*types.BlockSizeLimit); err != nil {
+			if err.Error() == "timeout" {
+				return errSendBlocksStalled
+			}
 			return err
 		}
 		if err := encoding.ReadObject(conn, &moreAvailable, 1); err != nil {

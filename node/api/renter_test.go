@@ -1178,6 +1178,17 @@ func TestRenterPricesHandler(t *testing.T) {
 	if err = st.announceHost(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Set an allowance for the renter, allowing a contract to be formed.
+	allowanceValues := url.Values{}
+	allowanceValues.Set("funds", testFunds)
+	allowanceValues.Set("period", testPeriod)
+	allowanceValues.Set("renewwindow", testRenewWindow)
+	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
+	if err = st.stdPostAPI("/renter", allowanceValues); err != nil {
+		t.Fatal(err)
+	}
+
 	if err = st.getAPI("/renter/prices", &rpeSingle); err != nil {
 		t.Fatal(err)
 	}
@@ -1255,6 +1266,17 @@ func TestRenterPricesHandlerPricey(t *testing.T) {
 	if err = st.announceHost(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Set an allowance for the renter, allowing a contract to be formed.
+	allowanceValues := url.Values{}
+	allowanceValues.Set("funds", testFunds)
+	allowanceValues.Set("period", testPeriod)
+	allowanceValues.Set("renewwindow", testRenewWindow)
+	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
+	if err = st.stdPostAPI("/renter", allowanceValues); err != nil {
+		t.Fatal(err)
+	}
+
 	if err = st.getAPI("/renter/prices", &rpeSingle); err != nil {
 		t.Fatal(err)
 	}

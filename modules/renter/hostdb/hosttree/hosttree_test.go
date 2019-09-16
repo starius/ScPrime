@@ -562,11 +562,17 @@ func TestHostTreeFilter(t *testing.T) {
 		return newCustomScoreBreakdown(types.NewCurrency64(uint64(10)))
 	}, testHostTreeFilterResolver{})
 
-	// Insert host1 and host3. Only a single host should be returned.
+	// Insert host1 and host3. Only a single host should be returned if IPFiltering switched on
+	// and both if IPFilter switched off
 	tree.Insert(entry1)
 	tree.Insert(entry3)
+	tree.SetFilterByIPEnabled(true)
 	if numHosts := len(tree.SelectRandom(2, nil, nil)); numHosts != 1 {
-		t.Error("Expected only one host but was", numHosts)
+		t.Error("Expected only one host with FilterByIP enabled but was", numHosts)
+	}
+	tree.SetFilterByIPEnabled(false)
+	if numHosts := len(tree.SelectRandom(2, nil, nil)); numHosts != 2 {
+		t.Error("Expected two hosts with FilterByIP disabled but was", numHosts)
 	}
 
 	// Add host2 to the tree to have all 3 hosts in it.

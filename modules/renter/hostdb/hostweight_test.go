@@ -207,11 +207,6 @@ func TestHostWeightCollateralDifferences(t *testing.T) {
 
 	entry := DefaultHostDBEntry
 	entry2 := DefaultHostDBEntry
-
-	entry.RemainingStorage = 250e3
-	entry.StoragePrice = types.NewCurrency64(1000).Mul(types.SiacoinPrecision)
-	entry.Collateral = types.NewCurrency64(1000).Mul(types.SiacoinPrecision)
-
 	entry2.Collateral = types.NewCurrency64(500).Mul(types.SiacoinPrecision)
 
 	w1 := hdb.weightFunc(entry).Score()
@@ -234,15 +229,14 @@ func TestHostWeightStorageRemainingDifferences(t *testing.T) {
 	entry.PublicKey.Key = fastrand.Bytes(16)
 	entry2 := DefaultHostDBEntry
 	entry2.PublicKey.Key = fastrand.Bytes(16)
-	entry2.RemainingStorage = 50e3
-	w1 := hdb.weightFunc(entry).Score()
-	w2 := hdb.weightFunc(entry2).Score()
 
 	// The first entry has more storage remaining than the second.
 	entry.RemainingStorage = modules.DefaultAllowance.ExpectedStorage // 1e12
 	entry2.RemainingStorage = 1e3
 
 	// The entry with more storage should have the higher score.
+	w1 := hdb.weightFunc(entry).Score()
+	w2 := hdb.weightFunc(entry2).Score()
 	if w1.Cmp(w2) <= 0 {
 		t.Log(w1)
 		t.Log(w2)
@@ -254,7 +248,10 @@ func TestHostWeightStorageRemainingDifferences(t *testing.T) {
 	// the entries. This entry should have the higher score.
 	entry.RemainingStorage = 1e3
 	entry2.RemainingStorage = 1e3
-	hdb.knownContracts[entry.PublicKey.String()] = contractInfo{StoredData: hdb.allowance.ExpectedStorage}
+	hdb.knownContracts[entry.PublicKey.String()] = contractInfo{
+		HostPublicKey: entry.PublicKey,
+		StoredData:    hdb.allowance.ExpectedStorage,
+	}
 	w1 = hdb.weightFunc(entry).Score()
 	w2 = hdb.weightFunc(entry2).Score()
 	if w1.Cmp(w2) <= 0 {

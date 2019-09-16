@@ -218,7 +218,19 @@ func TestRandomHosts(t *testing.T) {
 			t.Error(err)
 		}
 	}
+	insertedEntries := hdbt.hdb.filteredTree.All()
+	if len(insertedEntries) != len(entries) {
+		t.Errorf("Inserted %v entries and got stored %v entries.", len(entries), len(insertedEntries))
+	}
 
+	hdbt.hdb.initialScanComplete = true
+	complete, err := hdbt.hdb.InitialScanComplete()
+	if !complete {
+		t.Error("InitialScanComplete should be true")
+	}
+	if err != nil {
+		t.Fatal("Failed to get InitialScanComplete()", err)
+	}
 	// Check that all hosts can be queried.
 	for i := 0; i < 25; i++ {
 		hosts, err := hdbt.hdb.RandomHosts(nEntries, nil, nil)
@@ -618,6 +630,8 @@ func TestCheckForIPViolations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	hdbt.hdb.SetIPViolationCheck(true)
 
 	// Scan the entries. entry1 should be the 'oldest' and entry3 the
 	// 'youngest'. This also inserts the entries into the hosttree.

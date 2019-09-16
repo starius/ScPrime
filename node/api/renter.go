@@ -463,12 +463,15 @@ func (api *API) renterHandlerGET(w http.ResponseWriter, req *http.Request, _ htt
 	})
 }
 
-// renterHandlerPOST handles the API call to set the Renter's settings.
+// renterHandlerPOST handles the API call to set the Renter's settings. This API
+// call handles multiple settings and so each setting is optional on it's own.
+// Groups of settings, such as the allowance, have certain requirements if they
+// are being set in which case certain fields are no longer optional.
 func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	// Get the existing settings
 	settings := api.renter.Settings()
 
-	// Scan the allowance amount. (optional parameter)
+	// Scan for all allowance fields
 	if f := req.FormValue("funds"); f != "" {
 		funds, ok := scanAmount(f)
 		if !ok {
@@ -486,12 +489,8 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 		} else if hosts != 0 && hosts < requiredHosts {
 			WriteError(w, Error{fmt.Sprintf("insufficient number of hosts, need at least %v but have %v", requiredHosts, hosts)}, http.StatusBadRequest)
 			return
-		} else {
-			settings.Allowance.Hosts = hosts
 		}
-	} else if settings.Allowance.Hosts == 0 {
-		// Sane defaults if host haven't been set before.
-		settings.Allowance.Hosts = modules.DefaultAllowance.Hosts
+		settings.Allowance.Hosts = hosts
 	}
 	// Scan the period. (optional parameter)
 	if p := req.FormValue("period"); p != "" {
@@ -1005,8 +1004,7 @@ func (api *API) renterFilesHandler(w http.ResponseWriter, req *http.Request, _ h
 // renterPricesHandler reports the expected costs of various actions given the
 // renter settings and the set of available hosts.
 func (api *API) renterPricesHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	settings := api.renter.Settings()
-
+	allowance := modules.Allowance{}
 	// Scan the allowance amount. (optional parameter)
 	if f := req.FormValue("funds"); f != "" {
 		funds, ok := scanAmount(f)
@@ -1014,7 +1012,7 @@ func (api *API) renterPricesHandler(w http.ResponseWriter, req *http.Request, ps
 			WriteError(w, Error{"unable to parse funds"}, http.StatusBadRequest)
 			return
 		}
-		settings.Allowance.Funds = funds
+		allowance.Funds = funds
 	}
 	// Scan the number of hosts to use. (optional parameter)
 	if h := req.FormValue("hosts"); h != "" {
@@ -1025,7 +1023,7 @@ func (api *API) renterPricesHandler(w http.ResponseWriter, req *http.Request, ps
 		} else if hosts != 0 && hosts < requiredHosts {
 			WriteError(w, Error{fmt.Sprintf("insufficient number of hosts, need at least %v but have %v", modules.DefaultAllowance.Hosts, hosts)}, http.StatusBadRequest)
 		} else {
-			settings.Allowance.Hosts = hosts
+			allowance.Hosts = hosts
 		}
 	}
 	// Scan the period. (optional parameter)
@@ -1035,7 +1033,7 @@ func (api *API) renterPricesHandler(w http.ResponseWriter, req *http.Request, ps
 			WriteError(w, Error{"unable to parse period: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		settings.Allowance.Period = types.BlockHeight(period)
+		allowance.Period = types.BlockHeight(period)
 	}
 	// Scan the renew window. (optional parameter)
 	if rw := req.FormValue("renewwindow"); rw != "" {
@@ -1047,43 +1045,33 @@ func (api *API) renterPricesHandler(w http.ResponseWriter, req *http.Request, ps
 			WriteError(w, Error{fmt.Sprintf("renew window is too small, must be at least %v blocks but have %v blocks", requiredRenewWindow, renewWindow)}, http.StatusBadRequest)
 			return
 		} else {
-			settings.Allowance.RenewWindow = types.BlockHeight(renewWindow)
+			allowance.RenewWindow = types.BlockHeight(renewWindow)
 		}
-	}
-	// Scan the IP subnet filter filter option. (optional parameter)
-	if f := req.FormValue("filterhostssubnet"); f != "" {
-		var filterHostsSubnet bool
-		if _, err := fmt.Sscan(f, &filterHostsSubnet); err != nil {
-			WriteError(w, Error{"unable to parse filterhostssubnet"}, http.StatusBadRequest)
-			return
-		}
-		//allowance.FilterHostsSubnet = filterHostsSubnet
-		settings.IPViolationsCheck = filterHostsSubnet
 	}
 
 	// Check for partially set allowance, which can happen since hosts and renew
 	// window can be optional fields. Checking here instead of assigning values
 	// above so that an empty allowance can still be submitted
-	if !reflect.DeepEqual(settings.Allowance, modules.Allowance{}) {
-		if settings.Allowance.Funds.Cmp(types.ZeroCurrency) == 0 {
+	if !reflect.DeepEqual(allowance, modules.Allowance{}) {
+		if allowance.Funds.Cmp(types.ZeroCurrency) == 0 {
 			WriteError(w, Error{fmt.Sprint("Allowance not set correctly, `funds` parameter left empty")}, http.StatusBadRequest)
 			return
 		}
-		if settings.Allowance.Period == 0 {
+		if allowance.Period == 0 {
 			WriteError(w, Error{fmt.Sprint("Allowance not set correctly, `period` parameter left empty")}, http.StatusBadRequest)
 			return
 		}
-		if settings.Allowance.Hosts == 0 {
+		if allowance.Hosts == 0 {
 			WriteError(w, Error{fmt.Sprint("Allowance not set correctly, `hosts` parameter left empty")}, http.StatusBadRequest)
 			return
 		}
-		if settings.Allowance.RenewWindow == 0 {
+		if allowance.RenewWindow == 0 {
 			WriteError(w, Error{fmt.Sprint("Allowance not set correctly, `renewwindow` parameter left empty")}, http.StatusBadRequest)
 			return
 		}
 	}
 
-	estimate, a, err := api.renter.PriceEstimation(settings.Allowance)
+	estimate, a, err := api.renter.PriceEstimation(allowance)
 	if err != nil {
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return

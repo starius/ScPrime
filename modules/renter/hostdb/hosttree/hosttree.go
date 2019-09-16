@@ -369,8 +369,6 @@ func (ht *HostTree) SelectRandom(n int, blacklist, addressBlacklist []types.SiaP
 			node.entry.ScanHistory[len(node.entry.ScanHistory)-1].Success &&
 			!filter.Filtered(node.entry.NetAddress) &&
 			node.entry.weight.Cmp(weightOne) > 0 {
-			// TODO check for IPViolations or filtersubnet if not checked elsewhere!
-			//			(!filterSubnet || !filter.Filtered(node.entry.NetAddress)) {
 			// The host must be online and accepting contracts to be returned
 			// by the random function. It also has to pass the addressFilter
 			// check.
@@ -430,14 +428,16 @@ func (ht *HostTree) insert(hdbe modules.HostDBEntry) error {
 	return nil
 }
 
-// Enables or disables the IP filtering (Same subnet IP)
+// SetFilterByIPEnabled enables or disables the host filtering by IP address.
+// If enabled HostTree does not select more than one host from a single IP or
+// the same subnet
 func (ht *HostTree) SetFilterByIPEnabled(enabled bool) {
 	ht.mu.Lock()
 	ht.filterByIP = enabled
 	ht.mu.Unlock()
 }
 
-// Tells if the IP filtering (Same subnet IP) is enabled or not
+// FilterByIPEnabled tells if the IP filtering (Same subnet IP) is enabled or not
 func (ht *HostTree) FilterByIPEnabled() bool {
 	ht.mu.Lock()
 	defer ht.mu.Unlock()

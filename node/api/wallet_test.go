@@ -463,9 +463,9 @@ func TestIntegrationWalletSweepSeedPOST(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Should have swept more than 80 SC
+	// Should have swept more than 80 SCP
 	if wsp.Coins.Cmp(types.SiacoinPrecision.Mul64(80)) <= 0 {
-		t.Fatalf("swept fewer coins (%v SPC) than expected %v+", wsp.Coins.Div(types.SiacoinPrecision), 80)
+		t.Fatalf("swept fewer coins (%v SCP) than expected %v+", wsp.Coins.Div(types.SiacoinPrecision), 80)
 	}
 
 	// Add a block so that the sweep transaction is processed
@@ -698,11 +698,11 @@ func TestWalletTransactionGETid(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var wutgid2 WalletTransactionGETid
-	err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", wtg.UnconfirmedTransactions[1].TransactionID), &wutgid2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	//var wutgid2 WalletTransactionGETid
+	//err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", wtg.UnconfirmedTransactions[1].TransactionID), &wutgid2)
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
 
 	// Check that undocumented API behavior used in Sia-UI still works with
 	// current API.

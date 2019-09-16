@@ -78,6 +78,7 @@ func newTestingHost(testdir string, cs modules.ConsensusSet, tp modules.Transact
 	// configure host to accept contracts
 	settings := h.InternalSettings()
 	settings.AcceptingContracts = true
+	settings.MaxDuration = types.BlockHeight(4 * types.BlocksPerMonth)
 	err = h.SetInternalSettings(settings)
 	if err != nil {
 		return nil, err
