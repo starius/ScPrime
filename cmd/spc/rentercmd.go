@@ -154,7 +154,7 @@ var (
 		Long: `Display the estimated prices of storing files, retrieving files, and creating a set of contracts.
 
 An allowance can be provided for a more accurate estimate, if no allowance is provided the current set allowance will be used,
-and if no allowance is set an allowance of 500SC, 12w period, 50 hosts, and 4w renew window will be used.`,
+and if no allowance is set an allowance of 500SCP, 12w period, 50 hosts, and 4w renew window will be used.`,
 		Run: renterpricescmd,
 	}
 
@@ -165,7 +165,7 @@ and if no allowance is set an allowance of 500SC, 12w period, 50 hosts, and 4w r
 
 If no flags are set you will be walked through the interactive allowance
 setting. To update only certain fields, pass in those values with the
-corresponding field flag, for example '--amount 500SC'.
+corresponding field flag, for example '--amount 500SCP'.
 
 amount is given in currency units (SCP, KS, etc.)
 period is given in either blocks (b), hours (h), days (d), or weeks (w). A
@@ -550,12 +550,7 @@ func rentersetallowancecmd(cmd *cobra.Command, args []string) {
 	}
 	// parse expectedRedundancy
 	if allowanceExpectedRedundancy != "" {
-		er, err := parseFilesize(allowanceExpectedRedundancy)
-		if err != nil {
-			die("Could not parse expected redundancy")
-		}
-		var expectedRedundancy float64
-		_, err = fmt.Sscan(er, &expectedRedundancy)
+		expectedRedundancy, err := strconv.ParseFloat(allowanceExpectedRedundancy, 64)
 		if err != nil {
 			die("Could not parse expected redundancy")
 		}
@@ -598,14 +593,14 @@ func rentersetallowancecmdInteractive(req *client.AllowanceRequestPost, allowanc
 	fmt.Println()
 
 	// funds
-	fmt.Println(`1/8: Funds
-Funds determines the number of siacoins that the renter will spend when forming
-contracts with hosts. The renter will not allocate more than this amount of
-siacoins into the set of contracts each billing period. If the renter spends all
-of the funds but then needs to form new contracts, the renter will wait until
-either until the user increase the allowance funds, or until a new billing
-period is reached. If there are not enough funds to repair all files, then files
-may be at risk of getting lost.
+	fmt.Println(`1/8: Funds 
+Funds determines the number of siaprime coins that the renter will spend when 
+forming contracts with hosts. The renter will not allocate more than this 
+amount of coins into the set of contracts each billing period. If the renter 
+spends all of the funds but then needs to form new contracts, the renter will 
+wait until either until the user increase the allowance funds, or until a new 
+billing period is reached. If there are not enough funds to repair all files, 
+then files may be at risk of getting lost.
 
 Once the allowance is set, the renter will begin forming contracts. This will
 immediately spend a large portion of the allowance, while also leaving a large
@@ -692,12 +687,12 @@ The following units can be used to set the period:
 
 	// hosts
 	fmt.Println(`3/8: Hosts
-Hosts sets the number of hosts that will be used to form the allowance. Sia
-gains most of its resiliancy from having a large number of hosts. More hosts
-will mean both more robustness and higher speeds when using the network, however
-will also result in more memory consumption and higher blockchain fees. It is
-recommended that the default number of hosts be treated as a minimum, and that
-double the default number of default hosts be treated as a maximum.`)
+Hosts sets the number of hosts that will be used to form the allowance. 
+SiaPrime gains most of its resiliancy from having a large number of hosts. More 
+hosts will mean both more robustness and higher speeds when using the network, 
+however will also result in more memory consumption and higher blockchain fees.
+It is recommended that the default number of hosts be treated as a minimum, and 
+that double the default number of default hosts be treated as a maximum.`)
 	fmt.Println()
 	fmt.Println("Current value:", allowance.Hosts)
 	fmt.Println("Default value:", modules.DefaultAllowance.Hosts)
@@ -778,20 +773,21 @@ The following units can be used to set the renew window:
 	// expectedStorage
 	fmt.Println(`5/8: Expected Storage
 Expected storage is the amount of storage that the user expects to keep on the
-Sia network. This value is important to calibrate the spending habits of siad.
-Because Sia is decentralized, there is no easy way for siad to know what the
-real world cost of storage is, nor what the real world price of a siacoin is. To
-overcome this deficiency, siad depends on the user for guidance.
+SiaPrime network. This value is important to calibrate the spending habits of 
+the daemon. Because SiaPrime is decentralized, there is no easy way for spd to 
+know what the real world cost of storage is, nor what the real world price of 
+a siaprimecoin is. To overcome this deficiency, spd depends on the user 
+for guidance.
 
-If the user has a low allowance and a high amount of expected storage, siad will
+If the user has a low allowance and a high amount of expected storage, spd will
 more heavily prioritize cheaper hosts, and will also be more comfortable with
 hosts that post lower amounts of collateral. If the user has a high allowance
-and a low amount of expected storage, siad will prioritize hosts that post more
+and a low amount of expected storage, spd will prioritize hosts that post more
 collateral, as well as giving preference to hosts better overall traits such as
 uptime and age.
 
 Even when the user has a large allowance and a low amount of expected storage,
-siad will try to optimize for saving money; siad tries to meet the users storage
+spd will try to optimize for saving money; spd tries to meet the users storage
 and bandwidth needs while spending significantly less than the overall allowance.`)
 	fmt.Println()
 	fmt.Println("Current value:", filesizeUnits(allowance.ExpectedStorage))
@@ -821,13 +817,13 @@ and bandwidth needs while spending significantly less than the overall allowance
 
 	// expectedUpload
 	fmt.Println(`6/8: Expected Upload
-Expected upload tells siad how much uploading the user expects to do each month.
-If this value is high, siad will more strongly prefer hosts that have a low
-upload bandwidth price. If this value is low, siad will focus on other metrics
+Expected upload tells spd how much uploading the user expects to do each month.
+If this value is high, spd will more strongly prefer hosts that have a low
+upload bandwidth price. If this value is low, spd will focus on other metrics
 than upload bandwidth pricing, because even if the host charges a lot for upload
 bandwidth, it will not impact the total cost to the user very much.
 
-The user should not consider upload bandwidth used during repairs, siad will
+The user should not consider upload bandwidth used during repairs, spd will
 consider repair bandwidth separately.`)
 	fmt.Println()
 	fmt.Println("Current value:", filesizeUnits(allowance.ExpectedUpload*uint64(types.BlocksPerMonth)))
@@ -857,13 +853,13 @@ consider repair bandwidth separately.`)
 
 	// expectedDownload
 	fmt.Println(`7/8: Expected Download
-Expected download tells siad how much downloading the user expects to do each
-month. If this value is high, siad will more strongly prefer hosts that have a
-low download bandwidth price. If this value is low, siad will focus on other
+Expected download tells spd how much downloading the user expects to do each
+month. If this value is high, spd will more strongly prefer hosts that have a
+low download bandwidth price. If this value is low, spd will focus on other
 metrics than download bandwidth pricing, because even if the host charges a lot
 for downloads, it will not impact the total cost to the user very much.
 
-The user should not consider download bandwidth used during repairs, siad will
+The user should not consider download bandwidth used during repairs, spd will
 consider repair bandwidth separately.`)
 	fmt.Println()
 	fmt.Println("Current value:", filesizeUnits(allowance.ExpectedDownload*uint64(types.BlocksPerMonth)))
@@ -908,6 +904,7 @@ how large the files are.`)
 	fmt.Println("Default value:", modules.DefaultAllowance.ExpectedRedundancy)
 
 	var expectedRedundancy float64
+	var err error
 	if allowance.ExpectedRedundancy == 0 {
 		expectedRedundancy = modules.DefaultAllowance.ExpectedRedundancy
 		fmt.Println("Enter desired value below, or leave blank to use default value")
@@ -918,11 +915,7 @@ how large the files are.`)
 	fmt.Print("Expected Redundancy: ")
 	allowanceExpectedRedundancy := readString()
 	if allowanceExpectedRedundancy != "" {
-		er, err := parseFilesize(allowanceExpectedRedundancy)
-		if err != nil {
-			die("Could not parse expected redundancy")
-		}
-		_, err = fmt.Sscan(er, &expectedRedundancy)
+		expectedRedundancy, err = strconv.ParseFloat(allowanceExpectedRedundancy, 64)
 		if err != nil {
 			die("Could not parse expected redundancy")
 		}
@@ -936,7 +929,7 @@ how large the files are.`)
 	return req
 }
 
-// byValue sorts contracts by their value in siacoins, high to low. If two
+// byValue sorts contracts by their value in siaprimecoins, high to low. If two
 // contracts have the same value, they are sorted by their host's address.
 type byValue []api.RenterContract
 
