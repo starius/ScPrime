@@ -174,7 +174,7 @@ func main() {
 	walletInitCmd.Flags().BoolVarP(&initForce, "force", "", false, "destroy the existing wallet and re-encrypt")
 	walletInitSeedCmd.Flags().BoolVarP(&initForce, "force", "", false, "destroy the existing wallet")
 	walletSendCmd.AddCommand(walletSendSiacoinsCmd, walletSendSiafundsCmd)
-	walletUnlockCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Display interactive password prompt even if SIAPRIME_WALLET_PASSWORD is set")
+	walletUnlockCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Display interactive password prompt even if SCPRIME_WALLET_PASSWORD is set")
 	walletBroadcastCmd.Flags().BoolVarP(&walletRawTxn, "raw", "", false, "Decode transaction as base64 instead of JSON")
 	walletSignCmd.Flags().BoolVarP(&walletRawTxn, "raw", "", false, "Encode signed transaction as base64 instead of JSON")
 
@@ -227,10 +227,10 @@ func main() {
 	root.PersistentFlags().StringVarP(&httpClient.UserAgent, "useragent", "", "SiaPrime-Agent", "the useragent used by spc to connect to the daemon's API")
 
 	// Check if the api password environment variable is set.
-	apiPassword := os.Getenv("SIAPRIME_API_PASSWORD")
+	apiPassword := os.Getenv("SCPRIME_API_PASSWORD")
 	if apiPassword != "" {
 		httpClient.Password = apiPassword
-		fmt.Println("Using SIAPRIME_API_PASSWORD environment variable")
+		fmt.Println("Using SCPRIME_API_PASSWORD environment variable")
 	}
 
 	// If the API password wasn't set we try to read it from the file. This must

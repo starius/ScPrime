@@ -122,9 +122,9 @@ func processConfig(config Config) (Config, error) {
 // stdin.
 func apiPassword(siaDir string) (string, error) {
 	// Check the environment variable.
-	pw := os.Getenv("SIAPRIME_API_PASSWORD")
+	pw := os.Getenv("SCPRIME_API_PASSWORD")
 	if pw != "" {
-		fmt.Println("Using SIAPRIME_API_PASSWORD environment variable")
+		fmt.Println("Using SCPRIME_API_PASSWORD environment variable")
 		return pw, nil
 	}
 
@@ -213,7 +213,7 @@ func installKillSignalHandler() chan os.Signal {
 // tryAutoUnlock will try to automatically unlock the server's wallet if the
 // environment variable is set.
 func tryAutoUnlock(srv *server.Server) {
-	if password := os.Getenv("SIA_WALLET_PASSWORD"); password != "" {
+	if password := os.Getenv("SCPRIME_WALLET_PASSWORD"); password != "" {
 		fmt.Println("SiaPrime Wallet Password found, attempting to auto-unlock wallet")
 		if err := srv.Unlock(password); err != nil {
 			fmt.Println("Auto-unlock failed:", err)
@@ -257,7 +257,7 @@ func startDaemon(config Config) (err error) {
 		return err
 	}
 
-	// Attempt to auto-unlock the wallet using the SIA_WALLET_PASSWORD env variable
+	// Attempt to auto-unlock the wallet using the SCPRIME_WALLET_PASSWORD env variable
 	tryAutoUnlock(srv)
 
 	// listen for kill signals

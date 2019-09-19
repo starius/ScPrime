@@ -180,13 +180,13 @@ func TestAPIPassword(t *testing.T) {
 		t.Fatal("loadAPIPassword should have used previously-generated password")
 	}
 	// If the environment variable is set, loadAPIPassword should use that
-	defer os.Setenv("SIAPRIME_API_PASSWORD", os.Getenv("SIAPRIME_API_PASSWORD"))
-	os.Setenv("SIAPRIME_API_PASSWORD", "foobar")
+	defer os.Setenv("SCPRIME_API_PASSWORD", os.Getenv("SCPRIME_API_PASSWORD"))
+	os.Setenv("SCPRIME_API_PASSWORD", "foobar")
 	config4, err := loadAPIPassword(config, dir)
 	if err != nil {
 		t.Fatal(err)
 	} else if config4.APIPassword != "foobar" {
-		t.Fatal("loadAPIPassword should use environment variable SIAPRIME_API_PASSWORD")
+		t.Fatal("loadAPIPassword should use environment variable SCPRIME_API_PASSWORD")
 	}
 }
 

@@ -193,7 +193,7 @@ will be sent to your wallet.`,
 		Short: "Unlock the wallet",
 		Long: `Decrypt and load the wallet into memory.
 Automatic unlocking is also supported via environment variable: if the
-SIAPRIME_WALLET_PASSWORD environment variable is set, the unlock command will
+SCPRIME_WALLET_PASSWORD environment variable is set, the unlock command will
 use it instead of displaying the typical interactive prompt.`,
 		Run: wrap(walletunlockcmd),
 	}
@@ -628,9 +628,9 @@ func wallettransactionscmd() {
 func walletunlockcmd() {
 	// try reading from environment variable first, then fallback to
 	// interactive method. Also allow overriding auto-unlock via -p
-	password := os.Getenv("SIAPRIME_WALLET_PASSWORD")
+	password := os.Getenv("SCPRIME_WALLET_PASSWORD")
 	if password != "" && !initPassword {
-		fmt.Println("Using SIAPRIME_WALLET_PASSWORD environment variable")
+		fmt.Println("Using SCPRIME_WALLET_PASSWORD environment variable")
 		err := httpClient.WalletUnlockPost(password)
 		if err != nil {
 			fmt.Println("Automatic unlock failed!")
