@@ -214,6 +214,9 @@ func abs(path string) string {
 
 // rentercmd displays the renter's financial metrics and high level renter info
 func rentercmd() {
+	// For UX formating
+	defer fmt.Println()
+
 	// Get Renter
 	rg, err := httpClient.RenterGet()
 	if err != nil {

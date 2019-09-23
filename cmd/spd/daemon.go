@@ -128,6 +128,13 @@ func apiPassword(siaDir string) (string, error) {
 		return pw, nil
 	}
 
+	pw = os.Getenv("SIAPRIME_API_PASSWORD")
+	if pw != "" {
+		fmt.Println("Warning: Using SIAPRIME_API_PASSWORD environment variable.")
+		fmt.Println("Using it will not be supported in future versions, please update \n your configuration to use the environment variable 'SCPRIME_API_PASSWORD'")
+		return pw, nil
+	}
+
 	// Try to read the password from disk.
 	path := build.APIPasswordFile(siaDir)
 	pwFile, err := ioutil.ReadFile(path)
@@ -214,13 +221,26 @@ func installKillSignalHandler() chan os.Signal {
 // environment variable is set.
 func tryAutoUnlock(srv *server.Server) {
 	if password := os.Getenv("SCPRIME_WALLET_PASSWORD"); password != "" {
+		fmt.Println("ScPrime Wallet Password found, attempting to auto-unlock wallet")
+		if err := srv.Unlock(password); err != nil {
+			fmt.Println("Auto-unlock failed:", err)
+		} else {
+			fmt.Println("Auto-unlock successful.")
+		}
+		return
+	}
+	if password := os.Getenv("SIAPRIME_WALLET_PASSWORD"); password != "" {
 		fmt.Println("SiaPrime Wallet Password found, attempting to auto-unlock wallet")
+		fmt.Println("Warning: Using SIAPRIME_WALLET_PASSWORD is deprecated.")
+		fmt.Println("Using it will not be supported in future versions, please update \n your configuration to use the environment variable 'SCPRIME_WALLET_PASSWORD'")
+
 		if err := srv.Unlock(password); err != nil {
 			fmt.Println("Auto-unlock failed:", err)
 		} else {
 			fmt.Println("Auto-unlock successful.")
 		}
 	}
+
 }
 
 // startDaemon uses the config parameters to initialize modules and start spd.
@@ -257,7 +277,7 @@ func startDaemon(config Config) (err error) {
 		return err
 	}
 
-	// Attempt to auto-unlock the wallet using the SCPRIME_WALLET_PASSWORD env variable
+	// Attempt to auto-unlock the wallet using the env variable
 	tryAutoUnlock(srv)
 
 	// listen for kill signals

@@ -14,7 +14,7 @@ import (
 var (
 	// Set the default test allowance
 	DefaultTestAllowance = modules.Allowance{
-		Funds:       types.SiacoinPrecision.Mul64(500),
+		Funds:       types.SiacoinPrecision.Mul64(1e5),
 		Hosts:       uint64(50),
 		Period:      types.BlockHeight(12096),
 		RenewWindow: types.BlockHeight(4032),
@@ -33,11 +33,11 @@ var (
 			RemainingStorage:   250e9,
 			WindowSize:         144,
 
-			Collateral:    types.NewCurrency64(250).Mul(types.SiacoinPrecision).Div(modules.BlockBytesPerMonthTerabyte),
-			MaxCollateral: types.NewCurrency64(750).Mul(types.SiacoinPrecision),
+			Collateral:    types.NewCurrency64(1e5).Mul(types.SiacoinPrecision).Div(modules.BlockBytesPerMonthTerabyte),
+			MaxCollateral: types.NewCurrency64(5e3).Mul(types.SiacoinPrecision),
 
 			ContractPrice: types.NewCurrency64(5).Mul(types.SiacoinPrecision),
-			StoragePrice:  types.NewCurrency64(100).Mul(types.SiacoinPrecision).Div(modules.BlockBytesPerMonthTerabyte),
+			StoragePrice:  types.NewCurrency64(5e4).Mul(types.SiacoinPrecision).Div(modules.BlockBytesPerMonthTerabyte),
 
 			Version: build.Version,
 		},
@@ -204,6 +204,7 @@ func TestHostWeightCollateralDifferences(t *testing.T) {
 		t.SkipNow()
 	}
 	hdb := bareHostDB()
+	hdb.SetAllowance(DefaultTestAllowance)
 
 	entry := DefaultHostDBEntry
 	entry2 := DefaultHostDBEntry

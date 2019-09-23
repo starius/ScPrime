@@ -349,8 +349,8 @@ func (hdb *HostDB) CheckForIPViolations(hosts []types.SiaPublicKey) []types.SiaP
 	// If the check was disabled we don't return any bad hosts.
 	hdb.mu.RLock()
 	defer hdb.mu.RUnlock()
-	disabled := !hdb.hostTree.FilterByIPEnabled()
-	if disabled {
+
+	if !hdb.hostTree.FilterByIPEnabled() {
 		return nil
 	}
 
@@ -514,9 +514,6 @@ func (hdb *HostDB) InitialScanComplete() (complete bool, err error) {
 // IPViolationsCheck returns a boolean indicating if the IP violation check is
 // enabled or not.
 func (hdb *HostDB) IPViolationsCheck() bool {
-	//hdb.mu.RLock()
-	//defer hdb.mu.RUnlock()
-	//return !hdb.disableIPViolationCheck
 	return hdb.hostTree.FilterByIPEnabled()
 }
 
@@ -544,10 +541,7 @@ func (hdb *HostDB) SetAllowance(allowance modules.Allowance) error {
 // CheckForIPViolations won't return bad hosts and RandomHosts will return the
 // address blacklist.
 func (hdb *HostDB) SetIPViolationCheck(enabled bool) {
-	//hdb.mu.Lock()
 	hdb.hostTree.SetFilterByIPEnabled(enabled)
-	//hdb.disableIPViolationCheck = !enabled
-	//hdb.mu.Unlock()
 }
 
 // UpdateContracts rebuilds the knownContracts of the HostBD using the provided

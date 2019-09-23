@@ -470,6 +470,12 @@ func (api *API) renterHandlerGET(w http.ResponseWriter, req *http.Request, _ htt
 func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	// Get the existing settings
 	settings := api.renter.Settings()
+	allowance := settings.Allowance
+	//Prefill with defaults if Allowance is empty
+	if reflect.DeepEqual(allowance, modules.Allowance{}) {
+		settings.Allowance = modules.DefaultAllowance
+	}
+	allowanceChanged := false
 
 	// Scan for all allowance fields
 	if f := req.FormValue("funds"); f != "" {
@@ -478,7 +484,8 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 			WriteError(w, Error{"unable to parse funds"}, http.StatusBadRequest)
 			return
 		}
-		settings.Allowance.Funds = funds
+		allowance.Funds = funds
+		allowanceChanged = true
 	}
 	// Scan the number of hosts to use. (optional parameter)
 	if h := req.FormValue("hosts"); h != "" {
@@ -490,7 +497,8 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 			WriteError(w, Error{fmt.Sprintf("insufficient number of hosts, need at least %v but have %v", requiredHosts, hosts)}, http.StatusBadRequest)
 			return
 		}
-		settings.Allowance.Hosts = hosts
+		allowance.Hosts = hosts
+		allowanceChanged = true
 	}
 	// Scan the period. (optional parameter)
 	if p := req.FormValue("period"); p != "" {
@@ -499,9 +507,11 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 			WriteError(w, Error{"unable to parse period: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		settings.Allowance.Period = types.BlockHeight(period)
-	} else if settings.Allowance.Period == 0 {
-		WriteError(w, Error{"period needs to be set if it hasn't been set before"}, http.StatusBadRequest)
+
+		allowance.Period = types.BlockHeight(period)
+		allowanceChanged = true
+	} else if allowanceChanged && settings.Allowance.Period == 0 {
+		WriteError(w, Error{"period needs to be specified if it hasn't been set before"}, http.StatusBadRequest)
 		return
 	}
 	// Scan the renew window. (optional parameter)
@@ -514,11 +524,12 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 			WriteError(w, Error{fmt.Sprintf("renew window is too small, must be at least %v blocks but have %v blocks", requiredRenewWindow, renewWindow)}, http.StatusBadRequest)
 			return
 		} else {
-			settings.Allowance.RenewWindow = types.BlockHeight(renewWindow)
+			allowance.RenewWindow = types.BlockHeight(renewWindow)
+			allowanceChanged = true
 		}
-	} else if settings.Allowance.RenewWindow == 0 {
+	} else if allowanceChanged && settings.Allowance.RenewWindow == 0 {
 		// Sane defaults if renew window hasn't been set before.
-		settings.Allowance.RenewWindow = settings.Allowance.Period / 2
+		allowance.RenewWindow = allowance.Period / 3
 	}
 	// Scan the expected storage. (optional parameter)
 	if es := req.FormValue("expectedstorage"); es != "" {
@@ -527,10 +538,8 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 			WriteError(w, Error{"unable to parse expectedStorage: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		settings.Allowance.ExpectedStorage = expectedStorage
-	} else if settings.Allowance.ExpectedStorage == 0 {
-		// Sane defaults if it hasn't been set before.
-		settings.Allowance.ExpectedStorage = modules.DefaultAllowance.ExpectedStorage
+		allowance.ExpectedStorage = expectedStorage
+		allowanceChanged = true
 	}
 	// Scan the upload bandwidth. (optional parameter)
 	if euf := req.FormValue("expectedupload"); euf != "" {
@@ -539,10 +548,8 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 			WriteError(w, Error{"unable to parse expectedUpload: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		settings.Allowance.ExpectedUpload = expectedUpload
-	} else if settings.Allowance.ExpectedUpload == 0 {
-		// Sane defaults if it hasn't been set before.
-		settings.Allowance.ExpectedUpload = modules.DefaultAllowance.ExpectedUpload
+		allowance.ExpectedUpload = expectedUpload
+		allowanceChanged = true
 	}
 	// Scan the download bandwidth. (optional parameter)
 	if edf := req.FormValue("expecteddownload"); edf != "" {
@@ -551,10 +558,8 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 			WriteError(w, Error{"unable to parse expectedDownload: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		settings.Allowance.ExpectedDownload = expectedDownload
-	} else if settings.Allowance.ExpectedDownload == 0 {
-		// Sane defaults if it hasn't been set before.
-		settings.Allowance.ExpectedDownload = modules.DefaultAllowance.ExpectedDownload
+		allowance.ExpectedDownload = expectedDownload
+		allowanceChanged = true
 	}
 	// Scan the expected redundancy. (optional parameter)
 	if er := req.FormValue("expectedredundancy"); er != "" {
@@ -563,20 +568,8 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 			WriteError(w, Error{"unable to parse expectedRedundancy: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		settings.Allowance.ExpectedRedundancy = expectedRedundancy
-	} else if settings.Allowance.ExpectedRedundancy == 0 {
-		// Sane defaults if it hasn't been set before.
-		settings.Allowance.ExpectedRedundancy = modules.DefaultAllowance.ExpectedRedundancy
-	}
-	// Scan the filter option. (optional parameter)
-	if f := req.FormValue("filterhostssubnet"); f != "" {
-		var filterHostsSubnet bool
-		if _, err := fmt.Sscan(f, &filterHostsSubnet); err != nil {
-			WriteError(w, Error{"unable to parse filterhostssubnet"}, http.StatusBadRequest)
-			return
-		}
-		//settings.Allowance.FilterHostsSubnet = filterHostsSubnet
-		settings.IPViolationsCheck = filterHostsSubnet
+		allowance.ExpectedRedundancy = expectedRedundancy
+		allowanceChanged = true
 	}
 	// Scan the download speed limit. (optional parameter)
 	if d := req.FormValue("maxdownloadspeed"); d != "" {
@@ -600,10 +593,40 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 	if ipc := req.FormValue("checkforipviolation"); ipc != "" {
 		var ipviolationcheck bool
 		if _, err := fmt.Sscan(ipc, &ipviolationcheck); err != nil {
-			WriteError(w, Error{"unable to parse ipviolationcheck: " + err.Error()}, http.StatusBadRequest)
+			WriteError(w, Error{"unable to parse checkforipviolation: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
 		settings.IPViolationsCheck = ipviolationcheck
+	}
+
+	if allowanceChanged {
+		//final check for any zero values
+		if allowance.ExpectedDownload == 0 {
+			allowance.ExpectedDownload = modules.DefaultAllowance.ExpectedDownload
+		}
+		if allowance.ExpectedRedundancy == 0 {
+			allowance.ExpectedRedundancy = modules.DefaultAllowance.ExpectedRedundancy
+		}
+		if allowance.ExpectedStorage == 0 {
+			allowance.ExpectedStorage = modules.DefaultAllowance.ExpectedStorage
+		}
+		if allowance.ExpectedUpload == 0 {
+			allowance.ExpectedUpload = modules.DefaultAllowance.ExpectedUpload
+		}
+		if allowance.Funds.IsZero() {
+			allowance.Funds = modules.DefaultAllowance.Funds
+		}
+		if allowance.Hosts == 0 {
+			allowance.Hosts = modules.DefaultAllowance.Hosts
+		}
+		if allowance.Period == 0 {
+			allowance.Period = modules.DefaultAllowance.Period
+		}
+		if allowance.RenewWindow == 0 {
+			//Throw an error
+			//allowance.RenewWindow = modules.DefaultAllowance.RenewWindow
+		}
+		settings.Allowance = allowance
 	}
 
 	// Set the settings in the renter.
@@ -1021,7 +1044,7 @@ func (api *API) renterPricesHandler(w http.ResponseWriter, req *http.Request, ps
 			WriteError(w, Error{"unable to parse hosts: " + err.Error()}, http.StatusBadRequest)
 			return
 		} else if hosts != 0 && hosts < requiredHosts {
-			WriteError(w, Error{fmt.Sprintf("insufficient number of hosts, need at least %v but have %v", modules.DefaultAllowance.Hosts, hosts)}, http.StatusBadRequest)
+			WriteError(w, Error{fmt.Sprintf("insufficient number of hosts, need at least %v but have %v", requiredHosts, hosts)}, http.StatusBadRequest)
 		} else {
 			allowance.Hosts = hosts
 		}

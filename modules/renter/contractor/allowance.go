@@ -41,9 +41,11 @@ var (
 // NOTE: At this time, transaction fees are not counted towards the allowance.
 // This means the contractor may spend more than allowance.Funds.
 func (c *Contractor) SetAllowance(a modules.Allowance) error {
+	//Setting empty allowance means cancel allowance
 	if reflect.DeepEqual(a, modules.Allowance{}) {
 		return c.managedCancelAllowance()
 	}
+	// If no allowance parameters have changed return
 	if reflect.DeepEqual(a, c.allowance) {
 		return nil
 	}
