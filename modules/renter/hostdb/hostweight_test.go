@@ -64,8 +64,8 @@ func TestHostWeightDistinctPrices(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	weight1 := calculateWeightFromUInt64Price(300, 100)
-	weight2 := calculateWeightFromUInt64Price(301, 100)
+	weight1 := calculateWeightFromUInt64Price(50000, 1e5)
+	weight2 := calculateWeightFromUInt64Price(50100, 1e5)
 	if weight1.Cmp(weight2) <= 0 {
 		t.Log(weight1)
 		t.Log(weight2)
@@ -110,8 +110,8 @@ func TestHostWeightCollateralAboveCutoff(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	weight1 := calculateWeightFromUInt64Price(300, 1000)
-	weight2 := calculateWeightFromUInt64Price(150, 500)
+	weight1 := calculateWeightFromUInt64Price(30000, 100000)
+	weight2 := calculateWeightFromUInt64Price(15000, 50000)
 	if weight1.Cmp(weight2) >= 0 {
 		t.Log(weight1)
 		t.Log(weight2)
