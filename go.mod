@@ -6,7 +6,6 @@ require (
 	github.com/coreos/bbolt v1.3.3
 	github.com/dchest/threefish v0.0.0-20120919164726-3ecf4c494abf
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/golangci/golangci-lint v1.18.0 // indirect
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
@@ -27,5 +26,5 @@ require (
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20180716154200-1308156c2eaf
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20180716154133-88a11db9e46c
 	gitlab.com/SiaPrime/writeaheadlog v0.0.0-20190830195947-8d9d57b6e40f
-	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
+	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
 )
