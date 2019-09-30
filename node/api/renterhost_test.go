@@ -185,7 +185,7 @@ func TestHostAndRentVanilla(t *testing.T) {
 
 	// Set an allowance for the renter, allowing a contract to be formed.
 	allowanceValues := url.Values{}
-	testFunds := "10000000000000000000000000000" // 10k SC
+	testFunds := "100000000000000000000000000000" // 100k SC
 	testPeriod := "20"
 	renewWindow := "10"
 	testPeriodInt := 20
@@ -1278,7 +1278,7 @@ func TestHostAndRentReload(t *testing.T) {
 
 	// Set an allowance for the renter, allowing a contract to be formed.
 	allowanceValues := url.Values{}
-	testFunds := "10000000000000000000000000000" // 10k SC
+	testFunds := "100000000000000000000000000000" // 100k SC
 	testPeriod := "10"
 	allowanceValues.Set("funds", testFunds)
 	allowanceValues.Set("period", testPeriod)
@@ -1326,6 +1326,9 @@ func TestHostAndRentReload(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 	if len(rf.Files) != 1 || rf.Files[0].UploadProgress < 10 {
+		rflen := len(rf.Files)
+		t.Logf("rf.Files has %v elements\n", rflen)
+
 		t.Fatal("the uploading is not succeeding for some reason:", rf.Files[0])
 	}
 
