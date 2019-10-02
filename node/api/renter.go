@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"time"
 
+	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
+
 	"github.com/julienschmidt/httprouter"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
@@ -64,6 +66,10 @@ var (
 	//BackupKeySpecifier is the specifier used for deriving the secret used to
 	//encrypt a backup from the RenterSeed.
 	backupKeySpecifier = types.Specifier{'b', 'a', 'c', 'k', 'u', 'p', 'k', 'e', 'y'}
+
+	// errNeedBothDataAndParityPieces is the error returned when only one of the
+	// erasure coding parameters is set
+	errNeedBothDataAndParityPieces = errors.New("must provide both the datapieces parameter and the paritypieces parameter if specifying erasure coding parameters")
 )
 
 type (
@@ -192,6 +198,22 @@ type (
 		Backups       []RenterUploadedBackup `json:"backups"`
 		SyncedHosts   []types.SiaPublicKey   `json:"syncedhosts"`
 		UnsyncedHosts []types.SiaPublicKey   `json:"unsyncedhosts"`
+	}
+
+	// RenterUploadReadyGet lists the upload ready status of the renter
+	RenterUploadReadyGet struct {
+		// Ready indicates whether of not the renter is ready to successfully
+		// upload to full redundancy based on the erasure coding provided and
+		// the number of contracts
+		Ready bool `json:"ready"`
+
+		// Contract information
+		ContractsNeeded    int `json:"contractsneeded"`
+		NumActiveContracts int `json:"numactivecontracts"`
+
+		// Erasure Coding information
+		DataPieces   int `json:"datapieces"`
+		ParityPieces int `json:"paritypieces"`
 	}
 
 	// DownloadInfo contains all client-facing information of a file.
@@ -415,43 +437,64 @@ func (api *API) renterLoadBackupHandlerPOST(w http.ResponseWriter, req *http.Req
 // an erasure coder. If values haven't been supplied it will fill in sane
 // defaults.
 func parseErasureCodingParameters(strDataPieces, strParityPieces string) (modules.ErasureCoder, error) {
-	// Check whether the erasure coding parameters have been supplied.
-	if strDataPieces != "" || strParityPieces != "" {
-		// Check that both values have been supplied.
-		if strDataPieces == "" || strParityPieces == "" {
-			err := errors.New("must provide both the datapieces parameter and the paritypieces parameter if specifying erasure coding parameters")
-			return nil, err
-		}
-
-		// Parse the erasure coding parameters.
-		var dataPieces, parityPieces int
-		_, err := fmt.Sscan(strDataPieces, &dataPieces)
-		if err != nil {
-			err = errors.AddContext(err, "unable to read parameter 'datapieces'")
-			return nil, err
-		}
-		_, err = fmt.Sscan(strParityPieces, &parityPieces)
-		if err != nil {
-			err = errors.AddContext(err, "unable to read parameter 'paritypieces'")
-			return nil, err
-		}
-
-		// Verify that sane values for parityPieces and redundancy are being
-		// supplied.
-		if parityPieces < requiredParityPieces {
-			err := fmt.Errorf("a minimum of %v parity pieces is required, but %v parity pieces requested", parityPieces, requiredParityPieces)
-			return nil, err
-		}
-		redundancy := float64(dataPieces+parityPieces) / float64(dataPieces)
-		if float64(dataPieces+parityPieces)/float64(dataPieces) < requiredRedundancy {
-			err := fmt.Errorf("a redundancy of %.2f is required, but redundancy of %.2f supplied", redundancy, requiredRedundancy)
-			return nil, err
-		}
-
-		// Create the erasure coder.
-		return siafile.NewRSSubCode(dataPieces, parityPieces, crypto.SegmentSize)
+	// Parse data and parity pieces
+	dataPieces, parityPieces, err := parseDataAndParityPieces(strDataPieces, strParityPieces)
+	if err != nil {
+		return nil, err
 	}
-	return nil, nil
+
+	// Check if data and parity pieces were set
+	if dataPieces == 0 && parityPieces == 0 {
+		return nil, nil
+	}
+
+	// Verify that sane values for parityPieces and redundancy are being
+	// supplied.
+	if parityPieces < requiredParityPieces {
+		err := fmt.Errorf("a minimum of %v parity pieces is required, but %v parity pieces requested", parityPieces, requiredParityPieces)
+		return nil, err
+	}
+	redundancy := float64(dataPieces+parityPieces) / float64(dataPieces)
+	if float64(dataPieces+parityPieces)/float64(dataPieces) < requiredRedundancy {
+		err := fmt.Errorf("a redundancy of %.2f is required, but redundancy of %.2f supplied", redundancy, requiredRedundancy)
+		return nil, err
+	}
+
+	// Create the erasure coder.
+	return siafile.NewRSSubCode(dataPieces, parityPieces, crypto.SegmentSize)
+}
+
+// parseDataAndParityPieces parse the numeric values for dataPieces and
+// parityPieces from the input strings
+func parseDataAndParityPieces(strDataPieces, strParityPieces string) (dataPieces, parityPieces int, err error) {
+	// Check that both values have been supplied.
+	if (strDataPieces == "") != (strParityPieces == "") {
+		return 0, 0, errNeedBothDataAndParityPieces
+	}
+
+	// Check for blank strings.
+	if strDataPieces == "" && strParityPieces == "" {
+		return 0, 0, nil
+	}
+
+	// Parse dataPieces and Parity Pieces.
+	_, err = fmt.Sscan(strDataPieces, &dataPieces)
+	if err != nil {
+		err = errors.AddContext(err, "unable to read parameter 'datapieces'")
+		return 0, 0, err
+	}
+	_, err = fmt.Sscan(strParityPieces, &parityPieces)
+	if err != nil {
+		err = errors.AddContext(err, "unable to read parameter 'paritypieces'")
+		return 0, 0, err
+	}
+
+	// Check that either both values are zero or neither are zero
+	if (dataPieces == 0) != (parityPieces == 0) {
+		return 0, 0, errNeedBothDataAndParityPieces
+	}
+
+	return dataPieces, parityPieces, nil
 }
 
 // renterHandlerGET handles the API call to /renter.
@@ -470,12 +513,6 @@ func (api *API) renterHandlerGET(w http.ResponseWriter, req *http.Request, _ htt
 func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	// Get the existing settings
 	settings := api.renter.Settings()
-	allowance := settings.Allowance
-	//Prefill with defaults if Allowance is empty
-	if reflect.DeepEqual(allowance, modules.Allowance{}) {
-		settings.Allowance = modules.DefaultAllowance
-	}
-	allowanceChanged := false
 
 	// Scan for all allowance fields
 	if f := req.FormValue("funds"); f != "" {
@@ -484,10 +521,8 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 			WriteError(w, Error{"unable to parse funds"}, http.StatusBadRequest)
 			return
 		}
-		allowance.Funds = funds
-		allowanceChanged = true
+		settings.Allowance.Funds = funds
 	}
-	// Scan the number of hosts to use. (optional parameter)
 	if h := req.FormValue("hosts"); h != "" {
 		var hosts uint64
 		if _, err := fmt.Sscan(h, &hosts); err != nil {
@@ -497,24 +532,16 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 			WriteError(w, Error{fmt.Sprintf("insufficient number of hosts, need at least %v but have %v", requiredHosts, hosts)}, http.StatusBadRequest)
 			return
 		}
-		allowance.Hosts = hosts
-		allowanceChanged = true
+		settings.Allowance.Hosts = hosts
 	}
-	// Scan the period. (optional parameter)
 	if p := req.FormValue("period"); p != "" {
 		var period types.BlockHeight
 		if _, err := fmt.Sscan(p, &period); err != nil {
 			WriteError(w, Error{"unable to parse period: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-
-		allowance.Period = types.BlockHeight(period)
-		allowanceChanged = true
-	} else if allowanceChanged && settings.Allowance.Period == 0 {
-		WriteError(w, Error{"period needs to be specified if it hasn't been set before"}, http.StatusBadRequest)
-		return
+		settings.Allowance.Period = types.BlockHeight(period)
 	}
-	// Scan the renew window. (optional parameter)
 	if rw := req.FormValue("renewwindow"); rw != "" {
 		var renewWindow types.BlockHeight
 		if _, err := fmt.Sscan(rw, &renewWindow); err != nil {
@@ -523,54 +550,94 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 		} else if renewWindow != 0 && types.BlockHeight(renewWindow) < requiredRenewWindow {
 			WriteError(w, Error{fmt.Sprintf("renew window is too small, must be at least %v blocks but have %v blocks", requiredRenewWindow, renewWindow)}, http.StatusBadRequest)
 			return
+		} else if renewWindow == 0 && settings.Allowance.Period != 0 {
+			WriteError(w, Error{contractor.ErrAllowanceZeroWindow.Error()}, http.StatusBadRequest)
+			return
 		} else {
-			allowance.RenewWindow = types.BlockHeight(renewWindow)
-			allowanceChanged = true
+			settings.Allowance.RenewWindow = types.BlockHeight(renewWindow)
 		}
-	} else if allowanceChanged && settings.Allowance.RenewWindow == 0 {
-		// Sane defaults if renew window hasn't been set before.
-		allowance.RenewWindow = allowance.Period / 3
 	}
-	// Scan the expected storage. (optional parameter)
 	if es := req.FormValue("expectedstorage"); es != "" {
 		var expectedStorage uint64
 		if _, err := fmt.Sscan(es, &expectedStorage); err != nil {
 			WriteError(w, Error{"unable to parse expectedStorage: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		allowance.ExpectedStorage = expectedStorage
-		allowanceChanged = true
+		settings.Allowance.ExpectedStorage = expectedStorage
 	}
-	// Scan the upload bandwidth. (optional parameter)
 	if euf := req.FormValue("expectedupload"); euf != "" {
 		var expectedUpload uint64
 		if _, err := fmt.Sscan(euf, &expectedUpload); err != nil {
 			WriteError(w, Error{"unable to parse expectedUpload: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		allowance.ExpectedUpload = expectedUpload
-		allowanceChanged = true
+		settings.Allowance.ExpectedUpload = expectedUpload
 	}
-	// Scan the download bandwidth. (optional parameter)
 	if edf := req.FormValue("expecteddownload"); edf != "" {
 		var expectedDownload uint64
 		if _, err := fmt.Sscan(edf, &expectedDownload); err != nil {
 			WriteError(w, Error{"unable to parse expectedDownload: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		allowance.ExpectedDownload = expectedDownload
-		allowanceChanged = true
+		settings.Allowance.ExpectedDownload = expectedDownload
 	}
-	// Scan the expected redundancy. (optional parameter)
 	if er := req.FormValue("expectedredundancy"); er != "" {
 		var expectedRedundancy float64
 		if _, err := fmt.Sscan(er, &expectedRedundancy); err != nil {
 			WriteError(w, Error{"unable to parse expectedRedundancy: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		allowance.ExpectedRedundancy = expectedRedundancy
-		allowanceChanged = true
+		settings.Allowance.ExpectedRedundancy = expectedRedundancy
 	}
+
+	// Validate any allowance changes
+	if !reflect.DeepEqual(settings.Allowance, modules.Allowance{}) {
+		// Allowance has been set at least partially. Validate that all fields
+		// are set correctly
+
+		// If Funds is still 0 return an error since we need the user to set the funding initially
+		if settings.Allowance.Funds.IsZero() {
+			WriteError(w, Error{"funds needs to be set if it hasn't been set before"}, http.StatusBadRequest)
+			return
+		}
+
+		// If Period is still 0 return an error since we need the user to set the period initially
+		if settings.Allowance.Period == 0 {
+			WriteError(w, Error{"period needs to be set if it hasn't been set before"}, http.StatusBadRequest)
+			return
+		}
+
+		// If Hosts is still 0 set to the sane default
+		if settings.Allowance.Hosts == 0 {
+			settings.Allowance.Hosts = modules.DefaultAllowance.Hosts
+		}
+
+		// If Renew Window is still 0 set to the sane default
+		if settings.Allowance.RenewWindow == 0 {
+			settings.Allowance.RenewWindow = settings.Allowance.Period / 2
+		}
+
+		// If Expected Storage is still 0 set to the sane default
+		if settings.Allowance.ExpectedStorage == 0 {
+			settings.Allowance.ExpectedStorage = modules.DefaultAllowance.ExpectedStorage
+		}
+
+		// If Expected Upload is still 0 set to the sane default
+		if settings.Allowance.ExpectedUpload == 0 {
+			settings.Allowance.ExpectedUpload = modules.DefaultAllowance.ExpectedUpload
+		}
+
+		// If Expected Download is still 0 set to the sane default
+		if settings.Allowance.ExpectedDownload == 0 {
+			settings.Allowance.ExpectedDownload = modules.DefaultAllowance.ExpectedDownload
+		}
+
+		// If Expected Redundancy is still 0 set to the sane default
+		if settings.Allowance.ExpectedRedundancy == 0 {
+			settings.Allowance.ExpectedRedundancy = modules.DefaultAllowance.ExpectedRedundancy
+		}
+	}
+
 	// Scan the download speed limit. (optional parameter)
 	if d := req.FormValue("maxdownloadspeed"); d != "" {
 		var downloadSpeed int64
@@ -597,36 +664,6 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 			return
 		}
 		settings.IPViolationsCheck = ipviolationcheck
-	}
-
-	if allowanceChanged {
-		//final check for any zero values
-		if allowance.ExpectedDownload == 0 {
-			allowance.ExpectedDownload = modules.DefaultAllowance.ExpectedDownload
-		}
-		if allowance.ExpectedRedundancy == 0 {
-			allowance.ExpectedRedundancy = modules.DefaultAllowance.ExpectedRedundancy
-		}
-		if allowance.ExpectedStorage == 0 {
-			allowance.ExpectedStorage = modules.DefaultAllowance.ExpectedStorage
-		}
-		if allowance.ExpectedUpload == 0 {
-			allowance.ExpectedUpload = modules.DefaultAllowance.ExpectedUpload
-		}
-		if allowance.Funds.IsZero() {
-			allowance.Funds = modules.DefaultAllowance.Funds
-		}
-		if allowance.Hosts == 0 {
-			allowance.Hosts = modules.DefaultAllowance.Hosts
-		}
-		if allowance.Period == 0 {
-			allowance.Period = modules.DefaultAllowance.Period
-		}
-		if allowance.RenewWindow == 0 {
-			//Throw an error
-			//allowance.RenewWindow = modules.DefaultAllowance.RenewWindow
-		}
-		settings.Allowance = allowance
 	}
 
 	// Set the settings in the renter.
