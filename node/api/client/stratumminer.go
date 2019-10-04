@@ -21,7 +21,7 @@ func (c *Client) StratumMinerStartPost(server, username string) (err error) {
 	return
 }
 
-// StratumMinerStopGet uses the /stratumminer/stop endpoint to stop the stratum miner.
+// StratumMinerStopPost uses the /stratumminer/stop endpoint to stop the stratum miner.
 func (c *Client) StratumMinerStopPost() (err error) {
 	err = c.post("/stratumminer/stop", "", nil)
 	return

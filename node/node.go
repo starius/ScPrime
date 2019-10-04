@@ -159,6 +159,12 @@ func (np NodeParams) NumModules() (n int) {
 	if !np.CreateExplorer || np.Explorer != nil {
 		n++
 	}
+	if !np.CreateMiningPool || np.MiningPool != nil {
+		n++
+	}
+	if !np.CreateStratumMiner || np.StratumMiner != nil {
+		n++
+	}
 	return
 }
 
@@ -214,9 +220,11 @@ func (n *Node) Close() (err error) {
 		err = errors.Compose(n.Gateway.Close())
 	}
 	if n.MiningPool != nil {
+		printlnRelease("Closing mining pool...")
 		err = errors.Compose(n.MiningPool.Close())
 	}
 	if n.StratumMiner != nil {
+		printlnRelease("Closing stratum miner...")
 		err = errors.Compose(n.StratumMiner.Close())
 	}
 	return err

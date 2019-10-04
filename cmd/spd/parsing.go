@@ -35,6 +35,12 @@ func parseModules(config Config) node.NodeParams {
 	if strings.Contains(config.Spd.Modules, "r") {
 		params.CreateRenter = true
 	}
+	if strings.Contains(config.Spd.Modules, "p") {
+		params.CreateMiningPool = true
+	}
+	if strings.Contains(config.Spd.Modules, "s") {
+		params.CreateStratumMiner = true
+	}
 	// Parse remaining fields.
 	params.Bootstrap = !config.Spd.NoBootstrap
 	params.HostAddress = config.Spd.HostAddr
