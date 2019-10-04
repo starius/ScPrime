@@ -265,7 +265,7 @@ func startDaemon(config Config) (err error) {
 	installMmapSignalHandler()
 
 	// Print a startup message.
-	fmt.Println("Loading...")
+	fmt.Println("Loading spd...")
 	loadStart := time.Now()
 
 	// Create the node params by parsing the modules specified in the config.

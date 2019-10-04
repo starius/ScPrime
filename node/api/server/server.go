@@ -202,7 +202,7 @@ func New(APIaddr string, requiredUserAgent string, requiredPassword string, node
 	}
 	// Server wasn't shut down. Add node and replace modules.
 	srv.node = node
-	api.SetModules(node.ConsensusSet, node.Explorer, node.Gateway, node.Host, node.Miner, node.Renter, node.TransactionPool, node.Wallet)
+	api.SetModules(node.ConsensusSet, node.Explorer, node.Gateway, node.Host, node.Miner, node.Renter, node.TransactionPool, node.Wallet, node.MiningPool, node.StratumMiner)
 
 	return srv, nil
 }

@@ -120,7 +120,7 @@ func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // SetModules allows for replacing the modules in the API at runtime.
-func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet) {
+func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner) {
 	api.cs = cs
 	api.explorer = e
 	api.gateway = g
@@ -129,6 +129,8 @@ func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, g module
 	api.renter = r
 	api.tpool = tp
 	api.wallet = w
+	api.stratumminer = sm
+	api.pool = p
 	api.buildHTTPRoutes()
 }
 

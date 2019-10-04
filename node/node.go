@@ -156,13 +156,13 @@ func (np NodeParams) NumModules() (n int) {
 	if np.CreateMiner || np.Miner != nil {
 		n++
 	}
-	if !np.CreateExplorer || np.Explorer != nil {
+	if np.CreateExplorer || np.Explorer != nil {
 		n++
 	}
-	if !np.CreateMiningPool || np.MiningPool != nil {
+	if np.CreateMiningPool || np.MiningPool != nil {
 		n++
 	}
-	if !np.CreateStratumMiner || np.StratumMiner != nil {
+	if np.CreateStratumMiner || np.StratumMiner != nil {
 		n++
 	}
 	return
@@ -187,6 +187,14 @@ func printfRelease(format string, a ...interface{}) (int, error) {
 // Close will call close on every module within the node, combining and
 // returning the errors.
 func (n *Node) Close() (err error) {
+	if n.MiningPool != nil {
+		printlnRelease("Closing mining pool...")
+		err = errors.Compose(n.MiningPool.Close())
+	}
+	if n.StratumMiner != nil {
+		printlnRelease("Closing stratum miner...")
+		err = errors.Compose(n.StratumMiner.Close())
+	}
 	if n.Renter != nil {
 		printlnRelease("Closing renter...")
 		err = errors.Compose(n.Renter.Close())
@@ -219,14 +227,6 @@ func (n *Node) Close() (err error) {
 		printlnRelease("Closing gateway...")
 		err = errors.Compose(n.Gateway.Close())
 	}
-	if n.MiningPool != nil {
-		printlnRelease("Closing mining pool...")
-		err = errors.Compose(n.MiningPool.Close())
-	}
-	if n.StratumMiner != nil {
-		printlnRelease("Closing stratum miner...")
-		err = errors.Compose(n.StratumMiner.Close())
-	}
 	return err
 }
 
@@ -238,8 +238,8 @@ func (n *Node) Close() (err error) {
 func New(params NodeParams) (*Node, error) {
 	dir := params.Dir
 	numModules := params.NumModules()
-	i := 1
-	printfRelease("(%d/%d) Loading spd...\n", i, numModules)
+	i := 0
+	printfRelease("Loading modules:\n")
 	loadStart := time.Now()
 
 	// Gateway.
@@ -519,6 +519,7 @@ func New(params NodeParams) (*Node, error) {
 		if !params.CreateStratumMiner {
 			return nil, nil
 		}
+		i++
 		printfRelease("(%d/%d) Loading stratum miner...", i, numModules)
 		sm, err := stratumminer.New(filepath.Join(dir, modules.StratumMinerDir))
 		if err != nil {
