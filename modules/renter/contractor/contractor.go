@@ -369,6 +369,8 @@ func (c *Contractor) managedInitRecoveryScan(scanStart modules.ConsensusChangeID
 	// Reset the progress and status if there was an error.
 	defer func() {
 		if err != nil {
+			c.log.Debug("Setting ScanInProgress and RecoveryScanHeight to zero due to ")
+			c.log.Debugf("Error during managedInitRecoveryScan: %+v", err)
 			atomic.StoreUint32(&c.atomicScanInProgress, 0)
 			atomic.StoreInt64(&c.atomicRecoveryScanHeight, 0)
 		}
