@@ -3,12 +3,12 @@ package explorer
 import (
 	"fmt"
 
+	bolt "github.com/coreos/bbolt"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"github.com/coreos/bbolt"
 )
 
 // ProcessConsensusChange follows the most recent changes to the consensus set,
@@ -554,7 +554,7 @@ func dbAddGenesisBlock(tx *bolt.Tx) {
 			Difficulty:         types.RootTarget.Difficulty(),
 			Target:             types.RootTarget,
 			TotalCoins:         types.CalculateCoinbase(0),
-			TransactionCount:   2,
+			TransactionCount:   uint64(len(types.GenesisBlock.Transactions)),
 			SiacoinOutputCount: uint64(len(types.GenesisAirdropAllocation)),
 			SiafundOutputCount: uint64(len(types.GenesisSiafundAllocation)),
 		},

@@ -22,7 +22,9 @@ var (
 	initPassword            bool   // supply a custom password when creating a wallet
 	renterAllContracts      bool   // Show all active and expired contracts
 	renterDownloadAsync     bool   // Downloads files asynchronously
+	renterDownloadRecursive bool   // Downloads folders recursively.
 	renterListVerbose       bool   // Show additional info about uploaded files.
+	renterListRecursive     bool   // List files of folder recursively.
 	renterShowHistory       bool   // Show download history in addition to download queue.
 	renterFilterHostsSubnet bool   // Filter hosts from same subnet.
 	siaDir                  string // Path to sia data dir
@@ -51,8 +53,6 @@ const (
 	exitCodeUsage   = 64 // EX_USAGE in sysexits.h
 )
 
-// post makes an API call and discards the response. An error is returned if
-// the response status is not 2xx.
 // wrap wraps a generic command with a check that the command has been
 // passed the correct number of arguments. The command must take only strings
 // as arguments.
@@ -87,12 +87,53 @@ func die(args ...interface{}) {
 	os.Exit(exitCodeGeneral)
 }
 
+// statuscmd is the handler for the command `siac`
+// prints basic information about Sia.
+func statuscmd() {
+
+	// Consensus Info
+	cg, err := httpClient.ConsensusGet()
+	if err != nil {
+		die("Could not get consensus status:", err)
+	}
+	fmt.Printf(`Consensus:
+  Synced: %v
+  Height: %v
+
+`, yesNo(cg.Synced), cg.Height)
+
+	// Wallet Info
+	walletStatus, err := httpClient.WalletGet()
+	if err != nil {
+		die("Could not get wallet status:", err)
+	}
+	if walletStatus.Unlocked {
+		fmt.Printf(`Wallet:
+  Status:          unlocked
+  Siacoin Balance: %v
+
+`, currencyUnits(walletStatus.ConfirmedSiacoinBalance))
+	} else {
+		fmt.Printf(`Wallet:
+  Status: Locked
+
+`)
+	}
+
+	// Renter Info
+	fmt.Printf(`Renter:`)
+	err = renterFilesAndContractSummary()
+	if err != nil {
+		die(err)
+	}
+}
+
 func main() {
 	root := &cobra.Command{
 		Use:   os.Args[0],
 		Short: "Sia Client v" + build.Version,
 		Long:  "Sia Client v" + build.Version,
-		Run:   wrap(consensuscmd),
+		Run:   wrap(statuscmd),
 	}
 
 	rootCmd = root
@@ -112,7 +153,7 @@ func main() {
 	hostContractCmd.Flags().StringVarP(&hostContractOutputType, "type", "t", "value", "Select output type")
 
 	root.AddCommand(hostdbCmd)
-	hostdbCmd.AddCommand(hostdbViewCmd)
+	hostdbCmd.AddCommand(hostdbViewCmd, hostdbFiltermodeCmd, hostdbSetFiltermodeCmd)
 	hostdbCmd.Flags().IntVarP(&hostdbNumHosts, "numhosts", "n", 0, "Number of hosts to display from the hostdb")
 	hostdbCmd.Flags().BoolVarP(&hostdbVerbose, "verbose", "v", false, "Display full hostdb information")
 
@@ -133,7 +174,7 @@ func main() {
 	walletInitCmd.Flags().BoolVarP(&initForce, "force", "", false, "destroy the existing wallet and re-encrypt")
 	walletInitSeedCmd.Flags().BoolVarP(&initForce, "force", "", false, "destroy the existing wallet")
 	walletSendCmd.AddCommand(walletSendSiacoinsCmd, walletSendSiafundsCmd)
-	walletUnlockCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Display interactive password prompt even if SIAPRIME_WALLET_PASSWORD is set")
+	walletUnlockCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Display interactive password prompt even if SCPRIME_WALLET_PASSWORD is set")
 	walletBroadcastCmd.Flags().BoolVarP(&walletRawTxn, "raw", "", false, "Decode transaction as base64 instead of JSON")
 	walletSignCmd.Flags().BoolVarP(&walletRawTxn, "raw", "", false, "Encode signed transaction as base64 instead of JSON")
 
@@ -143,8 +184,8 @@ func main() {
 		renterContractsCmd, renterFilesListCmd, renterFilesRenameCmd,
 		renterFilesUploadCmd, renterUploadsCmd, renterExportCmd,
 		renterPricesCmd, renterBackupCreateCmd, renterBackupLoadCmd,
-		renterTriggerContractRecoveryScanCmd,
-		renterContractsRecoveryScanProgressCmd)
+		renterBackupListCmd, renterTriggerContractRecoveryScanCmd, renterFilesUnstuckCmd,
+		renterContractsRecoveryScanProgressCmd, renterDownloadCancelCmd)
 
 	renterContractsCmd.AddCommand(renterContractsViewCmd)
 	renterAllowanceCmd.AddCommand(renterAllowanceCancelCmd)
@@ -153,9 +194,11 @@ func main() {
 	renterContractsCmd.Flags().BoolVarP(&renterAllContracts, "all", "A", false, "Show all expired contracts in addition to active contracts")
 	renterDownloadsCmd.Flags().BoolVarP(&renterShowHistory, "history", "H", false, "Show download history in addition to the download queue")
 	renterFilesDownloadCmd.Flags().BoolVarP(&renterDownloadAsync, "async", "A", false, "Download file asynchronously")
+	renterFilesDownloadCmd.Flags().BoolVarP(&renterDownloadRecursive, "recursive", "R", false, "Download folder recursively")
 	renterFilesListCmd.Flags().BoolVarP(&renterListVerbose, "verbose", "v", false, "Show additional file info such as redundancy")
+	renterFilesListCmd.Flags().BoolVarP(&renterListRecursive, "recursive", "R", false, "Recursively list files and folders")
 	renterExportCmd.AddCommand(renterExportContractTxnsCmd)
-
+	// TODO: filtersubnet is not in Allowance but RenterSettings
 	renterSetAllowanceCmd.Flags().BoolVarP(&renterFilterHostsSubnet, "filter-subnet", "", false, "Filter hosts from same subnet")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceFunds, "amount", "", "amount of money in allowance, specified in currency units")
 	renterSetAllowanceCmd.Flags().StringVar(&allowancePeriod, "period", "", "period of allowance in blocks (b), hours (h), days (d) or weeks (w)")
@@ -167,13 +210,13 @@ func main() {
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceExpectedRedundancy, "expected-redundancy", "", "expected redundancy of most uploaded files")
 
 	root.AddCommand(gatewayCmd)
-	gatewayCmd.AddCommand(gatewayConnectCmd, gatewayDisconnectCmd, gatewayAddressCmd, gatewayListCmd)
+	gatewayCmd.AddCommand(gatewayConnectCmd, gatewayDisconnectCmd, gatewayAddressCmd, gatewayListCmd, gatewayRatelimitCmd)
 
 	root.AddCommand(consensusCmd)
 	consensusCmd.Flags().BoolVarP(&consensusCmdVerbose, "verbose", "v", false, "Display full consensus information")
 
 	utilsCmd.AddCommand(bashcomplCmd, mangenCmd, utilsHastingsCmd, utilsEncodeRawTxnCmd, utilsDecodeRawTxnCmd,
-		utilsSigHashCmd, utilsCheckSigCmd, utilsVerifySeedCmd)
+		utilsSigHashCmd, utilsCheckSigCmd, utilsVerifySeedCmd, utilsDisplayAPIPasswordCmd)
 	utilsVerifySeedCmd.Flags().StringVarP(&dictionaryLanguage, "language", "l", "english", "which dictionary you want to use")
 	root.AddCommand(utilsCmd)
 
@@ -184,10 +227,10 @@ func main() {
 	root.PersistentFlags().StringVarP(&httpClient.UserAgent, "useragent", "", "SiaPrime-Agent", "the useragent used by spc to connect to the daemon's API")
 
 	// Check if the api password environment variable is set.
-	apiPassword := os.Getenv("SIAPRIME_API_PASSWORD")
+	apiPassword := os.Getenv("SCPRIME_API_PASSWORD")
 	if apiPassword != "" {
 		httpClient.Password = apiPassword
-		fmt.Println("Using SIAPRIME_API_PASSWORD environment variable")
+		fmt.Println("Using SCPRIME_API_PASSWORD environment variable")
 	}
 
 	// If the API password wasn't set we try to read it from the file. This must
@@ -197,9 +240,11 @@ func main() {
 		if httpClient.Password == "" {
 			pw, err := ioutil.ReadFile(build.APIPasswordFile(siaDir))
 			if err != nil {
-				die("Could not read API password file:", err)
+				fmt.Println("Could not read API password file:", err)
+				httpClient.Password = ""
+			} else {
+				httpClient.Password = strings.TrimSpace(string(pw))
 			}
-			httpClient.Password = strings.TrimSpace(string(pw))
 		}
 	})
 

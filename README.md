@@ -1,4 +1,4 @@
-# [![SiaPrime Logo](https://siaprime.net/imagestore/SPRho_256x256.png)](http://siaprime.net) v1.4.0.1
+# [![SiaPrime Logo](https://siaprime.net/imagestore/SPRho_256x256.png)](http://siaprime.net) v1.4.1
 
 [![Build Status](https://gitlab.com/SiaPrime/SiaPrime/badges/master/build.svg)](https://gitlab.com/SiaPrime/SiaPrime/commits/master)
 [![Coverage Report](https://gitlab.com/SiaPrime/SiaPrime/badges/master/coverage.svg)](https://gitlab.com/SiaPrime/SiaPrime/commits/master)
@@ -73,7 +73,7 @@ prompt) or SiaPrime-UI to interact with `spd`.
 Building From Source
 --------------------
 
-To build from source, [Go 1.10 must be installed](https://golang.org/doc/install)
+To build from source, [Go 1.11 or above must be installed](https://golang.org/doc/install)
 on the system. Make sure your `$GOPATH` is set, and then simply use `go get`:
 
 ```

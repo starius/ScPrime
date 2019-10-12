@@ -1,6 +1,10 @@
 Host API
 --------
 
+<<<<<<< HEAD
+The Sia API documentation can be found here:
+[Sia API](https://sia.tech/docs/ "Sia API")
+=======
 This document contains detailed descriptions of the host's API routes. For an
 overview of the host's API routes, see [API.md#host](/doc/API.md#host).  For an
 overview of all API routes, see [API.md](/doc/API.md)
@@ -660,4 +664,7 @@ mindownloadbandwidthprice // Optional, hastings / byte
 minstorageprice           // Optional, hastings / byte / block
 minuploadbandwidthprice   // Optional, hastings / byte
 ```
+>>>>>>> siaprime/master
 
+Updates to the API documentation can be made here:
+[Sia API markdown](./index.html.md "Sia API markdown")

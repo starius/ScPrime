@@ -1,11 +1,13 @@
 Gateway API
 ===========
 
-This document contains detailed descriptions of the gateway's API routes. For
-an overview of the gateway's API routes, see
-[API.md#gateway](/doc/API.md#gateway).  For an overview of all API routes, see
-[API.md](/doc/API.md)
+The Sia API documentation can be found here:
+[Sia API](https://sia.tech/docs/ "Sia API")
 
+<<<<<<< HEAD
+Updates to the API documentation can be made here:
+[Sia API markdown](./index.html.md "Sia API markdown")
+=======
 There may be functional API calls which are not documented. These are not
 guaranteed to be supported beyond the current release, and should not be used
 in production.
@@ -161,3 +163,4 @@ Examples
 ```
 204 No Content
 ```
+>>>>>>> siaprime/master

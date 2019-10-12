@@ -1,7 +1,10 @@
 package main
 
 import (
+	"os"
 	"testing"
+
+	"gitlab.com/SiaPrime/SiaPrime/build"
 )
 
 // TestUnitProcessNetAddr probes the 'processNetAddr' function.
@@ -123,30 +126,67 @@ func TestUnitProcessConfig(t *testing.T) {
 	}
 	var config Config
 	for i := range testVals.inputs {
-		config.Siad.APIaddr = testVals.inputs[i][0]
-		config.Siad.RPCaddr = testVals.inputs[i][1]
-		config.Siad.HostAddr = testVals.inputs[i][2]
+		config.Spd.APIaddr = testVals.inputs[i][0]
+		config.Spd.RPCaddr = testVals.inputs[i][1]
+		config.Spd.HostAddr = testVals.inputs[i][2]
 		config, err := processConfig(config)
 		if err != nil {
 			t.Error("processConfig failed with error:", err)
 		}
-		if config.Siad.APIaddr != testVals.expectedOutputs[i][0] {
+		if config.Spd.APIaddr != testVals.expectedOutputs[i][0] {
 			t.Error("processing failure at check", i, 0)
 		}
-		if config.Siad.RPCaddr != testVals.expectedOutputs[i][1] {
+		if config.Spd.RPCaddr != testVals.expectedOutputs[i][1] {
 			t.Error("processing failure at check", i, 1)
 		}
-		if config.Siad.HostAddr != testVals.expectedOutputs[i][2] {
+		if config.Spd.HostAddr != testVals.expectedOutputs[i][2] {
 			t.Error("processing failure at check", i, 2)
 		}
 	}
 
 	// Test invalid configs.
 	invalidModule := "z"
-	config.Siad.Modules = invalidModule
+	config.Spd.Modules = invalidModule
 	_, err := processConfig(config)
 	if err == nil {
 		t.Error("processModules didn't error on invalid module:", invalidModule)
+	}
+}
+
+// TestAPIPassword tests the 'apiPassword' function.
+func TestAPIPassword(t *testing.T) {
+	dir := build.TempDir("spd", t.Name())
+	// If config.Spd.AuthenticateAPI is false, no password should be set
+	var config Config
+	config, err := loadAPIPassword(config, dir)
+	if err != nil {
+		t.Fatal(err)
+	} else if config.APIPassword != "" {
+		t.Fatal("loadAPIPassword should not set a password if config.Spd.AuthenticateAPI is false")
+	}
+	config.Spd.AuthenticateAPI = true
+	// On first invocation, loadAPIPassword should generate a new random password
+	config2, err := loadAPIPassword(config, dir)
+	if err != nil {
+		t.Fatal(err)
+	} else if config2.APIPassword == "" {
+		t.Fatal("loadAPIPassword should have generated a random password")
+	}
+	// On subsequent invocations, loadAPIPassword should use the previously-generated password
+	config3, err := loadAPIPassword(config, dir)
+	if err != nil {
+		t.Fatal(err)
+	} else if config3.APIPassword != config2.APIPassword {
+		t.Fatal("loadAPIPassword should have used previously-generated password")
+	}
+	// If the environment variable is set, loadAPIPassword should use that
+	defer os.Setenv("SCPRIME_API_PASSWORD", os.Getenv("SCPRIME_API_PASSWORD"))
+	os.Setenv("SCPRIME_API_PASSWORD", "foobar")
+	config4, err := loadAPIPassword(config, dir)
+	if err != nil {
+		t.Fatal(err)
+	} else if config4.APIPassword != "foobar" {
+		t.Fatal("loadAPIPassword should use environment variable SCPRIME_API_PASSWORD")
 	}
 }
 
@@ -157,7 +197,7 @@ func TestUnitProcessConfig(t *testing.T) {
 func TestVerifyAPISecurity(t *testing.T) {
 	// Check that the loopback address is accepted when security is enabled.
 	var securityOnLoopback Config
-	securityOnLoopback.Siad.APIaddr = "127.0.0.1:4280"
+	securityOnLoopback.Spd.APIaddr = "127.0.0.1:4280"
 	err := verifyAPISecurity(securityOnLoopback)
 	if err != nil {
 		t.Error("loopback + securityOn was rejected")
@@ -165,7 +205,7 @@ func TestVerifyAPISecurity(t *testing.T) {
 
 	// Check that the blank address is rejected when security is enabled.
 	var securityOnBlank Config
-	securityOnBlank.Siad.APIaddr = ":4280"
+	securityOnBlank.Spd.APIaddr = ":4280"
 	err = verifyAPISecurity(securityOnBlank)
 	if err == nil {
 		t.Error("blank + securityOn was accepted")
@@ -173,7 +213,7 @@ func TestVerifyAPISecurity(t *testing.T) {
 
 	// Check that a public hostname is rejected when security is enabled.
 	var securityOnPublic Config
-	securityOnPublic.Siad.APIaddr = "sia.tech:4280"
+	securityOnPublic.Spd.APIaddr = "siaprime.net:4280"
 	err = verifyAPISecurity(securityOnPublic)
 	if err == nil {
 		t.Error("public + securityOn was accepted")
@@ -182,8 +222,8 @@ func TestVerifyAPISecurity(t *testing.T) {
 	// Check that a public hostname is rejected when security is disabled and
 	// there is no api password.
 	var securityOffPublic Config
-	securityOffPublic.Siad.APIaddr = "sia.tech:4280"
-	securityOffPublic.Siad.AllowAPIBind = true
+	securityOffPublic.Spd.APIaddr = "siaprime.net:4280"
+	securityOffPublic.Spd.AllowAPIBind = true
 	err = verifyAPISecurity(securityOffPublic)
 	if err == nil {
 		t.Error("public + securityOff was accepted without authentication")
@@ -192,9 +232,9 @@ func TestVerifyAPISecurity(t *testing.T) {
 	// Check that a public hostname is accepted when security is disabled and
 	// there is an api password.
 	var securityOffPublicAuthenticated Config
-	securityOffPublicAuthenticated.Siad.APIaddr = "sia.tech:4280"
-	securityOffPublicAuthenticated.Siad.AllowAPIBind = true
-	securityOffPublicAuthenticated.Siad.AuthenticateAPI = true
+	securityOffPublicAuthenticated.Spd.APIaddr = "siaprime.net:4280"
+	securityOffPublicAuthenticated.Spd.AllowAPIBind = true
+	securityOffPublicAuthenticated.Spd.AuthenticateAPI = true
 	err = verifyAPISecurity(securityOffPublicAuthenticated)
 	if err != nil {
 		t.Error("public + securityOff with authentication was rejected:", err)

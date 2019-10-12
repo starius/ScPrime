@@ -8,13 +8,14 @@ package consensus
 
 import (
 	"errors"
+
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
 	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	"github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/demotemutex"
 )
 
@@ -132,26 +133,29 @@ func NewCustomConsensusSet(gateway modules.Gateway, bootstrap bool, persistDir s
 		persistDir: persistDir,
 	}
 
-	// Create the diffs for the genesis siacoin outputs.
-	for i, siacoinOutput := range types.GenesisBlock.Transactions[0].SiacoinOutputs {
-		scid := types.GenesisBlock.Transactions[0].SiacoinOutputID(uint64(i))
-		scod := modules.SiacoinOutputDiff{
-			Direction:     modules.DiffApply,
-			ID:            scid,
-			SiacoinOutput: siacoinOutput,
+	// TODO: check this
+	// Create the diffs for the genesis transaction outputs
+	for _, transaction := range types.GenesisBlock.Transactions {
+		// Create the diffs for the genesis siacoin outputs.
+		for i, siacoinOutput := range transaction.SiacoinOutputs {
+			scid := transaction.SiacoinOutputID(uint64(i))
+			scod := modules.SiacoinOutputDiff{
+				Direction:     modules.DiffApply,
+				ID:            scid,
+				SiacoinOutput: siacoinOutput,
+			}
+			cs.blockRoot.SiacoinOutputDiffs = append(cs.blockRoot.SiacoinOutputDiffs, scod)
 		}
-		cs.blockRoot.SiacoinOutputDiffs = append(cs.blockRoot.SiacoinOutputDiffs, scod)
-	}
-
-	// Create the diffs for the genesis siafund outputs.
-	for i, siafundOutput := range types.GenesisBlock.Transactions[1].SiafundOutputs {
-		sfid := types.GenesisBlock.Transactions[1].SiafundOutputID(uint64(i))
-		sfod := modules.SiafundOutputDiff{
-			Direction:     modules.DiffApply,
-			ID:            sfid,
-			SiafundOutput: siafundOutput,
+		// Create the diffs for the genesis siafund outputs.
+		for i, siafundOutput := range transaction.SiafundOutputs {
+			sfid := transaction.SiafundOutputID(uint64(i))
+			sfod := modules.SiafundOutputDiff{
+				Direction:     modules.DiffApply,
+				ID:            sfid,
+				SiafundOutput: siafundOutput,
+			}
+			cs.blockRoot.SiafundOutputDiffs = append(cs.blockRoot.SiafundOutputDiffs, sfod)
 		}
-		cs.blockRoot.SiafundOutputDiffs = append(cs.blockRoot.SiafundOutputDiffs, sfod)
 	}
 
 	// Initialize the consensus persistence structures.

@@ -13,8 +13,8 @@ const (
 	// commit hash.
 	MaxEncodedVersionLength = 100
 
-	// Version is the current version of spd.
-	Version = "1.4.0.1"
+	// Version is the current version of siad.
+	Version = "1.4.1"
 )
 
 // ReleaseTag contains the release tag, such as "rc3". It is supplied at build

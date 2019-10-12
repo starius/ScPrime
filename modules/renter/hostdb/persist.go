@@ -28,6 +28,7 @@ type hdbPersist struct {
 	AllHosts                 []modules.HostDBEntry
 	BlockHeight              types.BlockHeight
 	DisableIPViolationsCheck bool
+	KnownContracts           map[string]contractInfo
 	LastChange               modules.ConsensusChangeID
 	FilteredHosts            map[string]types.SiaPublicKey
 	FilterMode               modules.FilterMode
@@ -37,7 +38,8 @@ type hdbPersist struct {
 func (hdb *HostDB) persistData() (data hdbPersist) {
 	data.AllHosts = hdb.hostTree.All()
 	data.BlockHeight = hdb.blockHeight
-	data.DisableIPViolationsCheck = hdb.disableIPViolationCheck
+	data.DisableIPViolationsCheck = !hdb.IPViolationsCheck()
+	data.KnownContracts = hdb.knownContracts
 	data.LastChange = hdb.lastChange
 	data.FilteredHosts = hdb.filteredHosts
 	data.FilterMode = hdb.filterMode
@@ -61,8 +63,9 @@ func (hdb *HostDB) load() error {
 
 	// Set the hostdb internal values.
 	hdb.blockHeight = data.BlockHeight
-	hdb.disableIPViolationCheck = data.DisableIPViolationsCheck
+	hdb.SetIPViolationCheck(!data.DisableIPViolationsCheck)
 	hdb.lastChange = data.LastChange
+	hdb.knownContracts = data.KnownContracts
 	hdb.filteredHosts = data.FilteredHosts
 	hdb.filterMode = data.FilterMode
 

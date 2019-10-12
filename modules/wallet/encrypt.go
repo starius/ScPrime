@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/coreos/bbolt"
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
@@ -82,8 +82,9 @@ func (w *Wallet) initEncryption(masterKey crypto.CipherKey, seed modules.Seed, p
 	// Establish the encryption verification using the masterKey. After this
 	// point, the wallet is encrypted.
 	uk := uidEncryptionKey(masterKey, dbGetWalletUID(w.dbTx))
-	if err != nil {
-		return modules.Seed{}, err
+	// NOTE: The following check is most likely unneeded/obsolete
+	if uk == nil {
+		return modules.Seed{}, errNoKey
 	}
 	err = wb.Put(keyEncryptionVerification, uk.EncryptBytes(verificationPlaintext))
 	if err != nil {

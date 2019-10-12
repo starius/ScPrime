@@ -89,8 +89,8 @@ func TestUnregisterRPC(t *testing.T) {
 	// Unregister RPC and check that calling it fails.
 	g1.UnregisterRPC("Foo")
 	err = g2.RPC(g1.Address(), "Foo", dummyFunc)
-	if err != io.EOF {
-		t.Errorf("calling unregistered RPC on g1 returned %q instead of io.EOF", err)
+	if err.Error() != io.EOF.Error() {
+		t.Errorf("calling unregistered RPC on g1 returned %v instead of %v", err, io.EOF)
 	}
 
 	// Unregister again and check that it panics.
@@ -540,7 +540,7 @@ func TestCallingRPCFromRPC(t *testing.T) {
 
 	select {
 	case <-barChan:
-	case <-time.After(500 * time.Millisecond):
+	case <-time.After(1 * time.Second):
 		t.Fatal("expected BAR RPC to be called")
 	}
 }

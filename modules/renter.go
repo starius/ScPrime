@@ -17,10 +17,10 @@ var (
 	// DefaultAllowance is the set of default allowance settings that will be
 	// used when allowances are not set or not fully set
 	DefaultAllowance = Allowance{
-		Funds:       types.SiacoinPrecision.Mul64(500),
-		Hosts:       uint64(PriceEstimationScope),
-		Period:      types.BlockHeight(3 * types.BlocksPerMonth),
-		RenewWindow: types.BlockHeight(types.BlocksPerMonth),
+		Funds:       types.SiacoinPrecision.Mul64(1e5),          // 100 KS
+		Hosts:       uint64(PriceEstimationScope),               // 50
+		Period:      types.BlockHeight(types.BlocksPerMonth),    // 1 Month
+		RenewWindow: types.BlockHeight(2 * types.BlocksPerWeek), // 2 Weeks
 
 		ExpectedStorage:    1e12,                                 // 1 TB
 		ExpectedUpload:     uint64(200e9) / types.BlocksPerMonth, // 200 GB per month
@@ -29,6 +29,10 @@ var (
 	}
 	// ErrHostFault indicates if an error is the host's fault.
 	ErrHostFault = errors.New("host has returned an error")
+
+	// ErrDownloadCancelled is the error set when a download was cancelled
+	// manually by the user.
+	ErrDownloadCancelled = errors.New("download was cancelled")
 
 	// PriceEstimationScope is the number of hosts that get queried by the
 	// renter when providing price estimates. Especially for the 'Standard'
@@ -104,6 +108,14 @@ const (
 	// renter's siafiles.
 	SiapathRoot = "siafiles"
 
+	// BackupRoot is the name of the directory that is used to store the renter's
+	// snapshot siafiles.
+	BackupRoot = "snapshots"
+
+	// CombinedChunksRoot is the name of the directory that contains combined
+	// chunks consisting of multiple partial chunks.
+	CombinedChunksRoot = "combinedchunks"
+
 	// EstimatedFileContractTransactionSetSize is the estimated blockchain size
 	// of a transaction set between a renter and a host that contains a file
 	// contract. This transaction set will contain a setup transaction from each
@@ -118,9 +130,27 @@ const (
 )
 
 type (
+	// CombinedChunkID is a unique identifier for a combined chunk which makes up
+	// part of its filename on disk.
+	CombinedChunkID string
+
+	// PartialChunk holds some information about a combined chunk
+	PartialChunk struct {
+		ChunkID        CombinedChunkID // The ChunkID of the combined chunk the partial is in.
+		InPartialsFile bool            // 'true' if the combined chunk is already in the partials siafile.
+		Length         uint64          // length of the partial chunk within the combined chunk.
+		Offset         uint64          // offset of the partial chunk within the combined chunk.
+	}
+)
+
+type (
 	// ErasureCoderType is an identifier for the individual types of erasure
 	// coders.
 	ErasureCoderType [4]byte
+
+	// ErasureCoderIdentifier is an identifier that only matches another
+	// ErasureCoder's identifier if they both are of the same type and settings.
+	ErasureCoderIdentifier string
 
 	// An ErasureCoder is an error-correcting encoder and decoder.
 	ErasureCoder interface {
@@ -135,9 +165,16 @@ type (
 		// containing parity data.
 		Encode(data []byte) ([][]byte, error)
 
+		// Identifier returns the ErasureCoderIdentifier of the ErasureCoder.
+		Identifier() ErasureCoderIdentifier
+
 		// EncodeShards encodes the input data like Encode but accepts an already
 		// sharded input.
 		EncodeShards(data [][]byte) ([][]byte, error)
+
+		// Reconstruct recovers the full set of encoded shards from the provided
+		// pieces, of which at least MinPieces must be non-nil.
+		Reconstruct(pieces [][]byte) error
 
 		// Recover recovers the original data from pieces and writes it to w.
 		// pieces should be identical to the slice returned by Encode (length and
@@ -159,11 +196,11 @@ type (
 // An Allowance dictates how much the Renter is allowed to spend in a given
 // period. Note that funds are spent on both storage and bandwidth.
 type Allowance struct {
-	Funds             types.Currency    `json:"funds"`
-	Hosts             uint64            `json:"hosts"`
-	Period            types.BlockHeight `json:"period"`
-	RenewWindow       types.BlockHeight `json:"renewwindow"`
-	FilterHostsSubnet bool              `json:"filterhostssubnet"`
+	Funds       types.Currency    `json:"funds"`
+	Hosts       uint64            `json:"hosts"`
+	Period      types.BlockHeight `json:"period"`
+	RenewWindow types.BlockHeight `json:"renewwindow"`
+	//	FilterHostsSubnet bool              `json:"filterhostssubnet"`
 
 	// ExpectedStorage is the amount of data that we expect to have in a contract.
 	ExpectedStorage uint64 `json:"expectedstorage"`
@@ -185,7 +222,8 @@ type Allowance struct {
 type ContractUtility struct {
 	GoodForUpload bool
 	GoodForRenew  bool
-	Locked        bool // Locked utilities can only be set to false.
+	LastOOSErr    types.BlockHeight // OOS means Out Of Storage
+	Locked        bool              // Locked utilities can only be set to false.
 }
 
 // DirectoryInfo provides information about a siadir
@@ -193,31 +231,42 @@ type DirectoryInfo struct {
 	// The following fields are aggregate values of the siadir. These values are
 	// the totals of the siadir and any sub siadirs, or are calculated based on
 	// all the values in the subtree
-	AggregateNumFiles       uint64    `json:"aggregatenumfiles"`
-	AggregateNumStuckChunks uint64    `json:"aggregatenumstuckchunks"`
-	AggregateSize           uint64    `json:"aggregatesize"`
-	Health                  float64   `json:"health"`
-	LastHealthCheckTime     time.Time `json:"lasthealthchecktime"`
-	MaxHealth               float64   `json:"maxhealth"`
-	MinRedundancy           float64   `json:"minredundancy"`
-	MostRecentModTime       time.Time `json:"mostrecentmodtime"`
-	StuckHealth             float64   `json:"stuckhealth"`
+	AggregateHealth              float64   `json:"aggregatehealth"`
+	AggregateLastHealthCheckTime time.Time `json:"aggregatelasthealthchecktime"`
+	AggregateMaxHealth           float64   `json:"aggregatemaxhealth"`
+	AggregateMaxHealthPercentage float64   `json:"aggregatemaxhealthpercentage"`
+	AggregateMinRedundancy       float64   `json:"aggregateminredundancy"`
+	AggregateMostRecentModTime   time.Time `json:"aggregatemostrecentmodtime"`
+	AggregateNumFiles            uint64    `json:"aggregatenumfiles"`
+	AggregateNumStuckChunks      uint64    `json:"aggregatenumstuckchunks"`
+	AggregateNumSubDirs          uint64    `json:"aggregatenumsubdirs"`
+	AggregateSize                uint64    `json:"aggregatesize"`
+	AggregateStuckHealth         float64   `json:"aggregatestuckhealth"`
 
 	// The following fields are information specific to the siadir that is not
 	// an aggregate of the entire sub directory tree
-	NumFiles   uint64 `json:"numfiles"`
-	NumSubDirs uint64 `json:"numsubdirs"`
-	SiaPath    string `json:"siapath"`
+	Health              float64   `json:"health"`
+	LastHealthCheckTime time.Time `json:"lasthealthchecktime"`
+	MaxHealthPercentage float64   `json:"maxhealthpercentage"`
+	MaxHealth           float64   `json:"maxhealth"`
+	MinRedundancy       float64   `json:"minredundancy"`
+	MostRecentModTime   time.Time `json:"mostrecentmodtime"`
+	NumFiles            uint64    `json:"numfiles"`
+	NumStuckChunks      uint64    `json:"numstuckchunks"`
+	NumSubDirs          uint64    `json:"numsubdirs"`
+	SiaPath             SiaPath   `json:"siapath"`
+	Size                uint64    `json:"size"`
+	StuckHealth         float64   `json:"stuckhealth"`
 }
 
 // DownloadInfo provides information about a file that has been requested for
 // download.
 type DownloadInfo struct {
-	Destination     string `json:"destination"`     // The destination of the download.
-	DestinationType string `json:"destinationtype"` // Can be "file", "memory buffer", or "http stream".
-	Length          uint64 `json:"length"`          // The length requested for the download.
-	Offset          uint64 `json:"offset"`          // The offset within the siafile requested for the download.
-	SiaPath         string `json:"siapath"`         // The siapath of the file used for the download.
+	Destination     string  `json:"destination"`     // The destination of the download.
+	DestinationType string  `json:"destinationtype"` // Can be "file", "memory buffer", or "http stream".
+	Length          uint64  `json:"length"`          // The length requested for the download.
+	Offset          uint64  `json:"offset"`          // The offset within the siafile requested for the download.
+	SiaPath         SiaPath `json:"siapath"`         // The siapath of the file used for the download.
 
 	Completed            bool      `json:"completed"`            // Whether or not the download has completed.
 	EndTime              time.Time `json:"endtime"`              // The time when the download fully completed.
@@ -231,10 +280,12 @@ type DownloadInfo struct {
 // FileUploadParams contains the information used by the Renter to upload a
 // file.
 type FileUploadParams struct {
-	Source      string
-	SiaPath     SiaPath
-	ErasureCode ErasureCoder
-	Force       bool
+	Source              string
+	SiaPath             SiaPath
+	ErasureCode         ErasureCoder
+	Force               bool
+	DisablePartialChunk bool
+	Repair              bool
 }
 
 // FileInfo provides information about a file.
@@ -256,7 +307,7 @@ type FileInfo struct {
 	Recoverable      bool              `json:"recoverable"`
 	Redundancy       float64           `json:"redundancy"`
 	Renewing         bool              `json:"renewing"`
-	SiaPath          string            `json:"siapath"`
+	SiaPath          SiaPath           `json:"siapath"`
 	Stuck            bool              `json:"stuck"`
 	StuckHealth      float64           `json:"stuckhealth"`
 	UploadedBytes    uint64            `json:"uploadedbytes"`
@@ -319,6 +370,7 @@ type HostScoreBreakdown struct {
 	AgeAdjustment              float64 `json:"ageadjustment"`
 	BurnAdjustment             float64 `json:"burnadjustment"`
 	CollateralAdjustment       float64 `json:"collateraladjustment"`
+	DurationAdjustment         float64 `json:"durationadjustment"`
 	InteractionAdjustment      float64 `json:"interactionadjustment"`
 	PriceAdjustment            float64 `json:"pricesmultiplier"`
 	StorageRemainingAdjustment float64 `json:"storageremainingadjustment"`
@@ -349,7 +401,7 @@ type RenterSettings struct {
 	IPViolationsCheck bool      `json:"ipviolationcheck"`
 	MaxUploadSpeed    int64     `json:"maxuploadspeed"`
 	MaxDownloadSpeed  int64     `json:"maxdownloadspeed"`
-	StreamCacheSize   uint64    `json:"streamcachesize"`
+	//	StreamCacheSize   uint64    `json:"streamcachesize"`
 }
 
 // HostDBScans represents a sortable slice of scans.
@@ -494,6 +546,15 @@ type ContractorSpending struct {
 	PreviousSpending types.Currency `json:"previousspending"`
 }
 
+// UploadedBackup contains metadata about an uploaded backup.
+type UploadedBackup struct {
+	Name           string
+	UID            [16]byte
+	CreationDate   types.Timestamp
+	Size           uint64 // size of snapshot .sia file
+	UploadProgress float64
+}
+
 // A Renter uploads, tracks, repairs, and downloads a set of files for the
 // user.
 type Renter interface {
@@ -554,6 +615,26 @@ type Renter interface {
 	// contracts is in progress and if it is, the current progress of the scan.
 	RecoveryScanStatus() (bool, types.BlockHeight)
 
+	// RefreshedContract checks if the contract was previously refreshed
+	RefreshedContract(fcid types.FileContractID) bool
+
+	// SetFileStuck sets the 'stuck' status of a file.
+	SetFileStuck(siaPath SiaPath, stuck bool) error
+
+	// UploadBackup uploads a backup to hosts, such that it can be retrieved
+	// using only the seed.
+	UploadBackup(src string, name string) error
+
+	// DownloadBackup downloads a backup previously uploaded to hosts.
+	DownloadBackup(dst string, name string) error
+
+	// UploadedBackups returns a list of backups previously uploaded to hosts,
+	// along with a list of which hosts are storing all known backups.
+	UploadedBackups() ([]UploadedBackup, []types.SiaPublicKey, error)
+
+	// BackupsOnHost returns the backups stored on the specified host.
+	BackupsOnHost(hostKey types.SiaPublicKey) ([]UploadedBackup, error)
+
 	// DeleteFile deletes a file entry from the renter.
 	DeleteFile(siaPath SiaPath) error
 
@@ -563,7 +644,7 @@ type Renter interface {
 
 	// Download performs a download according to the parameters passed without
 	// blocking, including downloads of `offset` and `length` type.
-	DownloadAsync(params RenterDownloadParameters) error
+	DownloadAsync(params RenterDownloadParameters, onComplete func(error) error) (cancel func(), err error)
 
 	// ClearDownloadHistory clears the download history of the renter
 	// inclusive for before and after times.
@@ -575,8 +656,13 @@ type Renter interface {
 	// File returns information on specific file queried by user
 	File(siaPath SiaPath) (FileInfo, error)
 
-	// FileList returns information on all of the files stored by the renter.
-	FileList() ([]FileInfo, error)
+	// FileList returns information on all of the files stored by the renter at the
+	// specified folder. The 'cached' argument specifies whether cached values
+	// should be returned or not.
+	FileList(siaPath SiaPath, recursive, cached bool) ([]FileInfo, error)
+
+	// Filter returns the renter's hostdb's filterMode and filteredHosts
+	Filter() (FilterMode, map[string]types.SiaPublicKey, error)
 
 	// SetFilterMode sets the renter's hostdb filter mode
 	SetFilterMode(fm FilterMode, hosts []types.SiaPublicKey) error
@@ -594,6 +680,9 @@ type Renter interface {
 
 	// RenameFile changes the path of a file.
 	RenameFile(siaPath, newSiaPath SiaPath) error
+
+	// RenameDir changes the path of a dir.
+	RenameDir(oldPath, newPath SiaPath) error
 
 	// EstimateHostScore will return the score for a host with the provided
 	// settings, assuming perfect age and uptime adjustments
@@ -621,14 +710,18 @@ type Renter interface {
 	// Upload uploads a file using the input parameters.
 	Upload(FileUploadParams) error
 
+	// UploadStreamFromReader reads from the provided reader until io.EOF is reached and
+	// upload the data to the Sia network.
+	UploadStreamFromReader(up FileUploadParams, reader io.Reader) error
+
 	// CreateDir creates a directory for the renter
 	CreateDir(siaPath SiaPath) error
 
 	// DeleteDir deletes a directory from the renter
 	DeleteDir(siaPath SiaPath) error
 
-	// DirList lists the directories and the files stored in a siadir
-	DirList(siaPath SiaPath) ([]DirectoryInfo, []FileInfo, error)
+	// DirList lists the directories in a siadir
+	DirList(siaPath SiaPath) ([]DirectoryInfo, error)
 }
 
 // Streamer is the interface implemented by the Renter's streamer type which

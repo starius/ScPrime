@@ -3,11 +3,10 @@ package wallet
 import (
 	"math"
 
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"github.com/coreos/bbolt"
 )
 
 type (
@@ -54,9 +53,6 @@ func (w *Wallet) advanceSeedLookahead(index uint64) (bool, error) {
 
 	// Update the primarySeedProgress
 	dbPutPrimarySeedProgress(w.dbTx, newProgress)
-	if err != nil {
-		return false, err
-	}
 
 	// Regenerate lookahead
 	w.regenerateLookahead(newProgress)

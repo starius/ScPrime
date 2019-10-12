@@ -36,14 +36,13 @@ import (
 	"errors"
 	"strconv"
 
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"github.com/coreos/bbolt"
 )
 
 const (
@@ -363,13 +362,13 @@ func (h *Host) queueActionItem(height types.BlockHeight, id types.FileContractID
 // creating a new, empty file contract or when renewing an existing file
 // contract.
 func (h *Host) managedAddStorageObligation(so storageObligation) error {
-	var soid types.FileContractID
+	soid := so.id()
+
 	err := func() error {
 		h.mu.Lock()
 		defer h.mu.Unlock()
 
 		// Sanity check - obligation should be under lock while being added.
-		soid = so.id()
 		_, exists := h.lockedStorageObligations[soid]
 		if !exists {
 			h.log.Critical("addStorageObligation called with an obligation that is not locked")
@@ -402,7 +401,8 @@ func (h *Host) managedAddStorageObligation(so storageObligation) error {
 			// file contract is being renewed, and that the sector should be
 			// re-added with a new expiration height. If there is an error at any
 			// point, all of the sectors should be removed.
-			if len(so.SectorRoots) != 0 {
+			renewal := len(so.SectorRoots) > 0
+			if renewal {
 				err := h.AddSectorBatch(so.SectorRoots)
 				if err != nil {
 					return err
@@ -411,26 +411,15 @@ func (h *Host) managedAddStorageObligation(so storageObligation) error {
 
 			// Add the storage obligation to the database.
 			soBytes, err := json.Marshal(so)
-			if err != nil {
-				return err
+			if err == nil {
+				err = bso.Put(soid[:], soBytes)
 			}
-			return bso.Put(soid[:], soBytes)
-		})
-		if err != nil {
+			if renewal && err != nil {
+				_ = h.RemoveSectorBatch(so.SectorRoots)
+			}
 			return err
-		}
-
-		// Update the host financial metrics with regards to this storage
-		// obligation.
-		h.financialMetrics.ContractCount++
-		h.financialMetrics.PotentialContractCompensation = h.financialMetrics.PotentialContractCompensation.Add(so.ContractCost)
-		h.financialMetrics.LockedStorageCollateral = h.financialMetrics.LockedStorageCollateral.Add(so.LockedCollateral)
-		h.financialMetrics.PotentialStorageRevenue = h.financialMetrics.PotentialStorageRevenue.Add(so.PotentialStorageRevenue)
-		h.financialMetrics.PotentialDownloadBandwidthRevenue = h.financialMetrics.PotentialDownloadBandwidthRevenue.Add(so.PotentialDownloadRevenue)
-		h.financialMetrics.PotentialUploadBandwidthRevenue = h.financialMetrics.PotentialUploadBandwidthRevenue.Add(so.PotentialUploadRevenue)
-		h.financialMetrics.RiskedStorageCollateral = h.financialMetrics.RiskedStorageCollateral.Add(so.RiskedCollateral)
-		h.financialMetrics.TransactionFeeExpenses = h.financialMetrics.TransactionFeeExpenses.Add(so.TransactionFeesAdded)
-		return nil
+		})
+		return err
 	}()
 	if err != nil {
 		return err
@@ -447,6 +436,17 @@ func (h *Host) managedAddStorageObligation(so storageObligation) error {
 	// Queue the action items.
 	h.mu.Lock()
 	defer h.mu.Unlock()
+
+	// Update the host financial metrics with regards to this storage
+	// obligation.
+	h.financialMetrics.ContractCount++
+	h.financialMetrics.PotentialContractCompensation = h.financialMetrics.PotentialContractCompensation.Add(so.ContractCost)
+	h.financialMetrics.LockedStorageCollateral = h.financialMetrics.LockedStorageCollateral.Add(so.LockedCollateral)
+	h.financialMetrics.PotentialStorageRevenue = h.financialMetrics.PotentialStorageRevenue.Add(so.PotentialStorageRevenue)
+	h.financialMetrics.PotentialDownloadBandwidthRevenue = h.financialMetrics.PotentialDownloadBandwidthRevenue.Add(so.PotentialDownloadRevenue)
+	h.financialMetrics.PotentialUploadBandwidthRevenue = h.financialMetrics.PotentialUploadBandwidthRevenue.Add(so.PotentialUploadRevenue)
+	h.financialMetrics.RiskedStorageCollateral = h.financialMetrics.RiskedStorageCollateral.Add(so.RiskedCollateral)
+	h.financialMetrics.TransactionFeeExpenses = h.financialMetrics.TransactionFeeExpenses.Add(so.TransactionFeesAdded)
 
 	// The file contract was already submitted to the blockchain, need to check
 	// after the resubmission timeout that it was submitted successfully.

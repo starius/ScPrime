@@ -41,14 +41,18 @@ func TestCalculateCoinbase(t *testing.T) {
 // doing a naive computation, instead of by doing the optimized computation.
 func TestCalculateNumSiacoins(t *testing.T) {
 	c := CalculateNumSiacoins(0)
+	//if !c.Equals(CalculateCoinbase(0).Add(numGenesisSiacoins)) {
 	if c.Cmp(CalculateCoinbase(0).Add(AirdropCommunityValue).Add(AirdropNebulousLabsValue).Add(AirdropPoolValue).Add(AirdropSiaPrimeValue)) != 0 {
+
 		t.Error("unexpected circulation result for value 0, got", c)
 	}
 
 	if testing.Short() {
 		t.SkipNow()
 	}
+	//totalCoins := NewCurrency64(0).Add(numGenesisSiacoins) // TODO: check this
 	totalCoins := NewCurrency64(0).Add(AirdropCommunityValue).Add(AirdropNebulousLabsValue).Add(AirdropPoolValue).Add(AirdropSiaPrimeValue)
+
 	for i := BlockHeight(0); i < 500e3; i++ {
 		totalCoins = totalCoins.Add(CalculateCoinbase(i))
 		if totalCoins.Cmp(CalculateNumSiacoins(i)) != 0 {

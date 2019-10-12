@@ -87,6 +87,7 @@ func (hdb *HostDB) insertBlockchainHost(host modules.HostDBEntry) {
 // ProcessConsensusChange will be called by the consensus set every time there
 // is a change in the blockchain. Updates will always be called in order.
 func (hdb *HostDB) ProcessConsensusChange(cc modules.ConsensusChange) {
+
 	hdb.mu.Lock()
 	defer hdb.mu.Unlock()
 

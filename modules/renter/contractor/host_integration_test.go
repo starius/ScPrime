@@ -78,6 +78,7 @@ func newTestingHost(testdir string, cs modules.ConsensusSet, tp modules.Transact
 	// configure host to accept contracts
 	settings := h.InternalSettings()
 	settings.AcceptingContracts = true
+	settings.MaxDuration = types.BlockHeight(4 * types.BlocksPerMonth)
 	err = h.SetInternalSettings(settings)
 	if err != nil {
 		return nil, err
@@ -200,6 +201,11 @@ func TestIntegrationFormContract(t *testing.T) {
 	defer h.Close()
 	defer c.Close()
 
+	// acquire the contract maintenance lock for the duration of the test. This
+	// prevents theadedContractMaintenance from running.
+	c.maintenanceLock.Lock()
+	defer c.maintenanceLock.Unlock()
+
 	// get the host's entry from the db
 	hostEntry, ok := c.hdb.Host(h.PublicKey())
 	if !ok {
@@ -219,6 +225,43 @@ func TestIntegrationFormContract(t *testing.T) {
 	}
 }
 
+// TestFormContractSmallAllowance tests to make sure that a contract doesn't
+// form when there are insufficient funds in the allowance
+func TestFormContractSmallAllowance(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+	h, c, _, err := newTestingTrio(t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Close()
+	defer c.Close()
+
+	// get the host's entry from the db
+	hostEntry, ok := c.hdb.Host(h.PublicKey())
+	if !ok {
+		t.Fatal("no entry for host in db")
+	}
+
+	// set an allowance but don't use SetAllowance to avoid automatic contract
+	// formation. Setting funds to 1SC to mimic bug report found in production.
+	// Using production number of hosts as well
+	c.mu.Lock()
+	c.allowance = modules.DefaultAllowance
+	c.allowance.Funds = types.SiacoinPrecision.Mul64(1)
+	c.allowance.Hosts = uint64(50)
+	initialContractFunds := c.allowance.Funds.Div64(c.allowance.Hosts).Div64(3)
+	c.mu.Unlock()
+
+	// try to form a contract with the host
+	_, _, err = c.managedNewContract(hostEntry, initialContractFunds, c.blockHeight+100)
+	if err == nil {
+		t.Fatal("Expected underflow error for insufficient funds")
+	}
+}
+
 // TestIntegrationReviseContract tests that the contractor can revise a
 // contract previously formed with a host.
 func TestIntegrationReviseContract(t *testing.T) {
@@ -233,6 +276,11 @@ func TestIntegrationReviseContract(t *testing.T) {
 	}
 	defer h.Close()
 	defer c.Close()
+
+	// acquire the contract maintenance lock for the duration of the test. This
+	// prevents theadedContractMaintenance from running.
+	c.maintenanceLock.Lock()
+	defer c.maintenanceLock.Unlock()
 
 	// get the host's entry from the db
 	hostEntry, ok := c.hdb.Host(h.PublicKey())

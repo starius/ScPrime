@@ -84,11 +84,11 @@ func (c *Contractor) ContractUtility(pk types.SiaPublicKey) (modules.ContractUti
 // expired
 func (c *Contractor) OldContracts() []modules.RenterContract {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	contracts := make([]modules.RenterContract, 0, len(c.oldContracts))
 	for _, c := range c.oldContracts {
 		contracts = append(contracts, c)
 	}
+	c.mu.Unlock()
 	return contracts
 }
 
@@ -98,10 +98,10 @@ func (c *Contractor) OldContracts() []modules.RenterContract {
 // isn't available for recovery or something went wrong.
 func (c *Contractor) RecoverableContracts() []modules.RecoverableContract {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	contracts := make([]modules.RecoverableContract, 0, len(c.recoverableContracts))
 	for _, c := range c.recoverableContracts {
 		contracts = append(contracts, c)
 	}
+	c.mu.Unlock()
 	return contracts
 }

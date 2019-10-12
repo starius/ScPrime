@@ -10,11 +10,17 @@ package node
 // modules.
 
 import (
+	"fmt"
 	"path/filepath"
+	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+
+	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/config"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
+	"gitlab.com/SiaPrime/SiaPrime/modules/explorer"
 	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
 	"gitlab.com/SiaPrime/SiaPrime/modules/host"
 	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
@@ -27,8 +33,6 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
 	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
-
-	"gitlab.com/NebulousLabs/errors"
 )
 
 // NodeParams contains a bunch of parameters for creating a new test node. As
@@ -90,7 +94,11 @@ type NodeParams struct {
 	WalletDeps      modules.Dependencies
 
 	// Custom settings for modules
-	Allowance modules.Allowance
+	Allowance   modules.Allowance
+	Bootstrap   bool
+	HostAddress string
+	HostStorage uint64
+	RPCAddress  string
 
 	// Initialize node from existing seed.
 	PrimarySeed string
@@ -124,37 +132,99 @@ type Node struct {
 	Dir string
 }
 
+// NumModules returns how many of the major modules the given NodeParams would
+// create.
+func (np NodeParams) NumModules() (n int) {
+	if np.CreateGateway || np.Gateway != nil {
+		n++
+	}
+	if np.CreateConsensusSet || np.ConsensusSet != nil {
+		n++
+	}
+	if np.CreateTransactionPool || np.TransactionPool != nil {
+		n++
+	}
+	if np.CreateWallet || np.Wallet != nil {
+		n++
+	}
+	if np.CreateHost || np.Host != nil {
+		n++
+	}
+	if np.CreateRenter || np.Renter != nil {
+		n++
+	}
+	if np.CreateMiner || np.Miner != nil {
+		n++
+	}
+	if np.CreateExplorer || np.Explorer != nil {
+		n++
+	}
+	if np.CreateMiningPool || np.MiningPool != nil {
+		n++
+	}
+	if np.CreateStratumMiner || np.StratumMiner != nil {
+		n++
+	}
+	return
+}
+
+// printlnRelease is a wrapper that only prints to stdout in release builds.
+func printlnRelease(a ...interface{}) (int, error) {
+	if build.Release == "standard" {
+		return fmt.Println(a...)
+	}
+	return 0, nil
+}
+
+// printfRelease is a wrapper that only prints to stdout in release builds.
+func printfRelease(format string, a ...interface{}) (int, error) {
+	if build.Release == "standard" {
+		return fmt.Printf(format, a...)
+	}
+	return 0, nil
+}
+
 // Close will call close on every module within the node, combining and
 // returning the errors.
 func (n *Node) Close() (err error) {
-	if n.Explorer != nil {
-		err = errors.Compose(n.Explorer.Close())
-	}
-	if n.Miner != nil {
-		err = errors.Compose(n.Miner.Close())
-	}
 	if n.MiningPool != nil {
+		printlnRelease("Closing mining pool...")
 		err = errors.Compose(n.MiningPool.Close())
 	}
 	if n.StratumMiner != nil {
+		printlnRelease("Closing stratum miner...")
 		err = errors.Compose(n.StratumMiner.Close())
 	}
-	if n.Host != nil {
-		err = errors.Compose(n.Host.Close())
-	}
 	if n.Renter != nil {
+		printlnRelease("Closing renter...")
 		err = errors.Compose(n.Renter.Close())
 	}
+	if n.Host != nil {
+		printlnRelease("Closing host...")
+		err = errors.Compose(n.Host.Close())
+	}
+	if n.Miner != nil {
+		printlnRelease("Closing miner...")
+		err = errors.Compose(n.Miner.Close())
+	}
 	if n.Wallet != nil {
+		printlnRelease("Closing wallet...")
 		err = errors.Compose(n.Wallet.Close())
 	}
 	if n.TransactionPool != nil {
+		printlnRelease("Closing transactionpool...")
 		err = errors.Compose(n.TransactionPool.Close())
 	}
+	if n.Explorer != nil {
+		printlnRelease("Closing explorer...")
+		err = errors.Compose(n.Explorer.Close())
+	}
 	if n.ConsensusSet != nil {
+		printlnRelease("Closing consensusset...")
 		err = errors.Compose(n.ConsensusSet.Close())
 	}
 	if n.Gateway != nil {
+		printlnRelease("Closing gateway...")
 		err = errors.Compose(n.Gateway.Close())
 	}
 	return err
@@ -167,36 +237,34 @@ func (n *Node) Close() (err error) {
 // themselves).
 func New(params NodeParams) (*Node, error) {
 	dir := params.Dir
+	numModules := params.NumModules()
+	i := 0
+	printfRelease("Loading modules:\n")
+	loadStart := time.Now()
 
 	// Gateway.
 	g, err := func() (modules.Gateway, error) {
 		if params.CreateGateway && params.Gateway != nil {
 			return nil, errors.New("cannot both create a gateway and use a passed in gateway")
 		}
-		/* Template for dealing with optional dependencies:
-		if !params.CreateGateway && parames.GatewayDependencies != nil {
-			return nil, errors.New("cannot pass in gateway dependencies if you are not creating a gateway")
-		}
-		*/
 		if params.Gateway != nil {
 			return params.Gateway, nil
 		}
 		if !params.CreateGateway {
 			return nil, nil
 		}
-		/* Template for dealing with optional dependencies:
-		if params.GatewayDependencies == nil {
-			gateway.New(...
-		} else {
-			gateway.NewDeps(...
+		if params.RPCAddress == "" {
+			params.RPCAddress = "localhost:0"
 		}
-		*/
-		return gateway.New("localhost:0", false, filepath.Join(dir, modules.GatewayDir))
+		i++
+		printfRelease("(%d/%d) Loading gateway...", i, numModules)
+		return gateway.New(params.RPCAddress, params.Bootstrap, filepath.Join(dir, modules.GatewayDir))
 	}()
 	if err != nil {
 		return nil, errors.Extend(err, errors.New("unable to create gateway"))
 	}
-
+	printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+	loadStart = time.Now()
 	// Consensus.
 	cs, err := func() (modules.ConsensusSet, error) {
 		if params.CreateConsensusSet && params.ConsensusSet != nil {
@@ -208,12 +276,42 @@ func New(params NodeParams) (*Node, error) {
 		if !params.CreateConsensusSet {
 			return nil, nil
 		}
-		return consensus.New(g, false, filepath.Join(dir, modules.ConsensusDir))
+		i++
+		printfRelease("(%d/%d) Loading consensus...", i, numModules)
+		return consensus.New(g, params.Bootstrap, filepath.Join(dir, modules.ConsensusDir))
 	}()
 	if err != nil {
 		return nil, errors.Extend(err, errors.New("unable to create consensus set"))
 	}
+	printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+	loadStart = time.Now()
 
+	// Explorer.
+	e, err := func() (modules.Explorer, error) {
+		if !params.CreateExplorer && params.Explorer != nil {
+			return nil, errors.New("cannot create explorer and also use custom explorer")
+		}
+		if params.Explorer != nil {
+			return params.Explorer, nil
+		}
+		if !params.CreateExplorer {
+			return nil, nil
+		}
+		i++
+		printfRelease("(%d/%d) Loading explorer...", i, numModules)
+		e, err := explorer.New(cs, filepath.Join(dir, modules.ExplorerDir))
+		if err != nil {
+			return nil, err
+		}
+		return e, nil
+	}()
+	if err != nil {
+		return nil, errors.Extend(err, errors.New("unable to create explorer"))
+	}
+	if e != nil {
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+	}
+	loadStart = time.Now()
 	// Transaction Pool.
 	tp, err := func() (modules.TransactionPool, error) {
 		if params.CreateTransactionPool && params.TransactionPool != nil {
@@ -225,11 +323,17 @@ func New(params NodeParams) (*Node, error) {
 		if !params.CreateTransactionPool {
 			return nil, nil
 		}
+		i++
+		printfRelease("(%d/%d) Loading transaction pool...", i, numModules)
 		return transactionpool.New(cs, g, filepath.Join(dir, modules.TransactionPoolDir))
 	}()
 	if err != nil {
 		return nil, errors.Extend(err, errors.New("unable to create transaction pool"))
 	}
+	if tp != nil {
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+	}
+	loadStart = time.Now()
 
 	// Wallet.
 	w, err := func() (modules.Wallet, error) {
@@ -246,11 +350,43 @@ func New(params NodeParams) (*Node, error) {
 		if walletDeps == nil {
 			walletDeps = modules.ProdDependencies
 		}
+		i++
+		printfRelease("(%d/%d) Loading wallet...", i, numModules)
 		return wallet.NewCustomWallet(cs, tp, filepath.Join(dir, modules.WalletDir), walletDeps)
 	}()
 	if err != nil {
 		return nil, errors.Extend(err, errors.New("unable to create wallet"))
 	}
+	if w != nil {
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+	}
+	loadStart = time.Now()
+	// Miner.
+	m, err := func() (modules.TestMiner, error) {
+		if params.CreateMiner && params.Miner != nil {
+			return nil, errors.New("cannot create miner and also use custom miner")
+		}
+		if params.Miner != nil {
+			return params.Miner, nil
+		}
+		if !params.CreateMiner {
+			return nil, nil
+		}
+		i++
+		printfRelease("(%d/%d) Loading miner...", i, numModules)
+		m, err := miner.New(cs, tp, w, filepath.Join(dir, modules.MinerDir))
+		if err != nil {
+			return nil, err
+		}
+		return m, nil
+	}()
+	if err != nil {
+		return nil, errors.Extend(err, errors.New("unable to create miner"))
+	}
+	if m != nil {
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+	}
+	loadStart = time.Now()
 
 	// Host.
 	h, err := func() (modules.Host, error) {
@@ -263,11 +399,20 @@ func New(params NodeParams) (*Node, error) {
 		if !params.CreateHost {
 			return nil, nil
 		}
-		return host.New(cs, g, tp, w, "localhost:0", filepath.Join(dir, modules.HostDir))
+		if params.HostAddress == "" {
+			params.HostAddress = "localhost:0"
+		}
+		i++
+		printfRelease("(%d/%d) Loading host...", i, numModules)
+		return host.New(cs, g, tp, w, params.HostAddress, filepath.Join(dir, modules.HostDir))
 	}()
 	if err != nil {
 		return nil, errors.Extend(err, errors.New("unable to create host"))
 	}
+	if h != nil {
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+	}
+	loadStart = time.Now()
 
 	// Renter.
 	r, err := func() (modules.Renter, error) {
@@ -298,51 +443,43 @@ func New(params NodeParams) (*Node, error) {
 		}
 		persistDir := filepath.Join(dir, modules.RenterDir)
 
+		i++
+		printfRelease("(%d/%d) Loading renter...", i, numModules)
+
 		// HostDB
 		hdb, err := hostdb.NewCustomHostDB(g, cs, tp, persistDir, hostDBDeps)
 		if err != nil {
 			return nil, err
 		}
+
 		// ContractSet
 		contractSet, err := proto.NewContractSet(filepath.Join(persistDir, "contracts"), contractSetDeps)
 		if err != nil {
 			return nil, err
 		}
+
 		// Contractor
 		logger, err := persist.NewFileLogger(filepath.Join(persistDir, "contractor.log"))
 		if err != nil {
 			return nil, err
 		}
-		hc, err := contractor.NewCustomContractor(cs, &contractor.WalletBridge{W: w}, tp, hdb, contractSet, contractor.NewPersist(persistDir), logger, contractorDeps)
+		contractorWallet := &contractor.WalletBridge{W: w}
+		contractorPersist := contractor.NewPersist(persistDir)
+		hc, err := contractor.NewCustomContractor(cs, contractorWallet, tp, hdb, contractSet, contractorPersist, logger, contractorDeps)
 		if err != nil {
+			logger.Debugln("Renter start aborted, error starting contractor.")
 			return nil, err
 		}
-		return renter.NewCustomRenter(g, cs, tp, hdb, hc, persistDir, renterDeps)
+		return renter.NewCustomRenter(g, cs, tp, hdb, w, hc, persistDir, renterDeps)
 	}()
 	if err != nil {
 		return nil, errors.Extend(err, errors.New("unable to create renter"))
 	}
-
-	// Miner.
-	m, err := func() (modules.TestMiner, error) {
-		if params.CreateMiner && params.Miner != nil {
-			return nil, errors.New("cannot create miner and also use custom miner")
-		}
-		if params.Miner != nil {
-			return params.Miner, nil
-		}
-		if !params.CreateMiner {
-			return nil, nil
-		}
-		m, err := miner.New(cs, tp, w, filepath.Join(dir, modules.MinerDir))
-		if err != nil {
-			return nil, err
-		}
-		return m, nil
-	}()
-	if err != nil {
-		return nil, errors.Extend(err, errors.New("unable to create miner"))
+	if r != nil {
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
+	loadStart = time.Now()
+
 	// Mining Pool.
 	p, err := func() (modules.Pool, error) {
 		if params.CreateMiningPool && params.MiningPool != nil {
@@ -354,12 +491,23 @@ func New(params NodeParams) (*Node, error) {
 		if !params.CreateMiningPool {
 			return nil, nil
 		}
+
+		i++
+		printfRelease("(%d/%d) Loading mining pool...", i, numModules)
 		p, err := pool.New(cs, tp, g, w, filepath.Join(dir, modules.PoolDir), config.MiningPoolConfig{})
 		if err != nil {
 			return nil, err
 		}
 		return p, nil
 	}()
+	if err != nil {
+		return nil, errors.Extend(err, errors.New("unable to create mining pool"))
+	}
+	if p != nil {
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+	}
+	loadStart = time.Now()
+
 	// Stratum Miner.
 	sm, err := func() (modules.StratumMiner, error) {
 		if params.CreateStratumMiner && params.StratumMiner != nil {
@@ -371,29 +519,19 @@ func New(params NodeParams) (*Node, error) {
 		if !params.CreateStratumMiner {
 			return nil, nil
 		}
+		i++
+		printfRelease("(%d/%d) Loading stratum miner...", i, numModules)
 		sm, err := stratumminer.New(filepath.Join(dir, modules.StratumMinerDir))
 		if err != nil {
 			return nil, err
 		}
 		return sm, nil
 	}()
-
-	// Explorer.
-	e, err := func() (modules.Explorer, error) {
-		if !params.CreateExplorer && params.Explorer != nil {
-			return nil, errors.New("cannot create explorer and also use custom explorer")
-		}
-		if params.Explorer != nil {
-			return params.Explorer, nil
-		}
-		if !params.CreateExplorer {
-			return nil, nil
-		}
-		// TODO: Implement explorer.
-		return nil, errors.New("explorer not implemented")
-	}()
 	if err != nil {
-		return nil, errors.Extend(err, errors.New("unable to create explorer"))
+		return nil, errors.Extend(err, errors.New("unable to create stratumminer"))
+	}
+	if sm != nil {
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
 	return &Node{
