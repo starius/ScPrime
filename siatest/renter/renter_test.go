@@ -3384,6 +3384,8 @@ func testValidateSiaPath(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
+// TODO: fix TestOutOfStorageHandling is flashing (fails from time to time).
+
 // TestOutOfStorageHandling makes sure that we form a new contract to replace a
 // host that has run out of storage while still keeping it around as
 // goodForRenew.
