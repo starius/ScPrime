@@ -73,20 +73,18 @@ prompt) or SiaPrime-UI to interact with `spd`.
 Building From Source
 --------------------
 
-To build from source, [Go 1.11 or above must be installed](https://golang.org/doc/install)
-on the system. Make sure your `$GOPATH` is set, and then simply use `go get`:
+To build from source, [Go 1.13 or above must be installed](https://golang.org/doc/install)
+on the system. Clone the repo and run `make`:
 
 ```
-go get -u gitlab.com/SiaPrime/SiaPrime/...
+git clone https://gitlab.com/SiaPrime/SiaPrime
+cd SiaPrime && make
 ```
 
-This will download the SiaPrime repo to your `$GOPATH/src` folder and install 
-the`spd` and `spc` binaries in your `$GOPATH/bin` folder.
+This will install the`spd` and `spc` binaries in your `$GOPATH/bin` folder.
+(By default, this is `$HOME/go/bin`.)
 
-To stay up-to-date, run the previous `go get` command again. Alternatively, you
-can use the Makefile provided in this repo. Run `git pull origin master` to
-pull the latest changes, and `make release` to build the new binaries. You
-can also run `make test` and `make test-long` to run the short and full test
+You can also run `make test` and `make test-long` to run the short and full test
 suites, respectively. Finally, `make cover` will generate code coverage reports
 for each package; they are stored in the `cover` folder and can be viewed in
 your browser.
