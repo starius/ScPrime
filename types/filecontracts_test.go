@@ -7,10 +7,10 @@ import (
 // TestFileContractTax probes the Tax function.
 func TestTax(t *testing.T) {
 	// Test explicit values for post-hardfork tax values.
-	if Tax(1e9, NewCurrency64(125e9)).Cmp(NewCurrency64(4875e6)) != 0 {
+	if Tax(7250, NewCurrency64(125e9)).Cmp(NewCurrency64(4875e6)) != 0 {
 		t.Error("tax is being calculated incorrectly")
 	}
-	if PostTax(1e9, NewCurrency64(125e9)).Cmp(NewCurrency64(120125e6)) != 0 {
+	if PostTax(7250, NewCurrency64(125e9)).Cmp(NewCurrency64(120125e6)) != 0 {
 		t.Error("tax is being calculated incorrectly")
 	}
 

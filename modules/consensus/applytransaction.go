@@ -155,7 +155,7 @@ func applySiafundInputs(tx *bolt.Tx, pb *processedBlock, t types.Transaction) {
 		if build.DEBUG && err != nil {
 			panic(err)
 		}
-		claimPortion := getSiafundPool(tx).Sub(sfo.ClaimStart).Div(types.SiafundCount).Mul(sfo.Value)
+		claimPortion := siafundClaim(tx, &sfo)
 
 		// Add the claim output to the delayed set of outputs.
 		sco := types.SiacoinOutput{

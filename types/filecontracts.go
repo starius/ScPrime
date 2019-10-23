@@ -4,6 +4,8 @@ package types
 // contracts.
 
 import (
+	"log"
+
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 )
 
@@ -145,8 +147,10 @@ func PostTax(height BlockHeight, payout Currency) Currency {
 func Tax(height BlockHeight, payout Currency) Currency {
 	// COMPATv0.4.0 - until the first 20,000 blocks have been archived, they
 	// will need to be handled in a special way.
+	log.Printf("TaxHardforkHeight: %v\n", TaxHardforkHeight)
 	if height < TaxHardforkHeight {
-		return payout.MulFloat(0.039).RoundDown(SiafundCount)
+		portion, _ := SiafundPortion(height).Float64()
+		return payout.MulFloat(portion).RoundDown(SiafundCount(height))
 	}
-	return payout.MulTax().RoundDown(SiafundCount)
+	return payout.MulTax(height).RoundDown(SiafundCount(height))
 }

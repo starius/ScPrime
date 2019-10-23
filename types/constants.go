@@ -115,6 +115,8 @@ var (
 	// ForkedGenesisSiafundAllocation is the set of SiafundOutputs created in the Genesis
 	// block.
 	ForkedGenesisSiafundAllocation []SiafundOutput
+	// SiafundHardforkAllocation is allocation of new Siafunds at hardfork point.
+	SiafundHardforkAllocation []SiafundOutput
 	// GenesisTimestamp is the timestamp when genesis block was mined
 	GenesisTimestamp Timestamp
 	// InitialCoinbase is the coinbase reward of the Genesis block.
@@ -199,10 +201,18 @@ var (
 	// The base unit for Bitcoin is called a satoshi. We call 10^8 satoshis a bitcoin,
 	// even though the code itself only ever works with satoshis.
 	SiacoinPrecision = NewCurrency(new(big.Int).Exp(big.NewInt(10), big.NewInt(24), nil))
-	// SiafundCount is the total number of Siafunds in existence.
-	SiafundCount = NewCurrency64(10000)
-	// SiafundPortion is the percentage of siacoins that is taxed from FileContracts.
-	SiafundPortion = big.NewRat(39, 1000)
+	// OldSiafundCount is the total number of Siafunds in existence before the SPF hardfork.
+	OldSiafundCount = NewCurrency64(10000)
+	// NewSiafundCount is the total number of Siafunds in existence after the SPF hardfork.
+	NewSiafundCount = NewCurrency64(30000)
+	// OldSiafundPortion is the percentage of siacoins that is taxed from FileContracts before the SPF hardfork.
+	OldSiafundMul     = int64(39)
+	OldSiafundDiv     = int64(1000)
+	OldSiafundPortion = big.NewRat(OldSiafundMul, OldSiafundDiv)
+	// NewSiafundPortion is the percentage of siacoins that is taxed from FileContracts after the SPF hardfork.
+	NewSiafundMul     = int64(150)
+	NewSiafundDiv     = int64(1000)
+	NewSiafundPortion = big.NewRat(NewSiafundMul, NewSiafundDiv)
 	// TargetWindow is the number of blocks to look backwards when determining how much
 	// time has passed vs. how many blocks have been created. It's only used in the old,
 	// broken difficulty adjustment algorithm.
@@ -216,7 +226,42 @@ var (
 		Standard: BlockHeight(21e3),
 		Testing:  BlockHeight(10),
 	}).(BlockHeight)
+
+	// SpfHardforkHeight is the height of SPF hardfork.
+	SpfHardforkHeight = build.Select(build.Var{
+		Dev:      BlockHeight(7300),
+		Standard: BlockHeight(53000),
+		Testing:  BlockHeight(7300),
+	}).(BlockHeight)
 )
+
+func SiafundCount(height BlockHeight) Currency {
+	if height > SpfHardforkHeight {
+		return NewSiafundCount
+	}
+	return OldSiafundCount
+}
+
+func SiafundPortion(height BlockHeight) *big.Rat {
+	if height > SpfHardforkHeight {
+		return NewSiafundPortion
+	}
+	return OldSiafundPortion
+}
+
+func SiafundMul(height BlockHeight) int64 {
+	if height > SpfHardforkHeight {
+		return NewSiafundMul
+	}
+	return OldSiafundMul
+}
+
+func SiafundDiv(height BlockHeight) int64 {
+	if height > SpfHardforkHeight {
+		return NewSiafundDiv
+	}
+	return OldSiafundDiv
+}
 
 // scanAddress scans a types.UnlockHash from a string.
 func scanAddress(addrStr string) (addr UnlockHash, err error) {
@@ -304,7 +349,18 @@ func init() {
 			},
 		}
 
-		ForkedGenesisSiafundAllocation = GenesisSiafundAllocation
+		ForkedGenesisSiafundAllocation = []SiafundOutput{
+			{
+				Value:      NewCurrency64(10000),
+				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+			},
+		}
+		SiafundHardforkAllocation = []SiafundOutput{
+			{
+				Value:      NewCurrency64(20000),
+				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+			},
+		}
 	} else if build.Release == "testing" {
 		// 'testing' settings are for automatic testing, and create much faster
 		// environments than a human can interact with.
@@ -373,7 +429,18 @@ func init() {
 			},
 		}
 
-		ForkedGenesisSiafundAllocation = GenesisSiafundAllocation
+		ForkedGenesisSiafundAllocation = []SiafundOutput{
+			{
+				Value:      NewCurrency64(10000),
+				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+			},
+		}
+		SiafundHardforkAllocation = []SiafundOutput{
+			{
+				Value:      NewCurrency64(20000),
+				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+			},
+		}
 	} else if build.Release == "standard" {
 		// 'standard' settings are for the full network. They are slow enough
 		// that the network is secure in a real-world byzantine environment.
@@ -508,6 +575,12 @@ func init() {
 		ForkedGenesisSiafundAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(10000),
+				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+			},
+		}
+		SiafundHardforkAllocation = []SiafundOutput{
+			{
+				Value:      NewCurrency64(20000),
 				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 		}

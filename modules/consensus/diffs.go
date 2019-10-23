@@ -262,6 +262,25 @@ func generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) error {
 		}
 	}
 
+	if pb.Height == types.SpfHardforkHeight {
+		// Perform SPF hardfork changes.
+		// At first, save current siafund pool.
+		currentPool := getSiafundPool(tx)
+		setSiafundHardforkPool(tx, currentPool)
+		// Now apply new outputs.
+		for _, siafundOutput := range types.SiafundHardforkAllocation {
+			sfid := types.SiafundOutputID(siafundOutput.UnlockHash)
+			siafundOutput.ClaimStart = getSiafundPool(tx)
+			sfod := modules.SiafundOutputDiff{
+				Direction:     modules.DiffApply,
+				ID:            sfid,
+				SiafundOutput: siafundOutput,
+			}
+			pb.SiafundOutputDiffs = append(pb.SiafundOutputDiffs, sfod)
+			commitSiafundOutputDiff(tx, sfod, modules.DiffApply)
+		}
+	}
+
 	// DiffsGenerated are only set to true after the block has been fully
 	// validated and integrated. This is required to prevent later blocks from
 	// being accepted on top of an invalid block - if the consensus set ever

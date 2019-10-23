@@ -308,6 +308,23 @@ func (cs *ConsensusSet) Flush() error {
 	return cs.tg.Flush()
 }
 
+// SiafundClaim returns claim by SiafundOutput taking hardfork into account.
+func (cs *ConsensusSet) SiafundClaim(sfo *types.SiafundOutput) types.Currency {
+	// A call to a closed database can cause undefined behavior.
+	err := cs.tg.Add()
+	if err != nil {
+		return types.ZeroCurrency
+	}
+	defer cs.tg.Done()
+
+	var claim types.Currency
+	_ = cs.db.View(func(tx *bolt.Tx) error {
+		claim = siafundClaim(tx, sfo)
+		return nil
+	})
+	return claim
+}
+
 // Height returns the height of the consensus set.
 func (cs *ConsensusSet) Height() (height types.BlockHeight) {
 	// A call to a closed database can cause undefined behavior.

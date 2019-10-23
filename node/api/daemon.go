@@ -263,8 +263,8 @@ func (api *API) daemonConstantsHandler(w http.ResponseWriter, _ *http.Request, _
 		GenesisTimestamp:       types.GenesisTimestamp,
 		MaturityDelay:          types.MaturityDelay,
 		MedianTimestampWindow:  types.MedianTimestampWindow,
-		SiafundCount:           types.SiafundCount,
-		SiafundPortion:         types.SiafundPortion,
+		SiafundCount:           types.SiafundCount(api.cs.Height()),
+		SiafundPortion:         types.SiafundPortion(api.cs.Height()),
 		TargetWindow:           types.TargetWindow,
 
 		InitialCoinbase: types.InitialCoinbase,

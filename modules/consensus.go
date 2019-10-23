@@ -219,6 +219,8 @@ type (
 		// routines.
 		Flush() error
 
+		SiafundClaim(*types.SiafundOutput) types.Currency
+
 		// Height returns the current height of consensus.
 		Height() types.BlockHeight
 
