@@ -151,7 +151,7 @@ func (cs *ConsensusSet) createConsensusDB(tx *bolt.Tx) error {
 }
 
 // siafundClaim returns claim by SiafundOutput taking hardfork into account.
-func siafundClaim(tx *bolt.Tx, sfo *types.SiafundOutput) types.Currency {
+func siafundClaim(tx *bolt.Tx, sfo types.SiafundOutput) types.Currency {
 	// At first, figure out if we are before or after the hardfork.
 	height := blockHeight(tx)
 	beforeHardfork := height <= types.SpfHardforkHeight

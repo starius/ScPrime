@@ -205,13 +205,21 @@ var (
 	OldSiafundCount = NewCurrency64(10000)
 	// NewSiafundCount is the total number of Siafunds in existence after the SPF hardfork.
 	NewSiafundCount = NewCurrency64(30000)
+	// OldSiafundMul is multiplier for percentage of siacoins that is taxed from FileContracts
+	// before the SPF hardfork.
+	OldSiafundMul = int64(39)
+	// OldSiafundDiv is divider for percentage of siacoins that is taxed from FileContracts
+	// before the SPF hardfork.
+	OldSiafundDiv = int64(1000)
 	// OldSiafundPortion is the percentage of siacoins that is taxed from FileContracts before the SPF hardfork.
-	OldSiafundMul     = int64(39)
-	OldSiafundDiv     = int64(1000)
 	OldSiafundPortion = big.NewRat(OldSiafundMul, OldSiafundDiv)
+	// NewSiafundMul is multiplier for percentage of siacoins that is taxed from FileContracts
+	// after the SPF hardfork.
+	NewSiafundMul = int64(150)
+	// NewSiafundDiv is divider for percentage of siacoins that is taxed from FileContracts
+	// after the SPF hardfork.
+	NewSiafundDiv = int64(1000)
 	// NewSiafundPortion is the percentage of siacoins that is taxed from FileContracts after the SPF hardfork.
-	NewSiafundMul     = int64(150)
-	NewSiafundDiv     = int64(1000)
 	NewSiafundPortion = big.NewRat(NewSiafundMul, NewSiafundDiv)
 	// TargetWindow is the number of blocks to look backwards when determining how much
 	// time has passed vs. how many blocks have been created. It's only used in the old,
@@ -227,14 +235,22 @@ var (
 		Testing:  BlockHeight(10),
 	}).(BlockHeight)
 
+	// SpfAirdropHeight is the height of SPF airdrop.
+	SpfAirdropHeight = build.Select(build.Var{
+		Dev:      BlockHeight(20),
+		Standard: BlockHeight(7200),
+		Testing:  BlockHeight(7200),
+	}).(BlockHeight)
+
 	// SpfHardforkHeight is the height of SPF hardfork.
 	SpfHardforkHeight = build.Select(build.Var{
-		Dev:      BlockHeight(7300),
+		Dev:      BlockHeight(100),
 		Standard: BlockHeight(53000),
-		Testing:  BlockHeight(7300),
+		Testing:  BlockHeight(10000),
 	}).(BlockHeight)
 )
 
+// SiafundCount returns the total number of Siafunds by height.
 func SiafundCount(height BlockHeight) Currency {
 	if height > SpfHardforkHeight {
 		return NewSiafundCount
@@ -242,6 +258,7 @@ func SiafundCount(height BlockHeight) Currency {
 	return OldSiafundCount
 }
 
+// SiafundPortion returns SPF percentage by height.
 func SiafundPortion(height BlockHeight) *big.Rat {
 	if height > SpfHardforkHeight {
 		return NewSiafundPortion
@@ -249,6 +266,7 @@ func SiafundPortion(height BlockHeight) *big.Rat {
 	return OldSiafundPortion
 }
 
+// SiafundMul returns SPF percentage multiplier by height.
 func SiafundMul(height BlockHeight) int64 {
 	if height > SpfHardforkHeight {
 		return NewSiafundMul
@@ -256,6 +274,7 @@ func SiafundMul(height BlockHeight) int64 {
 	return OldSiafundMul
 }
 
+// SiafundDiv returns SPF percentage divider by height.
 func SiafundDiv(height BlockHeight) int64 {
 	if height > SpfHardforkHeight {
 		return NewSiafundDiv

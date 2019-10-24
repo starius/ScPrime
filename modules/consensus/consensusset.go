@@ -309,7 +309,7 @@ func (cs *ConsensusSet) Flush() error {
 }
 
 // SiafundClaim returns claim by SiafundOutput taking hardfork into account.
-func (cs *ConsensusSet) SiafundClaim(sfo *types.SiafundOutput) types.Currency {
+func (cs *ConsensusSet) SiafundClaim(sfo types.SiafundOutput) types.Currency {
 	// A call to a closed database can cause undefined behavior.
 	err := cs.tg.Add()
 	if err != nil {

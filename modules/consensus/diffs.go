@@ -230,7 +230,7 @@ func generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) error {
 	applyMaintenance(tx, pb)
 
 	// Fx the siaprimefund allocation
-	if pb.Height == 7200 {
+	if pb.Height == types.SpfAirdropHeight {
 		// Remove Genesis Siafunds
 		for i, siafundOutput := range types.GenesisBlock.Transactions[1].SiafundOutputs {
 			sfid := types.GenesisBlock.Transactions[1].SiafundOutputID(uint64(i))

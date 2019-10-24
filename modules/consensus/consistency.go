@@ -150,7 +150,7 @@ func checkSiacoinCount(tx *bolt.Tx) {
 			manageErr(tx, err)
 		}
 
-		claimCoins := siafundClaim(tx, &sfo)
+		claimCoins := siafundClaim(tx, sfo)
 		claimSiacoins = claimSiacoins.Add(claimCoins)
 		return nil
 	})

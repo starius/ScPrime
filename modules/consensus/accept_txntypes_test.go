@@ -610,7 +610,7 @@ func (cst *consensusSetTester) testSpendSiafunds() {
 				// dependencies is sufficient.
 				continue
 			}
-			value := cst.cs.SiafundClaim(&sfo)
+			value := cst.cs.SiafundClaim(sfo)
 			claimValues = append(claimValues, value)
 			claimIDs = append(claimIDs, sfi.ParentID.SiaClaimOutputID())
 		}

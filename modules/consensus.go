@@ -219,7 +219,9 @@ type (
 		// routines.
 		Flush() error
 
-		SiafundClaim(*types.SiafundOutput) types.Currency
+		// SiafundClaim returns number of siacoins claimed by given SiafundOutput.
+		// It takes into account height and hardfork changes.
+		SiafundClaim(types.SiafundOutput) types.Currency
 
 		// Height returns the current height of consensus.
 		Height() types.BlockHeight

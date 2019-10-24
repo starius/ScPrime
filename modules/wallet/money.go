@@ -67,7 +67,7 @@ func (w *Wallet) ConfirmedBalance() (siacoinBalance types.Currency, siafundBalan
 			w.log.Debugf("skipping claim with start value %v because siafund pool is only %v", sfo.ClaimStart, siafundPool)
 			return
 		}
-		siafundClaimBalance = siafundClaimBalance.Add(w.cs.SiafundClaim(&sfo))
+		siafundClaimBalance = siafundClaimBalance.Add(w.cs.SiafundClaim(sfo))
 	})
 	return
 }
