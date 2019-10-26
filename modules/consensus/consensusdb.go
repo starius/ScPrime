@@ -507,6 +507,11 @@ func removeSiafundOutput(tx *bolt.Tx, id types.SiafundOutputID) {
 // moment of SPF hardfork.
 func getSiafundHardforkPool(tx *bolt.Tx) (pool types.Currency) {
 	bucket := tx.Bucket(SiafundHardforkPool)
+	if bucket == nil {
+		// Should never happen.
+		_, _ = tx.CreateBucket(SiafundHardforkPool)
+		return types.ZeroCurrency
+	}
 	poolBytes := bucket.Get(SiafundHardforkPool)
 	// An error should only be returned if the object stored in the siafund
 	// pool bucket is either unavailable or otherwise malformed. As this is a
@@ -520,7 +525,11 @@ func getSiafundHardforkPool(tx *bolt.Tx) (pool types.Currency) {
 
 // setSiafundHardforkPool sets the siafund hardfork pool value.
 func setSiafundHardforkPool(tx *bolt.Tx, c types.Currency) {
-	err := tx.Bucket(SiafundHardforkPool).Put(SiafundHardforkPool, encoding.Marshal(c))
+	bucket := tx.Bucket(SiafundHardforkPool)
+	if bucket == nil {
+		bucket, _ = tx.CreateBucket(SiafundHardforkPool)
+	}
+	err := bucket.Put(SiafundHardforkPool, encoding.Marshal(c))
 	if build.DEBUG && err != nil {
 		panic(err)
 	}

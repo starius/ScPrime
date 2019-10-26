@@ -37,6 +37,14 @@ func (cs *ConsensusSet) loadDB() error {
 			return err
 		}
 
+		// For backward storage compatibility, we create bucket SiafundHardforkPool
+		// here, if it does not yet exist.
+		// This is the case when the database was already present before the SPF Emission Hardfork.
+		_, err := tx.CreateBucketIfNotExists(SiafundHardforkPool)
+		if err != nil {
+			return err
+		}
+
 		// Check the initialization of the oak difficulty adjustment fields, and
 		// create them if they do not exist. This is separate from 'initDB'
 		// because older consensus databases will have completed the 'initDB'
