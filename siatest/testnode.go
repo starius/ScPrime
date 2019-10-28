@@ -217,7 +217,7 @@ func NewNode(nodeParams node.NodeParams) (*TestNode, error) {
 
 // NewCleanNode creates a new TestNode that's not yet funded
 func NewCleanNode(nodeParams node.NodeParams) (*TestNode, error) {
-	userAgent := "ScPrime-Agent"
+	userAgent := "SiaPrime-Agent"
 	password := "password"
 
 	// Create server
