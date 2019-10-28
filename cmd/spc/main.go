@@ -109,8 +109,8 @@ func statuscmd() {
 	}
 	if walletStatus.Unlocked {
 		fmt.Printf(`Wallet:
-  Status:          unlocked
-  Siacoin Balance: %v
+  Status:              unlocked
+  Scprimecoin Balance: %v
 
 `, currencyUnits(walletStatus.ConfirmedSiacoinBalance))
 	} else {

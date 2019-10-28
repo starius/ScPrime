@@ -81,7 +81,7 @@ func versionCmd(*cobra.Command, []string) {
 // modulesCmd is a cobra command that prints help info about modules.
 func modulesCmd(*cobra.Command, []string) {
 	fmt.Println(`Use the -M or --modules flag to only run specific modules. Modules are
-independent components of Sia. This flag should only be used by developers or
+independent components of SiaPrime. This flag should only be used by developers or
 people who want to reduce overhead from unused modules. Modules are specified by
 their first letter. If the -M or --modules flag is not specified the default
 modules are run. The default modules are:
@@ -108,7 +108,7 @@ Transaction Pool (t):
 	Example:
 		spd -M gct
 Wallet (w):
-	The wallet stores and manages siacoins and siafunds.
+	The wallet stores and manages scprimecoins and scprimefunds.
 	The wallet requires the consensus set and transaction pool.
 	Example:
 		spd -M gctw
@@ -182,7 +182,7 @@ func main() {
 	root.Flags().StringVarP(&globalConfig.Spd.HostAddr, "host-addr", "", ":4282", "which port the host listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.ProfileDir, "profile-directory", "", "profiles", "location of the profiling directory")
 	root.Flags().StringVarP(&globalConfig.Spd.APIaddr, "api-addr", "", "localhost:4280", "which host:port the API server listens on")
-	root.Flags().StringVarP(&globalConfig.Spd.SiaDir, "siaprime-directory", "d", "", "location of the sia directory")
+	root.Flags().StringVarP(&globalConfig.Spd.SiaDir, "siaprime-directory", "d", "", "location of the metadata directory")
 	root.Flags().BoolVarP(&globalConfig.Spd.NoBootstrap, "no-bootstrap", "", false, "disable bootstrapping on this run")
 	root.Flags().StringVarP(&globalConfig.Spd.Profile, "profile", "", "", "enable profiling with flags 'cmt' for CPU, memory, trace")
 	root.Flags().StringVarP(&globalConfig.Spd.RPCaddr, "rpc-addr", "", ":4281", "which port the gateway listens on")

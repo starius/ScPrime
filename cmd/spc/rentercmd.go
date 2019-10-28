@@ -42,15 +42,15 @@ var (
 
 	renterBackupCreateCmd = &cobra.Command{
 		Use:   "createbackup [name]",
-		Short: "Create a backup of the renter's siafiles",
-		Long:  "Create a backup of the renter's siafiles, using the specified name.",
+		Short: "Create a backup of the renter's files metadata",
+		Long:  "Create a backup of the renter's files metadata, using the specified name.",
 		Run:   wrap(renterbackupcreatecmd),
 	}
 
 	renterBackupLoadCmd = &cobra.Command{
 		Use:   "restorebackup [name]",
-		Short: "Restore a backup of the renter's siafiles",
-		Long:  "Restore the backup of the renter's siafiles with the given name.",
+		Short: "Restore a backup of the renter's files metadata",
+		Long:  "Restore the backup of the renter's files metadata with the given name.",
 		Run:   wrap(renterbackuprestorecmd),
 	}
 
@@ -122,7 +122,7 @@ var (
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List the status of all files",
-		Long:    "List the status of all files known to the renter on the SiaPrime network.",
+		Long:    "List the status of all files known to the renter on the ScPrime network.",
 		Run:     renterfileslistcmd,
 	}
 
@@ -144,7 +144,7 @@ var (
 	renterFilesUploadCmd = &cobra.Command{
 		Use:   "upload [source] [path]",
 		Short: "Upload a file or folder",
-		Long:  "Upload a file or folder to [path] on the SiaPrime network.",
+		Long:  "Upload a file or folder to [path] on the ScPrime network.",
 		Run:   wrap(renterfilesuploadcmd),
 	}
 
@@ -172,7 +172,7 @@ period is given in either blocks (b), hours (h), days (d), or weeks (w). A
 block is approximately 10 minutes, so one hour is six blocks, a day is 144
 blocks, and a week is 1008 blocks.
 
-The SiaPrime renter module spreads data across more than one SiaPrime server computer
+The ScPrime renter module spreads data across more than one ScPrime server computer
 or "host". The "hosts" parameter for the setallowance command determines
 how many different hosts the renter will spread the data across.
 
@@ -597,7 +597,7 @@ func rentersetallowancecmdInteractive(req *client.AllowanceRequestPost, allowanc
 
 	// funds
 	fmt.Println(`1/8: Funds 
-Funds determines the number of siaprime coins that the renter will spend when 
+Funds determines the number of scprimecoins that the renter will spend when 
 forming contracts with hosts. The renter will not allocate more than this 
 amount of coins into the set of contracts each billing period. If the renter 
 spends all of the funds but then needs to form new contracts, the renter will 
@@ -616,9 +616,9 @@ contracts later in the billing cycle will be reported as 'unspent unallocated'.
 The command 'spc renter allowance' can be used to see a breakdown of spending.
 
 The following units can be used to set the allowance:
-    H   (10^24 H per siaprimecoin)
-    SPC (1 siaprimecoin per SPC)
-    KS  (1000 siaprimecoins per KS)`)
+    H   (10^24 H per scprimecoin)
+    SPC (1 scprimecoin per SPC)
+    KS  (1000 scprimecoins per KS)`)
 	fmt.Println()
 	fmt.Println("Current value:", currencyUnits(allowance.Funds))
 	fmt.Println("Default value:", currencyUnits(modules.DefaultAllowance.Funds))
@@ -691,7 +691,7 @@ The following units can be used to set the period:
 	// hosts
 	fmt.Println(`3/8: Hosts
 Hosts sets the number of hosts that will be used to form the allowance. 
-SiaPrime gains most of its resiliancy from having a large number of hosts. More 
+ScPrime gains most of its resiliancy from having a large number of hosts. More 
 hosts will mean both more robustness and higher speeds when using the network, 
 however will also result in more memory consumption and higher blockchain fees.
 It is recommended that the default number of hosts be treated as a minimum, and 
@@ -776,10 +776,10 @@ The following units can be used to set the renew window:
 	// expectedStorage
 	fmt.Println(`5/8: Expected Storage
 Expected storage is the amount of storage that the user expects to keep on the
-SiaPrime network. This value is important to calibrate the spending habits of 
-the daemon. Because SiaPrime is decentralized, there is no easy way for spd to 
+ScPrime network. This value is important to calibrate the spending habits of 
+the daemon. Because ScPrime is decentralized, there is no easy way for spd to 
 know what the real world cost of storage is, nor what the real world price of 
-a siaprimecoin is. To overcome this deficiency, spd depends on the user 
+a scprimecoin is. To overcome this deficiency, spd depends on the user 
 for guidance.
 
 If the user has a low allowance and a high amount of expected storage, spd will
@@ -932,7 +932,7 @@ how large the files are.`)
 	return req
 }
 
-// byValue sorts contracts by their value in siaprimecoins, high to low. If two
+// byValue sorts contracts by their value in scprimecoins, high to low. If two
 // contracts have the same value, they are sorted by their host's address.
 type byValue []api.RenterContract
 
@@ -1447,7 +1447,7 @@ func downloadDir(siaPath modules.SiaPath, destination string) (tfs []trackedFile
 	return
 }
 
-// renterfilesdownload downloads the dir at the given path from the Sia network
+// renterfilesdownload downloads the dir at the given path from the ScPrime network
 // to the local specified destination.
 func renterdirdownload(path, destination string) {
 	destination = abs(destination)
@@ -1498,7 +1498,7 @@ func renterdownloadcancelcmd(cancelID string) {
 }
 
 // renterfilesdeletecmd is the handler for the command `spc renter delete [path]`.
-// Removes the specified path from the Sia network.
+// Removes the specified path from the ScPrime network.
 func renterfilesdeletecmd(path string) {
 	// Parse SiaPath.
 	siaPath, err := modules.NewSiaPath(path)
@@ -1550,7 +1550,7 @@ func renterfilesdownloadcmd(path, destination string) {
 	die(fmt.Sprintf("Unknown file '%v'", path))
 }
 
-// renterfilesdownload downloads the file at the specified path from the Sia
+// renterfilesdownload downloads the file at the specified path from the ScPrime
 // network to the local specified destination.
 func renterfilesdownload(path, destination string) {
 	destination = abs(destination)
@@ -1935,7 +1935,7 @@ func renterfileslistcmd(cmd *cobra.Command, args []string) {
 }
 
 // renterfilesrenamecmd is the handler for the command `spc renter rename [path] [newpath]`.
-// Renames a file on the Sia network.
+// Renames a file on the ScPrime network.
 func renterfilesrenamecmd(path, newpath string) {
 	// Parse SiaPath.
 	siaPath, err1 := modules.NewSiaPath(path)
@@ -1967,7 +1967,7 @@ func renterfilesunstuckcmd() {
 }
 
 // renterfilesuploadcmd is the handler for the command `spc renter upload
-// [source] [path]`. Uploads the [source] file to [path] on the Sia network.
+// [source] [path]`. Uploads the [source] file to [path] on the ScPrime network.
 // If [source] is a directory, all files inside it will be uploaded and named
 // relative to [path].
 func renterfilesuploadcmd(source, path string) {

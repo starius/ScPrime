@@ -22,8 +22,8 @@ import (
 var (
 	utilsCmd = &cobra.Command{
 		Use:   "utils",
-		Short: "various utilities for working with SiaPrimes's types",
-		Long: `Various utilities for working with SiaPrimes's types.
+		Short: "various utilities for working with ScPrimes's types",
+		Long: `Various utilities for working with ScPrimes's types.
 These commands do not require spd.`,
 		// Run field not provided; utils requires a subcommand.
 	}
@@ -87,7 +87,7 @@ The transaction may be JSON, base64, or a file containing either.`,
 		Long: `Verify that a hash was signed by the specified key.
 
 The signature should be base64-encoded, and the hash should be hex-encoded.
-The pubkey should be either a JSON-encoded SiaPublicKey, or of the form:
+The pubkey should be either a JSON-encoded PublicKey, or of the form:
     algorithm:hexkey
 e.g. ed25519:d0e1a2d3b4e5e6f7...
 
@@ -100,7 +100,7 @@ Use sighash to calculate the hash of a transaction.
 		Use:   "verify-seed",
 		Short: "verify seed is formatted correctly",
 		Long: `Verify that a seed has correct number of words, no extra whitespace,
-and all words appear in the Sia dictionary. The language may be english (default), japanese, or german`,
+and all words appear in the ScPrime dictionary. The language may be english (default), japanese, or german`,
 		Run: wrap(utilsverifyseed),
 	}
 

@@ -309,13 +309,13 @@ func addSiacoinOutput(tx *bolt.Tx, id types.SiacoinOutputID, sco types.SiacoinOu
 	// and that hardfork is planned, but not yet.
 	/*
 		if build.DEBUG && sco.Value.IsZero() {
-			panic("discovered a zero value siacoin output")
+			panic("discovered a zero value scprimecoin output")
 		}
 	*/
 	siacoinOutputs := tx.Bucket(SiacoinOutputs)
 	// Sanity check - should not be adding an item that exists.
 	if build.DEBUG && siacoinOutputs.Get(id[:]) != nil {
-		panic("repeat siacoin output")
+		panic("repeat scprimecoin output")
 	}
 	err := siacoinOutputs.Put(id[:], encoding.Marshal(sco))
 	if build.DEBUG && err != nil {
@@ -329,7 +329,7 @@ func removeSiacoinOutput(tx *bolt.Tx, id types.SiacoinOutputID) {
 	scoBucket := tx.Bucket(SiacoinOutputs)
 	// Sanity check - should not be removing an item that is not in the db.
 	if build.DEBUG && scoBucket.Get(id[:]) == nil {
-		panic("nil siacoin output")
+		panic("nil scprimecoin output")
 	}
 	err := scoBucket.Delete(id[:])
 	if build.DEBUG && err != nil {
@@ -442,11 +442,11 @@ func addSiafundOutput(tx *bolt.Tx, id types.SiafundOutputID, sfo types.SiafundOu
 	// Sanity check - should not be adding a siafund output with a value of
 	// zero.
 	if build.DEBUG && sfo.Value.IsZero() {
-		panic("zero value siafund being added")
+		panic("zero value scprimefund being added")
 	}
 	// Sanity check - should not be adding an item already in the db.
 	if build.DEBUG && siafundOutputs.Get(id[:]) != nil {
-		panic("repeat siafund output")
+		panic("repeat scprimefund output")
 	}
 	err := siafundOutputs.Put(id[:], encoding.Marshal(sfo))
 	if build.DEBUG && err != nil {
@@ -459,7 +459,7 @@ func addSiafundOutput(tx *bolt.Tx, id types.SiafundOutputID, sfo types.SiafundOu
 func removeSiafundOutput(tx *bolt.Tx, id types.SiafundOutputID) {
 	sfoBucket := tx.Bucket(SiafundOutputs)
 	if build.DEBUG && sfoBucket.Get(id[:]) == nil {
-		panic("nil siafund output")
+		panic("nil scprimefund output")
 	}
 	err := sfoBucket.Delete(id[:])
 	if build.DEBUG && err != nil {
