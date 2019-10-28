@@ -576,7 +576,7 @@ func wallettransactionscmd() {
 	if err != nil {
 		die("Could not fetch consensus information:", err)
 	}
-	fmt.Println("             [timestamp]    [height]                                                   [transaction id]    [net siacoins]   [net siafunds]")
+	fmt.Println("             [timestamp]    [height]                                                   [transaction id]    [net SCP]        [net SPF]")
 	txns := append(wtg.ConfirmedTransactions, wtg.UnconfirmedTransactions...)
 	sts, err := wallet.ComputeValuedTransactions(txns, cg.Height)
 	if err != nil {

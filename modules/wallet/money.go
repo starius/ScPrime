@@ -247,7 +247,7 @@ func (w *Wallet) SendSiafunds(amount types.Currency, dest types.UnlockHash) (txn
 
 	// Check if consensus is synced
 	if !w.cs.Synced() || w.deps.Disrupt("UnsyncedConsensus") {
-		return nil, errors.New("cannot send siafunds until fully synced")
+		return nil, errors.New("cannot send scprimefunds until fully synced")
 	}
 
 	w.mu.RLock()
@@ -292,7 +292,7 @@ func (w *Wallet) SendSiafunds(amount types.Currency, dest types.UnlockHash) (txn
 	if err != nil {
 		return nil, err
 	}
-	w.log.Println("Submitted a siafund transfer transaction set for value", amount.HumanString(), "with fees", tpoolFee.HumanString(), "IDs:")
+	w.log.Println("Submitted a scprimefund transfer transaction set for value", amount.HumanString(), "with fees", tpoolFee.HumanString(), "IDs:")
 	for _, txn := range txnSet {
 		w.log.Println("\t", txn.ID())
 	}
