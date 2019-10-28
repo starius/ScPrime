@@ -223,8 +223,8 @@ func main() {
 	// initialize client
 	root.PersistentFlags().StringVarP(&httpClient.Address, "addr", "a", "localhost:4280", "which host/port to communicate with (i.e. the host/port spd is listening on)")
 	root.PersistentFlags().StringVarP(&httpClient.Password, "apipassword", "", "", "the password for the API's http authentication")
-	root.PersistentFlags().StringVarP(&siaDir, "siaprime-directory", "d", build.DefaultSiaDir(), "location of the sia directory")
-	root.PersistentFlags().StringVarP(&httpClient.UserAgent, "useragent", "", "SiaPrime-Agent", "the useragent used by spc to connect to the daemon's API")
+	root.PersistentFlags().StringVarP(&siaDir, "scprime-directory", "d", build.DefaultSiaDir(), "location of the metadata directory")
+	root.PersistentFlags().StringVarP(&httpClient.UserAgent, "useragent", "", "ScPrime-Agent", "the useragent used by spc to connect to the daemon's API")
 
 	// Check if the api password environment variable is set.
 	apiPassword := os.Getenv("SCPRIME_API_PASSWORD")

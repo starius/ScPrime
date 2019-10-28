@@ -201,7 +201,7 @@ func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, 
 	if err != nil {
 		return nil, err
 	}
-	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "ScPrime-Agent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
 
 	if err != nil {
 		return nil, err
@@ -299,7 +299,7 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 			return nil, err
 		}
 	}
-	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", requiredPassword, cs, nil, g, h, m, r, tp, w, mp, nil, idx)
+	srv, err := NewServer(testdir, "localhost:0", "ScPrime-Agent", requiredPassword, cs, nil, g, h, m, r, tp, w, mp, nil, idx)
 
 	if err != nil {
 		return nil, err

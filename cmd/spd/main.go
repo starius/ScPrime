@@ -178,11 +178,11 @@ func main() {
 	})
 
 	// Set default values, which have the lowest priority.
-	root.Flags().StringVarP(&globalConfig.Spd.RequiredUserAgent, "agent", "", "SiaPrime-Agent", "required substring for the user agent")
+	root.Flags().StringVarP(&globalConfig.Spd.RequiredUserAgent, "agent", "", "ScPrime-Agent", "required substring for the user agent")
 	root.Flags().StringVarP(&globalConfig.Spd.HostAddr, "host-addr", "", ":4282", "which port the host listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.ProfileDir, "profile-directory", "", "profiles", "location of the profiling directory")
 	root.Flags().StringVarP(&globalConfig.Spd.APIaddr, "api-addr", "", "localhost:4280", "which host:port the API server listens on")
-	root.Flags().StringVarP(&globalConfig.Spd.SiaDir, "siaprime-directory", "d", "", "location of the metadata directory")
+	root.Flags().StringVarP(&globalConfig.Spd.SiaDir, "scprime-directory", "d", "", "location of the metadata directory")
 	root.Flags().BoolVarP(&globalConfig.Spd.NoBootstrap, "no-bootstrap", "", false, "disable bootstrapping on this run")
 	root.Flags().StringVarP(&globalConfig.Spd.Profile, "profile", "", "", "enable profiling with flags 'cmt' for CPU, memory, trace")
 	root.Flags().StringVarP(&globalConfig.Spd.RPCaddr, "rpc-addr", "", ":4281", "which port the gateway listens on")
