@@ -245,7 +245,7 @@ var (
 	// SpfHardforkHeight is the height of SPF hardfork.
 	SpfHardforkHeight = build.Select(build.Var{
 		Dev:      BlockHeight(100),
-		Standard: BlockHeight(53000),
+		Standard: BlockHeight(52704),
 		Testing:  BlockHeight(10000),
 	}).(BlockHeight)
 )
@@ -377,7 +377,7 @@ func init() {
 		SiafundHardforkAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(20000),
-				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+				UnlockHash: UnlockHashFromAddrStr("f8c4ec40b9c844428d0814292be733c36ff57faf67177623173e19eef6d08992b22859b93c17"),
 			},
 		}
 	} else if build.Release == "testing" {
@@ -457,7 +457,7 @@ func init() {
 		SiafundHardforkAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(20000),
-				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+				UnlockHash: UnlockHashFromAddrStr("f8c4ec40b9c844428d0814292be733c36ff57faf67177623173e19eef6d08992b22859b93c17"),
 			},
 		}
 	} else if build.Release == "standard" {
@@ -600,7 +600,7 @@ func init() {
 		SiafundHardforkAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(20000),
-				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+				UnlockHash: UnlockHashFromAddrStr("f8c4ec40b9c844428d0814292be733c36ff57faf67177623173e19eef6d08992b22859b93c17"),
 			},
 		}
 
