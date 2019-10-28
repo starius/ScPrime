@@ -188,7 +188,7 @@ func New(APIaddr string, requiredUserAgent string, requiredPassword string, node
 		if isAddrInUseErr(err) {
 			return nil, fmt.Errorf("%v; are you running another instance of spd?", err.Error())
 		}
-		return nil, errors.AddContext(err, "server is unable to create the SiaPrime node")
+		return nil, errors.AddContext(err, "server is unable to create the ScPrime node")
 	}
 
 	// Make sure that the server wasn't shut down while loading the modules.

@@ -68,20 +68,20 @@ func versionCmd(*cobra.Command, []string) {
 	}
 	switch build.Release {
 	case "dev":
-		fmt.Println("SiaPrime Daemon v" + build.Version + "-dev")
+		fmt.Println("ScPrime Daemon v" + build.Version + "-dev")
 	case "standard":
-		fmt.Println("SiaPrime Daemon v" + build.Version)
+		fmt.Println("ScPrime Daemon v" + build.Version)
 	case "testing":
-		fmt.Println("SiaPrime Daemon v" + build.Version + "-testing")
+		fmt.Println("ScPrime Daemon v" + build.Version + "-testing")
 	default:
-		fmt.Println("SiaPrime Daemon v" + build.Version + "-???")
+		fmt.Println("ScPrime Daemon v" + build.Version + "-???")
 	}
 }
 
 // modulesCmd is a cobra command that prints help info about modules.
 func modulesCmd(*cobra.Command, []string) {
 	fmt.Println(`Use the -M or --modules flag to only run specific modules. Modules are
-independent components of SiaPrime. This flag should only be used by developers or
+independent components of ScPrime. This flag should only be used by developers or
 people who want to reduce overhead from unused modules. Modules are specified by
 their first letter. If the -M or --modules flag is not specified the default
 modules are run. The default modules are:
@@ -158,15 +158,15 @@ func main() {
 	}
 	root := &cobra.Command{
 		Use:   os.Args[0],
-		Short: "SiaPrime Daemon v" + build.Version,
-		Long:  "SiaPrime Daemon v" + build.Version,
+		Short: "ScPrime Daemon v" + build.Version,
+		Long:  "ScPrime Daemon v" + build.Version,
 		Run:   startDaemonCmd,
 	}
 
 	root.AddCommand(&cobra.Command{
 		Use:   "version",
 		Short: "Print version information",
-		Long:  "Print version information about the SiaPrime Daemon",
+		Long:  "Print version information about the ScPrime Daemon",
 		Run:   versionCmd,
 	})
 
