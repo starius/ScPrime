@@ -245,7 +245,7 @@ var (
 	// SpfHardforkHeight is the height of SPF hardfork.
 	SpfHardforkHeight = build.Select(build.Var{
 		Dev:      BlockHeight(100),
-		Standard: BlockHeight(52704),
+		Standard: BlockHeight(54550),
 		Testing:  BlockHeight(10000),
 	}).(BlockHeight)
 )
