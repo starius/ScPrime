@@ -2,11 +2,10 @@ package consensus
 
 import (
 	"errors"
-
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
-
-	bolt "github.com/coreos/bbolt"
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 var (
@@ -59,6 +58,11 @@ func (cs *ConsensusSet) revertToBlock(tx *bolt.Tx, pb *processedBlock) (reverted
 
 	// Rewind blocks until 'pb' is the current block.
 	for currentBlockID(tx) != pb.Block.ID() {
+		if blockHeight(tx) == types.SpfHardforkHeight {
+			// We are reverting the SPF Emission Hardfork block, we need to
+			// reset SPF hardfork siafund pool.
+			setSiafundHardforkPool(tx, types.ZeroCurrency)
+		}
 		block := currentProcessedBlock(tx)
 		commitDiffSet(tx, block, modules.DiffRevert)
 		revertedBlocks = append(revertedBlocks, block)

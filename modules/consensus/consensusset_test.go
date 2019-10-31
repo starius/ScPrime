@@ -4,9 +4,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
 	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
@@ -177,6 +179,62 @@ func TestNilInputs(t *testing.T) {
 	_, err := New(nil, false, testdir)
 	if err != errNilGateway {
 		t.Fatal(err)
+	}
+}
+
+// TestSiafundClaim calls SiafundClaim() function with different heights and
+// siafund pool values set.
+// Test checks how Siafund Emission Hardfork changes are handled when calculating
+// claim balance by SiafundOutput on multiple edge cases.
+func TestSiafundClaim(t *testing.T) {
+	testdir := build.TempDir(modules.ConsensusDir, t.Name())
+
+	// Create the gateway.
+	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, err := New(g, false, testdir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		currentPool  types.Currency
+		hardforkPool types.Currency
+		height       types.BlockHeight
+		sfo          types.SiafundOutput
+		correctClaim types.Currency
+	}{
+		// Now is before hardfork.
+		{types.NewCurrency64(1000000), types.ZeroCurrency, types.SpfHardforkHeight, types.SiafundOutput{Value: types.NewCurrency64(156), ClaimStart: types.ZeroCurrency}, types.NewCurrency64(15600)},
+		// SFO with ClaimStart from before hardfork and now is after hardfork.
+		{types.NewCurrency64(50000000), types.NewCurrency64(20000000), types.SpfHardforkHeight + 1, types.SiafundOutput{Value: types.NewCurrency64(1200), ClaimStart: types.NewCurrency64(10000000)}, types.NewCurrency64(2400000)},
+		// New SFO with ClaimStart after hardfork and now is after hardfork.
+		{types.NewCurrency64(80000000), types.NewCurrency64(20000000), types.SpfHardforkHeight * 100500, types.SiafundOutput{Value: types.NewCurrency64(20000), ClaimStart: types.NewCurrency64(50000000)}, types.NewCurrency64(20000000)},
+	}
+
+	for _, tc := range tests {
+		err = cs.db.Update(func(tx *bolt.Tx) error {
+			setSiafundPool(tx, tc.currentPool)
+			setSiafundHardforkPool(tx, tc.hardforkPool)
+			blockHeight := tx.Bucket(BlockHeight)
+			return blockHeight.Put(BlockHeight, encoding.Marshal(tc.height))
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		claim := cs.SiafundClaim(tc.sfo)
+		if !claim.Equals(tc.correctClaim) {
+			cl, _ := claim.Float64()
+			correct, _ := tc.correctClaim.Float64()
+			t.Errorf("claim %v isn't equal to correct %v", cl, correct)
+		}
+	}
+
+	err = cs.Close()
+	if err != nil {
+		t.Error(err)
 	}
 }
 

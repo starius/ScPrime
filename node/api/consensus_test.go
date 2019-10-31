@@ -38,7 +38,7 @@ func TestIntegrationConsensusGET(t *testing.T) {
 	if cg.BlockFrequency != types.BlockFrequency {
 		t.Error("constant mismatch")
 	}
-	if cg.SiafundCount.Cmp(types.SiafundCount) != 0 {
+	if cg.SiafundCount.Cmp(types.SiafundCount(cg.Height)) != 0 {
 		t.Error("constant mismatch")
 	}
 	if cg.InitialCoinbase != types.InitialCoinbase {
