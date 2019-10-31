@@ -582,7 +582,7 @@ func TestWalletSendUnsynced(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error to be returned for not being synced")
 	}
-	if !strings.Contains(err.Error(), "cannot send siacoin until fully synced") {
+	if !strings.Contains(err.Error(), "cannot send scprimecoin until fully synced") {
 		t.Fatal("expected to get synced error but got:", err)
 	}
 
@@ -591,7 +591,7 @@ func TestWalletSendUnsynced(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error to be returned for not being synced")
 	}
-	if !strings.Contains(err.Error(), "cannot send siacoin until fully synced") {
+	if !strings.Contains(err.Error(), "cannot send scprimecoin until fully synced") {
 		t.Fatal("expected to get synced error but got:", err)
 	}
 
@@ -600,7 +600,7 @@ func TestWalletSendUnsynced(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error to be returned for not being synced")
 	}
-	if !strings.Contains(err.Error(), "cannot send siafunds until fully synced") {
+	if !strings.Contains(err.Error(), "cannot send scprimefunds until fully synced") {
 		t.Fatal("expected to get synced error but got:", err)
 	}
 }
