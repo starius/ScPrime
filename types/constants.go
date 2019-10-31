@@ -377,7 +377,7 @@ func init() {
 		SiafundHardforkAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(20000),
-				UnlockHash: UnlockHashFromAddrStr("f8c4ec40b9c844428d0814292be733c36ff57faf67177623173e19eef6d08992b22859b93c17"),
+				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
 			},
 		}
 	} else if build.Release == "testing" {
@@ -457,7 +457,7 @@ func init() {
 		SiafundHardforkAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(20000),
-				UnlockHash: UnlockHashFromAddrStr("f8c4ec40b9c844428d0814292be733c36ff57faf67177623173e19eef6d08992b22859b93c17"),
+				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
 			},
 		}
 	} else if build.Release == "standard" {
@@ -600,7 +600,7 @@ func init() {
 		SiafundHardforkAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(20000),
-				UnlockHash: UnlockHashFromAddrStr("f8c4ec40b9c844428d0814292be733c36ff57faf67177623173e19eef6d08992b22859b93c17"),
+				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
 			},
 		}
 
