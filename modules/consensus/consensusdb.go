@@ -68,6 +68,10 @@ var (
 	// SiafundPool is a database bucket storing the current value of the
 	// siafund pool.
 	SiafundPool = []byte("SiafundPool")
+
+	// SiafundHardforkPool is a database bucket storing the value of the
+	// siafund pool at the moment of SPF hardfork.
+	SiafundHardforkPool = []byte("SiafundHardforkPool")
 )
 
 var (
@@ -94,6 +98,7 @@ func (cs *ConsensusSet) createConsensusDB(tx *bolt.Tx) error {
 		FileContracts,
 		SiafundOutputs,
 		SiafundPool,
+		SiafundHardforkPool,
 	}
 	for _, bucket := range buckets {
 		_, err := tx.CreateBucket(bucket)
@@ -143,6 +148,37 @@ func (cs *ConsensusSet) createConsensusDB(tx *bolt.Tx) error {
 	}
 	addBlockMap(tx, &cs.blockRoot)
 	return nil
+}
+
+// siafundClaim returns claim by SiafundOutput taking hardfork into account.
+func siafundClaim(tx *bolt.Tx, sfo types.SiafundOutput) types.Currency {
+	// At first, figure out if we are before or after the hardfork.
+	height := blockHeight(tx)
+	beforeHardfork := height <= types.SpfHardforkHeight
+
+	currentSiafundPool := getSiafundPool(tx)
+	hardforkSiafundPool := types.ZeroCurrency
+	if !beforeHardfork {
+		hardforkSiafundPool = getSiafundHardforkPool(tx)
+	}
+
+	if beforeHardfork {
+		// Before the hardfork we use the old formula to calculate siafund claim.
+		return currentSiafundPool.Sub(sfo.ClaimStart).Div(types.OldSiafundCount).Mul(sfo.Value)
+	}
+	if sfo.ClaimStart.Cmp(hardforkSiafundPool) != -1 {
+		// If the last claim was after the hardfork, we use the same old formula but with
+		// new SiafundCount.
+		return currentSiafundPool.Sub(sfo.ClaimStart).Div(types.NewSiafundCount).Mul(sfo.Value)
+	}
+	// If we are here, we are after the hardfork but the last claim was before the hardfork.
+	// Calculate claim before hardfork using old siafund count.
+	firstPoolDiff := hardforkSiafundPool.Sub(sfo.ClaimStart)
+	firstClaim := firstPoolDiff.Div(types.OldSiafundCount).Mul(sfo.Value)
+	// Calculate claim after hardfork using new siafund count.
+	secondPoolDiff := currentSiafundPool.Sub(hardforkSiafundPool)
+	secondClaim := secondPoolDiff.Div(types.NewSiafundCount).Mul(sfo.Value)
+	return firstClaim.Add(secondClaim)
 }
 
 // blockHeight returns the height of the blockchain.
@@ -462,6 +498,38 @@ func removeSiafundOutput(tx *bolt.Tx, id types.SiafundOutputID) {
 		panic("nil siafund output")
 	}
 	err := sfoBucket.Delete(id[:])
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+}
+
+// getSiafundHardforkPool returns the value of the siafund pool at the
+// moment of SPF hardfork.
+func getSiafundHardforkPool(tx *bolt.Tx) (pool types.Currency) {
+	bucket := tx.Bucket(SiafundHardforkPool)
+	if bucket == nil {
+		// Should never happen.
+		_, _ = tx.CreateBucket(SiafundHardforkPool)
+		return types.ZeroCurrency
+	}
+	poolBytes := bucket.Get(SiafundHardforkPool)
+	// An error should only be returned if the object stored in the siafund
+	// pool bucket is either unavailable or otherwise malformed. As this is a
+	// developer error, a panic is appropriate.
+	err := encoding.Unmarshal(poolBytes, &pool)
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+	return pool
+}
+
+// setSiafundHardforkPool sets the siafund hardfork pool value.
+func setSiafundHardforkPool(tx *bolt.Tx, c types.Currency) {
+	bucket := tx.Bucket(SiafundHardforkPool)
+	if bucket == nil {
+		bucket, _ = tx.CreateBucket(SiafundHardforkPool)
+	}
+	err := bucket.Put(SiafundHardforkPool, encoding.Marshal(c))
 	if build.DEBUG && err != nil {
 		panic(err)
 	}

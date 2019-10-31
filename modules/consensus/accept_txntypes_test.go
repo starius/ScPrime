@@ -610,8 +610,7 @@ func (cst *consensusSetTester) testSpendSiafunds() {
 				// dependencies is sufficient.
 				continue
 			}
-			poolDiff := cst.cs.dbGetSiafundPool().Sub(sfo.ClaimStart)
-			value := poolDiff.Div(types.SiafundCount).Mul(sfo.Value)
+			value := cst.cs.SiafundClaim(sfo)
 			claimValues = append(claimValues, value)
 			claimIDs = append(claimIDs, sfi.ParentID.SiaClaimOutputID())
 		}

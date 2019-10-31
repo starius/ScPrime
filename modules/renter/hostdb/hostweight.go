@@ -276,7 +276,7 @@ func (hdb *HostDB) priceAdjustments(entry modules.HostDBEntry, allowance modules
 	downloadPrice := entry.DownloadBandwidthPrice.Mul(contractExpectedDownload)
 	storagePrice := entry.StoragePrice.Mul(contractExpectedStorageTime)
 	uploadPrice := entry.UploadBandwidthPrice.Mul(contractExpectedUpload)
-	siafundFee := contractPrice.Add(hostCollateral).Add(downloadPrice).Add(storagePrice).Add(uploadPrice).MulTax()
+	siafundFee := contractPrice.Add(hostCollateral).Add(downloadPrice).Add(storagePrice).Add(uploadPrice).MulTax(hdb.blockHeight)
 	totalPrice := contractPrice.Add(downloadPrice).Add(storagePrice).Add(uploadPrice).Add(siafundFee)
 
 	// Determine a cutoff for whether the total price is considered a high price
