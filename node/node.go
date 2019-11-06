@@ -111,6 +111,9 @@ type NodeParams struct {
 	// The high level directory where all the persistence gets stored for the
 	// modules.
 	Dir string
+
+	// Configuration settings for the Mining pool.
+	PoolConfig config.MiningPoolConfig
 }
 
 // Node is a collection of Sia modules operating together as a Sia node.
@@ -494,7 +497,7 @@ func New(params NodeParams) (*Node, error) {
 
 		i++
 		printfRelease("(%d/%d) Loading mining pool...", i, numModules)
-		p, err := pool.New(cs, tp, g, w, filepath.Join(dir, modules.PoolDir), config.MiningPoolConfig{})
+		p, err := pool.New(cs, tp, g, w, filepath.Join(dir, modules.PoolDir), params.PoolConfig)
 		if err != nil {
 			return nil, err
 		}
