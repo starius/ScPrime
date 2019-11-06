@@ -272,7 +272,7 @@ func startDaemon(config Config) (err error) {
 	nodeParams := parseModules(config)
 
 	// Add MiningPoolConfig previously read by readFileConfig(globalConfig) in
-	// startDaemonCmd(cmd *cobra.Command, _ []string)
+	// startDaemonCmd(cmd *cobra.Command, _ []string).
 	nodeParams.PoolConfig = config.MiningPoolConfig
 
 	// Start and run the server.

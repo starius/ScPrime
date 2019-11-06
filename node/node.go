@@ -112,7 +112,7 @@ type NodeParams struct {
 	// modules.
 	Dir string
 
-	//Configuration settings for the Mining pool
+	// Configuration settings for the Mining pool.
 	PoolConfig config.MiningPoolConfig
 }
 
