@@ -47,7 +47,7 @@ func TestWalletGETEncrypted(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to create wallet:", err)
 	}
-	srv, err := NewServer("localhost:0", "SiaPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestWalletBlankEncrypt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv, err := NewServer("localhost:0", "SiaPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ func TestIntegrationWalletInitSeed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv, err := NewServer("localhost:0", "SiaPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -354,10 +354,10 @@ func TestWalletGETSiacoins(t *testing.T) {
 		t.Error("reported wallet balance does not reflect the single block that has been mined")
 	}
 	if wg.UnconfirmedOutgoingSiacoins.Cmp64(0) != 0 {
-		t.Error("there should not be unconfirmed outgoing siacoins")
+		t.Error("there should not be unconfirmed outgoing coins")
 	}
 	if wg.UnconfirmedIncomingSiacoins.Cmp64(0) != 0 {
-		t.Error("there should not be unconfirmed incoming siacoins")
+		t.Error("there should not be unconfirmed incoming coins")
 	}
 
 	// Send coins to a wallet address through the api.
@@ -389,13 +389,13 @@ func TestWalletGETSiacoins(t *testing.T) {
 		t.Error("reported wallet balance does not reflect the single block that has been mined")
 	}
 	if wg.UnconfirmedOutgoingSiacoins.Cmp64(0) <= 0 {
-		t.Error("there should be unconfirmed outgoing siacoins")
+		t.Error("there should be unconfirmed outgoing coins")
 	}
 	if wg.UnconfirmedIncomingSiacoins.Cmp64(0) <= 0 {
-		t.Error("there should be unconfirmed incoming siacoins")
+		t.Error("there should be unconfirmed incoming coins")
 	}
 	if wg.UnconfirmedOutgoingSiacoins.Cmp(wg.UnconfirmedIncomingSiacoins) <= 0 {
-		t.Error("net movement of siacoins should be outgoing (miner fees)")
+		t.Error("net movement of coins should be outgoing (miner fees)")
 	}
 
 	// Mine a block and see that the unconfirmed balances reduce back to
@@ -412,10 +412,10 @@ func TestWalletGETSiacoins(t *testing.T) {
 		t.Error("reported wallet balance does not reflect mining two blocks and eating a miner fee")
 	}
 	if wg.UnconfirmedOutgoingSiacoins.Cmp64(0) != 0 {
-		t.Error("there should not be unconfirmed outgoing siacoins")
+		t.Error("there should not be unconfirmed outgoing coins")
 	}
 	if wg.UnconfirmedIncomingSiacoins.Cmp64(0) != 0 {
-		t.Error("there should not be unconfirmed incoming siacoins")
+		t.Error("there should not be unconfirmed incoming coins")
 	}
 }
 
@@ -463,9 +463,9 @@ func TestIntegrationWalletSweepSeedPOST(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Should have swept more than 80 SC
+	// Should have swept more than 80 SCP
 	if wsp.Coins.Cmp(types.SiacoinPrecision.Mul64(80)) <= 0 {
-		t.Fatalf("swept fewer coins (%v SC) than expected %v+", wsp.Coins.Div(types.SiacoinPrecision), 80)
+		t.Fatalf("swept fewer coins (%v SCP) than expected %v+", wsp.Coins.Div(types.SiacoinPrecision), 80)
 	}
 
 	// Add a block so that the sweep transaction is processed
@@ -697,6 +697,12 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	//var wutgid2 WalletTransactionGETid
+	//err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", wtg.UnconfirmedTransactions[1].TransactionID), &wutgid2)
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
 
 	// Check that undocumented API behavior used in Sia-UI still works with
 	// current API.
@@ -1185,15 +1191,15 @@ func TestWalletSiafunds(t *testing.T) {
 
 	// Announce the host and form an allowance with it. This will result in a
 	// siafund claim.
-	err = st.announceHost()
-	if err != nil {
-		t.Fatal(err)
-	}
 	err = st.setHostStorage()
 	if err != nil {
 		t.Fatal(err)
 	}
 	err = st.acceptContracts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = st.announceHost()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,10 +1,11 @@
 package consensus
 
 import (
-	"gitlab.com/NebulousLabs/errors"
 	"net"
 	"sync"
 	"time"
+
+	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
@@ -12,7 +13,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	"github.com/coreos/bbolt"
+	bolt "github.com/coreos/bbolt"
 )
 
 const (
@@ -210,6 +211,9 @@ func (cs *ConsensusSet) managedReceiveBlocks(conn modules.PeerConn) (returnErr e
 		// Read a slice of blocks from the wire.
 		var newBlocks []types.Block
 		if err := encoding.ReadObject(conn, &newBlocks, uint64(MaxCatchUpBlocks)*types.BlockSizeLimit); err != nil {
+			if err.Error() == "timeout" {
+				return errSendBlocksStalled
+			}
 			return err
 		}
 		if err := encoding.ReadObject(conn, &moreAvailable, 1); err != nil {

@@ -6,13 +6,12 @@ import (
 	"reflect"
 	"time"
 
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"github.com/coreos/bbolt"
 )
 
 var (

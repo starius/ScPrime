@@ -131,13 +131,13 @@ func (sm *StratumMiner) StartStratumMining(server, username string) {
 
 // StopStratumMining tells the miner to stop mining
 func (sm *StratumMiner) StopStratumMining() {
-	//sm.log.Println("StopStratumMining called")
+	sm.log.Debugln("StopStratumMining() called")
 	if err := sm.tg.Add(); err != nil {
 		build.Critical(err)
 	}
 	defer func() {
 		sm.tg.Done()
-		//sm.log.Println("Done stopping stratum mining.")
+		sm.log.Debugln("Done stopping stratum mining.")
 	}()
 	sm.log.Println("Stopping stratum mining.")
 	sm.mu.Lock()
@@ -155,16 +155,9 @@ func (sm *StratumMiner) StopStratumMining() {
 
 // Close is called when the module is shutting down and shuts down the miner
 func (sm *StratumMiner) Close() error {
-	sm.log.Println("StratumMiner.Close() called")
-	if err := sm.tg.Stop(); err != nil {
-		return err
-	}
-
-	sm.mu.Lock()
+	sm.log.Debugln("StratumMiner.Close() called")
 	sm.StopStratumMining()
-	defer sm.mu.Unlock()
-
-	return nil
+	return sm.tg.Stop()
 }
 
 func (sm *StratumMiner) createWork() {

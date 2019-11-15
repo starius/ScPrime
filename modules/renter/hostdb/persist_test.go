@@ -71,7 +71,7 @@ func TestSaveLoad(t *testing.T) {
 	// Save, close, and reload.
 	hdbt.hdb.mu.Lock()
 	hdbt.hdb.lastChange = modules.ConsensusChangeID{1, 2, 3}
-	hdbt.hdb.disableIPViolationCheck = true
+	hdbt.hdb.SetIPViolationCheck(false)
 	stashedLC := hdbt.hdb.lastChange
 	hdbt.hdb.filteredHosts = filteredHosts
 	hdbt.hdb.filterMode = filterMode
@@ -92,7 +92,7 @@ func TestSaveLoad(t *testing.T) {
 	// Last change and disableIPViolationCheck should have been reloaded.
 	hdbt.hdb.mu.Lock()
 	lastChange := hdbt.hdb.lastChange
-	disableIPViolationCheck := hdbt.hdb.disableIPViolationCheck
+	disableIPViolationCheck := !hdbt.hdb.IPViolationsCheck()
 	hdbt.hdb.mu.Unlock()
 	if lastChange != stashedLC {
 		t.Error("wrong consensus change ID was loaded:", hdbt.hdb.lastChange)

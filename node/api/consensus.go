@@ -11,7 +11,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	"github.com/coreos/bbolt"
+	bolt "github.com/coreos/bbolt"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -272,8 +272,8 @@ func (api *API) consensusHandler(w http.ResponseWriter, req *http.Request, _ htt
 		GenesisTimestamp:       types.GenesisTimestamp,
 		MaturityDelay:          types.MaturityDelay,
 		MedianTimestampWindow:  types.MedianTimestampWindow,
-		SiafundCount:           types.SiafundCount,
-		SiafundPortion:         types.SiafundPortion,
+		SiafundCount:           types.SiafundCount(api.cs.Height()),
+		SiafundPortion:         types.SiafundPortion(api.cs.Height()),
 
 		InitialCoinbase: types.InitialCoinbase,
 		MinimumCoinbase: types.MinimumCoinbase,

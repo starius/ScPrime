@@ -1,10 +1,13 @@
 Daemon API
 ===========
 
-This document contains detailed descriptions of the daemon's API routes. For an
-overview of the daemon's API routes, see [API.md#daemon](/doc/API.md#daemon).
-For an overview of all API routes, see [API.md](/doc/API.md)
+The Sia API documentation can be found here:
+[Sia API](https://sia.tech/docs/ "Sia API")
 
+<<<<<<< HEAD
+Updates to the API documentation can be made here:
+[Sia API markdown](./index.html.md "Sia API markdown")
+=======
 There may be functional API calls which are not documented. These are not
 guaranteed to be supported beyond the current release, and should not be used
 in production.
@@ -113,3 +116,4 @@ returns the version of the SiaPrime daemon currently running.
   "version": "1.0.0"
 }
 ```
+>>>>>>> siaprime/master

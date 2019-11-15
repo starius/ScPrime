@@ -14,7 +14,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	"github.com/coreos/bbolt"
+	bolt "github.com/coreos/bbolt"
 )
 
 const (
@@ -149,6 +149,8 @@ func (w *Wallet) initPersist() error {
 
 	// ensure that the final db transaction is committed when the wallet closes
 	err = w.tg.AfterStop(func() error {
+		w.mu.Lock()
+		defer w.mu.Unlock()
 		var err error
 		if w.dbRollback {
 			// rollback txn if necessry.

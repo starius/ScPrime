@@ -4,11 +4,10 @@ package consensus
 // There is an assumption that the transaction has already been verified.
 
 import (
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"github.com/coreos/bbolt"
 )
 
 // applySiacoinInputs takes all of the siacoin inputs in a transaction and
@@ -156,7 +155,7 @@ func applySiafundInputs(tx *bolt.Tx, pb *processedBlock, t types.Transaction) {
 		if build.DEBUG && err != nil {
 			panic(err)
 		}
-		claimPortion := getSiafundPool(tx).Sub(sfo.ClaimStart).Div(types.SiafundCount).Mul(sfo.Value)
+		claimPortion := siafundClaim(tx, sfo)
 
 		// Add the claim output to the delayed set of outputs.
 		sco := types.SiacoinOutput{

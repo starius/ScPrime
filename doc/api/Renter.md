@@ -1,9 +1,8 @@
 Renter API
 ==========
 
-This document contains detailed descriptions of the renter's API routes. For an
-overview of the renter's API routes, see [API.md#renter](/doc/API.md#renter).  For
-an overview of all API routes, see [API.md](/doc/API.md)
+The Sia API documentation can be found here:
+[Sia API](https://sia.tech/docs/ "Sia API")
 
 There may be functional API calls which are not documented. These are not
 guaranteed to be supported beyond the current release, and should not be used

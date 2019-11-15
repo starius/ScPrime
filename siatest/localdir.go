@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
@@ -64,7 +65,13 @@ func (ld *LocalDir) Name() string {
 // NewFile creates a new LocalFile in the current LocalDir
 func (ld *LocalDir) NewFile(size int) (*LocalFile, error) {
 	fileName := fmt.Sprintf("%dbytes - %s", size, persist.RandomSuffix())
-	path := filepath.Join(ld.path, fileName)
+	return ld.NewFileWithName(fileName, size)
+}
+
+// NewFileWithName creates a new LocalFile in the current LocalDir with the
+// given name and size.
+func (ld *LocalDir) NewFileWithName(name string, size int) (*LocalFile, error) {
+	path := filepath.Join(ld.path, name)
 	bytes := fastrand.Bytes(size)
 	err := ioutil.WriteFile(path, bytes, 0600)
 	return &LocalFile{

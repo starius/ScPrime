@@ -1,4 +1,4 @@
-# [![SiaPrime Logo](https://siaprime.net/imagestore/primelogo_cb_256x256.png)](http://siaprime.net) v1.3.8
+# [![SiaPrime Logo](https://siaprime.net/imagestore/SPRho_256x256.png)](http://siaprime.net) v1.4.1.2
 
 [![Build Status](https://gitlab.com/SiaPrime/SiaPrime/badges/master/build.svg)](https://gitlab.com/SiaPrime/SiaPrime/commits/master)
 [![Coverage Report](https://gitlab.com/SiaPrime/SiaPrime/badges/master/coverage.svg)](https://gitlab.com/SiaPrime/SiaPrime/commits/master)
@@ -15,27 +15,14 @@ Hosts can include everyone from individual hobbyists up to enterprise-scale
 datacenters with excess capacity to sell. 
 
 The SiaPrime protocol currently provides very basic storage capability. We expect
-the SiaPrime product suite will begin to roll out in 2019 as we work in parallel
-with SiaPrime core developers to deliver live products as soon as the protocol can 
-support them. As they build key features into the network, we'll extend
-into an easy-to-use application suite with versions geared at different
-customer profiles and market verticals.
+the SiaPrime product suite will begin to roll out in 2020 as we work in parallel
+with Sia core developers to deliver live products as soon as the protocol can 
+support them. As time passes, we expect the SiaPrime protocol to diverge from 
+the Sia protocol in some ways as we build an industrial strength version.
 
-![UI](https://gitlab.com/SiaPrime/SiaPrime/raw/master/doc/assets/prime_wallet.png)
-
-Traditional cloud storage is dominated by a small number of companies, with
-most based in Silicon Valley. China is also dominated by a few entities
-creating region specific barriers and firewalls. The individual companies
-decide what level of encryption to offer to users, usually based on the price
-each customer is willing to pay. All of the companies are compliant with
-national laws and even sometimes, with assisting governmental entities to
-restrict or compromise user data. They maintain strict control over customer
-data in ways that can jeopardize customer security and privacy.
-
-We are rapidly seeing a public desire to retake control of private data.
-Users are demanding companies explain their policies in data gathering and use.
-SiaPrime is an important initiative to provide companies, organizations and 
-individuals a comprehensive cloud storage environment uncompromised by inside 
+Traditional cloud storage is dominated by a small number of companies.
+SiaPrime is an initiative to provide small and medium sized business (SMB) a 
+comprehensive cloud storage environment uncompromised by inside 
 or outside interference. This is achieved through fragmenting user data and 
 spreading it across a distributed network of hosts. No single datacenter has 
 access to your complete data.
@@ -45,16 +32,12 @@ disappear, your data is still accessible. Switching to different hosts for
 better geographic coverage, price, speed or reliability is easy as hosts 
 compete with each other to provide the best service offering. 
 
-As we develop and release our product suite for customers, SiaPrime will 
-offer a complete cloud storage solution for file backup, long term archival 
-needs, CDN use cases as well as bridging the gap between online and offline 
-strategies. 
-
-The SiaPrime network allows for highly parallel data transfer, which when 
-coupled with geographic targeting can significantly reduce latency and access 
-to your data no matter if you are storing family photos or large database 
-backups.
-
+SiaPrime will offer a complete cloud storage solution for file backup, long term 
+archival needs, CDN use cases as well as bridging the gap between online and 
+offline strategies. The SiaPrime network allows for highly parallel data transfer, 
+which when coupled with geographic targeting can significantly reduce latency
+and access to your data no matter if you are storing family photos or large 
+database backups.
 
 The process of choosing hosts on the SiaPrime network allows customers to 
 choose based on latency, lowest price, widest geographic coverage, or even a 
@@ -64,29 +47,10 @@ Dropbox-like web interfaces up to sophisticated client dashboards for
 enterprise clients.
 
 Purchasing storage on the network will have several variants, though all 
-ultimately use our core cryptocurrency utility token called a PrimeToken. 
-PrimeTokens will be available on cryptocurrency exchanges. We will also be 
+ultimately use our core cryptocurrency utility coin called a SiaPrime Coin. 
+SiaPrime Coins will be available on cryptocurrency exchanges. We will also be 
 creating fiat to storage gateways to encourage broad adoption of the SiaPrime 
 storage model. 
-
-Because SiaPrime is based on the core SiaPrime protocol, we expect SiaPrime software 
-and custom integrations to  facilitate purchase of storage on the main SiaPrime 
-network as well as SiaPrime project forks that continue to use the core protocol. As 
-the protocol becomes widely used, it is likely individual SiaPrime blockchains will 
-experience typical scaling issues. Though we expect the Nebulous team to work 
-on solutions, multiple chains/networks have the potential to ease scaling 
-issues while providing another layer of redundancy and privacy. 
-
-
-To get started with SiaPrime, check out the initial SiaPrime guides below. The 
-interface is the same except for our branding. As we launch our own product 
-suite, the core application should still exist but be less useful:
-
-Check out the guides below:
-
-- [How to Store Data on SiaPrime](https://blog.sia.tech/getting-started-with-private-decentralized-cloud-storage-c9565dc8c854)
-- [How to Become a SiaPrime Host](https://blog.sia.tech/how-to-run-a-host-on-sia-2159ebc4725)
-- [Using the SiaPrime API](https://blog.sia.tech/api-quickstart-guide-f1d160c05235)
 
 
 Usage
@@ -109,20 +73,18 @@ prompt) or SiaPrime-UI to interact with `spd`.
 Building From Source
 --------------------
 
-To build from source, [Go 1.10 must be installed](https://golang.org/doc/install)
-on the system. Make sure your `$GOPATH` is set, and then simply use `go get`:
+To build from source, [Go 1.13 or above must be installed](https://golang.org/doc/install)
+on the system. Clone the repo and run `make`:
 
 ```
-go get -u gitlab.com/SiaPrime/SiaPrime/...
+git clone https://gitlab.com/SiaPrime/SiaPrime
+cd SiaPrime && make
 ```
 
-This will download the SiaPrime repo to your `$GOPATH/src` folder and install 
-the`spd` and `spc` binaries in your `$GOPATH/bin` folder.
+This will install the`spd` and `spc` binaries in your `$GOPATH/bin` folder.
+(By default, this is `$HOME/go/bin`.)
 
-To stay up-to-date, run the previous `go get` command again. Alternatively, you
-can use the Makefile provided in this repo. Run `git pull origin master` to
-pull the latest changes, and `make release` to build the new binaries. You
-can also run `make test` and `make test-long` to run the short and full test
+You can also run `make test` and `make test-long` to run the short and full test
 suites, respectively. Finally, `make cover` will generate code coverage reports
 for each package; they are stored in the `cover` folder and can be viewed in
 your browser.

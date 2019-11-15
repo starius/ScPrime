@@ -41,9 +41,11 @@ var (
 // NOTE: At this time, transaction fees are not counted towards the allowance.
 // This means the contractor may spend more than allowance.Funds.
 func (c *Contractor) SetAllowance(a modules.Allowance) error {
+	//Setting empty allowance means cancel allowance
 	if reflect.DeepEqual(a, modules.Allowance{}) {
 		return c.managedCancelAllowance()
 	}
+	// If no allowance parameters have changed return
 	if reflect.DeepEqual(a, c.allowance) {
 		return nil
 	}
@@ -83,7 +85,7 @@ func (c *Contractor) SetAllowance(a modules.Allowance) error {
 		unlockContracts = true
 	}
 	c.allowance = a
-	err := c.saveSync()
+	err := c.save()
 	c.mu.Unlock()
 	if err != nil {
 		c.log.Println("Unable to save contractor after setting allowance:", err)
@@ -164,7 +166,7 @@ func (c *Contractor) managedCancelAllowance() error {
 	c.mu.Lock()
 	c.allowance = modules.Allowance{}
 	c.currentPeriod = 0
-	err := c.saveSync()
+	err := c.save()
 	c.mu.Unlock()
 	if err != nil {
 		return err

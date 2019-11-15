@@ -23,16 +23,16 @@ const (
 	exitCodeUsage   = 64 // EX_USAGE in sysexits.h
 )
 
-// The Config struct contains all configurable variables for siad. It is
+// The Config struct contains all configurable variables for spd. It is
 // compatible with gcfg.
 type Config struct {
 	// The APIPassword is input by the user after the daemon starts up, if the
 	// --authenticate-api flag is set.
 	APIPassword string
 
-	// The Siad variables are referenced directly by cobra, and are set
+	// The Spd variables are referenced directly by cobra, and are set
 	// according to the flags.
-	Siad struct {
+	Spd struct {
 		APIaddr      string
 		RPCaddr      string
 		HostAddr     string
@@ -60,7 +60,7 @@ func die(args ...interface{}) {
 	os.Exit(exitCodeGeneral)
 }
 
-// versionCmd is a cobra command that prints the version of siad.
+// versionCmd is a cobra command that prints the version of spd.
 func versionCmd(*cobra.Command, []string) {
 	version := build.Version
 	if build.ReleaseTag != "" {
@@ -68,20 +68,20 @@ func versionCmd(*cobra.Command, []string) {
 	}
 	switch build.Release {
 	case "dev":
-		fmt.Println("Sia Daemon v" + build.Version + "-dev")
+		fmt.Println("ScPrime Daemon v" + build.Version + "-dev")
 	case "standard":
-		fmt.Println("Sia Daemon v" + build.Version)
+		fmt.Println("ScPrime Daemon v" + build.Version)
 	case "testing":
-		fmt.Println("Sia Daemon v" + build.Version + "-testing")
+		fmt.Println("ScPrime Daemon v" + build.Version + "-testing")
 	default:
-		fmt.Println("Sia Daemon v" + build.Version + "-???")
+		fmt.Println("ScPrime Daemon v" + build.Version + "-???")
 	}
 }
 
 // modulesCmd is a cobra command that prints help info about modules.
 func modulesCmd(*cobra.Command, []string) {
 	fmt.Println(`Use the -M or --modules flag to only run specific modules. Modules are
-independent components of Sia. This flag should only be used by developers or
+independent components of ScPrime. This flag should only be used by developers or
 people who want to reduce overhead from unused modules. Modules are specified by
 their first letter. If the -M or --modules flag is not specified the default
 modules are run. The default modules are:
@@ -108,7 +108,7 @@ Transaction Pool (t):
 	Example:
 		spd -M gct
 Wallet (w):
-	The wallet stores and manages siacoins and siafunds.
+	The wallet stores and manages scprimecoins and scprimefunds.
 	The wallet requires the consensus set and transaction pool.
 	Example:
 		spd -M gctw
@@ -158,15 +158,15 @@ func main() {
 	}
 	root := &cobra.Command{
 		Use:   os.Args[0],
-		Short: "SiaPrime Daemon v" + build.Version,
-		Long:  "SiaPrime Daemon v" + build.Version,
+		Short: "ScPrime Daemon v" + build.Version,
+		Long:  "ScPrime Daemon v" + build.Version,
 		Run:   startDaemonCmd,
 	}
 
 	root.AddCommand(&cobra.Command{
 		Use:   "version",
 		Short: "Print version information",
-		Long:  "Print version information about the SiaPrime Daemon",
+		Long:  "Print version information about the ScPrime Daemon",
 		Run:   versionCmd,
 	})
 
@@ -178,18 +178,18 @@ func main() {
 	})
 
 	// Set default values, which have the lowest priority.
-	root.Flags().StringVarP(&globalConfig.Siad.RequiredUserAgent, "agent", "", "SiaPrime-Agent", "required substring for the user agent")
-	root.Flags().StringVarP(&globalConfig.Siad.HostAddr, "host-addr", "", ":4282", "which port the host listens on")
-	root.Flags().StringVarP(&globalConfig.Siad.ProfileDir, "profile-directory", "", "profiles", "location of the profiling directory")
-	root.Flags().StringVarP(&globalConfig.Siad.APIaddr, "api-addr", "", "localhost:4280", "which host:port the API server listens on")
-	root.Flags().StringVarP(&globalConfig.Siad.SiaDir, "siaprime-directory", "d", "", "location of the sia directory")
-	root.Flags().BoolVarP(&globalConfig.Siad.NoBootstrap, "no-bootstrap", "", false, "disable bootstrapping on this run")
-	root.Flags().StringVarP(&globalConfig.Siad.Profile, "profile", "", "", "enable profiling with flags 'cmt' for CPU, memory, trace")
-	root.Flags().StringVarP(&globalConfig.Siad.RPCaddr, "rpc-addr", "", ":4281", "which port the gateway listens on")
-	root.Flags().StringVarP(&globalConfig.Siad.Modules, "modules", "M", "cghrtw", "enabled modules, see 'spd modules' for more info")
-	root.Flags().BoolVarP(&globalConfig.Siad.AuthenticateAPI, "authenticate-api", "", true, "enable API password protection")
-	root.Flags().BoolVarP(&globalConfig.Siad.TempPassword, "temp-password", "", false, "enter a temporary API password during startup")
-	root.Flags().BoolVarP(&globalConfig.Siad.AllowAPIBind, "disable-api-security", "", false, "allow spd to listen on a non-localhost address (DANGEROUS)")
+	root.Flags().StringVarP(&globalConfig.Spd.RequiredUserAgent, "agent", "", "SiaPrime-Agent", "required substring for the user agent")
+	root.Flags().StringVarP(&globalConfig.Spd.HostAddr, "host-addr", "", ":4282", "which port the host listens on")
+	root.Flags().StringVarP(&globalConfig.Spd.ProfileDir, "profile-directory", "", "profiles", "location of the profiling directory")
+	root.Flags().StringVarP(&globalConfig.Spd.APIaddr, "api-addr", "", "localhost:4280", "which host:port the API server listens on")
+	root.Flags().StringVarP(&globalConfig.Spd.SiaDir, "siaprime-directory", "d", "", "location of the metadata directory")
+	root.Flags().BoolVarP(&globalConfig.Spd.NoBootstrap, "no-bootstrap", "", false, "disable bootstrapping on this run")
+	root.Flags().StringVarP(&globalConfig.Spd.Profile, "profile", "", "", "enable profiling with flags 'cmt' for CPU, memory, trace")
+	root.Flags().StringVarP(&globalConfig.Spd.RPCaddr, "rpc-addr", "", ":4281", "which port the gateway listens on")
+	root.Flags().StringVarP(&globalConfig.Spd.Modules, "modules", "M", "cghrtw", "enabled modules, see 'spd modules' for more info")
+	root.Flags().BoolVarP(&globalConfig.Spd.AuthenticateAPI, "authenticate-api", "", true, "enable API password protection")
+	root.Flags().BoolVarP(&globalConfig.Spd.TempPassword, "temp-password", "", false, "enter a temporary API password during startup")
+	root.Flags().BoolVarP(&globalConfig.Spd.AllowAPIBind, "disable-api-security", "", false, "allow spd to listen on a non-localhost address (DANGEROUS)")
 
 	// Parse cmdline flags, overwriting both the default values and the config
 	// file values.

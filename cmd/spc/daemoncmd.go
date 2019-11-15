@@ -10,8 +10,8 @@ import (
 var (
 	stopCmd = &cobra.Command{
 		Use:   "stop",
-		Short: "Stop the SiaPrime daemon",
-		Long:  "Stop the SiaPrime daemon.",
+		Short: "Stop the ScPrime daemon",
+		Long:  "Stop the ScPrime daemon.",
 		Run:   wrap(stopcmd),
 	}
 
@@ -24,8 +24,8 @@ var (
 
 	updateCmd = &cobra.Command{
 		Use:   "update",
-		Short: "Update SiaPrime",
-		Long:  "Check for (and/or download) available updates for SiaPrime.",
+		Short: "Update ScPrime",
+		Long:  "Check for (and/or download) available updates for ScPrime.",
 		Run:   wrap(updatecmd),
 	}
 
@@ -39,7 +39,7 @@ var (
 
 // version prints the version of siac and siad.
 func versioncmd() {
-	fmt.Println("SiaPrime Client")
+	fmt.Println("ScPrime Client")
 	if build.ReleaseTag == "" {
 		fmt.Println("\tVersion " + build.Version)
 	} else {
@@ -54,7 +54,7 @@ func versioncmd() {
 		fmt.Println("Could not get daemon version:", err)
 		return
 	}
-	fmt.Println("SiaPrime Daemon")
+	fmt.Println("ScPrime Daemon")
 	fmt.Println("\tVersion " + dvg.Version)
 	if build.GitRevision != "" {
 		fmt.Println("\tGit Revision " + dvg.GitRevision)
@@ -62,16 +62,18 @@ func versioncmd() {
 	}
 }
 
-// stopcmd is the handler for the command `siac stop`.
+// stopcmd is the handler for the command `spc stop`.
 // Stops the daemon.
 func stopcmd() {
 	err := httpClient.DaemonStopGet()
 	if err != nil {
 		die("Could not stop daemon:", err)
 	}
-	fmt.Println("SiaPrime daemon stopped.")
+	fmt.Println("ScPrime daemon stopped.")
 }
 
+// updatecmd is the handler for the command `spc update`.
+// Updates the daemon version to latest general release.
 func updatecmd() {
 	update, err := httpClient.DaemonUpdateGet()
 	if err != nil {
@@ -91,6 +93,8 @@ func updatecmd() {
 	fmt.Printf("Updated to version %s! Restart spd now.\n", update.Version)
 }
 
+// updatecheckcmd is the handler for the command `siac check`.
+// Checks is there is an newer daemon version available.
 func updatecheckcmd() {
 	update, err := httpClient.DaemonUpdateGet()
 	if err != nil {

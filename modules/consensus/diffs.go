@@ -3,12 +3,11 @@ package consensus
 import (
 	"errors"
 
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"github.com/coreos/bbolt"
 )
 
 var (
@@ -231,7 +230,7 @@ func generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) error {
 	applyMaintenance(tx, pb)
 
 	// Fx the siaprimefund allocation
-	if pb.Height == 7200 {
+	if pb.Height == types.SpfAirdropHeight {
 		// Remove Genesis Siafunds
 		for i, siafundOutput := range types.GenesisBlock.Transactions[1].SiafundOutputs {
 			sfid := types.GenesisBlock.Transactions[1].SiafundOutputID(uint64(i))
@@ -260,6 +259,25 @@ func generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) error {
 			commitSiafundOutputDiff(tx, sfod, modules.DiffApply)
 			//addSiafundOutput(tx, sfod.ID, sfod.SiafundOutput)
 			//dbAddSiafundOutput(types.SiafundOutputID{}, siafundOutput)
+		}
+	}
+
+	if pb.Height == types.SpfHardforkHeight {
+		// Perform SPF hardfork changes.
+		// At first, save current siafund pool.
+		currentPool := getSiafundPool(tx)
+		setSiafundHardforkPool(tx, currentPool)
+		// Now apply new outputs.
+		for _, siafundOutput := range types.SiafundHardforkAllocation {
+			sfid := types.SiafundOutputID(siafundOutput.UnlockHash)
+			siafundOutput.ClaimStart = getSiafundPool(tx)
+			sfod := modules.SiafundOutputDiff{
+				Direction:     modules.DiffApply,
+				ID:            sfid,
+				SiafundOutput: siafundOutput,
+			}
+			pb.SiafundOutputDiffs = append(pb.SiafundOutputDiffs, sfod)
+			commitSiafundOutputDiff(tx, sfod, modules.DiffApply)
 		}
 	}
 

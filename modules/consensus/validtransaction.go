@@ -4,13 +4,12 @@ import (
 	"errors"
 	"math/big"
 
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"github.com/coreos/bbolt"
 )
 
 var (
@@ -18,16 +17,16 @@ var (
 	errInvalidStorageProof        = errors.New("provided storage proof is invalid")
 	errLateRevision               = errors.New("file contract revision submitted after deadline")
 	errLowRevisionNumber          = errors.New("transaction has a file contract with an outdated revision number")
-	errMissingSiacoinOutput       = errors.New("transaction spends a nonexisting siacoin output")
-	errMissingSiafundOutput       = errors.New("transaction spends a nonexisting siafund output")
-	errSiacoinInputOutputMismatch = errors.New("siacoin inputs do not equal siacoin outputs for transaction")
-	errSiafundInputOutputMismatch = errors.New("siafund inputs do not equal siafund outputs for transaction")
+	errMissingSiacoinOutput       = errors.New("transaction spends a nonexisting scprimecoin output")
+	errMissingSiafundOutput       = errors.New("transaction spends a nonexisting scprimefund output")
+	errSiacoinInputOutputMismatch = errors.New("scprimecoin inputs do not equal scprimecoin outputs for transaction")
+	errSiafundInputOutputMismatch = errors.New("scprimefund inputs do not equal scprimefund outputs for transaction")
 	errUnfinishedFileContract     = errors.New("file contract window has not yet openend")
 	errUnrecognizedFileContractID = errors.New("cannot fetch storage proof segment for unknown file contract")
 	errWrongUnlockConditions      = errors.New("transaction contains incorrect unlock conditions")
 )
 
-// validSiacoins checks that the siacoin inputs and outputs are valid in the
+// validSiacoins checks that the scprimecoin inputs and outputs are valid in the
 // context of the current consensus set.
 func validSiacoins(tx *bolt.Tx, t types.Transaction) error {
 	scoBucket := tx.Bucket(SiacoinOutputs)

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 )
 

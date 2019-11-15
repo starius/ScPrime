@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
 	"golang.org/x/crypto/ssh/terminal"
 
-	"gitlab.com/NebulousLabs/entropy-mnemonics"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
@@ -42,7 +42,7 @@ var (
 	walletBalanceCmd = &cobra.Command{
 		Use:   "balance",
 		Short: "View wallet balance",
-		Long:  "View wallet balance, including confirmed and unconfirmed siaprimecoins and siaprimefunds.",
+		Long:  "View wallet balance, including confirmed and unconfirmed scprimecoins and scprimefunds.",
 		Run:   wrap(walletbalancecmd),
 	}
 
@@ -67,7 +67,7 @@ be valid. txn may be either JSON, base64, or a file containing either.`,
 		Long: `Generate a new address, send coins to another wallet, or view info about the wallet.
 
 Units:
-The smallest unit of siaprimecoins is the hasting. One siaprimecoin is 10^24 hastings. Other supported units are:
+The smallest unit of scprimecoins is the hasting. One scprimecoin is 10^24 hastings. Other supported units are:
   pS (pico,  10^-12 SCP)
   nS (nano,  10^-9 SCP)
   uS (micro, 10^-6 SCP)
@@ -112,7 +112,7 @@ By default the wallet encryption / unlock password is the same as the generated 
 	walletLoadSiagCmd = &cobra.Command{
 		Use:     `saipg [filepath,...]`,
 		Short:   "Load saipg key(s) into the wallet",
-		Long:    "Load saipg key(s) into the wallet - typically used for siaprimefunds.",
+		Long:    "Load saipg key(s) into the wallet - typically used for scprimefunds.",
 		Example: "spc wallet load saipg key1.siapkey,key2.siapkey",
 		Run:     wrap(walletloadsiagcmd),
 	}
@@ -133,16 +133,16 @@ By default the wallet encryption / unlock password is the same as the generated 
 
 	walletSendCmd = &cobra.Command{
 		Use:   "send",
-		Short: "Send either siaprimecoins or siaprimefunds to an address",
-		Long:  "Send either siaprimecoins or siaprimefunds to an address",
+		Short: "Send either scprimecoins or scprimefunds to an address",
+		Long:  "Send either scprimecoins or scprimefunds to an address",
 		// Run field is not set, as the send command itself is not a valid command.
 		// A subcommand must be provided.
 	}
 
 	walletSendSiacoinsCmd = &cobra.Command{
-		Use:   "siaprimecoins [amount] [dest]",
-		Short: "Send siaprimecoins to an address",
-		Long: `Send siaprimecoins to an address. 'dest' must be a 76-byte hexadecimal address.
+		Use:   "scprimecoins [amount] [dest]",
+		Short: "Send scprimecoins to an address",
+		Long: `Send scprimecoins to an address. 'dest' must be a 76-byte hexadecimal address.
 'amount' can be specified in units, e.g. 1.23KS. Run 'wallet --help' for a list of units.
 If no unit is supplied, hastings will be assumed.
 
@@ -151,9 +151,9 @@ A dynamic transaction fee is applied depending on the size of the transaction an
 	}
 
 	walletSendSiafundsCmd = &cobra.Command{
-		Use:   "siaprimefunds [amount] [dest]",
-		Short: "Send siaprimefunds",
-		Long: `Send siaprimefunds to an address, and transfer the claim siaprimecoins to your wallet.
+		Use:   "scprimefunds [amount] [dest]",
+		Short: "Send scprimefunds",
+		Long: `Send scprimefunds to an address, and transfer the claim scprimecoins to your wallet.
 Run 'wallet send --help' to see a list of available units.`,
 		Run: wrap(walletsendsiafundscmd),
 	}
@@ -175,8 +175,8 @@ provided, the wallet will fill in every TransactionSignature it has keys for.`,
 
 	walletSweepCmd = &cobra.Command{
 		Use:   "sweep",
-		Short: "Sweep siaprimecoins and siaprimefunds from a seed.",
-		Long: `Sweep siaprimecoins and siaprimefunds from a seed. The outputs belonging to the seed
+		Short: "Sweep scprimecoins and scprimefunds from a seed.",
+		Long: `Sweep scprimecoins and scprimefunds from a seed. The outputs belonging to the seed
 will be sent to your wallet.`,
 		Run: wrap(walletsweepcmd),
 	}
@@ -184,7 +184,7 @@ will be sent to your wallet.`,
 	walletTransactionsCmd = &cobra.Command{
 		Use:   "transactions",
 		Short: "View transactions",
-		Long:  "View transactions related to addresses spendable by the wallet, providing a net flow of siaprimecoins and siaprimefunds for each transaction",
+		Long:  "View transactions related to addresses spendable by the wallet, providing a net flow of scprimecoins and scprimefunds for each transaction",
 		Run:   wrap(wallettransactionscmd),
 	}
 
@@ -193,7 +193,7 @@ will be sent to your wallet.`,
 		Short: "Unlock the wallet",
 		Long: `Decrypt and load the wallet into memory.
 Automatic unlocking is also supported via environment variable: if the
-SIAPRIME_WALLET_PASSWORD environment variable is set, the unlock command will
+SCPRIME_WALLET_PASSWORD environment variable is set, the unlock command will
 use it instead of displaying the typical interactive prompt.`,
 		Run: wrap(walletunlockcmd),
 	}
@@ -395,7 +395,7 @@ func walletsendsiacoinscmd(amount, dest string) {
 	}
 	_, err = httpClient.WalletSiacoinsPost(value, hash)
 	if err != nil {
-		die("Could not send siaprimecoins:", err)
+		die("Could not send scprimecoins:", err)
 	}
 	fmt.Printf("Sent %s hastings to %s\n", hastings, dest)
 }
@@ -412,9 +412,9 @@ func walletsendsiafundscmd(amount, dest string) {
 	}
 	_, err := httpClient.WalletSiafundsPost(value, hash)
 	if err != nil {
-		die("Could not send siaprimefunds:", err)
+		die("Could not send scprimefunds:", err)
 	}
-	fmt.Printf("Sent %s siaprimefunds to %s\n", amount, dest)
+	fmt.Printf("Sent %s scprimefunds to %s\n", amount, dest)
 }
 
 // walletbalancecmd retrieves and displays information about the wallet.
@@ -453,8 +453,8 @@ Height:              %v
 Confirmed Balance:   %v
 Unconfirmed Delta:   %v
 Exact:               %v H
-Siaprimefunds:       %v SPF
-Siaprimefund Claims: %v H
+Scprimefunds:        %v SPF
+Scprimefund Claims:  %v H
 
 Estimated Fee:       %v / KB
 `, encStatus, status.Height, currencyUnits(status.ConfirmedSiacoinBalance), delta,
@@ -576,7 +576,7 @@ func wallettransactionscmd() {
 	if err != nil {
 		die("Could not fetch consensus information:", err)
 	}
-	fmt.Println("             [timestamp]    [height]                                                   [transaction id]    [net siacoins]   [net siafunds]")
+	fmt.Println("             [timestamp]    [height]                                                   [transaction id]    [net SCP]        [net SPF]")
 	txns := append(wtg.ConfirmedTransactions, wtg.UnconfirmedTransactions...)
 	sts, err := wallet.ComputeValuedTransactions(txns, cg.Height)
 	if err != nil {
@@ -628,9 +628,9 @@ func wallettransactionscmd() {
 func walletunlockcmd() {
 	// try reading from environment variable first, then fallback to
 	// interactive method. Also allow overriding auto-unlock via -p
-	password := os.Getenv("SIAPRIME_WALLET_PASSWORD")
+	password := os.Getenv("SCPRIME_WALLET_PASSWORD")
 	if password != "" && !initPassword {
-		fmt.Println("Using SIAPRIME_WALLET_PASSWORD environment variable")
+		fmt.Println("Using SCPRIME_WALLET_PASSWORD environment variable")
 		err := httpClient.WalletUnlockPost(password)
 		if err != nil {
 			fmt.Println("Automatic unlock failed!")

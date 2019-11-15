@@ -1,24 +1,22 @@
 # Contributing to SiaPrime
 
 #### Table of Contents
-* [Get started with Go](#go)
-  * [Install Go](#install-go)
-  * [Learn Go](#learn-go)
-* [Build SiaPrime](#build-siaprime)
-* [Contribute to the codebase](#contribute)
-  * [Set up git](#setup-git)
-  * [Fork the SiaPrime repository](#fork)
-  * [Write some code](#write)
-  * [Submit your code for review](#pull)
-  * [More git resources](#git-resources)
-* [Where to start](#where-to-start)
-* [Contact us](#contact)
-
-<a name="go"/>
+- [Contributing to SiaPrime](#Contributing-to-SiaPrime)
+			- [Table of Contents](#Table-of-Contents)
+	- [Get started with Go](#Get-started-with-Go)
+		- [Install Go](#Install-Go)
+		- [Learn Go](#Learn-Go)
+	- [Build SiaPrime](#Build-SiaPrime)
+	- [Contribute to the codebase](#Contribute-to-the-codebase)
+		- [Set up git](#Set-up-git)
+		- [Fork the SiaPrime repository](#Fork-the-SiaPrime-repository)
+		- [Write some code](#Write-some-code)
+		- [Submit your code for review](#Submit-your-code-for-review)
+		- [More Git resources](#More-Git-resources)
+	- [Where to start](#Where-to-start)
+	- [Contact us](#Contact-us)
 
 ## Get started with Go
-
-<a name="install-go"/>
 
 ### Install Go
 
@@ -28,8 +26,6 @@ To install Go on your computer, follow the
 You should install the latest [official Go binary][binary] for your system (if 
 not available, [install from source][source]).  If you plan to cross compile 
 SiaPrime, see [Cross Compilation with Go 1.5][cross] by Dave Cheney.  
-
-<a name="learn-go"/>
 
 ### Learn Go
 
@@ -69,11 +65,7 @@ $ make debug
 $ make debug-race
 ```
 
-<a name="contribute"/>
-
 ## Contribute to the codebase
-
-<a name="setup-git"/>
 
 ### Set up git
 
@@ -92,7 +84,6 @@ $ git config --global credential.helper cache
 $ git config --global credential.helper "cache --timeout=[seconds]"
 
 ```
-<a name="fork"/>
 
 ### Fork the SiaPrime repository
 
@@ -113,8 +104,6 @@ $ git remote add <remote name> https://gitlab.com/<username>/SiaPrime.git
 # Or if you use an SSH key, create the remote with the following
 $ git remote add <remote name> git@gitlab.com:<username>/SiaPrime.git
 ```
-
-<a name="write"/>
 
 ### Write some code
 
@@ -190,7 +179,6 @@ $ git commit -m "Add new tests for CommitSync method"
 # remote already.
 $ git push <fork remote> <branch>
 ```
-<a name="pull"/>
 
 ### Submit your code for review
 
@@ -201,7 +189,7 @@ the upper left.  Then click 'New merge request' on the upper right.
 
 Once you have made the merge request, we will review your code.  We will reject 
 code that is unsafe, difficult to read, or otherwise violates the conventions 
-outlined in [docs/Developers.md][developers.md].
+outlined in our [Developers][developers.md] document.
 
 If you want to tweak code for which you've already submitted a pull request,
 push the updated code to your fork with `git push -f <fork remote> <branch>` and
@@ -222,27 +210,23 @@ $ git push <fork remote> :<branch>
 # Update your fork.
 $ git push <fork remote> master
 ```
-<a name="git-resources"/>
 
 ### More Git resources
 
   * [How to into git (and GitHub)][luke] by Luke Champine
   * [Official resources for learning Git][git]
 
-<a name="where-to-start"/>
-
 ## Where to start
 
 If you'd like to contribute to SiaPrime but don't have any specific ideas, writing 
 tests is a good way to get your feet wet.  See [doc/Running and Writing Tests for SiaPrime.md](Running%20and%20Writing%20Tests%20for%20SiaPrime.md) to get started.
 
-<a name="contact"/>
+To learn more about how various parts of the code base work, head over to our [Resources](resources.md) page in our [doc](docs) folder.
 
 ## Contact us
 
 Feel free to ask for help on the #general-dev channel on [discord][discord].
 
-[cross]: http://dave.cheney.net/2015/08/22/cross-compilation-with-go-1-5
 [binary]: https://golang.org/dl/
 [source]: https://golang.org/doc/install/source
 [tour]: https://tour.golang.org/welcome/1
@@ -263,3 +247,9 @@ Feel free to ask for help on the #general-dev channel on [discord][discord].
 [test-doc]: https://gitlab.com/SiaPrime/SiaPrime/blob/master/doc/Testing.md
 [stashing]: https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning
 [remote]: https://git-scm.com/book/en/v2/Git-Basics-Working-with-Remotes
+[sia]: https://gitlab.com/NebulousLabs/Sia
+[signup]: https://github.com/join?source=header-home
+[source]: https://golang.org/doc/install/source
+[stashing]: https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning
+[test-doc]: https://gitlab.com/NebulousLabs/Sia/blob/master/doc/Testing.md
+[tour]: https://tour.golang.org/welcome/1

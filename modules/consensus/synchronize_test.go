@@ -18,7 +18,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	"github.com/coreos/bbolt"
+	bolt "github.com/coreos/bbolt"
 )
 
 // TestSynchronize tests that the consensus set can successfully synchronize
@@ -934,7 +934,7 @@ func TestIntegrationSendBlkRPC(t *testing.T) {
 	}
 	// Test that cst2 errors when it doesn't recognize the requested block.
 	err = cst1.cs.gateway.RPC(cst2.cs.gateway.Address(), "SendBlk", cst1.cs.managedReceiveBlock(types.BlockID{}))
-	if err != io.EOF {
+	if err.Error() != io.EOF.Error() {
 		t.Errorf("cst2 shouldn't return a block it doesn't recognize: expected error '%v', got '%v'", io.EOF, err)
 	}
 
@@ -1501,7 +1501,7 @@ func TestIntegrationSendBlocksStalls(t *testing.T) {
 	cstRemote.cs.mu.Lock()
 	defer cstRemote.cs.mu.Unlock()
 	err = cstLocal.cs.gateway.RPC(cstRemote.cs.gateway.Address(), "SendBlocks", cstLocal.cs.threadedReceiveBlocks)
-	if err != errSendBlocksStalled {
-		t.Fatal(err)
+	if err.Error() != errSendBlocksStalled.Error() {
+		t.Errorf("expected %+v, got %+v", errSendBlocksStalled, err)
 	}
 }

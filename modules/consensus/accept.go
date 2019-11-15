@@ -5,13 +5,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"os"
+
 	"time"
 
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	"github.com/coreos/bbolt"
+	bolt "github.com/coreos/bbolt"
 )
 
 var (
@@ -300,11 +300,13 @@ func (cs *ConsensusSet) managedAcceptBlocks(blocks []types.Block) (blockchainExt
 		}
 		return nil
 	})
-	if _, ok := setErr.(bolt.MmapError); ok {
-		cs.log.Println("ERROR: Bolt mmap failed:", setErr)
-		fmt.Println("Blockchain database has run out of disk space!")
-		os.Exit(1)
-	}
+	// TODO: should panic when "Blockchain database has run out of disk space"
+	//	if _, ok := setErr.(bolt.MmapError); ok {
+	//		cs.log.Println("ERROR: Bolt mmap failed:", setErr)
+	//		fmt.Println("Blockchain database has run out of disk space!")
+	//		os.Exit(1)
+	//	}
+	// NOTE: there is no bolt.MmapError in the github.com/coreos/bbolt package
 	if setErr != nil {
 		if len(changes) == 0 {
 			cs.log.Println("Consensus received an invalid block:", setErr)

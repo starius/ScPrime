@@ -218,7 +218,7 @@ func (mp *Pool) load() error {
 		// There is no pool.json file, set up sane defaults.
 		// return mp.establishDefaults()
 		return nil
-	} else if err != nil {
+	} else {
 		return err
 	}
 

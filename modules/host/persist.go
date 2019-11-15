@@ -170,7 +170,7 @@ func (h *Host) load() error {
 		if err != nil {
 			return err
 		}
-	} else if err != nil {
+	} else {
 		return err
 	}
 

@@ -10,7 +10,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
 
-	"github.com/coreos/bbolt"
+	bolt "github.com/coreos/bbolt"
 )
 
 const (
@@ -33,6 +33,14 @@ func (cs *ConsensusSet) loadDB() error {
 	return cs.db.Update(func(tx *bolt.Tx) error {
 		// Check if the database has been initialized.
 		err = cs.initDB(tx)
+		if err != nil {
+			return err
+		}
+
+		// For backward storage compatibility, we create bucket SiafundHardforkPool
+		// here, if it does not yet exist.
+		// This is the case when the database was already present before the SPF Emission Hardfork.
+		_, err := tx.CreateBucketIfNotExists(SiafundHardforkPool)
 		if err != nil {
 			return err
 		}

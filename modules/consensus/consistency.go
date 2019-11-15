@@ -11,7 +11,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	"github.com/coreos/bbolt"
+	bolt "github.com/coreos/bbolt"
 )
 
 // manageErr handles an error detected by the consistency checks.
@@ -150,8 +150,7 @@ func checkSiacoinCount(tx *bolt.Tx) {
 			manageErr(tx, err)
 		}
 
-		coinsPerFund := getSiafundPool(tx).Sub(sfo.ClaimStart)
-		claimCoins := coinsPerFund.Mul(sfo.Value).Div(types.SiafundCount)
+		claimCoins := siafundClaim(tx, sfo)
 		claimSiacoins = claimSiacoins.Add(claimCoins)
 		return nil
 	})
@@ -188,7 +187,7 @@ func checkSiafundCount(tx *bolt.Tx) {
 	if err != nil {
 		manageErr(tx, err)
 	}
-	if !total.Equals(types.SiafundCount) {
+	if !total.Equals(types.SiafundCount(blockHeight(tx))) {
 		manageErr(tx, errors.New("wrong number of siafunds in the consensus set"))
 	}
 }

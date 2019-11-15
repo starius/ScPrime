@@ -7,16 +7,18 @@ quality standards.
 
 
 #### Table of Contents
-* [Running tests for SiaPrime](#existing)
-  * [Updating code before testing](#update)
-  * [Testing the entire build](#entire)
-  * [Testing a particular package](#particular)
-* [Writing new tests for SiaPrime](#write)
-  * [A few guidelines](#naming)
-  * [Basic test format](#basic)
-  * [Table-driven tests](#table)
-  * [SiaPrimetest Package](#siaPrimetest)
-* [Questions?](#questions)
+- [Running and Writing Tests for SiaPrime](#Running-and-Writing-Tests-for-SiaPrime)
+			- [Table of Contents](#Table-of-Contents)
+	- [Running tests for SiaPrime](#Running-tests-for-SiaPrime)
+		- [Updating code before testing](#Updating-code-before-testing)
+		- [Testing the entire build](#Testing-the-entire-build)
+		- [Testing a particular package or function](#Testing-a-particular-package-or-function)
+	- [Writing new tests for SiaPrime](#Writing-new-tests-for-SiaPrime)
+		- [A few guidelines](#A-few-guidelines)
+		- [Basic test format](#Basic-test-format)
+		- [Table-driven tests in Go](#Table-driven-tests-in-Go)
+		- [SiaPrimetest Package](#SiaPrimetest-Package)
+	- [Questions?](#Questions)
 
 <a name="existing"></a>
 ## Running tests for SiaPrime

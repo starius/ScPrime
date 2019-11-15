@@ -2,15 +2,18 @@ package renter
 
 import (
 	"bytes"
+	"fmt"
+	"io/ioutil"
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/node"
 	"gitlab.com/SiaPrime/SiaPrime/siatest"
-
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TestRenterDownloadStreamCache checks that the download stream caching is
@@ -172,110 +175,14 @@ func TestRenterStream(t *testing.T) {
 
 	// Specify subtests to run
 	subTests := []test{
-		{"TestStreamingCache", testStreamingCache},
 		{"TestStreamLargeFile", testStreamLargeFile},
+		{"TestStreamRepair", testStreamRepair},
+		{"TestUploadStreaming", testUploadStreaming},
 	}
 
 	// Run tests
 	if err := runRenterTests(t, groupParams, subTests); err != nil {
 		t.Fatal(err)
-	}
-}
-
-// testStreamingCache checks if the chunk cache works correctly.
-func testStreamingCache(t *testing.T, tg *siatest.TestGroup) {
-	t.Skip("Caching is broken due to partial downloads")
-	// Grab the first of the group's renters
-	r := tg.Renters()[0]
-
-	// Testing setting StreamCacheSize for streaming
-	// Test setting it to larger than the defaultCacheSize
-	if err := r.RenterSetStreamCacheSizePost(4); err != nil {
-		t.Fatal(err, "Could not set StreamCacheSize to 4")
-	}
-	rg, err := r.RenterGet()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if rg.Settings.StreamCacheSize != 4 {
-		t.Fatal("StreamCacheSize not set to 4, set to", rg.Settings.StreamCacheSize)
-	}
-
-	// Test resetting to the value of defaultStreamCacheSize (2)
-	if err := r.RenterSetStreamCacheSizePost(2); err != nil {
-		t.Fatal(err, "Could not set StreamCacheSize to 2")
-	}
-	rg, err = r.RenterGet()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if rg.Settings.StreamCacheSize != 2 {
-		t.Fatal("StreamCacheSize not set to 2, set to", rg.Settings.StreamCacheSize)
-	}
-
-	prev := rg.Settings.StreamCacheSize
-
-	// Test setting to 0
-	if err := r.RenterSetStreamCacheSizePost(0); err == nil {
-		t.Fatal(err, "expected setting stream cache size to zero to fail with an error")
-	}
-	rg, err = r.RenterGet()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if rg.Settings.StreamCacheSize == 0 {
-		t.Fatal("StreamCacheSize set to 0, should have stayed as previous value or", prev)
-	}
-
-	// Set fileSize and redundancy for upload
-	ct := crypto.TypeDefaultRenter
-	dataPieces := uint64(1)
-	parityPieces := uint64(len(tg.Hosts())) - dataPieces
-
-	// Set the bandwidth limit to 1 chunk per second.
-	chunkSize := int64(siatest.ChunkSize(dataPieces, ct))
-	if err := r.RenterPostRateLimit(chunkSize, chunkSize); err != nil {
-		t.Fatal(err)
-	}
-
-	rg, err = r.RenterGet()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if rg.Settings.MaxDownloadSpeed != chunkSize {
-		t.Fatal(errors.New("MaxDownloadSpeed doesn't match value set through RenterPostRateLimit"))
-	}
-	if rg.Settings.MaxUploadSpeed != chunkSize {
-		t.Fatal(errors.New("MaxUploadSpeed doesn't match value set through RenterPostRateLimit"))
-	}
-
-	// Upload a file that is a single chunk big.
-	_, remoteFile, err := r.UploadNewFileBlocking(int(chunkSize), dataPieces, parityPieces, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Download the same chunk 250 times. This should take at least 250 seconds
-	// without caching but not more than 30 with caching.
-	start := time.Now()
-	for i := 0; i < 250; i++ {
-		if _, err := r.Stream(remoteFile); err != nil {
-			t.Fatal(err)
-		}
-		if time.Since(start) > time.Second*30 {
-			t.Fatal("download took longer than 30 seconds")
-		}
-	}
-	// Make sure that the stream downloads don't show up in the download
-	// history.
-	rgg, err := r.RenterDownloadsGet()
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, download := range rgg.Downloads {
-		if download.DestinationType == "httpseekstream" {
-			t.Fatal("Stream downloads shouldn't be added to the history")
-		}
 	}
 }
 
@@ -285,7 +192,7 @@ func testStreamLargeFile(t *testing.T, tg *siatest.TestGroup) {
 	// Grab the first of the group's renters
 	renter := tg.Renters()[0]
 	// Upload file, creating a piece for each host in the group
-	dataPieces := uint64(1)
+	dataPieces := uint64(2)
 	parityPieces := uint64(len(tg.Hosts())) - dataPieces
 	ct := crypto.TypeDefaultRenter
 	fileSize := int(10 * siatest.ChunkSize(dataPieces, ct))
@@ -301,5 +208,127 @@ func testStreamLargeFile(t *testing.T, tg *siatest.TestGroup) {
 		if err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+// testStreamRepair tests if repairing a file using the streaming endpoint
+// works.
+func testStreamRepair(t *testing.T, tg *siatest.TestGroup) {
+	// Grab the first of the group's renters
+	r := tg.Renters()[0]
+
+	// Check that we have enough hosts for this test.
+	if len(tg.Hosts()) < 2 {
+		t.Fatal("This test requires at least 2 hosts")
+	}
+
+	// Set fileSize and redundancy for upload
+	fileSize := int(5 * modules.SectorSize)
+	dataPieces := uint64(1)
+	parityPieces := uint64(len(tg.Hosts())) - dataPieces
+
+	// Upload file
+	localFile, remoteFile, err := r.UploadNewFileBlocking(fileSize, dataPieces, parityPieces, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Move the file locally to make sure the repair loop can't find it.
+	if err := localFile.Move(); err != nil {
+		t.Fatal("failed to delete local file", err)
+	}
+
+	// Take down all of the hosts and check if redundancy decreases.
+	hostsRemoved := 0
+	for i := uint64(0); i < parityPieces+dataPieces; i++ {
+		if err := tg.RemoveNode(tg.Hosts()[0]); err != nil {
+			t.Fatal("Failed to shutdown host", err)
+		}
+		hostsRemoved++
+	}
+	if err := r.WaitForDecreasingRedundancy(remoteFile, 0); err != nil {
+		t.Fatal("Redundancy isn't decreasing", err)
+	}
+	// Bring up hosts to replace the ones that went offline.
+	for hostsRemoved > 0 {
+		hostsRemoved--
+		_, err = tg.AddNodes(node.HostTemplate)
+		if err != nil {
+			t.Fatal("Failed to create a new host", err)
+		}
+	}
+	// Use the streaming endpoint to repair the file. It should always reach 100%.
+	b, err := ioutil.ReadFile(localFile.Path())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RenterUploadStreamRepairPost(bytes.NewReader(b), remoteFile.SiaPath()); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.WaitForUploadHealth(remoteFile); err != nil {
+		t.Fatal("File wasn't repaired", err)
+	}
+	// We should be able to download
+	if _, err := r.DownloadByStream(remoteFile); err != nil {
+		t.Fatal("Failed to download file", err)
+	}
+	// Repair the file again to make sure we don't get stuck on chunks that are
+	// already repaired. Datapieces and paritypieces can be set to 0 as long as
+	// repair is true.
+	if err := r.RenterUploadStreamRepairPost(bytes.NewReader(b), remoteFile.SiaPath()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// testUploadStreaming uploads random data using the upload streaming API.
+func testUploadStreaming(t *testing.T, tg *siatest.TestGroup) {
+	if len(tg.Renters()) == 0 {
+		t.Fatal("Test requires at least 1 renter")
+	}
+	// Create some random data to write.
+	fileSize := fastrand.Intn(2*int(modules.SectorSize)) + siatest.Fuzz() + 2 // between 1 and 2*SectorSize + 3 bytes
+	data := fastrand.Bytes(fileSize)
+	d := bytes.NewReader(data)
+
+	// Upload the data.
+	siaPath, err := modules.NewSiaPath("/foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := tg.Renters()[0]
+	err = r.RenterUploadStreamPost(d, siaPath, 1, uint64(len(tg.Hosts())-1), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Make sure the file reached full redundancy.
+	err = build.Retry(100, 600*time.Millisecond, func() error {
+		rfg, err := r.RenterFileGet(siaPath)
+		if err != nil {
+			return err
+		}
+		if rfg.File.Redundancy < float64(len(tg.Hosts())) {
+			return fmt.Errorf("expected redundancy %v but was %v",
+				len(tg.Hosts()), rfg.File.Redundancy)
+		}
+		if rfg.File.Filesize != uint64(len(data)) {
+			return fmt.Errorf("expected uploaded file to have size %v but was %v",
+				len(data), rfg.File.Filesize)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Download the file again.
+	downloadedData, err := r.RenterDownloadHTTPResponseGet(siaPath, 0, uint64(len(data)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Compare downloaded data to original one.
+	if !bytes.Equal([]byte(data), downloadedData) {
+		t.Log("originalData:", data)
+		t.Log("downloadedData:", downloadedData)
+		t.Fatal("Downloaded data doesn't match uploaded data")
 	}
 }

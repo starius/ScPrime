@@ -67,7 +67,7 @@ func (w *Wallet) ConfirmedBalance() (siacoinBalance types.Currency, siafundBalan
 			w.log.Debugf("skipping claim with start value %v because siafund pool is only %v", sfo.ClaimStart, siafundPool)
 			return
 		}
-		siafundClaimBalance = siafundClaimBalance.Add(siafundPool.Sub(sfo.ClaimStart).Mul(sfo.Value).Div(types.SiafundCount))
+		siafundClaimBalance = siafundClaimBalance.Add(w.cs.SiafundClaim(sfo))
 	})
 	return
 }
@@ -114,6 +114,11 @@ func (w *Wallet) SendSiacoins(amount types.Currency, dest types.UnlockHash) (txn
 	}
 	defer w.tg.Done()
 
+	// Check if consensus is synced
+	if !w.cs.Synced() || w.deps.Disrupt("UnsyncedConsensus") {
+		return nil, errors.New("cannot send scprimecoin until fully synced")
+	}
+
 	w.mu.RLock()
 	unlocked := w.unlocked
 	w.mu.RUnlock()
@@ -156,7 +161,7 @@ func (w *Wallet) SendSiacoins(amount types.Currency, dest types.UnlockHash) (txn
 		w.log.Println("Attempt to send coins has failed - transaction pool rejected transaction:", err)
 		return nil, build.ExtendErr("unable to get transaction accepted", err)
 	}
-	w.log.Println("Submitted a siacoin transfer transaction set for value", amount.HumanString(), "with fees", tpoolFee.HumanString(), "IDs:")
+	w.log.Println("Submitted a scprimecoin transfer transaction set for value", amount.HumanString(), "with fees", tpoolFee.HumanString(), "IDs:")
 	for _, txn := range txnSet {
 		w.log.Println("\t", txn.ID())
 	}
@@ -173,6 +178,12 @@ func (w *Wallet) SendSiacoinsMulti(outputs []types.SiacoinOutput) (txns []types.
 		return nil, err
 	}
 	defer w.tg.Done()
+
+	// Check if consensus is synced
+	if !w.cs.Synced() || w.deps.Disrupt("UnsyncedConsensus") {
+		return nil, errors.New("cannot send scprimecoin until fully synced")
+	}
+
 	w.mu.RLock()
 	unlocked := w.unlocked
 	w.mu.RUnlock()
@@ -233,6 +244,12 @@ func (w *Wallet) SendSiafunds(amount types.Currency, dest types.UnlockHash) (txn
 		return nil, err
 	}
 	defer w.tg.Done()
+
+	// Check if consensus is synced
+	if !w.cs.Synced() || w.deps.Disrupt("UnsyncedConsensus") {
+		return nil, errors.New("cannot send scprimefunds until fully synced")
+	}
+
 	w.mu.RLock()
 	unlocked := w.unlocked
 	w.mu.RUnlock()
@@ -275,7 +292,7 @@ func (w *Wallet) SendSiafunds(amount types.Currency, dest types.UnlockHash) (txn
 	if err != nil {
 		return nil, err
 	}
-	w.log.Println("Submitted a siafund transfer transaction set for value", amount.HumanString(), "with fees", tpoolFee.HumanString(), "IDs:")
+	w.log.Println("Submitted a scprimefund transfer transaction set for value", amount.HumanString(), "with fees", tpoolFee.HumanString(), "IDs:")
 	for _, txn := range txnSet {
 		w.log.Println("\t", txn.ID())
 	}

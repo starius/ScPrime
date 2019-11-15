@@ -67,13 +67,13 @@ func TestEstimateWeight(t *testing.T) {
 	defer st.server.panicClose()
 
 	// announce a host, create an allowance, upload some data.
+	if err := st.setHostStorage(); err != nil {
+		t.Fatal(err)
+	}
 	if err := st.announceHost(); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.acceptContracts(); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.setHostStorage(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -144,15 +144,20 @@ func TestEstimateWeight(t *testing.T) {
 		{types.SiacoinPrecision.Mul64(50), 98},
 		{types.SiacoinPrecision.Mul64(2500), 10},
 		{types.SiacoinPrecision.Mul64(3000), 1},
-		{types.SiacoinPrecision.Mul64(30000), 0.00001},
+		{types.SiacoinPrecision.Mul64(20000), 0.00001},
 	}
+	t.Log("Estimating conversion rate from changed contract price")
+	t.Logf("Allowance: %+v", st.renter.Settings().Allowance)
 	for i, test := range tests {
 		err = st.getAPI(fmt.Sprintf("/host/estimatescore?mincontractprice=%v", test.price.String()), &eg)
 		if err != nil {
 			t.Fatal("test", i, "failed:", err)
 		}
+		t.Logf("Estimated score = %+v", eg.EstimatedScore)
 		if eg.ConversionRate < test.minConversionRate {
 			t.Errorf("test %v: incorrect conversion rate: got %v wanted %v\n", i, eg.ConversionRate, test.minConversionRate)
+		} else {
+			t.Logf("test %v: conversion rate: got %v expected %v\n", i, eg.ConversionRate, test.minConversionRate)
 		}
 	}
 }
@@ -196,13 +201,13 @@ func TestWorkingStatus(t *testing.T) {
 	defer st.server.panicClose()
 
 	// announce a host, create an allowance, upload some data.
+	if err := st.setHostStorage(); err != nil {
+		t.Fatal(err)
+	}
 	if err := st.announceHost(); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.acceptContracts(); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.setHostStorage(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -317,13 +322,13 @@ func TestStorageHandler(t *testing.T) {
 	defer st.server.panicClose()
 
 	// Announce the host and start accepting contracts.
+	if err := st.setHostStorage(); err != nil {
+		t.Fatal(err)
+	}
 	if err := st.announceHost(); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.acceptContracts(); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.setHostStorage(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -485,13 +490,13 @@ func TestResizeEmptyStorageFolder(t *testing.T) {
 	defer st.server.panicClose()
 
 	// Announce the host and start accepting contracts.
+	if err := st.setHostStorage(); err != nil {
+		t.Fatal(err)
+	}
 	if err := st.announceHost(); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.acceptContracts(); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.setHostStorage(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -567,13 +572,13 @@ func TestResizeNonemptyStorageFolder(t *testing.T) {
 	defer st.server.panicClose()
 
 	// Announce the host and start accepting contracts.
+	if err := st.setHostStorage(); err != nil {
+		t.Fatal(err)
+	}
 	if err := st.announceHost(); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.acceptContracts(); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.setHostStorage(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -927,13 +932,13 @@ func TestRemoveStorageFolderForced(t *testing.T) {
 	defer st.server.panicClose()
 
 	// Announce the host.
+	if err := st.setHostStorage(); err != nil {
+		t.Fatal(err)
+	}
 	if err := st.announceHost(); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.acceptContracts(); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.setHostStorage(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1017,13 +1022,13 @@ func TestDeleteSector(t *testing.T) {
 	defer st.server.panicClose()
 
 	// Set up the host for forming contracts.
+	if err := st.setHostStorage(); err != nil {
+		t.Fatal(err)
+	}
 	if err := st.announceHost(); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.acceptContracts(); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.setHostStorage(); err != nil {
 		t.Fatal(err)
 	}
 

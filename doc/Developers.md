@@ -15,19 +15,33 @@ network. To get the release build, it is usually sufficient to run `go get -u
 gitlab.com/SiaPrime/SiaPrime/...`. This will download SiaPrime and its dependencies
 and install binaries in `$GOPATH/bin`.
 
+<<<<<<< HEAD
+After downloading, you can find the Sia source code in
+`$GOPATH/src/gitlab.com/NebulousLabs/Sia`. To build the release binary, run
+`make release` from this directory. To build the release binary with a (slow)
+race detector and an array of debugging asserts, run `make release-race`. To
+=======
 After downloading, you can find the SiaPrime source code in
 `$GOPATH/src/gitlab.com/SiaPrime/SiaPrime`. To build the release binary, run
 `make release-std` from this directory. To build the release binary with a
 (slow) race detector and an array of debugging asserts, run `make release`. To
+>>>>>>> siaprime/master
 build the developer binary (which has a different genesis block, faster block
-times, and a few other tweaks), just run `make`.
+times, and a few other tweaks), run `make dev`.
 
+<<<<<<< HEAD
+If you intend to contribute to Sia, you should start by forking the project on
+GitLab, and then adding your fork as a "remote" in the Sia git repository via
+=======
 If you intend to contribute to SiaPrime, you should start by forking the project on
 GitHub, and then adding your fork as a "remote" in the SiaPrime git repository via
+>>>>>>> siaprime/master
 `git remote add [fork name] [fork url]`. Now you can develop by pulling changes
 from `origin`, pushing your modifications to `[fork name]`, and then making a
-pull request on GitHub.
+merge request on GitLab.
 
+<<<<<<< HEAD
+=======
 If you see an error like the one below, it means that you either forgot to run
 `make dependencies`, or you cloned the project into a path that the go tool
 does not recognize (usually the wrong path, or symbolic links were somehow
@@ -38,6 +52,7 @@ consensus/fork.go:4:2: cannot find package "gitlab.com/SiaPrime/SiaPrime/crypto"
     /usr/lib/go/src/gitlab.com/SiaPrime/SiaPrime/crypto (from $GOROOT)
     /home/user/gopath/src/gitlab.com/SiaPrime/SiaPrime/crypto (from $GOPATH)
 ```
+>>>>>>> siaprime/master
 
 Developer Conventions
 =====================
@@ -148,6 +163,22 @@ an appropriate error. This is important for export methods that are either
 returning a status that another modules will act on or performing a action that
 will alter the module in some way.
 
+<<<<<<< HEAD
+File Ordering
+-------------
+
+Each tracked file in the repository should be laid out in the following order.
+
+1. Vars
+2. Types
+3. Functions
+4. Methods
+
+Ordering should be: category (vars, types, etc) -> exported then non-exported 
+-> alphabetical
+
+=======
+>>>>>>> siaprime/master
 Control Flow
 ------------
 

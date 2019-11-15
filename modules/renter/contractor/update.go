@@ -2,6 +2,7 @@ package contractor
 
 import (
 	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
@@ -38,6 +39,7 @@ func (c *Contractor) managedArchiveContracts() {
 	// Determine the current block height.
 	c.mu.RLock()
 	currentHeight := c.blockHeight
+	//TODO: Check consensus, should not alter contracts if consensus not fully synced!
 	c.mu.RUnlock()
 
 	// Loop through the current set of contracts and migrate any expired ones to
@@ -76,14 +78,18 @@ func (c *Contractor) managedArchiveContracts() {
 // is a change in the blockchain. Updates will always be called in order.
 func (c *Contractor) ProcessConsensusChange(cc modules.ConsensusChange) {
 	// Get the wallet's seed for contract recovery.
+	haveSeed := true
+	missedRecovery := false
 	s, _, err := c.wallet.PrimarySeed()
 	if err != nil {
-		c.log.Println("Failed to get the wallet's seed:", err)
+		haveSeed = false
 	}
 	// Get the master renter seed and wipe it once we are done with it.
-	renterSeed := proto.DeriveRenterSeed(s)
-	defer fastrand.Read(renterSeed[:])
-
+	var renterSeed proto.RenterSeed
+	if haveSeed {
+		renterSeed = proto.DeriveRenterSeed(s)
+		defer fastrand.Read(renterSeed[:])
+	}
 	c.mu.Lock()
 	for _, block := range cc.RevertedBlocks {
 		if block.ID() != types.GenesisID {
@@ -97,7 +103,15 @@ func (c *Contractor) ProcessConsensusChange(cc modules.ConsensusChange) {
 			c.blockHeight++
 		}
 		// Find lost contracts for recovery.
-		c.findRecoverableContracts(renterSeed, block)
+		if haveSeed {
+			c.findRecoverableContracts(renterSeed, block)
+		} else {
+			missedRecovery = true
+		}
+	}
+	// If we didn't miss the recover, we update the recentRecoverChange
+	if !missedRecovery && c.recentRecoveryChange == c.lastChange {
+		c.recentRecoveryChange = cc.ID
 	}
 
 	// If we have entered the next period, update currentPeriod
@@ -115,7 +129,6 @@ func (c *Contractor) ProcessConsensusChange(cc modules.ConsensusChange) {
 		c.log.Println("Unable to save while processing a consensus change:", err)
 	}
 	c.mu.Unlock()
-
 	// Perform contract maintenance if our blockchain is synced. Use a separate
 	// goroutine so that the rest of the contractor is not blocked during
 	// maintenance.

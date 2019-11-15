@@ -85,23 +85,27 @@ var (
 	// keep the data even if the price of SCP fluctuates, the price of raw
 	// storage fluctuates, or the host realizes that there is unexpected
 	// opportunity cost in being a host.
-	defaultCollateral = types.SiacoinPrecision.Mul64(5e3).Div(modules.BlockBytesPerMonthTerabyte) // 5000 SCP / TB / Month
+	defaultCollateral = types.SiacoinPrecision.Mul64(20e3).Div(modules.BlockBytesPerMonthTerabyte) // 20000 SCP / TB / Month
 
 	// defaultCollateralBudget defines the maximum number of SCP that the
 	// host is going to allocate towards collateral. The number has been chosen
 	// as a number that is large, but not so large that someone would be
 	// furious for losing access to it for a few weeks.
-	defaultCollateralBudget = types.SiacoinPrecision.Mul64(100e3)
+	defaultCollateralBudget = types.SiacoinPrecision.Mul64(4e6) //4 MS
 
 	// defaultContractPrice defines the default price of creating a contract
 	// with the host. The current default is 0.1. This was chosen since it is
+	// the minimum fee estimation of the transactionpool for a filecontract
+	// transaction..
 	// the minimum fee estimation of the transactionpool for 10e3 bytes.
 	defaultContractPrice = types.SiacoinPrecision.Div64(10) // 0.1 SCP
+	// TODO: Check this Sia contract price estimation later:
+	//	defaultContractPrice = types.SiacoinPrecision.Div64(100).Div64(1e3).Mul64(modules.EstimatedFileContractRevisionAndProofTransactionSetSize)
 
 	// defaultDownloadBandwidthPrice defines the default price of upload
 	// bandwidth. The default is set to 500 SCP per gigabyte, because
 	// download bandwidth is expected to be plentiful but also in-demand.
-	defaultDownloadBandwidthPrice = types.SiacoinPrecision.Mul64(500).Div(modules.BytesPerTerabyte) // 500 SCP / TB
+	defaultDownloadBandwidthPrice = types.SiacoinPrecision.Mul64(2500).Div(modules.BytesPerTerabyte) // 2500 SCP / TB
 
 	// defaultMaxCollateral defines the maximum amount of collateral that the
 	// host is comfortable putting into a single file contract. 10e3 is a
@@ -109,7 +113,7 @@ var (
 	// away by only a few hundred file contracts. As the ecosystem matures, it
 	// is expected that the safe default for this value will increase quite a
 	// bit.
-	defaultMaxCollateral = types.SiacoinPrecision.Mul64(5e3)
+	defaultMaxCollateral = types.SiacoinPrecision.Mul64(2e5) // 200 KS
 
 	// defaultMaxDownloadBatchSize defines the maximum number of bytes that the
 	// host will allow to be requested by a single download request. 17 MiB has
@@ -137,7 +141,7 @@ var (
 	// defaultStoragePrice defines the starting price for hosts selling
 	// storage. We try to match a number that is both reasonably profitable and
 	// reasonably competitive.
-	defaultStoragePrice = types.SiacoinPrecision.Mul64(2e3).Div(modules.BlockBytesPerMonthTerabyte) // 2000 SCP / TB / Month
+	defaultStoragePrice = types.SiacoinPrecision.Mul64(10e3).Div(modules.BlockBytesPerMonthTerabyte) // 10 KS / TB / Month
 
 	// defaultUploadBandwidthPrice defines the default price of upload
 	// bandwidth. The default is set to 250 SCP per GB, because the host is
@@ -145,7 +149,7 @@ var (
 	// the host is typically only downloading data if it is planning to store
 	// the data, meaning that the host serves to profit from accepting the
 	// data.
-	defaultUploadBandwidthPrice = types.SiacoinPrecision.Mul64(25).Div(modules.BytesPerTerabyte) // 250 SCP / TB
+	defaultUploadBandwidthPrice = types.SiacoinPrecision.Mul64(250).Div(modules.BytesPerTerabyte) // 250 SCP / TB
 
 	// defaultWindowSize is the size of the proof of storage window requested
 	// by the host. The host will not delete any obligations until the window
