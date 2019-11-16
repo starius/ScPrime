@@ -383,6 +383,10 @@ func readFileConfig(config Config) error {
 		dbPort := poolViper.GetString("dbport")
 		dbName := poolViper.GetString("dbname")
 		dbConnection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbAddress, dbPort, dbName)
+		if poolViper.IsSet("dbsocket") {
+			dbSocket := poolViper.GetString("dbsocket")
+			dbConnection = fmt.Sprintf("%s:%s@unix(%s)/%s", dbUser, dbPass, dbSocket, dbName)
+		}
 		poolConfig := fileConfig.MiningPoolConfig{
 			PoolNetworkPort:  int(poolViper.GetInt("networkport")),
 			PoolName:         poolViper.GetString("name"),
