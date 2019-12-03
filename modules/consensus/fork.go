@@ -71,9 +71,9 @@ func (cs *ConsensusSet) revertToBlock(tx *bolt.Tx, pb *processedBlock) (reverted
 		// has maintained consistency.
 		if build.Release == "testing" {
 			cs.checkConsistency(tx)
-		} else {
+		} /* else {
 			cs.maybeCheckConsistency(tx)
-		}
+		} */
 	}
 	return revertedBlocks
 }
@@ -102,9 +102,9 @@ func (cs *ConsensusSet) applyUntilBlock(tx *bolt.Tx, pb *processedBlock) (applie
 		// has maintained consistency.
 		if build.Release == "testing" {
 			cs.checkConsistency(tx)
-		} else {
+		} /* else {
 			cs.maybeCheckConsistency(tx)
-		}
+		} */
 	}
 	return appliedBlocks, nil
 }
