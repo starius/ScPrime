@@ -8,6 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
@@ -16,8 +19,6 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/siatest"
 	"gitlab.com/SiaPrime/SiaPrime/siatest/dependencies"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TestContractorIncompleteMaintenanceAlert tests that having the wallet locked
