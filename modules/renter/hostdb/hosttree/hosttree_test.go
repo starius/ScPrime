@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/fastrand"
-
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // customScoreBreakdown is a helper struct to create scoreBreakdown's for

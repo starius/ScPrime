@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
-
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 const (

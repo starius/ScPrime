@@ -12,12 +12,10 @@ import (
 	"syscall"
 	"time"
 
-	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	fileConfig "gitlab.com/SiaPrime/SiaPrime/config"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/node/api/server"
 	"gitlab.com/SiaPrime/SiaPrime/profile"
@@ -183,7 +181,7 @@ func loadAPIPassword(config Config, siaDir string) (_ Config, err error) {
 
 // printVersionAndRevision prints the daemon's version and revision numbers.
 func printVersionAndRevision() {
-	fmt.Println("SiaPrime Daemon v" + build.Version)
+	fmt.Println("ScPrime Daemon v" + build.Version)
 	if build.GitRevision == "" {
 		fmt.Println("WARN: compiled without build commit or version. To compile correctly, please use the makefile")
 	} else {
@@ -312,12 +310,6 @@ func startDaemon(config Config) (err error) {
 func startDaemonCmd(cmd *cobra.Command, _ []string) {
 	var profileCPU, profileMem, profileTrace bool
 
-	configErr := readFileConfig(globalConfig)
-	if configErr != nil {
-		fmt.Println("Configuration error: ", configErr.Error())
-		os.Exit(exitCodeGeneral)
-	}
-
 	profileCPU = strings.Contains(globalConfig.Spd.Profile, "c")
 	profileMem = strings.Contains(globalConfig.Spd.Profile, "m")
 	profileTrace = strings.Contains(globalConfig.Spd.Profile, "t")
@@ -325,7 +317,6 @@ func startDaemonCmd(cmd *cobra.Command, _ []string) {
 	if build.DEBUG {
 		profileCPU = true
 		profileMem = true
-		profileTrace = true
 	}
 
 	if profileCPU || profileMem || profileTrace {
@@ -336,6 +327,12 @@ func startDaemonCmd(cmd *cobra.Command, _ []string) {
 			profileDir = filepath.Join(globalConfig.Spd.SiaDir, globalConfig.Spd.ProfileDir)
 		}
 		go profile.StartContinuousProfile(profileDir, profileCPU, profileMem, profileTrace)
+	}
+
+	configErr := readFileConfig(globalConfig)
+	if configErr != nil {
+		fmt.Println("Configuration error: ", configErr.Error())
+		os.Exit(exitCodeGeneral)
 	}
 
 	// Start spd. startDaemon will only return when it is shutting down.
@@ -418,27 +415,4 @@ func readFileConfig(config Config) error {
 		}
 	}
 	return nil
-}
-
-// unlockWallet is called on spd startup and attempts to automatically
-// unlock the wallet with the given password string.
-func unlockWallet(w modules.Wallet, password string) error {
-	// TODO: Check if this is the right place to have it!
-	// NOTE: Look at the func tryAutoUnlock(srv *server.Server) in this file
-	var validKeys []crypto.CipherKey
-	dicts := []mnemonics.DictionaryID{"english", "german", "japanese"}
-	for _, dict := range dicts {
-		seed, err := modules.StringToSeed(password, dict)
-		if err != nil {
-			continue
-		}
-		validKeys = append(validKeys, crypto.NewWalletKey(crypto.HashObject(seed)))
-	}
-	validKeys = append(validKeys, crypto.NewWalletKey(crypto.HashObject(password)))
-	for _, key := range validKeys {
-		if err := w.Unlock(key); err == nil {
-			return nil
-		}
-	}
-	return modules.ErrBadEncryptionKey
 }

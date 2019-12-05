@@ -10,14 +10,14 @@ import (
 	"bytes"
 	"strings"
 
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
-
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
+
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // managedDownloadSnapshotTable will fetch the snapshot table from the host.
@@ -76,7 +76,7 @@ func (r *Renter) callFetchHostBackups(session contractor.Session) ([]modules.Upl
 		return nil, errors.AddContext(err, "unable to download snapshot table")
 	}
 
-	// Format the reponse and return the response to the requester.
+	// Format the response and return the response to the requester.
 	uploadedBackups := make([]modules.UploadedBackup, len(entryTable))
 	for i, e := range entryTable {
 		uploadedBackups[i] = modules.UploadedBackup{

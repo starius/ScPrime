@@ -146,8 +146,6 @@ func TestEstimateWeight(t *testing.T) {
 		{types.SiacoinPrecision.Mul64(3000), 1},
 		{types.SiacoinPrecision.Mul64(20000), 0.00001},
 	}
-	t.Log("Estimating conversion rate from changed contract price")
-	t.Logf("Allowance: %+v", st.renter.Settings().Allowance)
 	for i, test := range tests {
 		err = st.getAPI(fmt.Sprintf("/host/estimatescore?mincontractprice=%v", test.price.String()), &eg)
 		if err != nil {

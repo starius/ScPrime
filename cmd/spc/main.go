@@ -7,7 +7,10 @@ import (
 	"reflect"
 	"strings"
 
+	"gitlab.com/SiaPrime/SiaPrime/node/api"
+
 	"github.com/spf13/cobra"
+	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
@@ -26,8 +29,10 @@ var (
 	renterListVerbose       bool   // Show additional info about uploaded files.
 	renterListRecursive     bool   // List files of folder recursively.
 	renterShowHistory       bool   // Show download history in addition to download queue.
+	renterVerbose           bool   // Show additional info about the renter
 	renterFilterHostsSubnet bool   // Filter hosts from same subnet.
-	siaDir                  string // Path to sia data dir
+	siaDir                  string // Path to node metadata dir
+	statusVerbose           bool   // Display additional siac information
 	walletRawTxn            bool   // Encode/decode transactions in base64-encoded binary.
 
 	allowanceFunds              string // amount of money to be used within a period
@@ -90,24 +95,32 @@ func die(args ...interface{}) {
 // statuscmd is the handler for the command `siac`
 // prints basic information about Sia.
 func statuscmd() {
+	// For UX formating
+	defer fmt.Println()
 
 	// Consensus Info
 	cg, err := httpClient.ConsensusGet()
-	if err != nil {
+	if errors.Contains(err, api.ErrAPICallNotRecognized) {
+		// Assume module is not loaded if status command is not recognized.
+		fmt.Printf("Consensus:\n  Status: %s\n\n", moduleNotReadyStatus)
+	} else if err != nil {
 		die("Could not get consensus status:", err)
-	}
-	fmt.Printf(`Consensus:
+	} else {
+		fmt.Printf(`Consensus:
   Synced: %v
   Height: %v
 
 `, yesNo(cg.Synced), cg.Height)
+	}
 
 	// Wallet Info
 	walletStatus, err := httpClient.WalletGet()
-	if err != nil {
+	if errors.Contains(err, api.ErrAPICallNotRecognized) {
+		// Assume module is not loaded if status command is not recognized.
+		fmt.Printf("Wallet:\n  Status: %s\n\n", moduleNotReadyStatus)
+	} else if err != nil {
 		die("Could not get wallet status:", err)
-	}
-	if walletStatus.Unlocked {
+	} else if walletStatus.Unlocked {
 		fmt.Printf(`Wallet:
   Status:              unlocked
   Scprimecoin Balance: %v
@@ -126,21 +139,73 @@ func statuscmd() {
 	if err != nil {
 		die(err)
 	}
+
+	if !statusVerbose {
+		return
+	}
+
+	// Global Daemon Rate Limits
+	dg, err := httpClient.DaemonSettingsGet()
+	if err != nil {
+		die("Could not get daemon:", err)
+	}
+	fmt.Printf(`
+Global `)
+	rateLimitSummary(dg.MaxDownloadSpeed, dg.MaxUploadSpeed)
+
+	// Gateway Rate Limits
+	gg, err := httpClient.GatewayGet()
+	if err != nil {
+		die("Could not get gateway:", err)
+	}
+	fmt.Printf(`
+Gateway `)
+	rateLimitSummary(gg.MaxDownloadSpeed, gg.MaxUploadSpeed)
+
+	// Renter Rate Limits
+	rg, err := httpClient.RenterGet()
+	if err != nil {
+		die("Error getting renter:", err)
+	}
+	fmt.Printf(`
+Renter `)
+	rateLimitSummary(rg.Settings.MaxDownloadSpeed, rg.Settings.MaxUploadSpeed)
+}
+
+// rateLimitSummary displays the a summary of the provided rate limits
+func rateLimitSummary(download, upload int64) {
+	fmt.Printf(`Rate limits: `)
+	if download == 0 {
+		fmt.Printf(`
+  Download Speed: %v`, "no limit")
+	} else {
+		fmt.Printf(`
+  Download Speed: %v`, ratelimitUnits(download))
+	}
+	if upload == 0 {
+		fmt.Printf(`
+  Upload Speed:   %v
+`, "no limit")
+	} else {
+		fmt.Printf(`
+  Upload Speed:   %v
+`, ratelimitUnits(upload))
+	}
 }
 
 func main() {
 	root := &cobra.Command{
 		Use:   os.Args[0],
-		Short: "Sia Client v" + build.Version,
-		Long:  "Sia Client v" + build.Version,
+		Short: "ScPrime Client v" + build.Version,
+		Long:  "ScPrime Client v" + build.Version,
 		Run:   wrap(statuscmd),
 	}
 
 	rootCmd = root
 
 	// create command tree
-	root.AddCommand(versionCmd)
-	root.AddCommand(stopCmd)
+	root.AddCommand(versionCmd, stopCmd, globalRatelimitCmd, alertsCmd)
+	root.Flags().BoolVarP(&statusVerbose, "verbose", "v", false, "Display additional spc information")
 
 	root.AddCommand(updateCmd)
 	updateCmd.AddCommand(updateCheckCmd)
@@ -182,10 +247,10 @@ func main() {
 	renterCmd.AddCommand(renterFilesDeleteCmd, renterFilesDownloadCmd,
 		renterDownloadsCmd, renterAllowanceCmd, renterSetAllowanceCmd,
 		renterContractsCmd, renterFilesListCmd, renterFilesRenameCmd,
-		renterFilesUploadCmd, renterUploadsCmd, renterExportCmd,
-		renterPricesCmd, renterBackupCreateCmd, renterBackupLoadCmd,
+		renterSetLocalPathCmd, renterFilesUploadCmd, renterUploadsCmd,
+		renterExportCmd, renterPricesCmd, renterBackupCreateCmd, renterBackupLoadCmd,
 		renterBackupListCmd, renterTriggerContractRecoveryScanCmd, renterFilesUnstuckCmd,
-		renterContractsRecoveryScanProgressCmd, renterDownloadCancelCmd)
+		renterContractsRecoveryScanProgressCmd, renterDownloadCancelCmd, renterRatelimitCmd)
 
 	renterContractsCmd.AddCommand(renterContractsViewCmd)
 	renterAllowanceCmd.AddCommand(renterAllowanceCancelCmd)
@@ -216,7 +281,7 @@ func main() {
 	consensusCmd.Flags().BoolVarP(&consensusCmdVerbose, "verbose", "v", false, "Display full consensus information")
 
 	utilsCmd.AddCommand(bashcomplCmd, mangenCmd, utilsHastingsCmd, utilsEncodeRawTxnCmd, utilsDecodeRawTxnCmd,
-		utilsSigHashCmd, utilsCheckSigCmd, utilsVerifySeedCmd, utilsDisplayAPIPasswordCmd)
+		utilsSigHashCmd, utilsCheckSigCmd, utilsVerifySeedCmd, utilsDisplayAPIPasswordCmd, utilsBruteForceSeedCmd)
 	utilsVerifySeedCmd.Flags().StringVarP(&dictionaryLanguage, "language", "l", "english", "which dictionary you want to use")
 	root.AddCommand(utilsCmd)
 

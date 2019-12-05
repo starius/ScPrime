@@ -6,6 +6,18 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
+// Constants related to the contractor's alerts.
+var (
+	// AlertMSGWalletLockedDuringMaintenance indicates that forming/renewing a
+	// contract during contract maintenance isn't possible due to a locked wallet.
+	AlertMSGWalletLockedDuringMaintenance = "contractor is attempting to renew/form contracts, however the wallet is locked"
+
+	// AlertMSGAllowanceLowFunds indicates that forming/renewing a contract during
+	// contract maintenance isn't possible due to the allowance being low on
+	// funds.
+	AlertMSGAllowanceLowFunds = "At least one contract formation/renewal failed due to the allowance being low on funds"
+)
+
 // Constants related to contract formation parameters.
 var (
 	// consecutiveRenewalsBeforeReplacement is the number of times a contract
@@ -70,11 +82,11 @@ var (
 		Testing:  types.SiacoinPrecision.Mul64(1e7).Div(modules.BlockBytesPerMonthTerabyte),   // 2 orders of magnitude greater
 	}).(types.Currency)
 	maxUploadPrice = build.Select(build.Var{
-		Dev:      maxStoragePrice.Mul64(30 * 4320),  // 1 order of magnitude greater
-		Standard: maxStoragePrice.Mul64(3 * 4320),   // 3 months of storage
-		Testing:  maxStoragePrice.Mul64(300 * 4320), // 2 orders of magnitude greater
+		Dev:      maxStoragePrice.Mul64(30 * uint64(types.BlocksPerMonth)),  // 1 order of magnitude greater
+		Standard: maxStoragePrice.Mul64(3 * uint64(types.BlocksPerMonth)),   // 3 months of storage
+		Testing:  maxStoragePrice.Mul64(300 * uint64(types.BlocksPerMonth)), // 2 orders of magnitude greater
 	}).(types.Currency)
-	maxDownloadPrice = maxStoragePrice.Mul64(3 * 4320)
+	maxDownloadPrice = maxStoragePrice.Mul64(3 * uint64(types.BlocksPerMonth))
 
 	// scoreLeewayGoodForRenew defines the factor by which a host can miss the
 	// goal score for a set of hosts and still be GoodForRenew. To determine the

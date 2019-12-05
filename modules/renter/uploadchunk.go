@@ -6,11 +6,11 @@ import (
 	"os"
 	"sync"
 
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
-
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
+
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // uploadChunkID is a unique identifier for each chunk in the renter.
@@ -45,6 +45,9 @@ type unfinishedUploadChunk struct {
 	stuck          bool   // indicates if the chunk was marked as stuck during last repair
 	stuckRepair    bool   // indicates if the chunk was identified for repair by the stuck loop
 	priority       bool   // indicates if the chunks is supposed to be repaired asap
+
+	// Cache the siapath of the underlying file.
+	staticSiaPath string
 
 	// The logical data is the data that is presented to the user when the user
 	// requests the chunk. The physical data is all of the pieces that get
@@ -205,18 +208,16 @@ func (r *Renter) managedDownloadLogicalChunkData(chunk *unfinishedUploadChunk) e
 	if err != nil {
 		return err
 	}
+	// Start the download.
+	if err := d.Start(); err != nil {
+		return err
+	}
 
 	// Register some cleanup for when the download is done.
 	d.OnComplete(func(_ error) error {
 		// Update the access time when the download is done.
 		return chunk.fileEntry.SiaFile.UpdateAccessTime()
 	})
-
-	// Set the in-memory buffer to nil just to be safe in case of a memory
-	// leak.
-	defer func() {
-		d.destination = nil
-	}()
 
 	// Wait for the download to complete.
 	select {
@@ -276,13 +277,12 @@ func (r *Renter) threadedFetchAndRepairChunk(chunk *unfinishedUploadChunk) {
 		chunk.workersRemaining = 0
 		r.memoryManager.Return(erasureCodingMemory + pieceCompletedMemory)
 		chunk.memoryReleased += erasureCodingMemory + pieceCompletedMemory
-		r.log.Debugln("Fetching logical data of a chunk failed:", err)
+		r.repairLog.Printf("Unable to fetch the logical data for chunk %v of %s - marking as stuck: %v", chunk.index, chunk.staticSiaPath, err)
 
 		// Mark chunk as stuck
-		r.log.Debugln("Marking chunk", chunk.id, "as stuck due to error fetching logical chunk data")
 		err = chunk.fileEntry.SetStuck(chunk.index, true)
 		if err != nil {
-			r.log.Debugln("Error marking chunk", chunk.id, "as stuck:", err)
+			r.repairLog.Printf("Error marking chunk %v of file %s as stuck: %v", chunk.index, chunk.staticSiaPath, err)
 		}
 		return
 	}
@@ -309,13 +309,12 @@ func (r *Renter) threadedFetchAndRepairChunk(chunk *unfinishedUploadChunk) {
 		for i := 0; i < len(chunk.physicalChunkData); i++ {
 			chunk.physicalChunkData[i] = nil
 		}
-		r.log.Debugln("Fetching physical data of a chunk failed:", err)
+		r.repairLog.Printf("Fetching physical data of chunk %v from %s as stuck: %v", chunk.index, chunk.staticSiaPath, err)
 
 		// Mark chunk as stuck
-		r.log.Debugln("Marking chunk", chunk.id, "as stuck due to error an error with the physical data")
 		err = chunk.fileEntry.SetStuck(chunk.index, true)
 		if err != nil {
-			r.log.Debugln("Error marking chunk", chunk.id, "as stuck:", err)
+			r.repairLog.Printf("Error marking chunk %v of file %s as stuck: %v", chunk.index, chunk.staticSiaPath, err)
 		}
 		return
 	}
@@ -325,10 +324,10 @@ func (r *Renter) threadedFetchAndRepairChunk(chunk *unfinishedUploadChunk) {
 	if len(chunk.physicalChunkData) < len(chunk.pieceUsage) {
 		r.log.Critical("not enough physical pieces to match the upload settings of the file")
 		// Mark chunk as stuck
-		r.log.Debugln("Marking chunk", chunk.id, "as stuck due to insufficient physical pieces")
+		r.repairLog.Printf("Marking chunk %v of %s as stuck due to insufficient physical pieces", chunk.index, chunk.staticSiaPath)
 		err = chunk.fileEntry.SetStuck(chunk.index, true)
 		if err != nil {
-			r.log.Debugln("Error marking chunk", chunk.id, "as stuck:", err)
+			r.repairLog.Printf("Error marking chunk %v of file %s as stuck: %v", chunk.index, chunk.staticSiaPath, err)
 		}
 		return
 	}
@@ -445,6 +444,11 @@ func (r *Renter) managedCleanUpUploadChunk(uc *unfinishedUploadChunk) {
 	chunkComplete := uc.chunkComplete()
 	released := uc.released
 	if chunkComplete && !released {
+		if uc.piecesCompleted >= uc.piecesNeeded {
+			r.repairLog.Printf("Completed repair for chunk %v of %s, %v pieces were completed out of %v", uc.index, uc.staticSiaPath, uc.piecesCompleted, uc.piecesNeeded)
+		} else {
+			r.repairLog.Printf("Repair of chunk %v of %s was unsuccessful, %v pieces were completed out of %v", uc.index, uc.staticSiaPath, uc.piecesCompleted, uc.piecesNeeded)
+		}
 		uc.released = true
 	}
 	uc.memoryReleased += uint64(memoryReleased)
@@ -466,7 +470,7 @@ func (r *Renter) managedCleanUpUploadChunk(uc *unfinishedUploadChunk) {
 		if !r.deps.Disrupt("disableCloseUploadEntry") {
 			err := uc.fileEntry.Close()
 			if err != nil {
-				r.log.Debugf("WARN: file not closed after chunk upload complete: %v %v", r.staticFileSet.SiaPath(uc.fileEntry), err)
+				r.repairLog.Printf("WARN: file not closed after chunk upload complete: %v %v", r.staticFileSet.SiaPath(uc.fileEntry), err)
 			}
 		}
 		// Remove the chunk from the repairingChunks map

@@ -3,9 +3,10 @@ package transactionpool
 import (
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TestIntegrationLargeTransactions tries to add a large transaction to the

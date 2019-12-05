@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/SiaPrime/writeaheadlog"
-
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
+	"gitlab.com/SiaPrime/writeaheadlog"
+
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // newTestingWal is a helper method to create a wal during testing.
@@ -390,7 +390,7 @@ func TestRenterFileDir(t *testing.T) {
 	}
 
 	// Upload local file
-	ec, err := siafile.NewRSCode(defaultDataPieces, defaultParityPieces)
+	ec, err := siafile.NewRSCode(DefaultDataPieces, DefaultParityPieces)
 	if err != nil {
 		t.Fatal(err)
 	}

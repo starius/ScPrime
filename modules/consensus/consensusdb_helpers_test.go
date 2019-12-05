@@ -5,6 +5,7 @@ package consensus
 
 import (
 	bolt "github.com/coreos/bbolt"
+
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 )

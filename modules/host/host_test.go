@@ -12,6 +12,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
 	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
 	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
+
 	// "gitlab.com/SiaPrime/SiaPrime/modules/renter"
 	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
 	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
@@ -115,8 +116,8 @@ func blankMockHostTester(d modules.Dependencies, name string) (*hostTester, erro
 	if err != nil {
 		return nil, err
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))

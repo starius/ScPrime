@@ -11,6 +11,7 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
@@ -35,8 +36,8 @@ func TestWalletGETEncrypted(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to create gateway:", err)
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChanCS := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChanCS; err != nil {
 		t.Fatal("Failed to create consensus set:", err)
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -174,8 +175,8 @@ func TestWalletBlankEncrypt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -242,8 +243,8 @@ func TestIntegrationWalletInitSeed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -698,11 +699,15 @@ func TestWalletTransactionGETid(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//var wutgid2 WalletTransactionGETid
-	//err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", wtg.UnconfirmedTransactions[1].TransactionID), &wutgid2)
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
+	err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", wtg.UnconfirmedTransactions[0].TransactionID), &wutgid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wutgid2 WalletTransactionGETid
+	err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", wtg.UnconfirmedTransactions[1].TransactionID), &wutgid2)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Check that undocumented API behavior used in Sia-UI still works with
 	// current API.

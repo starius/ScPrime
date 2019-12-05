@@ -3,12 +3,12 @@ package transactionpool
 import (
 	"encoding/json"
 
-	bolt "github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
+	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/errors"
 )
 

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"io"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 
+	"gitlab.com/NebulousLabs/fastrand"
 	"golang.org/x/crypto/ed25519"
 )
 

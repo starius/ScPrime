@@ -1,14 +1,18 @@
 package transactionpool
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
-	bolt "github.com/coreos/bbolt"
+	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	bolt "github.com/coreos/bbolt"
 )
 
 // TestRescan triggers a rescan in the transaction pool, verifying that the
@@ -53,9 +57,15 @@ func TestRescan(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = tpt.tpool.AcceptTransactionSet(txns)
-	if err != modules.ErrDuplicateTransactionSet {
-		t.Fatal("expecting modules.ErrDuplicateTransactionSet, got:", err)
+	err = build.Retry(100, 100*time.Millisecond, func() error {
+		err := tpt.tpool.AcceptTransactionSet(txns)
+		if err != modules.ErrDuplicateTransactionSet {
+			return fmt.Errorf("expecting modules.ErrDuplicateTransactionSet, got: %v", err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	// Close the tpool, corrupt the database, then restart the tpool. The tpool

@@ -1,10 +1,11 @@
 package explorer
 
 import (
-	bolt "github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	bolt "github.com/coreos/bbolt"
 )
 
 // Block takes a block ID and finds the corresponding block, provided that the

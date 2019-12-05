@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/spf13/cobra"
+
 	"gitlab.com/SiaPrime/SiaPrime/node/api"
 )
 

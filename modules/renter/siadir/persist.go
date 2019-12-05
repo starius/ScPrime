@@ -6,11 +6,12 @@ import (
 	"os"
 	"reflect"
 
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/writeaheadlog"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // ApplyUpdates  applies a number of writeaheadlog updates to the corresponding

@@ -4,10 +4,10 @@ package consensus
 import (
 	"testing"
 
-	"github.com/coreos/bbolt"
-
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	bolt "github.com/coreos/bbolt"
 )
 
 // TestApplyMinerPayouts probes the applyMinerPayouts method of the consensus

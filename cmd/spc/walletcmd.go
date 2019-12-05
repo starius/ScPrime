@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -12,6 +11,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"gitlab.com/SiaPrime/SiaPrime/node/api"
 
 	"github.com/spf13/cobra"
 	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
@@ -22,6 +23,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 var (
@@ -420,9 +423,14 @@ func walletsendsiafundscmd(amount, dest string) {
 // walletbalancecmd retrieves and displays information about the wallet.
 func walletbalancecmd() {
 	status, err := httpClient.WalletGet()
-	if err != nil {
+	if errors.Contains(err, api.ErrAPICallNotRecognized) {
+		// Assume module is not loaded if status command is not recognized.
+		fmt.Printf("Wallet:\n  Status: %s\n\n", moduleNotReadyStatus)
+		return
+	} else if err != nil {
 		die("Could not get wallet status:", err)
 	}
+
 	fees, err := httpClient.TransactionPoolFeeGet()
 	if err != nil {
 		die("Could not get fee estimation:", err)

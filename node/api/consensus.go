@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"net/http"
 
+	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
@@ -119,6 +120,7 @@ type ConsensusBlocksGet struct {
 	Height       types.BlockHeight       `json:"height"`
 	ParentID     types.BlockID           `json:"parentid"`
 	Nonce        types.BlockNonce        `json:"nonce"`
+	Difficulty   types.Currency          `json:"difficulty"`
 	Timestamp    types.Timestamp         `json:"timestamp"`
 	MinerPayouts []types.SiacoinOutput   `json:"minerpayouts"`
 	Transactions []ConsensusBlocksGetTxn `json:"transactions"`
@@ -171,9 +173,9 @@ type ConsensusBlocksGetSiafundOutput struct {
 	UnlockHash types.UnlockHash      `json:"unlockhash"`
 }
 
-// ConsensusBlocksGetFromBlock is a helper method that uses a types.Block and
-// types.BlockHeight to create a ConsensusBlocksGet object.
-func consensusBlocksGetFromBlock(b types.Block, h types.BlockHeight) ConsensusBlocksGet {
+// ConsensusBlocksGetFromBlock is a helper method that uses a types.Block, types.BlockHeight and
+// types.Currency to create a ConsensusBlocksGet object.
+func consensusBlocksGetFromBlock(b types.Block, h types.BlockHeight, d types.Currency) ConsensusBlocksGet {
 	txns := make([]ConsensusBlocksGetTxn, 0, len(b.Transactions))
 	for _, t := range b.Transactions {
 		// Get the transaction's SiacoinOutputs.
@@ -248,6 +250,7 @@ func consensusBlocksGetFromBlock(b types.Block, h types.BlockHeight) ConsensusBl
 		Height:       h,
 		ParentID:     b.ParentID,
 		Nonce:        b.Nonce,
+		Difficulty:   d,
 		Timestamp:    b.Timestamp,
 		MinerPayouts: b.MinerPayouts,
 		Transactions: txns,
@@ -256,11 +259,19 @@ func consensusBlocksGetFromBlock(b types.Block, h types.BlockHeight) ConsensusBl
 
 // consensusHandler handles the API calls to /consensus.
 func (api *API) consensusHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	cbid := api.cs.CurrentBlock().ID()
+	height := api.cs.Height()
+	b, found := api.cs.BlockAtHeight(height)
+	if !found {
+		err := "Failed to fetch block for current height"
+		WriteError(w, Error{err}, http.StatusInternalServerError)
+		build.Critical(err)
+		return
+	}
+	cbid := b.ID()
 	currentTarget, _ := api.cs.ChildTarget(cbid)
 	WriteJSON(w, ConsensusGET{
 		Synced:       api.cs.Synced(),
-		Height:       api.cs.Height(),
+		Height:       height,
 		CurrentBlock: cbid,
 		Target:       currentTarget,
 		Difficulty:   currentTarget.Difficulty(),
@@ -272,8 +283,9 @@ func (api *API) consensusHandler(w http.ResponseWriter, req *http.Request, _ htt
 		GenesisTimestamp:       types.GenesisTimestamp,
 		MaturityDelay:          types.MaturityDelay,
 		MedianTimestampWindow:  types.MedianTimestampWindow,
-		SiafundCount:           types.SiafundCount(api.cs.Height()),
-		SiafundPortion:         types.SiafundPortion(api.cs.Height()),
+
+		SiafundCount:   types.SiafundCount(api.cs.Height()),
+		SiafundPortion: types.SiafundPortion(api.cs.Height()),
 
 		InitialCoinbase: types.InitialCoinbase,
 		MinimumCoinbase: types.MinimumCoinbase,
@@ -323,8 +335,12 @@ func (api *API) consensusBlocksHandler(w http.ResponseWriter, req *http.Request,
 		WriteError(w, Error{"block doesn't exist"}, http.StatusBadRequest)
 		return
 	}
+
+	target, _ := api.cs.ChildTarget(b.ID())
+	d := target.Difficulty()
+
 	// Write response
-	WriteJSON(w, consensusBlocksGetFromBlock(b, h))
+	WriteJSON(w, consensusBlocksGetFromBlock(b, h, d))
 }
 
 // consensusValidateTransactionsetHandler handles the API calls to

@@ -9,7 +9,6 @@ import (
 	"hash"
 	"unsafe"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 )
@@ -56,31 +55,6 @@ type (
 	BlockNonce [8]byte
 )
 
-// CalculateDevSubsidy takes a block and a height and determines the block
-// subsidies for the dev fund.
-func CalculateDevSubsidy(height BlockHeight) Currency {
-	coinbase := CalculateCoinbase(height)
-
-	devSubsidy := NewCurrency64(0)
-	if DevFundEnabled && (height >= DevFundInitialBlockHeight) {
-		devFundDecayPercentage := uint64(100)
-		if height >= DevFundDecayEndBlockHeight {
-			devFundDecayPercentage = uint64(0)
-		} else if height >= DevFundDecayStartBlockHeight {
-			devFundDecayStartBlockHeight := uint64(DevFundDecayStartBlockHeight)
-			devFundDecayEndBlockHeight := uint64(DevFundDecayEndBlockHeight)
-			devFundDecayPercentage = uint64(100) - (uint64(height)-devFundDecayStartBlockHeight)*uint64(100)/(devFundDecayEndBlockHeight-devFundDecayStartBlockHeight)
-		}
-
-		devFundPercentageRange := DevFundInitialPercentage - DevFundFinalPercentage
-		devFundPercentage := DevFundFinalPercentage*uint64(100) + devFundPercentageRange*devFundDecayPercentage
-
-		devSubsidy = coinbase.Mul(NewCurrency64(devFundPercentage)).Div(NewCurrency64(10000))
-	}
-
-	return devSubsidy
-}
-
 // CalculateCoinbase calculates the coinbase for a given height. The coinbase
 // equation is:
 //
@@ -125,17 +99,6 @@ func (h BlockHeader) ID() BlockID {
 	return BlockID(crypto.HashObject(h))
 }
 
-// CalculateMinerFees calculates the sum of a block's miner transaction fees
-func (b Block) CalculateMinerFees() Currency {
-	fees := NewCurrency64(0)
-	for _, txn := range b.Transactions {
-		for _, fee := range txn.MinerFees {
-			fees = fees.Add(fee)
-		}
-	}
-	return fees
-}
-
 // CalculateSubsidy takes a block and a height and determines the block
 // subsidy.
 func (b Block) CalculateSubsidy(height BlockHeight) Currency {
@@ -146,15 +109,6 @@ func (b Block) CalculateSubsidy(height BlockHeight) Currency {
 		}
 	}
 	return subsidy
-}
-
-// CalculateSubsidies takes a block and a height and determines the block
-// subsidies for miners and the dev fund.
-func (b Block) CalculateSubsidies(height BlockHeight) (Currency, Currency) {
-	coinbase := CalculateCoinbase(height)
-	devSubsidy := CalculateDevSubsidy(height)
-	minerSubsidy := coinbase.Sub(devSubsidy).Add(b.CalculateMinerFees())
-	return minerSubsidy, devSubsidy
 }
 
 // Header returns the header of a block.
@@ -174,8 +128,10 @@ func (b Block) ID() BlockID {
 	return b.Header().ID()
 }
 
-// MerkleTree return the MerkleTree of the block
-func (b Block) MerkleTree() *crypto.MerkleTree {
+// MerkleRoot calculates the Merkle root of a Block. The leaves of the Merkle
+// tree are composed of the miner outputs (one leaf per payout), and the
+// transactions (one leaf per transaction).
+func (b Block) MerkleRoot() crypto.Hash {
 	tree := crypto.NewTree()
 	var buf bytes.Buffer
 	e := encoding.NewEncoder(&buf)
@@ -189,29 +145,7 @@ func (b Block) MerkleTree() *crypto.MerkleTree {
 		tree.Push(buf.Bytes())
 		buf.Reset()
 	}
-
-	// Sanity check - verify that this root is the same as the root provided in
-	// the old implementation.
-	if build.DEBUG {
-		verifyTree := crypto.NewTree()
-		for _, payout := range b.MinerPayouts {
-			verifyTree.PushObject(payout)
-		}
-		for _, txn := range b.Transactions {
-			verifyTree.PushObject(txn)
-		}
-		if tree.Root() != verifyTree.Root() {
-			panic("Block MerkleRoot implementation is broken")
-		}
-	}
-	return tree
-}
-
-// MerkleRoot calculates the Merkle root of a Block. The leaves of the Merkle
-// tree are composed of the miner outputs (one leaf per payout), and the
-// transactions (one leaf per transaction).
-func (b Block) MerkleRoot() crypto.Hash {
-	return b.MerkleTree().Root()
+	return tree.Root()
 }
 
 // MinerPayoutID returns the ID of the miner payout at the given index, which
@@ -222,6 +156,51 @@ func (b Block) MinerPayoutID(i uint64) SiacoinOutputID {
 		b.ID(),
 		i,
 	))
+}
+
+// CalculateMinerFees calculates the sum of a block's miner transaction fees
+func (b Block) CalculateMinerFees() Currency {
+	fees := NewCurrency64(0)
+	for _, txn := range b.Transactions {
+		for _, fee := range txn.MinerFees {
+			fees = fees.Add(fee)
+		}
+	}
+	return fees
+}
+
+// CalculateDevSubsidy takes a block and a height and determines the block
+// subsidies for the dev fund.
+func CalculateDevSubsidy(height BlockHeight) Currency {
+	coinbase := CalculateCoinbase(height)
+
+	devSubsidy := NewCurrency64(0)
+	if DevFundEnabled && (height >= DevFundInitialBlockHeight) {
+		devFundDecayPercentage := uint64(100)
+		if height >= DevFundDecayEndBlockHeight {
+			devFundDecayPercentage = uint64(0)
+		} else if height >= DevFundDecayStartBlockHeight {
+			devFundDecayStartBlockHeight := uint64(DevFundDecayStartBlockHeight)
+			devFundDecayEndBlockHeight := uint64(DevFundDecayEndBlockHeight)
+			devFundDecayPercentage = uint64(100) - (uint64(height)-devFundDecayStartBlockHeight)*uint64(100)/(devFundDecayEndBlockHeight-devFundDecayStartBlockHeight)
+		}
+
+		devFundPercentageRange := DevFundInitialPercentage - DevFundFinalPercentage
+		devFundPercentage := DevFundFinalPercentage*uint64(100) + devFundPercentageRange*devFundDecayPercentage
+
+		devSubsidy = coinbase.Mul(NewCurrency64(devFundPercentage)).Div(NewCurrency64(10000))
+	}
+
+	return devSubsidy
+}
+
+// CalculateSubsidies takes a block and a height and determines the block
+// subsidies for miners and the dev fund.
+func (b Block) CalculateSubsidies(height BlockHeight) (Currency, Currency) {
+	coinbase := CalculateCoinbase(height)
+	devSubsidy := CalculateDevSubsidy(height)
+	minerSubsidy := coinbase.Sub(devSubsidy).Add(b.CalculateMinerFees())
+	return minerSubsidy, devSubsidy
 }
 
 // MerkleBranches returns the merkle branches of a block, as used in stratum

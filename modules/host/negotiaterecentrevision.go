@@ -5,12 +5,13 @@ import (
 	"net"
 	"time"
 
-	bolt "github.com/coreos/bbolt"
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	bolt "github.com/coreos/bbolt"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 var (

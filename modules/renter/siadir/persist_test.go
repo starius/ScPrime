@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/writeaheadlog"
 )
@@ -74,6 +75,7 @@ func equalMetadatas(md, md2 Metadata) error {
 	if md.StuckHealth != md2.StuckHealth {
 		return fmt.Errorf("StuckHealths not equal, %v and %v", md.StuckHealth, md2.StuckHealth)
 	}
+
 	return nil
 }
 

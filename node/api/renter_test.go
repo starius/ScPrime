@@ -1108,7 +1108,7 @@ func TestRenterRelativePathErrorDownload(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	renterDownloadAbsoluteError := "download failed: destination must be an absolute path"
+	renterDownloadAbsoluteError := "download creation failed: destination must be an absolute path"
 
 	// Create a file, and upload it.
 	path := filepath.Join(st.dir, "test.dat")
@@ -1268,14 +1268,15 @@ func TestRenterPricesHandlerPricey(t *testing.T) {
 	}
 
 	// Set an allowance for the renter, allowing a contract to be formed.
-	allowanceValues := url.Values{}
-	allowanceValues.Set("funds", testFunds)
-	allowanceValues.Set("period", testPeriod)
-	allowanceValues.Set("renewwindow", testRenewWindow)
-	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
-	if err = st.stdPostAPI("/renter", allowanceValues); err != nil {
-		t.Fatal(err)
-	}
+	// TODO: Try withot allowance (use defaults)
+	//allowanceValues := url.Values{}
+	//allowanceValues.Set("funds", testFunds)
+	//allowanceValues.Set("period", testPeriod)
+	//allowanceValues.Set("renewwindow", testRenewWindow)
+	//allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
+	//if err = st.stdPostAPI("/renter", allowanceValues); err != nil {
+	//	t.Fatal(err)
+	//}
 
 	if err = st.getAPI("/renter/prices", &rpeSingle); err != nil {
 		t.Fatal(err)

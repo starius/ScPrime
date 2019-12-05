@@ -14,12 +14,12 @@ import (
 	"github.com/karrick/godirwalk"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/SiaPrime/writeaheadlog"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siadir"
+	"gitlab.com/SiaPrime/writeaheadlog"
 )
 
 // The SiaFileSet structure helps track the number of threads using a siafile
@@ -393,7 +393,8 @@ func (sfs *SiaFileSet) open(siaPath modules.SiaPath) (*SiaFileSetEntry, error) {
 			return nil, err
 		}
 		// Check for duplicate uid.
-		if conflictingEntry, exists := sfs.siaFileMap[sf.UID()]; exists {
+		conflictingEntry, exists := sfs.siaFileMap[sf.UID()]
+		if exists {
 			err := fmt.Errorf("%v and %v share the same UID '%v'", sfs.siaPath(conflictingEntry), siaPath, sf.UID())
 			build.Critical(err)
 			return nil, err

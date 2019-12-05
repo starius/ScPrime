@@ -4,10 +4,11 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 var (
@@ -213,6 +214,21 @@ func (m *Miner) managedSubmitBlock(b types.Block) error {
 	}
 	m.persist.Address = uc.UnlockHash()
 	return m.saveSync()
+}
+
+// SubmitBlock accepts a solved block.
+func (m *Miner) SubmitBlock(b types.Block) error {
+	if err := m.tg.Add(); err != nil {
+		return err
+	}
+	defer m.tg.Done()
+
+	err := m.managedSubmitBlock(b)
+	if err != nil {
+		m.log.Println("ERROR returned by managedSubmitBlock:", err)
+		return err
+	}
+	return nil
 }
 
 // SubmitHeader accepts a block header.

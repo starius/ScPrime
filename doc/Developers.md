@@ -20,26 +20,33 @@ After downloading, you can find the Sia source code in
 `$GOPATH/src/gitlab.com/NebulousLabs/Sia`. To build the release binary, run
 `make release` from this directory. To build the release binary with a (slow)
 race detector and an array of debugging asserts, run `make release-race`. To
+<<<<<<< HEAD
 =======
 After downloading, you can find the SiaPrime source code in
 `$GOPATH/src/gitlab.com/SiaPrime/SiaPrime`. To build the release binary, run
 `make release-std` from this directory. To build the release binary with a
 (slow) race detector and an array of debugging asserts, run `make release`. To
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
 build the developer binary (which has a different genesis block, faster block
 times, and a few other tweaks), run `make dev`.
 
 <<<<<<< HEAD
 If you intend to contribute to Sia, you should start by forking the project on
 GitLab, and then adding your fork as a "remote" in the Sia git repository via
+<<<<<<< HEAD
 =======
 If you intend to contribute to SiaPrime, you should start by forking the project on
 GitHub, and then adding your fork as a "remote" in the SiaPrime git repository via
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
 `git remote add [fork name] [fork url]`. Now you can develop by pulling changes
 from `origin`, pushing your modifications to `[fork name]`, and then making a
 merge request on GitLab.
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
 If you see an error like the one below, it means that you either forgot to run
@@ -53,6 +60,8 @@ consensus/fork.go:4:2: cannot find package "gitlab.com/SiaPrime/SiaPrime/crypto"
     /home/user/gopath/src/gitlab.com/SiaPrime/SiaPrime/crypto (from $GOPATH)
 ```
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
 
 Developer Conventions
 =====================
@@ -73,13 +82,17 @@ Documentation
 
 All structs, functions, and interfaces must have a docstring.
 
-Anytime that something is left unfinished, place a comment containing the
-string 'TODO:'. This sends a clear message to other developers, and creates a
-greppable way to find unfinished parts of the codebase. 'TODO' statements are
-currently discouraged.  As the codebase matures, 'TODO' statements will become
+Anytime that something is left unfinished, place a comment containing the string
+'TODO:'. This sends a clear message to other developers, and creates a greppable
+way to find unfinished parts of the codebase. 'TODO' statements are currently
+discouraged.  As the codebase matures, 'TODO' statements will become
 increasingly frowned upon. 'TODO' statements should not document feature
 requests, but instead document incompleteness where the incompleteness causes
-disruption to user experience or causes a security vulnerability.
+disruption to user experience or causes a security vulnerability. Any TODOs
+added to the code base should be documented in the following places:
+1. At the exact spot in the file where the implementation belongs
+2. At the top of the relevant file
+3. In the README file of the relevant module
 
 Documentation should give a sense of what each function does, but should also
 give a sense of the overall architecture of the code. Where useful, examples
@@ -110,6 +123,40 @@ if agent != "SiaAgent" && agent != "" {
 	return errors.New("unrecognized agent!")
 }
 ```
+
+### Module READMEs
+Below is the standard format for the README files for the modules.
+
+># Modules Name
+>Module overview.
+>
+>## Subsystems
+>List subsystems
+> - Subsystem 1
+> - Subsystem 2
+> - etc..
+>
+>### Subsystem 1
+>**Key Files**  
+>List files
+> - file1.go
+> - file2.go
+> - etc..
+>
+>Description of Subsystem
+>
+>**Exports**  
+>List Exported methods
+>
+>**Inbound Complexities**  
+>List any interactions with other subsystems that have dependencies on this subsystem.
+>
+>**Outbound Complexities**  
+>List any interactions with other subsystems that this subsystem has dependencies on.
+>
+>**TODOs**  
+>List any outstanding TODOs for the subsystem
+>
 
 Naming
 ------
@@ -164,6 +211,9 @@ returning a status that another modules will act on or performing a action that
 will alter the module in some way.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Sia/contract-not-found-handling
 File Ordering
 -------------
 
@@ -177,8 +227,11 @@ Each tracked file in the repository should be laid out in the following order.
 Ordering should be: category (vars, types, etc) -> exported then non-exported 
 -> alphabetical
 
+<<<<<<< HEAD
 =======
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
 Control Flow
 ------------
 

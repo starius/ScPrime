@@ -10,6 +10,7 @@ import (
 	"errors"
 
 	bolt "github.com/coreos/bbolt"
+
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
@@ -95,22 +96,12 @@ type ConsensusSet struct {
 	tg         siasync.ThreadGroup
 }
 
-// New returns a new ConsensusSet, containing at least the genesis block. If
-// there is an existing block database present in the persist directory, it
-// will be loaded.
-func New(gateway modules.Gateway, bootstrap bool, persistDir string) (*ConsensusSet, error) {
-	return NewCustomConsensusSet(gateway, bootstrap, persistDir, modules.ProdDependencies)
-}
-
-// NewCustomConsensusSet returns a new ConsensusSet, containing at least the genesis block. If
-// there is an existing block database present in the persist directory, it
-// will be loaded.
-func NewCustomConsensusSet(gateway modules.Gateway, bootstrap bool, persistDir string, deps modules.Dependencies) (*ConsensusSet, error) {
+// consensusSetBlockingStartup handles the blocking portion of NewCustomConsensusSet.
+func consensusSetBlockingStartup(gateway modules.Gateway, persistDir string, deps modules.Dependencies) (*ConsensusSet, error) {
 	// Check for nil dependencies.
 	if gateway == nil {
 		return nil, errNilGateway
 	}
-
 	// Create the ConsensusSet object.
 	cs := &ConsensusSet{
 		gateway: gateway,
@@ -133,7 +124,6 @@ func NewCustomConsensusSet(gateway modules.Gateway, bootstrap bool, persistDir s
 		persistDir: persistDir,
 	}
 
-	// TODO: check this
 	// Create the diffs for the genesis transaction outputs
 	for _, transaction := range types.GenesisBlock.Transactions {
 		// Create the diffs for the genesis siacoin outputs.
@@ -157,54 +147,84 @@ func NewCustomConsensusSet(gateway modules.Gateway, bootstrap bool, persistDir s
 			cs.blockRoot.SiafundOutputDiffs = append(cs.blockRoot.SiafundOutputDiffs, sfod)
 		}
 	}
-
 	// Initialize the consensus persistence structures.
 	err := cs.initPersist()
 	if err != nil {
 		return nil, err
 	}
+	return cs, nil
+}
 
-	go func() {
-		// Sync with the network. Don't sync if we are testing because
-		// typically we don't have any mock peers to synchronize with in
-		// testing.
-		if bootstrap {
-			// We are in a virgin goroutine right now, so calling the threaded
-			// function without a goroutine is okay.
-			err = cs.threadedInitialBlockchainDownload()
-			if err != nil {
-				return
-			}
-		}
-
-		// threadedInitialBlockchainDownload will release the threadgroup 'Add'
-		// it was holding, so another needs to be grabbed to finish off this
-		// goroutine.
-		err = cs.tg.Add()
+// consensusSetAsyncStartup handles the async portion of NewCustomConsensusSet.
+func consensusSetAsyncStartup(cs *ConsensusSet, bootstrap bool) error {
+	if cs.staticDeps.Disrupt("BlockAsyncStartup") {
+		return nil
+	}
+	// Sync with the network. Don't sync if we are testing because
+	// typically we don't have any mock peers to synchronize with in
+	// testing.
+	if bootstrap {
+		err := cs.managedInitialBlockchainDownload()
 		if err != nil {
+			return err
+		}
+	}
+
+	// Register RPCs
+	cs.gateway.RegisterRPC("SendBlocks", cs.rpcSendBlocks)
+	cs.gateway.RegisterRPC("RelayHeader", cs.threadedRPCRelayHeader)
+	cs.gateway.RegisterRPC("SendBlk", cs.rpcSendBlk)
+	cs.gateway.RegisterConnectCall("SendBlocks", cs.threadedReceiveBlocks)
+	cs.tg.OnStop(func() {
+		cs.gateway.UnregisterRPC("SendBlocks")
+		cs.gateway.UnregisterRPC("RelayHeader")
+		cs.gateway.UnregisterRPC("SendBlk")
+		cs.gateway.UnregisterConnectCall("SendBlocks")
+	})
+
+	// Mark that we are synced with the network.
+	cs.mu.Lock()
+	cs.synced = true
+	cs.mu.Unlock()
+	return nil
+}
+
+// New returns a new ConsensusSet, containing at least the genesis block. If
+// there is an existing block database present in the persist directory, it
+// will be loaded.
+func New(gateway modules.Gateway, bootstrap bool, persistDir string) (*ConsensusSet, <-chan error) {
+	return NewCustomConsensusSet(gateway, bootstrap, persistDir, modules.ProdDependencies)
+}
+
+// NewCustomConsensusSet returns a new ConsensusSet, containing at least the genesis block. If
+// there is an existing block database present in the persist directory, it
+// will be loaded.
+func NewCustomConsensusSet(gateway modules.Gateway, bootstrap bool, persistDir string, deps modules.Dependencies) (*ConsensusSet, <-chan error) {
+	// Handle blocking consensus startup first.
+	errChan := make(chan error, 1)
+	cs, err := consensusSetBlockingStartup(gateway, persistDir, deps)
+	if err != nil {
+		errChan <- err
+		return nil, errChan
+	}
+
+	// non-blocking consensus startup.
+	go func() {
+		defer close(errChan)
+		err := cs.tg.Add()
+		if err != nil {
+			errChan <- err
 			return
 		}
 		defer cs.tg.Done()
 
-		// Register RPCs
-		gateway.RegisterRPC("SendBlocks", cs.rpcSendBlocks)
-		gateway.RegisterRPC("RelayHeader", cs.threadedRPCRelayHeader)
-		gateway.RegisterRPC("SendBlk", cs.rpcSendBlk)
-		gateway.RegisterConnectCall("SendBlocks", cs.threadedReceiveBlocks)
-		cs.tg.OnStop(func() {
-			cs.gateway.UnregisterRPC("SendBlocks")
-			cs.gateway.UnregisterRPC("RelayHeader")
-			cs.gateway.UnregisterRPC("SendBlk")
-			cs.gateway.UnregisterConnectCall("SendBlocks")
-		})
-
-		// Mark that we are synced with the network.
-		cs.mu.Lock()
-		cs.synced = true
-		cs.mu.Unlock()
+		err = consensusSetAsyncStartup(cs, bootstrap)
+		if err != nil {
+			errChan <- err
+			return
+		}
 	}()
-
-	return cs, nil
+	return cs, errChan
 }
 
 // BlockAtHeight returns the block at a given height.

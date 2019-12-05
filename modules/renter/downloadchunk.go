@@ -5,12 +5,12 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
-
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // downloadPieceInfo contains all the information required to download and
@@ -186,7 +186,7 @@ func (udc *unfinishedDownloadChunk) returnMemory() {
 	}
 	// Return any memory we don't need.
 	if uint64(udc.memoryAllocated) > maxMemory {
-		udc.download.memoryManager.Return(udc.memoryAllocated - maxMemory)
+		udc.download.r.memoryManager.Return(udc.memoryAllocated - maxMemory)
 		udc.memoryAllocated = maxMemory
 	}
 }

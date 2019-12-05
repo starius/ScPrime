@@ -38,7 +38,7 @@ type hdbPersist struct {
 func (hdb *HostDB) persistData() (data hdbPersist) {
 	data.AllHosts = hdb.hostTree.All()
 	data.BlockHeight = hdb.blockHeight
-	data.DisableIPViolationsCheck = !hdb.IPViolationsCheck()
+	data.DisableIPViolationsCheck = !hdb.hostTree.FilterByIPEnabled()
 	data.KnownContracts = hdb.knownContracts
 	data.LastChange = hdb.lastChange
 	data.FilteredHosts = hdb.filteredHosts

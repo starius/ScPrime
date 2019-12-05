@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
+
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // testingFileParams generates the ErasureCoder and a random name for a testing
@@ -56,7 +57,10 @@ func TestRenterSaveLoad(t *testing.T) {
 	defer rt.Close()
 
 	// Check that the default values got set correctly.
-	settings := rt.renter.Settings()
+	settings, err := rt.renter.Settings()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if settings.MaxDownloadSpeed != DefaultMaxDownloadSpeed {
 		t.Error("default max download speed not set at init")
 	}
@@ -103,12 +107,16 @@ func TestRenterSaveLoad(t *testing.T) {
 	}
 
 	// load should now load the files into memory.
-	rt.renter, err = New(rt.gateway, rt.cs, rt.wallet, rt.tpool, filepath.Join(rt.dir, modules.RenterDir))
-	if err != nil {
+	var errChan <-chan error
+	rt.renter, errChan = New(rt.gateway, rt.cs, rt.wallet, rt.tpool, filepath.Join(rt.dir, modules.RenterDir))
+	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 
-	newSettings := rt.renter.Settings()
+	newSettings, err := rt.renter.Settings()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if newSettings.MaxDownloadSpeed != newDownSpeed {
 		t.Error("download settings not being persisted correctly")
 	}
@@ -153,7 +161,6 @@ func TestRenterPaths(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	wal := rt.renter.wal
 	rc, err := siafile.NewRSSubCode(1, 1, crypto.SegmentSize)
 	if err != nil {
@@ -180,8 +187,9 @@ func TestRenterPaths(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rt.renter, err = New(rt.gateway, rt.cs, rt.wallet, rt.tpool, filepath.Join(rt.dir, modules.RenterDir))
-	if err != nil {
+	var errChan <-chan error
+	rt.renter, errChan = New(rt.gateway, rt.cs, rt.wallet, rt.tpool, filepath.Join(rt.dir, modules.RenterDir))
+	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 

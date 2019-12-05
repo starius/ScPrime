@@ -12,11 +12,21 @@ all: release
 # pkgs changes which packages the makefile calls operate on. run changes which
 # tests are run during testing.
 run = .
+<<<<<<< HEAD
 pkgs = ./build ./cmd/spc ./cmd/spd ./compatibility ./crypto ./encoding ./modules ./modules/consensus ./modules/explorer \
        ./modules/gateway ./modules/host ./modules/host/contractmanager ./modules/renter ./modules/renter/contractor       \
        ./modules/renter/hostdb ./modules/renter/hostdb/hosttree ./modules/renter/proto ./modules/renter/siadir            \
        ./modules/renter/siafile ./modules/miner ./modules/wallet ./modules/transactionpool ./modules/stratumminer ./node ./node/api ./persist    \
        ./siatest ./siatest/consensus ./siatest/gateway ./siatest/renter ./siatest/wallet ./node/api/server ./sync ./types
+=======
+pkgs = ./build ./cmd/siac ./cmd/siad ./compatibility ./crypto ./encoding ./modules ./modules/consensus ./modules/explorer  \
+       ./modules/gateway ./modules/host ./modules/host/contractmanager ./modules/renter ./modules/renter/contractor        \
+       ./modules/renter/hostdb ./modules/renter/hostdb/hosttree ./modules/renter/proto ./modules/renter/siadir             \
+       ./modules/renter/siafile ./modules/miner ./modules/wallet ./modules/transactionpool ./node ./node/api ./persist     \
+       ./siatest ./siatest/consensus ./siatest/daemon ./siatest/gateway ./siatest/miner ./siatest/renter ./siatest/renter  \
+       ./siatest/renter/contractor ./siatest/renter/hostdb ./siatest/renterhost ./siatest/transactionpool ./siatest/wallet \
+       ./node/api/server ./sync ./types ./types/typesutil
+>>>>>>> Sia/contract-not-found-handling
 
 # fmt calls go fmt on all packages.
 fmt:
@@ -72,8 +82,11 @@ test-cpu:
 	GO111MODULE=on go test -v -tags='testing debug netgo' -timeout=500s -cpuprofile cpu.prof $(pkgs) -run=$(run)
 test-mem:
 	GO111MODULE=on go test -v -tags='testing debug netgo' -timeout=500s -memprofile mem.prof $(pkgs) -run=$(run)
+<<<<<<< HEAD
 test-pool:
 	GO111MODULE=on go test -short -parallel=1 -tags='testing debug pool' -timeout=120s ./modules/miningpool -run=$(run)
+=======
+>>>>>>> Sia/contract-not-found-handling
 bench: clean fmt
 	GO111MODULE=on go test -tags='debug testing netgo' -timeout=500s -run=XXX -bench=$(run) $(pkgs)
 cover: clean
