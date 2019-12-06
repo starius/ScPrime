@@ -5,7 +5,6 @@ package api
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -20,6 +19,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // TestHostObligationAcceptingContracts verifies that the host will complete
@@ -792,7 +793,7 @@ func TestRenterUploadDownload(t *testing.T) {
 		return nil
 	})
 	if err != nil {
-		t.Fatal("allowance setting failed")
+		t.Fatal(errors.AddContext(err, "allowance setting failed"))
 	}
 
 	// Check financial metrics; coins should have been spent on contracts

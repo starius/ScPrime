@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -17,6 +16,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/host/contractmanager"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 var (
@@ -232,7 +233,7 @@ func TestWorkingStatus(t *testing.T) {
 		return nil
 	})
 	if err != nil {
-		t.Fatal("allowance setting failed")
+		t.Fatal(errors.AddContext(err, "allowance setting failed"))
 	}
 
 	// Create a file.
@@ -603,7 +604,7 @@ func TestResizeNonemptyStorageFolder(t *testing.T) {
 		return nil
 	})
 	if err != nil {
-		t.Fatal("allowance setting failed")
+		t.Fatal(errors.AddContext(err, "allowance setting failed"))
 	}
 
 	// Create a file.
@@ -963,7 +964,7 @@ func TestRemoveStorageFolderForced(t *testing.T) {
 		return nil
 	})
 	if err != nil {
-		t.Fatal("allowance setting failed")
+		t.Fatal(errors.AddContext(err, "allowance setting failed"))
 	}
 
 	// Create a file for upload.

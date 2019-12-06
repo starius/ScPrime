@@ -50,7 +50,7 @@ func TestIntegrationTransactions(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(utxns) != 1 {
-		t.Error("was expecting 3 unconfirmed transactions")
+		t.Errorf("Was expecting 1 unconfirmed transaction, got %v", len(utxns))
 	}
 
 	b, _ := wt.miner.FindBlock()
