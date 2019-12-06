@@ -156,63 +156,7 @@ Also returns the set of constants in use in the consensus code.
   "siacoinprecision": "1000000000000000000000000" // hastings per siacoin
 }
 ```
-<<<<<<< HEAD
-**synced** | boolean
-True if the consensus set is synced with the network, e.g. it has downloaded the entire blockchain.  
 
-**height** | blockheight
-Number of blocks preceding the current block.  
-
-**currentblock** | hash
-Hash of the current block.  
-
-**target** | hash
-An immediate child block of this block must have a hash less than this target for it to be valid.  
-
-**difficulty** | arbitrary-precision integer
-The difficulty of the current block target.  
-
-**blockfrequency** | blocks / second
-Target for how frequently new blocks should be mined.  
-
-**blocksizelimit** | bytes
-Maximum size, in bytes, of a block. Blocks larger than this will be rejected by peers.  
-
-**extremefuturethreshold** | seconds
-Farthest a block's timestamp can be in the future before the block is rejected outright.  
-
-**futurethreshold** | seconds
-How far in the future a block can be without being rejected. A block further into the future will not be accepted immediately, but the daemon will attempt to accept the block as soon as it is valid.  
-
-**genesistimestamp** | unix timestamp
-Timestamp of the genesis block.  
-
-**maturitydelay** | number of blocks
-Number of children a block must have before it is considered "mature."  
-
-**mediantimestampwindow** | number of blocks
-Duration of the window used to adjust the difficulty.  
-
-**siafundcount** | siafunds
-Total number of siafunds.  
-
-**siafundportion** | fraction
-Fraction of each file contract payout given to siafund holders.  
-
-**initialcoinbase** | siacoin
-Number of coins given to the miner of the first block. Note that elsewhere in the API currency is typically returned in hastings and as a bignum. This is not the case here.  
-
-**minimumcoinbase** | siacoin
-Minimum number of coins paid out to the miner of a block (the coinbase decreases with each block). Note that elsewhere in the API currency is typically returned in hastings and as a bignum. This is not the case here.  
-
-**roottarget** | hash
-Initial target.  
-
-**rootdepth** | hash
-Initial depth.  
-
-**siacoinprecision** | hastings per siacoin
-=======
 **synced** | boolean  
 True if the consensus set is synced with the network, e.g. it has downloaded the entire blockchain.  
 
@@ -268,7 +212,6 @@ Initial target.
 Initial depth.  
 
 **siacoinprecision** | hastings per siacoin  
->>>>>>> Sia/contract-not-found-handling
 Number of Hastings in one Siacoin.  
 
 ## /consensus/blocks [GET]
@@ -5369,21 +5312,13 @@ Returns the set of addresses that the wallet is watching. This set only includes
 
 ```go
 {
-<<<<<<< HEAD
-  "addresses": [
-=======
   "addresses": [ // []hash
->>>>>>> Sia/contract-not-found-handling
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "abcdef0123456789abcdef0123456789abcd1234567890ef0123456789abcdef"
   ]
 }
 ```
-<<<<<<< HEAD
-**addresses**  
-=======
 **addresses** | []hash  
->>>>>>> Sia/contract-not-found-handling
 The addresses currently watched by the wallet.  
 
 ## /wallet/watch [POST]
@@ -5393,31 +5328,13 @@ The addresses currently watched by the wallet.
 curl -A "Sia-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:9980/wallet/watch"
 ```
 
-<<<<<<< HEAD
-=======
 Update the set of addresses for the wallet to watch.
 
->>>>>>> Sia/contract-not-found-handling
 ### Request Body
 > Request Body Example
 
 ```go
 {
-<<<<<<< HEAD
-  // The addresses to add or remove from the current set.
-  "addresses": [
-    "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-    "abcdef0123456789abcdef0123456789abcd1234567890ef0123456789abcdef"
-  ],
-
-  // If true, remove the addresses instead of adding them.
-  "remove": false,
-
-  // If true, the wallet will not rescan the blockchain. Only set this flag if
-  // the addresses have never appeared in the blockchain.
-  "unused": true,
-```
-=======
   "addresses": [    // []hash
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "abcdef0123456789abcdef0123456789abcd1234567890ef0123456789abcdef"
@@ -5434,20 +5351,9 @@ If true, remove the addresses instead of adding them.
 
 **unused** | boolean  
 If true, the wallet will not rescan the blockchain. Only set this flag if the addresses have never appeared in the blockchain.
->>>>>>> Sia/contract-not-found-handling
 
 ### Response
 
 standard success or error response. See [standard responses](#standard-responses).
 
 # Version
-<<<<<<< HEAD
-<<<<<<< HEAD
-<a href='https://sia.tech/docs/v140'>**v140**
-=======
-<a href='https://sia.tech/docs/v140'>**v140**
->>>>>>> siaprime/master
-=======
-<a href='https://sia.tech/docs/v141'>**v141**
-<a href='https://sia.tech/docs/v140'>**v140**
->>>>>>> Sia/contract-not-found-handling

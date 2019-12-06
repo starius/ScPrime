@@ -1,7 +1,6 @@
 Siad API
 ========
 
-<<<<<<< HEAD
 SiaPrime uses semantic versioning and is backwards compatible to version v1.0.0.
 
 API calls return either JSON or no content. Success is indicated by 2xx HTTP
@@ -1851,10 +1850,3 @@ addresses will be reported in /wallet/unspent.
 ###### Response
 standard success or error response. See
 [#standard-responses](#standard-responses).
-=======
-The Sia API documentation can be found here:
-[Sia API](https://sia.tech/docs/ "Sia API")
-
-Updates to the API documentation can be made here:
-[Sia API markdown](./api/index.html.md "Sia API markdown")
->>>>>>> Sia/contract-not-found-handling

@@ -1,14 +1,8 @@
 # Wallet
-<<<<<<< HEAD
-Coming Soon...
-=======
-
-*TODO*
- - Update layout of this README to match Renter README. (ie subsystems, key files, links, etc)
 
 ### Wallet Encryption Subsystem
 
-This section gives an overview of how encryption is handled within the Sia wallet and refers to the source code within `encrypt.go`. The encryption within the wallet is done using the Twofish cipher in Galois Counter Mode and hashing is done using the Blake2B algorithm.
+This section gives an overview of how encryption is handled within the ScPrime wallet and refers to the source code within `encrypt.go`. The encryption within the wallet is done using the Twofish cipher in Galois Counter Mode and hashing is done using the Blake2B algorithm.
 
 The following pieces of information are currently being encrypted by the wallet:
 - [Masterkey](#masterkey)
@@ -35,4 +29,3 @@ To protect the user's primary seed, the so-called `seedFile` is encrypted before
 #### Changing the password
 
 There are 2 ways to change the wallet's password. Either by providing the current masterkey which allows the wallet to decrypt the data on disk and reencrypt it using a new key or by using the primary seed. The latter will use the seed to retrieve the masterkey from disk and then use it to reencrypt the wallet.
->>>>>>> Sia/contract-not-found-handling
