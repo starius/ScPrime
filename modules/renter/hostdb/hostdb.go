@@ -599,8 +599,6 @@ func (hdb *HostDB) IPViolationsCheck() (bool, error) {
 		return false, errors.AddContext(err, "error adding hostdb threadgroup:")
 	}
 	defer hdb.tg.Done()
-	hdb.mu.RLock()
-	defer hdb.mu.RUnlock()
 	return hdb.hostTree.FilterByIPEnabled(), nil
 }
 
@@ -638,8 +636,6 @@ func (hdb *HostDB) SetIPViolationCheck(enabled bool) error {
 	}
 	defer hdb.tg.Done()
 
-	hdb.mu.Lock()
-	defer hdb.mu.Unlock()
 	hdb.hostTree.SetFilterByIPEnabled(enabled)
 	return nil
 }
