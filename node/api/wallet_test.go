@@ -613,13 +613,13 @@ func TestWalletTransactionGETid(t *testing.T) {
 		t.Error("miner payout should appear as an output, not an input")
 	}
 	if len(wtgid.Transaction.Outputs) != 2 {
-		t.Fatal("a single miner payout output should have been created")
+		t.Fatal("Two miner payout output should have been created")
 	}
-	for i := 0; i < 2; i++ {
-		if wtgid.Transaction.Outputs[i].FundType != types.SpecifierMinerPayout {
+	for _, output := range wtgid.Transaction.Outputs {
+		if output.FundType != types.SpecifierMinerPayout {
 			t.Error("fund type should be a miner payout")
 		}
-		if wtgid.Transaction.Outputs[i].Value.IsZero() {
+		if output.Value.IsZero() {
 			t.Error("output should have a nonzero value")
 		}
 	}
@@ -633,8 +633,8 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(txns) != 1 {
-		t.Fatal("expected a single transaction")
+	if len(txns) != 2 {
+		t.Fatalf("wallet.SendSiacoins() should generate 2 transactions but got %v. ", len(txns))
 	}
 	_, err = st.miner.AddBlock()
 	if err != nil {
@@ -647,8 +647,8 @@ func TestWalletTransactionGETid(t *testing.T) {
 		t.Fatal(err)
 	}
 	txn := wtgid2.Transaction
-
 	if txn.TransactionID != txns[0].ID() {
+
 		t.Error("wrong transaction was fetched")
 	} else if len(txn.Inputs) != 1 || len(txn.Outputs) != 3 {
 		t.Error("expected 1 input and 3 outputs, got", len(txn.Inputs), len(txn.Outputs))
