@@ -642,20 +642,19 @@ func TestWalletTransactionGETid(t *testing.T) {
 	}
 
 	var wtgid2 WalletTransactionGETid
-	err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", txns[0].ID()), &wtgid2)
+	err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", txns[1].ID()), &wtgid2)
 	if err != nil {
 		t.Fatal(err)
 	}
 	txn := wtgid2.Transaction
-	if txn.TransactionID != txns[0].ID() {
-
+	if txn.TransactionID != txns[1].ID() {
 		t.Error("wrong transaction was fetched")
 	} else if len(txn.Inputs) != 1 || len(txn.Outputs) != 2 {
 		t.Error("expected 1 input and 2 outputs, got", len(txn.Inputs), len(txn.Outputs))
 	} else if !txn.Outputs[0].Value.Equals(sentValue) {
 		t.Errorf("expected first output to equal %v, got %v", sentValue, txn.Outputs[0].Value)
-	} else if exp := txn.Inputs[0].Value.Sub(sentValue); !txn.Outputs[1].Value.Add(txn.Outputs[2].Value).Equals(exp) {
-		t.Errorf("expected sum(1 and 2 outputs) to equal %v, got %v", exp, txn.Outputs[1].Value.Add(txn.Outputs[2].Value))
+	} else if exp := txn.Inputs[0].Value.Sub(sentValue); !txn.Outputs[1].Value.Equals(exp) {
+		t.Errorf("expected first output to equal %v, got %v", exp, txn.Outputs[1].Value)
 	}
 
 	// Create a second wallet and send money to that wallet.
