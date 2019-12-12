@@ -650,8 +650,8 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if txn.TransactionID != txns[0].ID() {
 
 		t.Error("wrong transaction was fetched")
-	} else if len(txn.Inputs) != 1 || len(txn.Outputs) != 3 {
-		t.Error("expected 1 input and 3 outputs, got", len(txn.Inputs), len(txn.Outputs))
+	} else if len(txn.Inputs) != 1 || len(txn.Outputs) != 2 {
+		t.Error("expected 1 input and 2 outputs, got", len(txn.Inputs), len(txn.Outputs))
 	} else if !txn.Outputs[0].Value.Equals(sentValue) {
 		t.Errorf("expected first output to equal %v, got %v", sentValue, txn.Outputs[0].Value)
 	} else if exp := txn.Inputs[0].Value.Sub(sentValue); !txn.Outputs[1].Value.Add(txn.Outputs[2].Value).Equals(exp) {
@@ -688,17 +688,12 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(wtg.UnconfirmedTransactions) != 1 {
-		t.Fatal("expecting one unconfirmed transaction in sender wallet")
+	if len(wtg.UnconfirmedTransactions) != 2 {
+		t.Fatalf("expecting 2 unconfirmed transactions in sender wallet, got %v", len(wtg.UnconfirmedTransactions))
 	}
 
 	// Testing GET :id for unconfirmed transactions
 	var wutgid WalletTransactionGETid
-	err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", wtg.UnconfirmedTransactions[0].TransactionID), &wutgid)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", wtg.UnconfirmedTransactions[0].TransactionID), &wutgid)
 	if err != nil {
 		t.Fatal(err)
@@ -715,11 +710,11 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(wtg.UnconfirmedTransactions) != 1 {
-		t.Fatal("expecting one unconfirmed transaction in sender wallet")
+	if len(wtg.UnconfirmedTransactions) != 2 {
+		t.Fatal("expecting two unconfirmed transactions in sender wallet")
 	}
 	// Get the id of the non-change output sent to the receiving wallet.
-	expectedOutputID := wtg.UnconfirmedTransactions[0].Outputs[0].ID
+	expectedOutputID := wtg.UnconfirmedTransactions[1].Outputs[0].ID
 
 	// Check the unconfirmed transactions struct to make sure all fields are
 	// filled out correctly in the receiving wallet.
