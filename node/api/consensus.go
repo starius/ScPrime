@@ -8,11 +8,12 @@ import (
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
+
+	//"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	bolt "github.com/coreos/bbolt"
+	//bolt "github.com/coreos/bbolt"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -532,43 +533,43 @@ func (api *API) consensusBlocksHandlerSanasol(w http.ResponseWriter, req *http.R
 	})
 }
 
-// consensusBlocksHandler handles API calls to /consensus/blocks/:height.
-func (api *API) consensusFutureBlocksHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	// Parse the height that's being requested.
-	var height types.BlockHeight
-	_, err := fmt.Sscan(ps.ByName("height"), &height)
-	if err != nil {
-		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
-		return
-	}
+// // consensusBlocksHandler handles API calls to /consensus/blocks/:height.
+// func (api *API) consensusFutureBlocksHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+// 	// Parse the height that's being requested.
+// 	var height types.BlockHeight
+// 	_, err := fmt.Sscan(ps.ByName("height"), &height)
+// 	if err != nil {
+// 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+// 		return
+// 	}
 
-	var (
-		prefixDSCO = []byte("dsco_")
-	)
+// 	var (
+// 		prefixDSCO = []byte("dsco_")
+// 	)
 
-	bucketID := append(prefixDSCO, encoding.Marshal(height)...)
-	var scods []modules.SiacoinOutputDiff
+// 	bucketID := append(prefixDSCO, encoding.Marshal(height)...)
+// 	var scods []modules.SiacoinOutputDiff
 
-	_ = api.cs.Db().View(func(tx *bolt.Tx) error {
-		tx.Bucket(bucketID).ForEach(func(idBytes, scoBytes []byte) error {
-			// Decode the key-value pair into an id and a siacoin output.
-			var id types.SiacoinOutputID
-			var sco types.SiacoinOutput
-			copy(id[:], idBytes)
-			_ = encoding.Unmarshal(scoBytes, &sco)
+// 	_ = api.cs.Db().View(func(tx *bolt.Tx) error {
+// 		tx.Bucket(bucketID).ForEach(func(idBytes, scoBytes []byte) error {
+// 			// Decode the key-value pair into an id and a siacoin output.
+// 			var id types.SiacoinOutputID
+// 			var sco types.SiacoinOutput
+// 			copy(id[:], idBytes)
+// 			_ = encoding.Unmarshal(scoBytes, &sco)
 
-			// Add the output to the ConsensusSet and record the diff in the
-			// blockNode.
-			scod := modules.SiacoinOutputDiff{
-				Direction:     modules.DiffApply,
-				ID:            id,
-				SiacoinOutput: sco,
-			}
-			scods = append(scods, scod)
-			return nil
-		})
-		return nil
-	})
+// 			// Add the output to the ConsensusSet and record the diff in the
+// 			// blockNode.
+// 			scod := modules.SiacoinOutputDiff{
+// 				Direction:     modules.DiffApply,
+// 				ID:            id,
+// 				SiacoinOutput: sco,
+// 			}
+// 			scods = append(scods, scod)
+// 			return nil
+// 		})
+// 		return nil
+// 	})
 
-	WriteJSON(w, scods)
-}
+// 	WriteJSON(w, scods)
+// }

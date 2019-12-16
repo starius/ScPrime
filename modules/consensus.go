@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
+	//"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
@@ -221,10 +221,6 @@ type (
 		// routines.
 		Flush() error
 
-		// SiafundClaim returns number of siacoins claimed by given SiafundOutput.
-		// It takes into account height and hardfork changes.
-		SiafundClaim(types.SiafundOutput) types.Currency
-
 		// Height returns the current height of consensus.
 		Height() types.BlockHeight
 
@@ -256,7 +252,10 @@ type (
 		// not found in the subscriber database, no action is taken.
 		Unsubscribe(ConsensusSetSubscriber)
 
-		Db() *persist.BoltDatabase
+		// SiafundClaim returns number of siacoins claimed by given SiafundOutput.
+		// It takes into account height and hardfork changes.
+		SiafundClaim(types.SiafundOutput) types.Currency
+		// Db() *persist.BoltDatabase
 	}
 )
 

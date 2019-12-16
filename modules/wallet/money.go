@@ -68,6 +68,8 @@ func (w *Wallet) ConfirmedBalance() (siacoinBalance types.Currency, siafundBalan
 			return
 		}
 		siafundClaimBalance = siafundClaimBalance.Add(w.cs.SiafundClaim(sfo))
+		//siafundClaimBalance = siafundClaimBalance.Add(siafundPool.Sub(sfo.ClaimStart).Mul(sfo.Value).Div(types.SiafundCount(blockheight)))
+
 	})
 	return
 }
