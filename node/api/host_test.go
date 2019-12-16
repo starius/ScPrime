@@ -152,11 +152,8 @@ func TestEstimateWeight(t *testing.T) {
 		if err != nil {
 			t.Fatal("test", i, "failed:", err)
 		}
-		t.Logf("Estimated score = %+v", eg.EstimatedScore)
 		if eg.ConversionRate < test.minConversionRate {
 			t.Errorf("test %v: incorrect conversion rate: got %v wanted %v\n", i, eg.ConversionRate, test.minConversionRate)
-		} else {
-			t.Logf("test %v: conversion rate: got %v expected %v\n", i, eg.ConversionRate, test.minConversionRate)
 		}
 	}
 }
@@ -338,7 +335,7 @@ func TestStorageHandler(t *testing.T) {
 	allowanceValues.Set("renewwindow", testRenewWindow)
 	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
 	if err = st.stdPostAPI("/renter", allowanceValues); err != nil {
-		t.Fatal(err)
+		t.Fatal(errors.AddContext(err, "[POST] /renter to set allowance failed."))
 	}
 
 	// Block until the allowance has finished forming contracts.
@@ -348,13 +345,13 @@ func TestStorageHandler(t *testing.T) {
 		if err != nil {
 			return errors.New("couldn't get renter stats")
 		}
-		if len(rc.Contracts) != 1 {
+		if len(rc.Contracts) < 1 {
 			return errors.New("no contracts")
 		}
 		return nil
 	})
 	if err != nil {
-		t.Fatal("allowance setting failed")
+		t.Fatal(errors.AddContext(err, "Allowance settings fail"))
 	}
 
 	// Create a file.

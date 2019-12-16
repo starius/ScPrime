@@ -42,12 +42,12 @@ type (
 var (
 	// DefaultAllowance is the allowance used for the group's renters
 	DefaultAllowance = modules.Allowance{
-		Funds:       types.SiacoinPrecision.Mul64(1e3),
+		Funds:       types.SiacoinPrecision.Mul64(2e5),
 		Hosts:       5,
 		Period:      50,
 		RenewWindow: 24,
 
-		ExpectedStorage:    modules.SectorSize * 50e3,
+		ExpectedStorage:    modules.SectorSize * 10e3,
 		ExpectedUpload:     modules.SectorSize * 5e3,
 		ExpectedDownload:   modules.SectorSize * 5e3,
 		ExpectedRedundancy: 5.0,

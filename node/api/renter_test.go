@@ -24,9 +24,10 @@ import (
 )
 
 const (
-	testFunds       = "100000000000000000000000000000" // 100k
+	testFunds       = "300000000000000000000000000000" // 300k SC
 	testPeriod      = "5"
 	testRenewWindow = "2"
+	hosts           = "15"
 )
 
 // createRandFile creates a file on disk and fills it with random bytes.
@@ -64,10 +65,25 @@ func setupTestDownload(t *testing.T, size int, name string, waitOnRedundancy boo
 	allowanceValues.Set("funds", testFunds)
 	allowanceValues.Set("period", testPeriod)
 	allowanceValues.Set("renewwindow", renewWindow)
-	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
+	allowanceValues.Set("hosts", hosts)
 	err = st.stdPostAPI("/renter", allowanceValues)
 	if err != nil {
 		t.Fatal(err)
+	}
+	//Wait for contract formed
+	timerStart := time.Now()
+	var rc RenterContracts
+	for len(rc.Contracts) < 1 && time.Since(timerStart) < 25*time.Second {
+		err = st.getAPI("/renter/contracts", &rc)
+		if len(rc.Contracts) < 1 {
+			time.Sleep(time.Second)
+		}
+	}
+	if err != nil {
+		t.Fatal(errors.AddContext(err, "allowance settings failed"))
+	}
+	if len(rc.Contracts) < 1 {
+		t.Fatalf("No contracts could be formed with allowance: %+v", allowanceValues)
 	}
 
 	// Create a file.
@@ -76,7 +92,6 @@ func setupTestDownload(t *testing.T, size int, name string, waitOnRedundancy boo
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	// Upload to host.
 	uploadValues := url.Values{}
 	uploadValues.Set("source", path)
@@ -94,7 +109,7 @@ func setupTestDownload(t *testing.T, size int, name string, waitOnRedundancy boo
 			var rf RenterFile
 			st.getAPI("/renter/file/"+name, &rf)
 			if rf.File.Redundancy < 1 {
-				return fmt.Errorf("the uploading is not succeeding for some reason: %v", rf.File)
+				return fmt.Errorf("the uploading is not succeeding for some reason: %+v", rf.File)
 			}
 			return nil
 		})
@@ -865,7 +880,7 @@ func TestRenterHandlerRename(t *testing.T) {
 	allowanceValues.Set("funds", testFunds)
 	allowanceValues.Set("period", testPeriod)
 	allowanceValues.Set("renewwindow", testRenewWindow)
-	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
+	allowanceValues.Set("hosts", hosts)
 	if err = st.stdPostAPI("/renter", allowanceValues); err != nil {
 		t.Fatal(err)
 	}
@@ -883,7 +898,7 @@ func TestRenterHandlerRename(t *testing.T) {
 		return nil
 	})
 	if err != nil {
-		t.Fatal("allowance setting failed")
+		t.Fatal(errors.AddContext(err, "allowance settings failed"))
 	}
 
 	// Create a file.
@@ -1178,17 +1193,6 @@ func TestRenterPricesHandler(t *testing.T) {
 	if err = st.announceHost(); err != nil {
 		t.Fatal(err)
 	}
-
-	// Set an allowance for the renter, allowing a contract to be formed.
-	allowanceValues := url.Values{}
-	allowanceValues.Set("funds", testFunds)
-	allowanceValues.Set("period", testPeriod)
-	allowanceValues.Set("renewwindow", testRenewWindow)
-	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
-	if err = st.stdPostAPI("/renter", allowanceValues); err != nil {
-		t.Fatal(err)
-	}
-
 	if err = st.getAPI("/renter/prices", &rpeSingle); err != nil {
 		t.Fatal(err)
 	}
@@ -1266,18 +1270,6 @@ func TestRenterPricesHandlerPricey(t *testing.T) {
 	if err = st.announceHost(); err != nil {
 		t.Fatal(err)
 	}
-
-	// Set an allowance for the renter, allowing a contract to be formed.
-	// TODO: Try withot allowance (use defaults)
-	//allowanceValues := url.Values{}
-	//allowanceValues.Set("funds", testFunds)
-	//allowanceValues.Set("period", testPeriod)
-	//allowanceValues.Set("renewwindow", testRenewWindow)
-	//allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
-	//if err = st.stdPostAPI("/renter", allowanceValues); err != nil {
-	//	t.Fatal(err)
-	//}
-
 	if err = st.getAPI("/renter/prices", &rpeSingle); err != nil {
 		t.Fatal(err)
 	}

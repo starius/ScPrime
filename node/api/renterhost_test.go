@@ -186,7 +186,7 @@ func TestHostAndRentVanilla(t *testing.T) {
 
 	// Set an allowance for the renter, allowing a contract to be formed.
 	allowanceValues := url.Values{}
-	testFunds := "100000000000000000000000000000" // 100k SC
+	testFunds := "300000000000000000000000000000" // 300k SC
 	testPeriod := "20"
 	renewWindow := "10"
 	testPeriodInt := 20
@@ -200,19 +200,19 @@ func TestHostAndRentVanilla(t *testing.T) {
 	}
 
 	// Block until the allowance has finished forming contracts.
-	err = build.Retry(50, time.Millisecond*250, func() error {
+	err = build.Retry(100, time.Millisecond*250, func() error {
 		var rc RenterContracts
 		err = st.getAPI("/renter/contracts", &rc)
 		if err != nil {
 			return errors.New("couldn't get renter stats")
 		}
-		if len(rc.Contracts) != 1 {
+		if len(rc.Contracts) < 1 {
 			return errors.New("no contracts")
 		}
 		return nil
 	})
 	if err != nil {
-		t.Fatal("allowance setting failed")
+		t.Fatal("allowance settings failed")
 	}
 
 	// Check the host, who should now be reporting file contracts.
@@ -319,7 +319,7 @@ func TestHostAndRentVanilla(t *testing.T) {
 	if len(queue.Downloads) != 1 {
 		t.Fatalf("expected renter to have 1 download in the queue; got %v", len(queue.Downloads))
 	}
-
+	time.Sleep(5 * time.Second)
 	// Try downloading the second file.
 	downpath2 := filepath.Join(st.dir, "testdown2.dat")
 	err = st.stdGetAPI("/renter/download/test2?destination=" + downpath2)
@@ -913,15 +913,34 @@ func TestRenterParallelDelete(t *testing.T) {
 
 	// Set an allowance for the renter, allowing a contract to be formed.
 	allowanceValues := url.Values{}
-	testFunds := "10000000000000000000000000000" // 10k SC
+	testFunds := "300000000000000000000000000000" // 300k SC
 	testPeriod := "10"
 	allowanceValues.Set("funds", testFunds)
 	allowanceValues.Set("period", testPeriod)
 	allowanceValues.Set("renewwindow", testRenewWindow)
-	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
+	allowanceValues.Set("hosts", "10")
+	allowanceValues.Set("expectedstorage", "8192")
+	allowanceValues.Set("expectedupload", "4096")
+	allowanceValues.Set("expecteddownload", "4096")
 	err = st.stdPostAPI("/renter", allowanceValues)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// Block until the allowance has finished forming contracts.
+	err = build.Retry(50, time.Millisecond*250, func() error {
+		var rc RenterContracts
+		err = st.getAPI("/renter/contracts", &rc)
+		if err != nil {
+			return errors.New("couldn't get renter stats")
+		}
+		if len(rc.Contracts) < 1 {
+			return errors.New("no contracts")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(errors.AddContext(err, "allowance settings failed"))
 	}
 
 	// Create two files.
@@ -973,12 +992,13 @@ func TestRenterParallelDelete(t *testing.T) {
 
 	// Wait for the second upload to complete.
 	var file RenterFile
-	for i := 0; i < 200 && file.File.UploadProgress < 10; i++ {
+	uploadStart := time.Now()
+	for file.File.UploadProgress < 10 && time.Since(uploadStart) < 60*time.Second {
+		time.Sleep(time.Second)
 		st.getAPI("/renter/file/test2", &file)
-		time.Sleep(100 * time.Millisecond)
 	}
 	if file.File.UploadProgress < 10 {
-		t.Fatal("Expected upload progress to be >=10 but was", file.File.UploadProgress)
+		t.Fatal("File does not upload. After 60s expected upload progress to be >=10 but was", file.File.UploadProgress)
 	}
 
 	// In parallel, download and delete the second file.
@@ -1096,10 +1116,12 @@ func TestRenterRenew(t *testing.T) {
 		t.Fatal(err)
 	}
 	contractID := rc.Contracts[0].ID
+	contractEndHeight := rc.Contracts[0].EndHeight
 
 	// Mine enough blocks to enter the renewal window.
-	testWindow := testPeriod / 2
-	for i := 0; i < testWindow+1; i++ {
+	testWin, _ := strconv.Atoi(allowanceValues.Get("renewwindow"))
+	renewBlock := contractEndHeight - types.BlockHeight(testWin) + 1
+	for st.cs.Height() < renewBlock {
 		_, err = st.miner.AddBlock()
 		if err != nil {
 			t.Fatal(err)
@@ -1279,7 +1301,7 @@ func TestHostAndRentReload(t *testing.T) {
 
 	// Set an allowance for the renter, allowing a contract to be formed.
 	allowanceValues := url.Values{}
-	testFunds := "100000000000000000000000000000" // 100k SC
+	testFunds := "10000000000000000000000000000" // 10k SC
 	testPeriod := "10"
 	allowanceValues.Set("funds", testFunds)
 	allowanceValues.Set("period", testPeriod)
@@ -1327,10 +1349,8 @@ func TestHostAndRentReload(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 	if len(rf.Files) != 1 || rf.Files[0].UploadProgress < 10 {
-		rflen := len(rf.Files)
-		t.Logf("rf.Files has %v elements\n", rflen)
-
-		t.Fatal("the uploading is not succeeding for some reason:", rf.Files[0])
+		t.Logf("rf.Files has %v elements\n", len(rf.Files))
+		t.Fatalf("the uploading is not succeeding for some reason: %+v", rf.Files[0])
 	}
 
 	// Try downloading the file.
