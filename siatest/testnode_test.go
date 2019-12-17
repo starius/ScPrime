@@ -99,7 +99,7 @@ func TestNodeBlacklistConnections(t *testing.T) {
 
 	// Create a miner and connect to the group
 	minerParams := node.Miner(filepath.Join(testDir, "miner"))
-	miner, err := NewCleanNodeAsync(minerParams)
+	miner, err := newCleanNode(minerParams, false)
 	if err != nil {
 		t.Fatal(err)
 	}
