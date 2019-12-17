@@ -17,7 +17,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.2.0
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.5.0
-	github.com/xtaci/smux v2.0.1+incompatible
+	github.com/xtaci/smux v1.4.4
 	gitlab.com/NebulousLabs/demotemutex v0.0.0-20151003192217-235395f71c40
 	gitlab.com/NebulousLabs/entropy-mnemonics v0.0.0-20181018051301-7532f67e3500
 	gitlab.com/NebulousLabs/errors v0.0.0-20171229012116-7ead97ef90b8
