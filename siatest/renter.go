@@ -23,6 +23,10 @@ var (
 	ErrFileNotTracked = errors.New("file is not tracked by renter")
 )
 
+const (
+	time30s = time.Second * 30
+)
+
 // DownloadToDisk downloads a previously uploaded file. The file will be downloaded
 // to a random location and returned as a LocalFile object.
 func (tn *TestNode) DownloadToDisk(rf *RemoteFile, async bool) (modules.DownloadID, *LocalFile, error) {
@@ -415,17 +419,16 @@ func (tn *TestNode) WaitForUploadHealth(rf *RemoteFile) error {
 	if _, err := tn.File(rf); err != nil {
 		return ErrFileNotTracked
 	}
+	file, err := tn.File(rf)
+	if err != nil {
+		return errors.Extend(ErrFileNotTracked, err)
+	}
 	// Wait until the file is viewed as healthy by the renter
-	err := Retry(1000, 100*time.Millisecond, func() error {
-		file, err := tn.File(rf)
-		if err != nil {
-			return ErrFileNotTracked
-		}
-		if file.MaxHealth >= renter.RepairThreshold {
-			return fmt.Errorf("file is not healthy yet, threshold is %v but health is %v", renter.RepairThreshold, file.MaxHealth)
-		}
-		return nil
-	})
+	start := time.Now()
+	for err == nil && file.Health < renter.RepairThreshold && time.Since(start) < time30s {
+		time.Sleep(time.Second)
+		file, err = tn.File(rf)
+	}
 	if err != nil {
 		rc, err2 := tn.RenterContractsGet()
 		if err2 != nil {
@@ -438,6 +441,9 @@ func (tn *TestNode) WaitForUploadHealth(rf *RemoteFile) error {
 			}
 		}
 		return errors.Compose(err, fmt.Errorf("%v available hosts", goodHosts))
+	}
+	if file.Health < renter.RepairThreshold {
+		return fmt.Errorf("file is not healthy yet, threshold is %v but health is %v", renter.RepairThreshold, file.Health)
 	}
 	return nil
 }

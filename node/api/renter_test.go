@@ -66,7 +66,7 @@ func setupTestDownload(t *testing.T, size int, name string, waitOnRedundancy boo
 	allowanceValues.Set("period", testPeriod)
 	allowanceValues.Set("renewwindow", renewWindow)
 	allowanceValues.Set("hosts", hosts)
-	allowanceValues.Set("expectedstorage", "10240")
+	allowanceValues.Set("expectedstorage", "8192")
 	allowanceValues.Set("expectedupload", "4096")
 	allowanceValues.Set("expecteddownload", "4096")
 	err = st.stdPostAPI("/renter", allowanceValues)
@@ -76,14 +76,13 @@ func setupTestDownload(t *testing.T, size int, name string, waitOnRedundancy boo
 	//Wait for contract formed
 	timerStart := time.Now()
 	var rc RenterContracts
-	for len(rc.Contracts) < 1 && time.Since(timerStart) < 30*time.Second {
+	err = st.getAPI("/renter/contracts", &rc)
+	for err == nil && len(rc.Contracts) < 1 && time.Since(timerStart) < 30*time.Second {
+		time.Sleep(time.Second)
 		err = st.getAPI("/renter/contracts", &rc)
-		if len(rc.Contracts) < 1 {
-			time.Sleep(time.Second)
-		}
 	}
 	if err != nil {
-		t.Fatal(errors.AddContext(err, "allowance settings failed"))
+		t.Fatal(errors.AddContext(err, "Contracts query failed"))
 	}
 	if len(rc.Contracts) < 1 {
 		t.Fatalf("No contracts could be formed with allowance: %+v", allowanceValues)
