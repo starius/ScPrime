@@ -6,17 +6,22 @@ require (
 	github.com/coreos/bbolt v1.3.3
 	github.com/dchest/threefish v0.0.0-20120919164726-3ecf4c494abf
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/golangci/golangci-lint v1.21.0 // indirect
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/karrick/godirwalk v1.13.4
 	github.com/klauspost/cpuid v1.2.2 // indirect
 	github.com/klauspost/reedsolomon v1.9.3
+	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
 	github.com/sasha-s/go-deadlock v0.2.0
+	github.com/spf13/afero v1.2.2 // indirect
+	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v0.0.5
-	github.com/spf13/viper v1.5.0
+	github.com/spf13/jwalterweatherman v1.1.0 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/viper v1.6.1
+	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/xtaci/smux v1.4.4
 	gitlab.com/NebulousLabs/demotemutex v0.0.0-20151003192217-235395f71c40
 	gitlab.com/NebulousLabs/entropy-mnemonics v0.0.0-20181018051301-7532f67e3500
@@ -29,5 +34,9 @@ require (
 	gitlab.com/SiaPrime/writeaheadlog v0.0.0-20190830195947-8d9d57b6e40f
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect
-	golang.org/x/sys v0.0.0-20191210023423-ac6580df4449 // indirect
+	golang.org/x/sys v0.0.0-20191224085550-c709ea063b76 // indirect
+	golang.org/x/text v0.3.2 // indirect
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	gopkg.in/ini.v1 v1.51.1 // indirect
+	gopkg.in/yaml.v2 v2.2.7 // indirect
 )
