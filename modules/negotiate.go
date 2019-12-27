@@ -222,9 +222,9 @@ var (
 	// sectors significantly reduce the tracking overhead experienced by the
 	// renter and the host.
 	SectorSize = build.Select(build.Var{
-		Dev:      uint64(1 << 18), // 256 KiB
-		Standard: uint64(1 << 22), // 4 MiB
-		Testing:  uint64(1 << 12), // 4 KiB
+		Dev:      uint64(1 << 18), // 262144 = 256 KiB
+		Standard: uint64(1 << 22), // 4194304 = 4 MiB
+		Testing:  uint64(1 << 12), // 4096 = 4 KiB
 	}).(uint64)
 )
 

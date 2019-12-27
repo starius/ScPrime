@@ -534,7 +534,7 @@ func (st *serverTester) acceptContracts() error {
 func (st *serverTester) setHostStorage() error {
 	values := url.Values{}
 	values.Set("path", st.dir)
-	values.Set("size", "10485760")
+	values.Set("size", "16777216") //16MiB
 	return st.stdPostAPI("/host/storage/folders/add", values)
 }
 

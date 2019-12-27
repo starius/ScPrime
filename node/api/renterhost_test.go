@@ -200,19 +200,20 @@ func TestHostAndRentVanilla(t *testing.T) {
 	}
 
 	// Block until the allowance has finished forming contracts.
-	err = build.Retry(100, time.Millisecond*250, func() error {
-		var rc RenterContracts
+	var rc RenterContracts
+	err = st.getAPI("/renter/contracts", &rc)
+	start := time.Now()
+	for time.Since(start) < 30*time.Second && len(rc.Contracts) < 1 {
 		err = st.getAPI("/renter/contracts", &rc)
-		if err != nil {
-			return errors.New("couldn't get renter stats")
-		}
 		if len(rc.Contracts) < 1 {
-			return errors.New("no contracts")
+			time.Sleep(time.Millisecond * 500)
 		}
-		return nil
-	})
+	}
 	if err != nil {
-		t.Fatal("allowance settings failed")
+		t.Fatalf("Error querying contracts: %v", errors.New("couldn't get renter stats"))
+	}
+	if len(rc.Contracts) < 1 {
+		t.Fatal("No contracts formed")
 	}
 
 	// Check the host, who should now be reporting file contracts.
@@ -775,6 +776,9 @@ func TestRenterUploadDownload(t *testing.T) {
 	allowanceValues.Set("period", testPeriod)
 	allowanceValues.Set("renewwindow", testRenewWindow)
 	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
+	allowanceValues.Set("expectedstorage", "10240")
+	allowanceValues.Set("expectedupload", "4096")
+	allowanceValues.Set("expecteddownload", "4096")
 	err = st.stdPostAPI("/renter", allowanceValues)
 	if err != nil {
 		t.Fatal(err)
@@ -1307,6 +1311,9 @@ func TestHostAndRentReload(t *testing.T) {
 	allowanceValues.Set("period", testPeriod)
 	allowanceValues.Set("renewwindow", testRenewWindow)
 	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
+	allowanceValues.Set("expectedstorage", "10240")
+	allowanceValues.Set("expectedupload", "4096")
+	allowanceValues.Set("expecteddownload", "4096")
 	err = st.stdPostAPI("/renter", allowanceValues)
 	if err != nil {
 		t.Fatal(err)
@@ -1319,7 +1326,7 @@ func TestHostAndRentReload(t *testing.T) {
 		if err != nil {
 			return errors.New("couldn't get renter stats")
 		}
-		if len(rc.Contracts) != 1 {
+		if len(rc.Contracts) < 1 {
 			return errors.New("no contracts")
 		}
 		return nil
@@ -1344,9 +1351,11 @@ func TestHostAndRentReload(t *testing.T) {
 	}
 	// Only one piece will be uploaded (10% at current redundancy).
 	var rf RenterFiles
-	for i := 0; i < 200 && (len(rf.Files) != 1 || rf.Files[0].UploadProgress < 10); i++ {
+	st.getAPI("/renter/files", &rf)
+	start := time.Now()
+	for time.Since(start) < 30*time.Second && (len(rf.Files) != 1 || rf.Files[0].UploadProgress < 10) {
 		st.getAPI("/renter/files", &rf)
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(time.Second)
 	}
 	if len(rf.Files) != 1 || rf.Files[0].UploadProgress < 10 {
 		t.Logf("rf.Files has %v elements\n", len(rf.Files))

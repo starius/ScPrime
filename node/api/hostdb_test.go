@@ -233,7 +233,7 @@ func TestHostDBHostsHandler(t *testing.T) {
 		t.Error("One value in host score breakdown")
 	}
 	if hh.ScoreBreakdown.UptimeAdjustment == 1 {
-		t.Error("One value in host score breakdown")
+		t.Error("ScoreBreakdown.UptimeAdjustment value =1 in host score breakdown")
 	}
 	if hh.ScoreBreakdown.VersionAdjustment == 1 {
 		t.Error("One value in host score breakdown")

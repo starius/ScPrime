@@ -66,6 +66,9 @@ func setupTestDownload(t *testing.T, size int, name string, waitOnRedundancy boo
 	allowanceValues.Set("period", testPeriod)
 	allowanceValues.Set("renewwindow", renewWindow)
 	allowanceValues.Set("hosts", hosts)
+	allowanceValues.Set("expectedstorage", "10240")
+	allowanceValues.Set("expectedupload", "4096")
+	allowanceValues.Set("expecteddownload", "4096")
 	err = st.stdPostAPI("/renter", allowanceValues)
 	if err != nil {
 		t.Fatal(err)
@@ -73,7 +76,7 @@ func setupTestDownload(t *testing.T, size int, name string, waitOnRedundancy boo
 	//Wait for contract formed
 	timerStart := time.Now()
 	var rc RenterContracts
-	for len(rc.Contracts) < 1 && time.Since(timerStart) < 25*time.Second {
+	for len(rc.Contracts) < 1 && time.Since(timerStart) < 30*time.Second {
 		err = st.getAPI("/renter/contracts", &rc)
 		if len(rc.Contracts) < 1 {
 			time.Sleep(time.Second)
@@ -466,7 +469,7 @@ func TestRenterAsyncDownload(t *testing.T) {
 	}
 	t.Parallel()
 
-	st, _ := setupTestDownload(t, 1e4, "test.dat", true)
+	st, _ := setupTestDownload(t, 8000, "test.dat", true)
 	defer st.server.panicClose()
 
 	// Download the file asynchronously.
@@ -478,23 +481,27 @@ func TestRenterAsyncDownload(t *testing.T) {
 
 	// download should eventually complete
 	var rdq RenterDownloadQueue
+	err = st.getAPI("/renter/downloads", &rdq)
 	success := false
-	for start := time.Now(); time.Since(start) < 30*time.Second; time.Sleep(time.Millisecond * 10) {
+	start := time.Now()
+	var expected, received uint64
+	for !success && time.Since(start) < 30*time.Second {
+		received = 0
+		expected = 0
+		time.Sleep(time.Millisecond * 100)
 		err = st.getAPI("/renter/downloads", &rdq)
 		if err != nil {
 			t.Fatal(err)
 		}
+		success = true
 		for _, download := range rdq.Downloads {
-			if download.Received == download.Filesize && download.SiaPath.String() == "test.dat" {
-				success = true
-			}
-		}
-		if success {
-			break
+			received += download.Received
+			expected += download.Filesize
+			success = success && download.Received == download.Filesize && download.SiaPath.String() == "test.dat"
 		}
 	}
 	if !success {
-		t.Fatal("/renter/downloadasync did not download our test file")
+		t.Fatalf("/renter/downloadasync did not complete. Expected %v, received %v", expected, received)
 	}
 }
 
@@ -642,9 +649,9 @@ func TestRenterHandlerContracts(t *testing.T) {
 	allowanceValues.Set("period", testPeriod)
 	allowanceValues.Set("renewwindow", testRenewWindow)
 	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
-	allowanceValues.Set("expectedstorage", fmt.Sprint(modules.DefaultAllowance.ExpectedStorage))
-	allowanceValues.Set("expectedupload", fmt.Sprint(modules.DefaultAllowance.ExpectedStorage))
-	allowanceValues.Set("expecteddownload", fmt.Sprint(modules.DefaultAllowance.ExpectedStorage))
+	allowanceValues.Set("expectedstorage", "10240")
+	allowanceValues.Set("expectedupload", "4096")
+	allowanceValues.Set("expecteddownload", "4096")
 	allowanceValues.Set("expectedredundancy", fmt.Sprint(modules.DefaultAllowance.ExpectedRedundancy))
 	if err = st.stdPostAPI("/renter", allowanceValues); err != nil {
 		t.Fatal(err)
@@ -1270,6 +1277,15 @@ func TestRenterPricesHandlerPricey(t *testing.T) {
 	if err = st.announceHost(); err != nil {
 		t.Fatal(err)
 	}
+
+	//Wait for hostdb initial scan completion
+	hostdbcontents, err := st.renter.ActiveHosts()
+	startTime := time.Now()
+	for len(hostdbcontents) < 1 && time.Since(startTime) < 15*time.Second {
+		time.Sleep(500 * time.Millisecond)
+		hostdbcontents, err = st.renter.ActiveHosts()
+	}
+
 	if err = st.getAPI("/renter/prices", &rpeSingle); err != nil {
 		t.Fatal(err)
 	}

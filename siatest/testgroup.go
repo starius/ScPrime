@@ -47,7 +47,7 @@ var (
 		Period:      50,
 		RenewWindow: 24,
 
-		ExpectedStorage:    modules.SectorSize * 10e3,
+		ExpectedStorage:    modules.SectorSize * 2048, //=8 MiB in testing
 		ExpectedUpload:     modules.SectorSize * 5e3,
 		ExpectedDownload:   modules.SectorSize * 5e3,
 		ExpectedRedundancy: 5.0,
@@ -80,7 +80,7 @@ func NewGroup(groupDir string, nodeParams ...node.NodeParams) (*TestGroup, error
 	// Create node and add it to the correct groups
 	nodes := make([]*TestNode, 0, len(nodeParams))
 	for _, np := range nodeParams {
-		node, err := NewCleanNodeAsync(np)
+		node, err := newCleanNode(np, false)
 		if err != nil {
 			return nil, errors.AddContext(err, "failed to create clean node")
 		}
@@ -157,7 +157,7 @@ func addStorageFolderToHosts(hosts map[*TestNode]struct{}) error {
 	for host := range hosts {
 		wg.Add(1)
 		go func(i int, host *TestNode) {
-			storage := 4 * contractmanager.MinimumSectorsPerStorageFolder * modules.SectorSize
+			storage := 6 * contractmanager.MinimumSectorsPerStorageFolder * modules.SectorSize
 			if host.params.HostStorage > 0 {
 				storage = host.params.HostStorage
 			}
