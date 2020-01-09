@@ -110,7 +110,7 @@ func parsePeriod(period string) (string, error) {
 // units. The unit used will be the largest unit that results in a value
 // greater than 1. The value is rounded to 4 significant digits.
 func currencyUnits(c types.Currency) string {
-	pico := types.SiacoinPrecision.Div64(1e12)
+	pico := types.ExternalSiacoinPrecision.Div64(1e12)
 	if c.Cmp(pico) < 0 {
 		return c.String() + " H"
 	}
@@ -146,7 +146,7 @@ func parseCurrency(amount string) (string, error) {
 				return "", errors.New("malformed amount")
 			}
 			// convert units
-			exp := 24 + 3*(int64(i)-4)
+			exp := 26 + 3*(int64(i)-4)
 			mag := new(big.Int).Exp(big.NewInt(10), big.NewInt(exp), nil)
 			r.Mul(r, new(big.Rat).SetInt(mag))
 			// r must be an integer at this point

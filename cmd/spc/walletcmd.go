@@ -67,7 +67,7 @@ be valid. txn may be either JSON, base64, or a file containing either.`,
 		Long: `Generate a new address, send coins to another wallet, or view info about the wallet.
 
 Units:
-The smallest unit of scprimecoins is the hasting. One scprimecoin is 10^24 hastings. Other supported units are:
+The smallest unit of scprimecoins is the hasting. One scprimecoin is 10^26 hastings. Other supported units are:
   pS (pico,  10^-12 SCP)
   nS (nano,  10^-9 SCP)
   uS (micro, 10^-6 SCP)
@@ -600,8 +600,8 @@ func wallettransactionscmd() {
 		}
 
 		// Convert the siacoins to a float.
-		incomingSiacoinsFloat, _ := new(big.Rat).SetFrac(txn.ConfirmedIncomingValue.Big(), types.SiacoinPrecision.Big()).Float64()
-		outgoingSiacoinsFloat, _ := new(big.Rat).SetFrac(txn.ConfirmedOutgoingValue.Big(), types.SiacoinPrecision.Big()).Float64()
+		incomingSiacoinsFloat, _ := new(big.Rat).SetFrac(txn.ConfirmedIncomingValue.Big(), types.ExternalSiacoinPrecision.Big()).Float64()
+		outgoingSiacoinsFloat, _ := new(big.Rat).SetFrac(txn.ConfirmedOutgoingValue.Big(), types.ExternalSiacoinPrecision.Big()).Float64()
 
 		// Print the results.
 		if uint64(txn.ConfirmationTimestamp) != unconfirmedTransactionTimestamp {
