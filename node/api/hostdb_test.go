@@ -707,7 +707,7 @@ func TestHostDBAndRenterUploadDynamicIPs(t *testing.T) {
 
 	// Upload a file to the host.
 	allowanceValues := url.Values{}
-	testFunds := "10000000000000000000000000000" // 10k SC
+	testFunds := "100000000000000000000000000000" // 100k SC
 	testPeriod := "10"
 	testPeriodInt := 10
 	allowanceValues.Set("funds", testFunds)
