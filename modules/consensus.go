@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	//"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
@@ -255,7 +254,6 @@ type (
 		// SiafundClaim returns number of siacoins claimed by given SiafundOutput.
 		// It takes into account height and hardfork changes.
 		SiafundClaim(types.SiafundOutput) types.Currency
-		// Db() *persist.BoltDatabase
 	}
 )
 

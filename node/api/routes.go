@@ -37,7 +37,6 @@ func (api *API) buildHTTPRoutes() {
 		router.GET("/consensus/blocks", api.consensusBlocksHandler)
 		router.POST("/consensus/validate/transactionset", api.consensusValidateTransactionsetHandler)
 		router.GET("/consensus/blocks/:height", api.consensusBlocksHandlerSanasol)
-		//router.GET("/consensus/future/:height", api.consensusFutureBlocksHandler)
 	}
 
 	// Explorer API Calls
