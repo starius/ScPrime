@@ -12,19 +12,17 @@ import (
 	"syscall"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
-
-	"github.com/spf13/cobra"
-	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
-	"golang.org/x/crypto/ssh/terminal"
-
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
+	"gitlab.com/SiaPrime/SiaPrime/node/api"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
+	"github.com/spf13/cobra"
+	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
 	"gitlab.com/NebulousLabs/errors"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
@@ -70,7 +68,7 @@ be valid. txn may be either JSON, base64, or a file containing either.`,
 		Long: `Generate a new address, send coins to another wallet, or view info about the wallet.
 
 Units:
-The smallest unit of scprimecoins is the hasting. One scprimecoin is 10^26 hastings. Other supported units are:
+The smallest unit of scprimecoins is the hasting. One scprimecoin is 10^27 hastings. Other supported units are:
   pS (pico,  10^-12 SCP)
   nS (nano,  10^-9 SCP)
   uS (micro, 10^-6 SCP)

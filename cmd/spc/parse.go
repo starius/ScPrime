@@ -156,7 +156,7 @@ func parseCurrency(amount string) (string, error) {
 				return "", errors.New("malformed amount")
 			}
 			// convert units
-			exp := 26 + 3*(int64(i)-4)
+			exp := 27 + 3*(int64(i)-4)
 			mag := new(big.Int).Exp(big.NewInt(10), big.NewInt(exp), nil)
 			r.Mul(r, new(big.Rat).SetInt(mag))
 			// r must be an integer at this point
