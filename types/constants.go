@@ -202,6 +202,8 @@ var (
 	// The base unit for Bitcoin is called a satoshi. We call 10^8 satoshis a bitcoin,
 	// even though the code itself only ever works with satoshis.
 	SiacoinPrecision = NewCurrency(new(big.Int).Exp(big.NewInt(10), big.NewInt(24), nil))
+	// ExternalSiacoinPrecision is the number of base units in a siacoin that is used by client.
+	ExternalSiacoinPrecision = NewCurrency(new(big.Int).Exp(big.NewInt(10), big.NewInt(26), nil))
 	// OldSiafundCount is the total number of Siafunds in existence before the SPF hardfork.
 	OldSiafundCount = NewCurrency64(10000)
 	// NewSiafundCount is the total number of Siafunds in existence after the SPF hardfork.

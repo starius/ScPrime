@@ -666,7 +666,7 @@ contracts later in the billing cycle will be reported as 'unspent unallocated'.
 The command 'spc renter allowance' can be used to see a breakdown of spending.
 
 The following units can be used to set the allowance:
-    H   (10^24 H per scprimecoin)
+    H   (10^26 H per scprimecoin)
     SPC (1 scprimecoin per SPC)
     KS  (1000 scprimecoins per KS)`)
 	fmt.Println()
