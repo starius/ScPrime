@@ -24,7 +24,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
 	"gitlab.com/SiaPrime/SiaPrime/modules/host"
 	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miningpool"
+	pool "gitlab.com/SiaPrime/SiaPrime/modules/miningpool"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb"
@@ -276,7 +276,9 @@ func New(params NodeParams) (*Node, <-chan error) {
 		errChan <- errors.Extend(err, errors.New("unable to create gateway"))
 		return nil, errChan
 	}
-	printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+	if g != nil {
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+	}
 
 	// Consensus.
 	loadStart = time.Now()
@@ -294,7 +296,7 @@ func New(params NodeParams) (*Node, <-chan error) {
 			return nil, c
 		}
 		i++
-		printfRelease("(%d/%d) Loading consensus...\n", i, numModules)
+		printfRelease("(%d/%d) Loading consensus...", i, numModules)
 		consensusSetDeps := params.ConsensusSetDeps
 		if consensusSetDeps == nil {
 			consensusSetDeps = modules.ProdDependencies
@@ -305,7 +307,9 @@ func New(params NodeParams) (*Node, <-chan error) {
 		errChan <- errors.Extend(err, errors.New("unable to create consensus set"))
 		return nil, errChan
 	}
-	printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+	if cs != nil {
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+	}
 
 	// Explorer.
 	loadStart = time.Now()
