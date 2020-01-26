@@ -1194,7 +1194,12 @@ func TestRenterBadContracts(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(rcg.ActiveContracts) != 2 {
-		t.Fatal("expecting 2 active contracts formed with the 2 hosts", len(rcg.ActiveContracts))
+		// give it another try
+		time.Sleep(time.Second)
+		rcg, _ = r.RenterContractsGet()
+		if len(rcg.ActiveContracts) != 2 {
+			t.Fatal("expecting 2 active contracts formed with the 2 hosts", len(rcg.ActiveContracts))
+		}
 	}
 
 	// Upload a file, which will cause the renter to open a session with all of
