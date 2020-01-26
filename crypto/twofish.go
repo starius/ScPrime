@@ -25,7 +25,7 @@ type (
 	TwofishKey [EntropySize]byte
 )
 
-// generateTwofishKey produces a TwofishKey that can be used for encrypting and
+// generateTwofishKey produces a twofishKey that can be used for encrypting and
 // decrypting data using Twofish-GCM.
 func generateTwofishKey() (key TwofishKey) {
 	fastrand.Read(key[:])
@@ -41,7 +41,7 @@ func (key TwofishKey) newCipher() cipher.Block {
 	return cipher
 }
 
-// newTwofishKey creates a new TwofishKey from a given entropy.
+// newTwofishKey creates a new twofishKey from a given entropy.
 func newTwofishKey(entropy []byte) (key TwofishKey, err error) {
 	// check key length
 	if len(entropy) != len(key) {

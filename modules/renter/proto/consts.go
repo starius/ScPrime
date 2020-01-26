@@ -7,6 +7,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 const (
@@ -49,7 +51,7 @@ var (
 	defaultContractLockTimeout = build.Select(build.Var{
 		Dev:      uint64(60 * 1000),     // 1 minute
 		Standard: uint64(5 * 60 * 1000), // 5 minutes
-		Testing:  uint64(5 * 1000),      // 5 seconds
+		Testing:  uint64(25 * 1000),     // 25 seconds
 	}).(uint64)
 
 	// ephemeralSeedInterval is the amount of blocks after which we use a new
@@ -85,4 +87,10 @@ var (
 		}
 		return height
 	}()
+)
+
+var (
+	// ErrBadHostVersion indicates that the host is using an older, incompatible
+	// version of the renter-host protocol.
+	ErrBadHostVersion = errors.New("Bad host version; host does not support required protocols")
 )

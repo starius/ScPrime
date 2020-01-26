@@ -233,7 +233,7 @@ func TestHostDBHostsHandler(t *testing.T) {
 		t.Error("One value in host score breakdown")
 	}
 	if hh.ScoreBreakdown.UptimeAdjustment == 1 {
-		t.Error("One value in host score breakdown")
+		t.Error("ScoreBreakdown.UptimeAdjustment value =1 in host score breakdown")
 	}
 	if hh.ScoreBreakdown.VersionAdjustment == 1 {
 		t.Error("One value in host score breakdown")
@@ -254,8 +254,8 @@ func assembleHostPort(key crypto.CipherKey, hostHostname string, testdir string)
 	if err != nil {
 		return nil, err
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -288,8 +288,8 @@ func assembleHostPort(key crypto.CipherKey, hostHostname string, testdir string)
 	if err != nil {
 		return nil, err
 	}
-	r, err := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
-	if err != nil {
+	r, errChan := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	srv, err := NewServer(testdir, "localhost:0", "Sia-PrimeAgent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
@@ -707,7 +707,7 @@ func TestHostDBAndRenterUploadDynamicIPs(t *testing.T) {
 
 	// Upload a file to the host.
 	allowanceValues := url.Values{}
-	testFunds := "10000000000000000000000000000" // 10k SC
+	testFunds := "100000000000000000000000000000" // 100k SC
 	testPeriod := "10"
 	testPeriodInt := 10
 	allowanceValues.Set("funds", testFunds)

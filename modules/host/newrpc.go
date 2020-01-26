@@ -8,11 +8,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	bolt "github.com/coreos/bbolt"
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	bolt "github.com/coreos/bbolt"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // managedRPCLoopSettings writes an RPC response containing the host's
@@ -69,8 +70,8 @@ func (h *Host) managedRPCLoopLock(s *rpcSession) error {
 		return err
 	})
 	h.mu.RUnlock()
-	if err != nil {
-		s.writeError(errors.New("no record of that contract"))
+	if err != nil || h.dependencies.Disrupt("loopLockNoRecordOfThatContract") {
+		s.writeError(errors.New(modules.V1413ContractNotRecognizedErrString))
 		return extendErr("could get storage obligation "+req.ContractID.String()+": ", err)
 	}
 

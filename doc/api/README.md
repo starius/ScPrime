@@ -1,6 +1,3 @@
-Transaction Pool API
-=========
-
 The Sia API documentation can be found here:
 [Sia API](https://sia.tech/docs/ "Sia API")
 

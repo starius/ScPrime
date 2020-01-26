@@ -10,12 +10,38 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/fastrand"
 	"golang.org/x/crypto/chacha20poly1305"
+)
+
+const (
+	// MinimumSupportedRenterHostProtocolVersion is the minimum version of Sia
+	// that supports the currently used version of the renter-host protocol.
+	MinimumSupportedRenterHostProtocolVersion = "1.4.1"
+
+	// V1413HostOutOfStorageErrString is the string used by hosts since before
+	// version 1.4.1.3 to indicate that they have run out of storage.
+	//
+	// Any update to this string needs to be done by making a new variable. This
+	// variable should not be changed. IsOOSErr() needs to be updated to include
+	// the new string while also still checking the old string as well to
+	// preserve compatibility.
+	V1413HostOutOfStorageErrString = "not enough storage remaining to accept sector"
+
+	// V1413ContractNotRecognizedErrString is the string used by hosts since
+	// before version 1.4.1.3 to indicate that they do not recognize the
+	// contract that the renter is trying to update.
+	//
+	// Any update to this string needs to be done by making a new variable. This
+	// variable should not be changed. IsContractNotRecognizedErr() needs to be
+	// updated to include the new string while also still checking the old
+	// string as well to preserve compatibility.
+	V1413ContractNotRecognizedErrString = "no record of that contract"
 )
 
 const (
@@ -196,9 +222,9 @@ var (
 	// sectors significantly reduce the tracking overhead experienced by the
 	// renter and the host.
 	SectorSize = build.Select(build.Var{
-		Dev:      uint64(1 << 18), // 256 KiB
-		Standard: uint64(1 << 22), // 4 MiB
-		Testing:  uint64(1 << 12), // 4 KiB
+		Dev:      uint64(1 << 18), // 262144 = 256 KiB
+		Standard: uint64(1 << 22), // 4194304 = 4 MiB
+		Testing:  uint64(1 << 12), // 4096 = 4 KiB
 	}).(uint64)
 )
 
@@ -845,10 +871,31 @@ func DecodeAnnouncement(fullAnnouncement []byte) (na NetAddress, spk types.SiaPu
 	return ha.NetAddress, ha.PublicKey, nil
 }
 
-// IsOOSErr is a helper function to determine whether an error is a
-// ErrInsufficientStorageForSector.
+// IsOOSErr is a helper function to determine whether an error from a host is
+// indicating that they are out of storage.
+//
+// Note: To preserve compatibility, this function needsd to be extended
+// exclusively by adding more checks, the existing checks should not be altered
+// or removed.
 func IsOOSErr(err error) bool {
-	return strings.Contains(err.Error(), ErrInsufficientStorageForSector.Error())
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), V1413HostOutOfStorageErrString)
+}
+
+// IsContractNotRecognizedErr is a helper function to determine whether an error
+// from a host is a indicating that they do not recognize a contract that the
+// renter is updating.
+//
+// Note: To preserve compatibility, this function needsd to be extended
+// exclusively by adding more checks, the existing checks should not be altered
+// or removed.
+func IsContractNotRecognizedErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), V1413ContractNotRecognizedErrString)
 }
 
 // VerifyFileContractRevisionTransactionSignatures checks that the signatures

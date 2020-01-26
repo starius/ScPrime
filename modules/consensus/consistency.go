@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
 	bolt "github.com/coreos/bbolt"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // manageErr handles an error detected by the consistency checks.
@@ -163,9 +163,9 @@ func checkSiacoinCount(tx *bolt.Tx) {
 	if !totalSiacoins.Equals(expectedSiacoins) {
 		diagnostics := fmt.Sprintf("Wrong number of siacoins\nDsco: %v\nSco: %v\nFc: %v\nClaim: %v\n", dscoSiacoins, scoSiacoins, fcSiacoins, claimSiacoins)
 		if totalSiacoins.Cmp(expectedSiacoins) < 0 {
-			diagnostics += fmt.Sprintf("total: %v\nexpected: %v\n expected is bigger: %v", totalSiacoins, expectedSiacoins, expectedSiacoins.Sub(totalSiacoins))
+			diagnostics += fmt.Sprintf("total: %v\nexpected: %v\n Total is %v less than expected", totalSiacoins, expectedSiacoins, expectedSiacoins.Sub(totalSiacoins))
 		} else {
-			diagnostics += fmt.Sprintf("total: %v\nexpected: %v\n expected is bigger: %v", totalSiacoins, expectedSiacoins, totalSiacoins.Sub(expectedSiacoins))
+			diagnostics += fmt.Sprintf("total: %v\nexpected: %v\n Total is %v more than expected", totalSiacoins, expectedSiacoins, totalSiacoins.Sub(expectedSiacoins))
 		}
 		manageErr(tx, errors.New(diagnostics))
 	}

@@ -45,7 +45,7 @@ var (
 	// that is permitted by the consensus rules.
 	BlockSizeLimit = uint64(2e6)
 	// BlocksPerHour is the number of blocks expected to be mined per hour.
-	BlocksPerHour = uint64(6)
+	BlocksPerHour = BlockHeight(6)
 	// BlocksPerDay is the number of blocks expected to be mined per day.
 	BlocksPerDay = 24 * BlocksPerHour
 	// BlocksPerWeek is the number of blocks expected to be mined per week.
@@ -54,6 +54,7 @@ var (
 	BlocksPerMonth = 30 * BlocksPerDay
 	// BlocksPerYear is the number of blocks expected to be mined per year.
 	BlocksPerYear = 365 * BlocksPerDay
+
 	// BurnAddressBlockHeight is the height at which the dev fund will be burnt
 	// instead of being claimed by the dev fund. Setting this value to 0 will
 	// prevent the dev fund from being burnt at any height.
@@ -201,6 +202,8 @@ var (
 	// The base unit for Bitcoin is called a satoshi. We call 10^8 satoshis a bitcoin,
 	// even though the code itself only ever works with satoshis.
 	SiacoinPrecision = NewCurrency(new(big.Int).Exp(big.NewInt(10), big.NewInt(24), nil))
+	// ExternalSiacoinPrecision is the number of base units in a siacoin that is used by client.
+	ExternalSiacoinPrecision = NewCurrency(new(big.Int).Exp(big.NewInt(10), big.NewInt(27), nil))
 	// OldSiafundCount is the total number of Siafunds in existence before the SPF hardfork.
 	OldSiafundCount = NewCurrency64(10000)
 	// NewSiafundCount is the total number of Siafunds in existence after the SPF hardfork.

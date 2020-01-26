@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -13,15 +12,17 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/spf13/cobra"
-	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
-	"golang.org/x/crypto/ssh/terminal"
-
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
+	"gitlab.com/SiaPrime/SiaPrime/node/api"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"github.com/spf13/cobra"
+	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
+	"gitlab.com/NebulousLabs/errors"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
@@ -67,7 +68,7 @@ be valid. txn may be either JSON, base64, or a file containing either.`,
 		Long: `Generate a new address, send coins to another wallet, or view info about the wallet.
 
 Units:
-The smallest unit of scprimecoins is the hasting. One scprimecoin is 10^24 hastings. Other supported units are:
+The smallest unit of scprimecoins is the hasting. One scprimecoin is 10^27 hastings. Other supported units are:
   pS (pico,  10^-12 SCP)
   nS (nano,  10^-9 SCP)
   uS (micro, 10^-6 SCP)
@@ -420,9 +421,14 @@ func walletsendsiafundscmd(amount, dest string) {
 // walletbalancecmd retrieves and displays information about the wallet.
 func walletbalancecmd() {
 	status, err := httpClient.WalletGet()
-	if err != nil {
+	if errors.Contains(err, api.ErrAPICallNotRecognized) {
+		// Assume module is not loaded if status command is not recognized.
+		fmt.Printf("Wallet:\n  Status: %s\n\n", moduleNotReadyStatus)
+		return
+	} else if err != nil {
 		die("Could not get wallet status:", err)
 	}
+
 	fees, err := httpClient.TransactionPoolFeeGet()
 	if err != nil {
 		die("Could not get fee estimation:", err)
@@ -600,8 +606,8 @@ func wallettransactionscmd() {
 		}
 
 		// Convert the siacoins to a float.
-		incomingSiacoinsFloat, _ := new(big.Rat).SetFrac(txn.ConfirmedIncomingValue.Big(), types.SiacoinPrecision.Big()).Float64()
-		outgoingSiacoinsFloat, _ := new(big.Rat).SetFrac(txn.ConfirmedOutgoingValue.Big(), types.SiacoinPrecision.Big()).Float64()
+		incomingSiacoinsFloat, _ := new(big.Rat).SetFrac(txn.ConfirmedIncomingValue.Big(), types.ExternalSiacoinPrecision.Big()).Float64()
+		outgoingSiacoinsFloat, _ := new(big.Rat).SetFrac(txn.ConfirmedOutgoingValue.Big(), types.ExternalSiacoinPrecision.Big()).Float64()
 
 		// Print the results.
 		if uint64(txn.ConfirmationTimestamp) != unconfirmedTransactionTimestamp {

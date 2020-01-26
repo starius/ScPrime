@@ -3,13 +3,14 @@ package proto
 import (
 	"bytes"
 
-	"github.com/dchest/threefish"
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"github.com/dchest/threefish"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 const (
@@ -172,9 +173,6 @@ func PrefixedSignedIdentifier(renterSeed EphemeralRenterSeed, txn types.Transact
 	encryptedKey := sk.EncryptBytes(append(marshaledKey, make([]byte, padding)...))
 	// Create the signed identifer object.
 	var csi ContractSignedIdentifier
-	// TODO change this to use the PrefixFileContractIdentifier in the future
-	// once 1.4.0 has been released for long enough that nodes should support
-	// it.
 	copy(csi[:16], modules.PrefixNonSia[:])
 	copy(csi[16:48], identifier[:])
 	copy(csi[48:80], signature[:])

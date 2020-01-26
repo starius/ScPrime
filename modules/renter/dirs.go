@@ -1,8 +1,6 @@
 package renter
 
-import (
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-)
+import "gitlab.com/SiaPrime/SiaPrime/modules"
 
 // CreateDir creates a directory for the renter
 func (r *Renter) CreateDir(siaPath modules.SiaPath) error {

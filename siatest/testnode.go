@@ -1,10 +1,14 @@
 package siatest
 
 import (
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+
+	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
@@ -12,20 +16,65 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
 	"gitlab.com/SiaPrime/SiaPrime/node/api/server"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
 )
 
-// TestNode is a helper struct for testing that contains a server and a client
-// as embedded fields.
-type TestNode struct {
-	*server.Server
-	client.Client
-	params      node.NodeParams
-	primarySeed string
+var (
+	// testNodeAddressCounter is a global variable that tracks the counter for
+	// the test node addresses for all tests. It starts at 127.1.0.0 and
+	// iterates through the entire range of 127.X.X.X above 127.1.0.0
+	testNodeAddressCounter = newNodeAddressCounter()
+)
 
-	downloadDir *LocalDir
-	filesDir    *LocalDir
+type (
+	// TestNode is a helper struct for testing that contains a server and a
+	// client as embedded fields.
+	TestNode struct {
+		*server.Server
+		client.Client
+		params      node.NodeParams
+		primarySeed string
+
+		downloadDir *LocalDir
+		filesDir    *LocalDir
+	}
+
+	// addressCounter is a help struct for assigning new addresses to test nodes
+	addressCounter struct {
+		address net.IP
+		mu      sync.Mutex
+	}
+)
+
+// newNodeAddressCounter creates a new address counter and returns it. The
+// counter will cover the entire range 127.X.X.X above 127.1.0.0
+//
+// The counter is initialized with an IP address of 127.1.0.0 so that testers
+// can manually add nodes in the address range of 127.0.X.X without causing a
+// conflict
+func newNodeAddressCounter() *addressCounter {
+	counter := &addressCounter{
+		address: net.IPv4(127, 1, 0, 0),
+	}
+	return counter
+}
+
+// managedNextNodeAddress returns the next node address from the addressCounter
+func (ac *addressCounter) managedNextNodeAddress() (string, error) {
+	ac.mu.Lock()
+	defer ac.mu.Unlock()
+	// IPs are byte slices with a length of 16, the IPv4 address range is stored
+	// in the last 4 indexes, 12-15
+	for i := len(ac.address) - 1; i >= 12; i-- {
+		if i == 12 {
+			return "", errors.New("ran out of IP addresses")
+		}
+		ac.address[i]++
+		if ac.address[i] > 0 {
+			break
+		}
+	}
+	return ac.address.String(), nil
+
 }
 
 // PrintDebugInfo prints out helpful debug information when debug tests and ndfs, the
@@ -83,19 +132,6 @@ func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterI
 		t.Log()
 		t.Log("Expired Refreshed Contracts")
 		for _, c := range rc.ExpiredRefreshedContracts {
-			t.Log("    ID", c.ID)
-			t.Log("    HostPublicKey", c.HostPublicKey)
-			t.Log("    GoodForUpload", c.GoodForUpload)
-			t.Log("    GoodForRenew", c.GoodForRenew)
-			t.Log("    EndHeight", c.EndHeight)
-		}
-		t.Log()
-		rce, err := tn.RenterExpiredContractsGet()
-		if err != nil {
-			t.Log(err)
-		}
-		t.Log("Expired Contracts")
-		for _, c := range rce.ExpiredContracts {
 			t.Log("    ID", c.ID)
 			t.Log("    HostPublicKey", c.HostPublicKey)
 			t.Log("    GoodForUpload", c.GoodForUpload)
@@ -201,7 +237,7 @@ func NewNode(nodeParams node.NodeParams) (*TestNode, error) {
 		return nil, errors.New("Can't create funded node without miner")
 	}
 	// Create clean node
-	tn, err := NewCleanNode(nodeParams)
+	tn, err := newCleanNode(nodeParams, false)
 	if err != nil {
 		return nil, err
 	}
@@ -215,13 +251,34 @@ func NewNode(nodeParams node.NodeParams) (*TestNode, error) {
 	return tn, nil
 }
 
-// NewCleanNode creates a new TestNode that's not yet funded
-func NewCleanNode(nodeParams node.NodeParams) (*TestNode, error) {
+// NewCleanNodeAsync creates a new TestNode that's not yet funded
+func NewCleanNodeAsync(nodeParams node.NodeParams) (*TestNode, error) {
+	return newCleanNode(nodeParams, true)
+}
+
+// newCleanNode creates a new TestNode that's not yet funded
+func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error) {
 	userAgent := "SiaPrime-Agent"
 	password := "password"
 
+	// Check if an RPC address is set
+	if nodeParams.RPCAddress == "" {
+		addr, err := testNodeAddressCounter.managedNextNodeAddress()
+		if err != nil {
+			return nil, errors.AddContext(err, "error getting next node address")
+		}
+		nodeParams.RPCAddress = addr + ":0"
+	}
 	// Create server
-	s, err := server.New(":0", userAgent, password, nodeParams)
+	var s *server.Server
+	var err error
+	if asyncSync {
+		var errChan <-chan error
+		s, errChan = server.NewAsync(":0", userAgent, password, nodeParams)
+		err = modules.PeekErr(errChan)
+	} else {
+		s, err = server.New(":0", userAgent, password, nodeParams)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -244,6 +301,11 @@ func NewCleanNode(nodeParams node.NodeParams) (*TestNode, error) {
 
 	// If there is no wallet we are done.
 	if !nodeParams.CreateWallet && nodeParams.Wallet == nil {
+		return tn, nil
+	}
+
+	// If the SkipWalletInit flag is set then we are done
+	if nodeParams.SkipWalletInit {
 		return tn, nil
 	}
 

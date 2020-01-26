@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/node/api"
 	"gitlab.com/SiaPrime/SiaPrime/types"
@@ -61,7 +62,7 @@ func printScoreBreakdown(info *api.HostdbHostsGET) {
 	fmt.Fprintf(w, "\t\tCollateral:\t %.3f\n", info.ScoreBreakdown.CollateralAdjustment/1e96)
 	fmt.Fprintf(w, "\t\tDuration:\t %.3f\n", info.ScoreBreakdown.DurationAdjustment)
 	fmt.Fprintf(w, "\t\tInteraction:\t %.3f\n", info.ScoreBreakdown.InteractionAdjustment)
-	fmt.Fprintf(w, "\t\tPrice:\t %.3f\n", info.ScoreBreakdown.PriceAdjustment*1e24)
+	fmt.Fprintf(w, "\t\tPrice:\t %.3f\n", info.ScoreBreakdown.PriceAdjustment*1e27)
 	fmt.Fprintf(w, "\t\tStorage:\t %.3f\n", info.ScoreBreakdown.StorageRemainingAdjustment)
 	fmt.Fprintf(w, "\t\tUptime:\t %.3f\n", info.ScoreBreakdown.UptimeAdjustment)
 	fmt.Fprintf(w, "\t\tVersion:\t %.3f\n", info.ScoreBreakdown.VersionAdjustment)
@@ -73,9 +74,14 @@ func printScoreBreakdown(info *api.HostdbHostsGET) {
 func hostdbcmd() {
 	if !hostdbVerbose {
 		info, err := httpClient.HostDbActiveGet()
-		if err != nil {
+		if errors.Contains(err, api.ErrAPICallNotRecognized) {
+			// Assume module is not loaded if status command is not recognized.
+			fmt.Printf("HostDB:\n  Status: %s\n\n", moduleNotReadyStatus)
+			return
+		} else if err != nil {
 			die("Could not fetch host list:", err)
 		}
+
 		if len(info.Hosts) == 0 {
 			fmt.Println("No known active hosts")
 			return

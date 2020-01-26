@@ -12,15 +12,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
-	"golang.org/x/crypto/twofish"
-
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siadir"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
+
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
+	"golang.org/x/crypto/twofish"
 )
 
 // backupHeader defines the structure of the backup's JSON header.

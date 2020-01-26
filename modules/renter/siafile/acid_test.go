@@ -5,12 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 	"gitlab.com/SiaPrime/writeaheadlog"
+
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TestSiaFileFaultyDisk simulates interacting with a SiaFile on a faulty disk.

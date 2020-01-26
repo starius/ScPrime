@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
@@ -37,8 +38,8 @@ func blankTpoolTester(name string) (*tpoolTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	tp, err := New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -123,8 +124,8 @@ func TestIntegrationNewNilInputs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 	tpDir := filepath.Join(testdir, modules.TransactionPoolDir)

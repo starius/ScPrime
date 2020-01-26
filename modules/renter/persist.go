@@ -4,18 +4,19 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/NebulousLabs/errors"
-
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siadir"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 	"gitlab.com/SiaPrime/writeaheadlog"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 const (
-	logFile = modules.RenterDir + ".log"
+	logFile       = modules.RenterDir + ".log"
+	repairLogFile = "repair.log"
 	// PersistFilename is the filename to be used when persisting renter
 	// information to a JSON file
 	PersistFilename = "renter.json"
@@ -133,8 +134,14 @@ func (r *Renter) managedInitPersist() error {
 	if err != nil {
 		return err
 	}
-	r.log.Debugln("Renter log started.")
 	if err := r.tg.AfterStop(r.log.Close); err != nil {
+		return err
+	}
+	r.repairLog, err = persist.NewFileLogger(filepath.Join(r.persistDir, repairLogFile))
+	if err != nil {
+		return err
+	}
+	if err := r.tg.AfterStop(r.repairLog.Close); err != nil {
 		return err
 	}
 
@@ -154,7 +161,7 @@ func (r *Renter) managedInitPersist() error {
 	// Apply unapplied wal txns before loading the persistence structure to
 	// avoid loading potentially corrupted files.
 	if len(txns) > 0 {
-		r.log.Println("Wal initalized", len(txns), "transactions to apply")
+		r.log.Println("Wal initialized", len(txns), "transactions to apply")
 	}
 	for _, txn := range txns {
 		applyTxn := true

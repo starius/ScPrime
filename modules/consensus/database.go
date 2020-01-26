@@ -9,6 +9,7 @@ import (
 	"os"
 
 	bolt "github.com/coreos/bbolt"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/persist"

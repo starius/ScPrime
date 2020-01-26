@@ -3,10 +3,11 @@ package wallet
 import (
 	"math"
 
-	bolt "github.com/coreos/bbolt"
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	bolt "github.com/coreos/bbolt"
+	"gitlab.com/NebulousLabs/errors"
 )
 
 type (

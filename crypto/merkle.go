@@ -4,7 +4,6 @@ import (
 	"bytes"
 
 	"gitlab.com/NebulousLabs/merkletree"
-
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 )
 

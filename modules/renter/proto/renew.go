@@ -1,14 +1,11 @@
 package proto
 
 import (
-	"net"
-	"time"
-
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/SiaPrime/SiaPrime/types/typesutil"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -17,16 +14,13 @@ import (
 // submits the new contract transaction to tpool. The new contract is added to
 // the ContractSet and its metadata is returned.
 func (cs *ContractSet) Renew(oldContract *SafeContract, params ContractParams, txnBuilder transactionBuilder, tpool transactionPool, hdb hostDB, cancel <-chan struct{}) (rc modules.RenterContract, err error) {
-	// use the new renter-host protocol for hosts that support it.
-	//
-	// NOTE: due to a bug, we use the old protocol even for v1.4.0 hosts.
-	if build.VersionCmp(params.Host.Version, "1.4.1") >= 0 {
-		return cs.newRenew(oldContract, params, txnBuilder, tpool, hdb, cancel)
+	// Check that the host version is high enough as belt-and-suspenders. This
+	// should never happen, because hosts with old versions should be blacklisted
+	// by the contractor.
+	if build.VersionCmp(params.Host.Version, "1.4.1") < 0 {
+		return modules.RenterContract{}, ErrBadHostVersion
 	}
-	return cs.oldRenew(oldContract, params, txnBuilder, tpool, hdb, cancel)
-}
 
-func (cs *ContractSet) oldRenew(oldContract *SafeContract, params ContractParams, txnBuilder transactionBuilder, tpool transactionPool, hdb hostDB, cancel <-chan struct{}) (rc modules.RenterContract, err error) {
 	// for convenience
 	contract := oldContract.header
 
@@ -102,13 +96,18 @@ func (cs *ContractSet) oldRenew(oldContract *SafeContract, params ContractParams
 	si, hk := PrefixedSignedIdentifier(params.RenterSeed, fcTxn, host.PublicKey)
 	_ = txnBuilder.AddArbitraryData(append(si[:], hk[:]...))
 
-	// Create initial transaction set.
+	// Create initial transaction set. Before sending the transaction set to the
+	// host, ensure that all transactions which may be necessary to get accepted
+	// into the transaction pool are included. Also ensure that only the minimum
+	// set of transactions is supplied, if there are non-necessary transactions
+	// included the chance of a double spend or poor propagation increases.
 	txn, parentTxns := txnBuilder.View()
 	unconfirmedParents, err := txnBuilder.UnconfirmedParents()
 	if err != nil {
 		return modules.RenterContract{}, err
 	}
-	txnSet := append(unconfirmedParents, append(parentTxns, txn)...)
+	txnSet := append(unconfirmedParents, parentTxns...)
+	txnSet = typesutil.MinimumTransactionSet([]types.Transaction{txn}, txnSet)
 
 	// Increase Successful/Failed interactions accordingly
 	defer func() {
@@ -121,84 +120,50 @@ func (cs *ContractSet) oldRenew(oldContract *SafeContract, params ContractParams
 		}
 	}()
 
-	// initiate connection
-	dialer := &net.Dialer{
-		Cancel:  cancel,
-		Timeout: connTimeout,
-	}
-	conn, err := dialer.Dial("tcp", string(host.NetAddress))
+	// Initiate protocol.
+	s, err := cs.NewRawSession(host, startHeight, hdb, cancel)
 	if err != nil {
 		return modules.RenterContract{}, err
 	}
-	defer func() { _ = conn.Close() }()
-
-	// allot time for sending RPC ID, verifyRecentRevision, and verifySettings
-	extendDeadline(conn, modules.NegotiateRecentRevisionTime+modules.NegotiateSettingsTime)
-	if err = encoding.WriteObject(conn, modules.RPCRenewContract); err != nil {
-		return modules.RenterContract{}, errors.New("couldn't initiate RPC: " + err.Error())
-	}
-	// verify that both parties are renewing the same contract
-	err = verifyRecentRevision(conn, oldContract, host.Version)
+	defer s.Close()
+	// Lock the contract and resynchronize if necessary
+	rev, sigs, err := s.Lock(contract.ID(), contract.SecretKey)
 	if err != nil {
+		return modules.RenterContract{}, err
+	} else if err := oldContract.managedSyncRevision(rev, sigs); err != nil {
 		return modules.RenterContract{}, err
 	}
 
-	// verify the host's settings and confirm its identity
-	host, err = verifySettings(conn, host)
-	if err != nil {
-		return modules.RenterContract{}, errors.New("settings exchange failed: " + err.Error())
+	// Send the RenewContract request.
+	req := modules.LoopRenewContractRequest{
+		Transactions: txnSet,
+		RenterKey:    lastRev.UnlockConditions.PublicKeys[0],
 	}
-	if !host.AcceptingContracts {
-		return modules.RenterContract{}, errors.New("host is not accepting contracts")
-	}
-
-	// allot time for negotiation
-	numSectors := fc.FileSize / modules.SectorSize
-	extendDeadline(conn, modules.NegotiateRenewContractTime+(time.Duration(numSectors)*10*time.Millisecond))
-
-	// send acceptance, txn signed by us, and pubkey
-	if err = modules.WriteNegotiationAcceptance(conn); err != nil {
-		return modules.RenterContract{}, errors.New("couldn't send initial acceptance: " + err.Error())
-	}
-	if err = encoding.WriteObject(conn, txnSet); err != nil {
-		return modules.RenterContract{}, errors.New("couldn't send the contract signed by us: " + err.Error())
-	}
-	if err = encoding.WriteObject(conn, ourSK.PublicKey()); err != nil {
-		return modules.RenterContract{}, errors.New("couldn't send our public key: " + err.Error())
+	if err := s.writeRequest(modules.RPCLoopRenewContract, req); err != nil {
+		return modules.RenterContract{}, err
 	}
 
-	// read acceptance and txn signed by host
-	if err = modules.ReadNegotiationAcceptance(conn); err != nil {
-		return modules.RenterContract{}, errors.New("host did not accept our proposed contract: " + err.Error())
-	}
-	// host now sends any new parent transactions, inputs and outputs that
-	// were added to the transaction
-	var newParents []types.Transaction
-	var newInputs []types.SiacoinInput
-	var newOutputs []types.SiacoinOutput
-	if err = encoding.ReadObject(conn, &newParents, types.BlockSizeLimit); err != nil {
-		return modules.RenterContract{}, errors.New("couldn't read the host's added parents: " + err.Error())
-	}
-	if err = encoding.ReadObject(conn, &newInputs, types.BlockSizeLimit); err != nil {
-		return modules.RenterContract{}, errors.New("couldn't read the host's added inputs: " + err.Error())
-	}
-	if err = encoding.ReadObject(conn, &newOutputs, types.BlockSizeLimit); err != nil {
-		return modules.RenterContract{}, errors.New("couldn't read the host's added outputs: " + err.Error())
+	// Read the host's response.
+	var resp modules.LoopContractAdditions
+	if err := s.readResponse(&resp, modules.RPCMinLen); err != nil {
+		return modules.RenterContract{}, err
 	}
 
-	// merge txnAdditions with txnSet
-	txnBuilder.AddParents(newParents)
-	for _, input := range newInputs {
+	// Incorporate host's modifications.
+	txnBuilder.AddParents(resp.Parents)
+	for _, input := range resp.Inputs {
 		txnBuilder.AddSiacoinInput(input)
 	}
-	for _, output := range newOutputs {
+	for _, output := range resp.Outputs {
 		txnBuilder.AddSiacoinOutput(output)
 	}
 
 	// sign the txn
 	signedTxnSet, err := txnBuilder.Sign(true)
 	if err != nil {
-		return modules.RenterContract{}, modules.WriteNegotiationRejection(conn, errors.New("failed to sign transaction: "+err.Error()))
+		err = errors.New("failed to sign transaction: " + err.Error())
+		modules.WriteRPCResponse(s.conn, s.aead, nil, err)
+		return modules.RenterContract{}, err
 	}
 
 	// calculate signatures added by the transaction builder
@@ -237,42 +202,37 @@ func (cs *ContractSet) oldRenew(oldContract *SafeContract, params ContractParams
 	revisionTxn.TransactionSignatures[0].Signature = encodedSig[:]
 
 	// Send acceptance and signatures
-	if err = modules.WriteNegotiationAcceptance(conn); err != nil {
-		return modules.RenterContract{}, errors.New("couldn't send transaction acceptance: " + err.Error())
+	renterSigs := modules.LoopContractSignatures{
+		ContractSignatures: addedSignatures,
+		RevisionSignature:  revisionTxn.TransactionSignatures[0],
 	}
-	if err = encoding.WriteObject(conn, addedSignatures); err != nil {
-		return modules.RenterContract{}, errors.New("couldn't send added signatures: " + err.Error())
-	}
-	if err = encoding.WriteObject(conn, revisionTxn.TransactionSignatures[0]); err != nil {
-		return modules.RenterContract{}, errors.New("couldn't send revision signature: " + err.Error())
+	if err := modules.WriteRPCResponse(s.conn, s.aead, renterSigs, nil); err != nil {
+		return modules.RenterContract{}, err
 	}
 
 	// Read the host acceptance and signatures.
-	err = modules.ReadNegotiationAcceptance(conn)
-	if err != nil {
-		return modules.RenterContract{}, errors.New("host did not accept our signatures: " + err.Error())
+	var hostSigs modules.LoopContractSignatures
+	if err := s.readResponse(&hostSigs, modules.RPCMinLen); err != nil {
+		return modules.RenterContract{}, err
 	}
-	var hostSigs []types.TransactionSignature
-	if err = encoding.ReadObject(conn, &hostSigs, 2e3); err != nil {
-		return modules.RenterContract{}, errors.New("couldn't read the host's signatures: " + err.Error())
-	}
-	for _, sig := range hostSigs {
+	for _, sig := range hostSigs.ContractSignatures {
 		txnBuilder.AddTransactionSignature(sig)
 	}
-	var hostRevisionSig types.TransactionSignature
-	if err = encoding.ReadObject(conn, &hostRevisionSig, 2e3); err != nil {
-		return modules.RenterContract{}, errors.New("couldn't read the host's revision signature: " + err.Error())
-	}
-	revisionTxn.TransactionSignatures = append(revisionTxn.TransactionSignatures, hostRevisionSig)
+	revisionTxn.TransactionSignatures = append(revisionTxn.TransactionSignatures, hostSigs.RevisionSignature)
 
 	// Construct the final transaction.
 	txn, parentTxns = txnBuilder.View()
-	txnSet = append(parentTxns, txn)
+	unconfirmedParents, err = txnBuilder.UnconfirmedParents()
+	if err != nil {
+		return modules.RenterContract{}, err
+	}
+	txnSet = append(unconfirmedParents, parentTxns...)
+	txnSet = typesutil.MinimumTransactionSet([]types.Transaction{txn}, txnSet)
 
 	// Submit to blockchain.
 	err = tpool.AcceptTransactionSet(txnSet)
 	if err == modules.ErrDuplicateTransactionSet {
-		// as long as it made it into the transaction pool, we're good
+		// As long as it made it into the transaction pool, we're good.
 		err = nil
 	}
 	if err != nil {

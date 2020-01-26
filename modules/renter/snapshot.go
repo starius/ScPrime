@@ -9,8 +9,6 @@ import (
 	"sort"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
@@ -18,6 +16,9 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // A snapshotEntry is an entry within the snapshot table, identifying both the

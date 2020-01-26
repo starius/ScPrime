@@ -163,8 +163,8 @@ func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, 
 	if err != nil {
 		return nil, err
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -197,12 +197,11 @@ func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, 
 	if err != nil {
 		return nil, err
 	}
-	r, err := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
-	if err != nil {
+	r, errChan := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
-
 	if err != nil {
 		return nil, err
 	}
@@ -248,8 +247,8 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 	if err != nil {
 		return nil, err
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -282,11 +281,10 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 	if err != nil {
 		return nil, err
 	}
-	r, err := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
-	if err != nil {
+	r, errChan := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
-
 	var mp *pool.Pool
 	var idx *index.Index
 	if withPool {
@@ -346,8 +344,8 @@ func assembleExplorerServerTester(testdir string) (*serverTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	e, err := explorer.New(cs, filepath.Join(testdir, modules.ExplorerDir))
@@ -443,7 +441,6 @@ func createAuthenticatedServerTester(name string, password string, withPool bool
 
 	key := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
 	st, err := assembleAuthenticatedServerTester(password, key, testdir, withPool)
-
 	if err != nil {
 		return nil, err
 	}
@@ -537,7 +534,7 @@ func (st *serverTester) acceptContracts() error {
 func (st *serverTester) setHostStorage() error {
 	values := url.Values{}
 	values.Set("path", st.dir)
-	values.Set("size", "1048576")
+	values.Set("size", "16777216") //16MiB
 	return st.stdPostAPI("/host/storage/folders/add", values)
 }
 

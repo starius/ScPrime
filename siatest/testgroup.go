@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/host/contractmanager"
@@ -41,14 +42,14 @@ type (
 var (
 	// DefaultAllowance is the allowance used for the group's renters
 	DefaultAllowance = modules.Allowance{
-		Funds:       types.SiacoinPrecision.Mul64(1e3),
+		Funds:       types.ExternalSiacoinPrecision.Mul64(200),
 		Hosts:       5,
 		Period:      50,
 		RenewWindow: 24,
 
-		ExpectedStorage:    modules.SectorSize * 50e3,
-		ExpectedUpload:     modules.SectorSize * 5e3,
-		ExpectedDownload:   modules.SectorSize * 5e3,
+		ExpectedStorage:    modules.SectorSize * 2048, //=8 MiB in testing
+		ExpectedUpload:     modules.SectorSize * 512,
+		ExpectedDownload:   modules.SectorSize * 512,
 		ExpectedRedundancy: 5.0,
 	}
 
@@ -79,7 +80,7 @@ func NewGroup(groupDir string, nodeParams ...node.NodeParams) (*TestGroup, error
 	// Create node and add it to the correct groups
 	nodes := make([]*TestNode, 0, len(nodeParams))
 	for _, np := range nodeParams {
-		node, err := NewCleanNode(np)
+		node, err := newCleanNode(np, false)
 		if err != nil {
 			return nil, errors.AddContext(err, "failed to create clean node")
 		}
@@ -156,7 +157,7 @@ func addStorageFolderToHosts(hosts map[*TestNode]struct{}) error {
 	for host := range hosts {
 		wg.Add(1)
 		go func(i int, host *TestNode) {
-			storage := 4 * contractmanager.MinimumSectorsPerStorageFolder * modules.SectorSize
+			storage := 6 * contractmanager.MinimumSectorsPerStorageFolder * modules.SectorSize
 			if host.params.HostStorage > 0 {
 				storage = host.params.HostStorage
 			}
@@ -185,26 +186,32 @@ func announceHosts(hosts map[*TestNode]struct{}) error {
 	return nil
 }
 
+// connectNodes connects two nodes
+func connectNodes(nodeA, nodeB *TestNode) error {
+	err := build.Retry(100, 100*time.Millisecond, func() error {
+		if err := nodeA.GatewayConnectPost(nodeB.GatewayAddress()); err != nil && err != client.ErrPeerExists {
+			return errors.AddContext(err, "failed to connect to peer")
+		}
+		isPeer1, err1 := nodeA.hasPeer(nodeB)
+		isPeer2, err2 := nodeB.hasPeer(nodeA)
+		if err1 != nil || err2 != nil {
+			return build.ExtendErr("couldn't determine if nodeA and nodeB are connected",
+				errors.Compose(err1, err2))
+		}
+		if isPeer1 && isPeer2 {
+			return nil
+		}
+		return errors.New("nodeA and nodeB are not peers of each other")
+	})
+	return err
+}
+
 // fullyConnectNodes takes a list of nodes and connects all their gateways
 func fullyConnectNodes(nodes []*TestNode) error {
 	// Fully connect the nodes
 	for i, nodeA := range nodes {
 		for _, nodeB := range nodes[i+1:] {
-			err := build.Retry(100, 100*time.Millisecond, func() error {
-				if err := nodeA.GatewayConnectPost(nodeB.GatewayAddress()); err != nil && err != client.ErrPeerExists {
-					return errors.AddContext(err, "failed to connect to peer")
-				}
-				isPeer1, err1 := nodeA.hasPeer(nodeB)
-				isPeer2, err2 := nodeB.hasPeer(nodeA)
-				if err1 != nil || err2 != nil {
-					return build.ExtendErr("couldn't determine if nodeA and nodeB are connected",
-						errors.Compose(err1, err2))
-				}
-				if isPeer1 && isPeer2 {
-					return nil
-				}
-				return errors.New("nodeA and nodeB are not peers of each other")
-			})
+			err := connectNodes(nodeA, nodeB)
 			if err != nil {
 				return err
 			}
@@ -501,7 +508,7 @@ func (tg *TestGroup) AddNodes(nps ...node.NodeParams) ([]*TestNode, error) {
 	for _, np := range nps {
 		// Create the nodes and add them to the group.
 		randomNodeDir(tg.dir, &np)
-		node, err := NewCleanNode(np)
+		node, err := NewCleanNodeAsync(np)
 		if err != nil {
 			return mapToSlice(newNodes), build.ExtendErr("failed to create new clean node", err)
 		}
@@ -698,22 +705,26 @@ func (tg *TestGroup) Sync() error {
 	return synchronizationCheck(tg.nodes)
 }
 
-// Nodes returns all the nodes of the group
+// Nodes returns all the nodes of the group. Note that the ordering of nodes in
+// the slice returned is not the same across multiple calls this function.
 func (tg *TestGroup) Nodes() []*TestNode {
 	return mapToSlice(tg.nodes)
 }
 
-// Hosts returns all the hosts of the group
+// Hosts returns all the hosts of the group. Note that the ordering of nodes in
+// the slice returned is not the same across multiple calls this function.
 func (tg *TestGroup) Hosts() []*TestNode {
 	return mapToSlice(tg.hosts)
 }
 
-// Renters returns all the renters of the group
+// Renters returns all the renters of the group. Note that the ordering of nodes in
+// the slice returned is not the same across multiple calls this function.
 func (tg *TestGroup) Renters() []*TestNode {
 	return mapToSlice(tg.renters)
 }
 
-// Miners returns all the miners of the group
+// Miners returns all the miners of the group.  Note that the ordering of nodes in
+// the slice returned is not the same across multiple calls this function.
 func (tg *TestGroup) Miners() []*TestNode {
 	return mapToSlice(tg.miners)
 }

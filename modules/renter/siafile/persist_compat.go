@@ -4,10 +4,10 @@ import (
 	"os"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
-
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 type (

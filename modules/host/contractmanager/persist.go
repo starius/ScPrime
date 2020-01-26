@@ -6,10 +6,11 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/persist"
+
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 type (

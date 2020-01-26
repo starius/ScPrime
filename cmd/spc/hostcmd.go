@@ -8,12 +8,14 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/spf13/cobra"
+
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/node/api"
 	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
 	"gitlab.com/SiaPrime/SiaPrime/types"
-
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -138,9 +140,14 @@ sector may impact host revenue.`,
 // Prints info about the host and its storage folders.
 func hostcmd() {
 	hg, err := httpClient.HostGet()
-	if err != nil {
+	if errors.Contains(err, api.ErrAPICallNotRecognized) {
+		// Assume module is not loaded if status command is not recognized.
+		fmt.Printf("Host:\n  Status: %s\n\n", moduleNotReadyStatus)
+		return
+	} else if err != nil {
 		die("Could not fetch host settings:", err)
 	}
+
 	sg, err := httpClient.HostStorageGet()
 	if err != nil {
 		die("Could not fetch storage info:", err)

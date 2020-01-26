@@ -1,15 +1,15 @@
 # Contributing to SiaPrime
 
 #### Table of Contents
-- [Contributing to SiaPrime](#Contributing-to-SiaPrime)
+- [Contributing to ScPrime](#Contributing-to-ScPrime)
 			- [Table of Contents](#Table-of-Contents)
 	- [Get started with Go](#Get-started-with-Go)
 		- [Install Go](#Install-Go)
 		- [Learn Go](#Learn-Go)
-	- [Build SiaPrime](#Build-SiaPrime)
+	- [Build ScPrime](#Build-ScPrime)
 	- [Contribute to the codebase](#Contribute-to-the-codebase)
 		- [Set up git](#Set-up-git)
-		- [Fork the SiaPrime repository](#Fork-the-SiaPrime-repository)
+		- [Fork the ScPrime repository](#Fork-the-ScPrime-repository)
 		- [Write some code](#Write-some-code)
 		- [Submit your code for review](#Submit-your-code-for-review)
 		- [More Git resources](#More-Git-resources)
@@ -25,7 +25,7 @@ To install Go on your computer, follow the
 
 You should install the latest [official Go binary][binary] for your system (if 
 not available, [install from source][source]).  If you plan to cross compile 
-SiaPrime, see [Cross Compilation with Go 1.5][cross] by Dave Cheney.  
+ScPrime, see [Cross Compilation with Go 1.5][cross] by Dave Cheney.  
 
 ### Learn Go
 
@@ -34,21 +34,21 @@ SiaPrime, see [Cross Compilation with Go 1.5][cross] by Dave Cheney.
 and use the go tool.
 * Finish with the [Effective Go][effective] guide.
 
-<a name="build-siaprime"/>
+<a name="build-ScPrime"/>
 
-## Build SiaPrime
+## Build ScPrime
 
-To build SiaPrime on your machine, enter the following on the command line:
+To build ScPrime on your machine, enter the following on the command line:
 
 ```bash
-# Download SiaPrime and its dependencies
+# Download ScPrime and its dependencies
 # Binaries will be installed in $GOPATH/bin
 $ go get -u gitlab.com/SiaPrime/SiaPrime/...
 
-# Switch to directory containing SiaPrime source code
+# Switch to directory containing ScPrime source code
 $ cd $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
 
-# You have three SiaPrime builds to choose from.
+# You have three ScPrime builds to choose from.
 # To build the standard release binary:
 $ make release
 # Or to build the release binary with race detection and an array debugging 
@@ -85,14 +85,14 @@ $ git config --global credential.helper "cache --timeout=[seconds]"
 
 ```
 
-### Fork the SiaPrime repository
+### Fork the ScPrime repository
 
-While logged into your GitLab account, navigate to the [SiaPrime repository][siaprime] 
+While logged into your GitLab account, navigate to the [ScPrime repository][siaprime] 
 and click the 'Fork' button in the upper right hand corner.  Your account now 
 has a 'forked' copy of the original repo at 
 `https://gitlab.com/<your GitLab username>/SiaPrime`.
 
-When you installed SiaPrime using `go get`, the go tool put the SiaPrime source code in 
+When you installed ScPrime using `go get`, the go tool put the ScPrime source code in 
 $GOPATH/src/gitlab.com/SiaPrime/SiaPrime. Change to that directory and set up
 your fork as a git [remote][remote]:
 
@@ -218,7 +218,7 @@ $ git push <fork remote> master
 
 ## Where to start
 
-If you'd like to contribute to SiaPrime but don't have any specific ideas, writing 
+If you'd like to contribute to ScPrime but don't have any specific ideas, writing 
 tests is a good way to get your feet wet.  See [doc/Running and Writing Tests for SiaPrime.md](Running%20and%20Writing%20Tests%20for%20SiaPrime.md) to get started.
 
 To learn more about how various parts of the code base work, head over to our [Resources](resources.md) page in our [doc](docs) folder.

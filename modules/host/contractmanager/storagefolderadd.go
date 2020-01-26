@@ -6,9 +6,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
+
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // findUnfinishedStorageFolderAdditions will scroll through a set of state

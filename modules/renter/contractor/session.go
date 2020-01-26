@@ -1,13 +1,14 @@
 package contractor
 
 import (
-	"errors"
 	"sync"
 
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 var errInvalidSession = errors.New("session has been invalidated because its contract is being renewed")
@@ -208,10 +209,12 @@ func (c *Contractor) Session(pk types.SiaPublicKey, cancel <-chan struct{}) (_ S
 	// sanity checks to see that the host is not swindling us.
 	contract, haveContract := c.staticContracts.View(id)
 	if !haveContract {
-		return nil, errors.New("no record of that contract")
+		return nil, errors.New("contract not found in the renter contract set")
 	}
-	host, haveHost := c.hdb.Host(contract.HostPublicKey)
-	if height > contract.EndHeight {
+	host, haveHost, err := c.hdb.Host(contract.HostPublicKey)
+	if err != nil {
+		return nil, errors.AddContext(err, "error geting host from hostdb:")
+	} else if height > contract.EndHeight {
 		return nil, errors.New("contract has already ended")
 	} else if !haveHost {
 		return nil, errors.New("no record of that host")
@@ -225,6 +228,9 @@ func (c *Contractor) Session(pk types.SiaPublicKey, cancel <-chan struct{}) (_ S
 
 	// Create the session.
 	s, err := c.staticContracts.NewSession(host, id, height, c.hdb, cancel)
+	if modules.IsContractNotRecognizedErr(err) {
+		err = errors.Compose(err, c.MarkContractBad(id))
+	}
 	if err != nil {
 		return nil, err
 	}

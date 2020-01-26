@@ -156,61 +156,62 @@ Also returns the set of constants in use in the consensus code.
   "siacoinprecision": "1000000000000000000000000" // hastings per siacoin
 }
 ```
-**synced** | boolean
+
+**synced** | boolean  
 True if the consensus set is synced with the network, e.g. it has downloaded the entire blockchain.  
 
-**height** | blockheight
+**height** | blockheight  
 Number of blocks preceding the current block.  
 
-**currentblock** | hash
+**currentblock** | hash  
 Hash of the current block.  
 
-**target** | hash
+**target** | hash  
 An immediate child block of this block must have a hash less than this target for it to be valid.  
 
-**difficulty** | arbitrary-precision integer
+**difficulty** | arbitrary-precision integer  
 The difficulty of the current block target.  
 
-**blockfrequency** | blocks / second
+**blockfrequency** | blocks / second  
 Target for how frequently new blocks should be mined.  
 
-**blocksizelimit** | bytes
+**blocksizelimit** | bytes  
 Maximum size, in bytes, of a block. Blocks larger than this will be rejected by peers.  
 
-**extremefuturethreshold** | seconds
+**extremefuturethreshold** | seconds  
 Farthest a block's timestamp can be in the future before the block is rejected outright.  
 
-**futurethreshold** | seconds
+**futurethreshold** | seconds  
 How far in the future a block can be without being rejected. A block further into the future will not be accepted immediately, but the daemon will attempt to accept the block as soon as it is valid.  
 
-**genesistimestamp** | unix timestamp
+**genesistimestamp** | unix timestamp  
 Timestamp of the genesis block.  
 
-**maturitydelay** | number of blocks
+**maturitydelay** | number of blocks  
 Number of children a block must have before it is considered "mature."  
 
-**mediantimestampwindow** | number of blocks
+**mediantimestampwindow** | number of blocks  
 Duration of the window used to adjust the difficulty.  
 
-**siafundcount** | siafunds
+**siafundcount** | siafunds  
 Total number of siafunds.  
 
-**siafundportion** | fraction
+**siafundportion** | fraction  
 Fraction of each file contract payout given to siafund holders.  
 
-**initialcoinbase** | siacoin
+**initialcoinbase** | siacoin  
 Number of coins given to the miner of the first block. Note that elsewhere in the API currency is typically returned in hastings and as a bignum. This is not the case here.  
 
-**minimumcoinbase** | siacoin
+**minimumcoinbase** | siacoin  
 Minimum number of coins paid out to the miner of a block (the coinbase decreases with each block). Note that elsewhere in the API currency is typically returned in hastings and as a bignum. This is not the case here.  
 
-**roottarget** | hash
+**roottarget** | hash  
 Initial target.  
 
-**rootdepth** | hash
+**rootdepth** | hash  
 Initial depth.  
 
-**siacoinprecision** | hastings per siacoin
+**siacoinprecision** | hastings per siacoin  
 Number of Hastings in one Siacoin.  
 
 ## /consensus/blocks [GET]
@@ -229,10 +230,17 @@ Returns the block for a given id or height.
 #### REQUIRED
 One of the following parameters must be specified.
 
+<<<<<<< HEAD
 **id** | blockID
 BlockID of the requested block.  
 
 **height** | blockheight
+=======
+**id** | blockID  
+BlockID of the requested block.  
+
+**height** | blockheight  
+>>>>>>> Sia/contract-not-found-handling
 BlockHeight of the requested block.  
 
 ### JSON Response
@@ -240,14 +248,21 @@ BlockHeight of the requested block.
 
 ```go
 {
+<<<<<<< HEAD
     "height": 20032, 
     "id": "00000000000033b9eb57fa63a51adeea857e70f6415ebbfe5df2a01f0d0477f4", 
     "minerpayouts": [
+=======
+    "height": 20032, // block height
+    "id": "00000000000033b9eb57fa63a51adeea857e70f6415ebbfe5df2a01f0d0477f4", // hash
+    "minerpayouts": [ // []SiacoinOutput
+>>>>>>> Sia/contract-not-found-handling
         {
             "unlockhash": "c199cd180e19ef7597bcf4beecdd4f211e121d085e24432959c42bdf9030e32b9583e1c2727c",
             "value": "279978000000000000000000000000"
         }
     ],
+<<<<<<< HEAD
     "nonce": [4,12,219,7,0,0,0,0],
     "parentid": "0000000000009615e8db750eb1226aa5e629bfa7badbfe0b79607ec8b918a44c",
     "timestamp": 1444516982,
@@ -261,6 +276,19 @@ BlockHeight of the requested block.
             "filecontracts": [],
             "minerfees": [],
             "siacoininputs": [
+=======
+    "nonce": [4,12,219,7,0,0,0,0], // [8]byte
+    "parentid": "0000000000009615e8db750eb1226aa5e629bfa7badbfe0b79607ec8b918a44c", // hash
+    "difficulty": "440908097469850", // arbitrary-precision integer
+    "timestamp": 1444516982, // timestamp
+    "transactions": [ // []ConsensusBlocksGetTxn
+        {
+            "arbitrarydata": [],          // [][]byte
+            "filecontractrevisions": [],  // []FileContractRevision
+            "filecontracts": [],          // []ConsensusBlocksGetFileContract
+            "minerfees": [],              // []Currency
+            "siacoininputs": [            // []SiacoinInput
+>>>>>>> Sia/contract-not-found-handling
                 {
                     "parentid": "24cbeb9df7eb2d81d0025168fc94bd179909d834f49576e65b51feceaf957a64",
                     "unlockconditions": {
@@ -275,7 +303,11 @@ BlockHeight of the requested block.
                     }
                 }
             ],
+<<<<<<< HEAD
             "siacoinoutputs": [
+=======
+            "siacoinoutputs": [ // []SiacoinOutput
+>>>>>>> Sia/contract-not-found-handling
                 {
                     "unlockhash": "d54f500f6c1774d518538dbe87114fe6f7e6c76b5bc8373a890b12ce4b8909a336106a4cd6db",
                     "value": "1010000000000000000000000000"
@@ -285,10 +317,17 @@ BlockHeight of the requested block.
                     "value": "5780000000000000000000000000"
                 }
             ],
+<<<<<<< HEAD
             "siafundinputs": [],
             "siafundoutputs": [],
             "storageproofs": [],
             "transactionsignatures": [
+=======
+            "siafundinputs": [],          // []SiafundInput
+            "siafundoutputs": [],         // []SiafundOutput
+            "storageproofs": [],          // []StorageProof
+            "transactionsignatures": [    // []TransactionSignature
+>>>>>>> Sia/contract-not-found-handling
                 {
                     "coveredfields": {
                         "arbitrarydata": [],
@@ -311,11 +350,41 @@ BlockHeight of the requested block.
             ]
         },
         {
+<<<<<<< HEAD
 	    // ...
+=======
+          // ...
+>>>>>>> Sia/contract-not-found-handling
         }
     ]
 }
 ```
+<<<<<<< HEAD
+=======
+**height** | block height  
+Height of the block
+
+**id** | hash  
+ID of the block
+
+**minerpayouts** |  []SiacoinOutput  
+Siacoin output that holds the amount of siacoins spent on the miner payout
+
+**nonce** | bytes  
+Block nonce
+
+**parentid** | hash  
+ID of the previous block
+
+**difficulty** | arbitrary-precision integer  
+Historic difficulty at height of the block
+
+**timestamp** | timestamp  
+Block timestamp
+
+**transactions** | []ConsensusBlocksGetTxn  
+Transactions contained within the block
+>>>>>>> Sia/contract-not-found-handling
 
 ## /consensus/validate/transactionset [POST]
 > curl example  
@@ -339,6 +408,45 @@ standard success or error response. See [standard responses](#standard-responses
 The daemon is responsible for starting and stopping the modules which make up the rest of Sia.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+## /daemon/alerts [GET]
+> curl example  
+
+```go
+curl -A "Sia-Agent" "localhost:9980/daemon/alerts"
+```
+
+Returns the alerts of the Sia instance.
+
+### JSON Response
+> JSON Response Example
+ 
+```go
+{
+  "alerts": [
+    {
+      "cause": "wallet is locked",
+      "msg": "user's contracts need to be renewed but a locked wallet prevents renewal",
+      "module": "contractor",
+      "severity": "warning",
+    }
+  ],
+}
+```
+**cause** | string  
+Cause is the cause for the information contained in msg if known.
+
+**msg** | string  
+Msg contains information about an issue.
+
+**module** | string  
+Module is the module which caused the alert.
+
+**severity** | string  
+Severity is either "warning", "error" or "critical" where "error" might be a lack of internet access and "critical" would be a lack of funds and contracts that are about to expire due to that.
+
+>>>>>>> Sia/contract-not-found-handling
 ## /daemon/constants [GET]
 > curl example  
 
@@ -488,8 +596,11 @@ Max upload speed permitted in bytes per second
 ### Response
 standard success or error response. See [standard responses](#standard-responses).
 
+<<<<<<< HEAD
 =======
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
 ## /daemon/stop [GET]
 > curl example  
 
@@ -503,6 +614,9 @@ Cleanly shuts down the daemon. This may take a few seconds.
 standard success or error response. See [standard responses](#standard-responses).
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Sia/contract-not-found-handling
 ## /daemon/update [GET]
 > curl example  
 
@@ -538,8 +652,11 @@ Updates the daemon to the latest available version release.
 ### Response
 standard success or error response. See [standard responses](#standard-responses).
 
+<<<<<<< HEAD
 =======
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
 ## /daemon/version [GET]
 > curl example  
 
@@ -557,7 +674,11 @@ Returns the version of the Sia daemon currently running.
 "version": "1.3.7" // string
 }
 ```
+<<<<<<< HEAD
 **version** | string
+=======
+**version** | string  
+>>>>>>> Sia/contract-not-found-handling
 This is the version number that is visible to its peers on the network.
 
 # Gateway
@@ -582,19 +703,28 @@ returns information about the gateway, including the list of connected peers.
     "peers":[
         {
 <<<<<<< HEAD
+<<<<<<< HEAD
             "inbound":    false,                   // boolean
 =======
             "inbound":    alse,                    // boolean
 >>>>>>> siaprime/master
+=======
+            "inbound":    false,                   // boolean
+>>>>>>> Sia/contract-not-found-handling
             "local":      false,                   // boolean
             "netaddress": "222.222.222.222:9981",  // string
             "version":    "1.0.0",                 // string
         },
     ],
+<<<<<<< HEAD
+=======
+    "online":           true,  // boolean
+>>>>>>> Sia/contract-not-found-handling
     "maxdownloadspeed": 1234,  // bytes per second
     "maxuploadspeed":   1234,  // bytes per second
 }
 ```
+<<<<<<< HEAD
 **netaddress** | string
 netaddress is the network address of the gateway as seen by the rest of the network. The address consists of the external IP address and the port Sia is listening on. It represents a `modules.NetAddress`.  
 
@@ -617,6 +747,33 @@ version is the version number of the peer.
 Max download speed permitted in bytes per second
 
 **maxuploadspeed** | bytes per second
+=======
+**netaddress** | string  
+netaddress is the network address of the gateway as seen by the rest of the network. The address consists of the external IP address and the port Sia is listening on. It represents a `modules.NetAddress`.  
+
+**peers** | array  
+peers is an array of peers the gateway is connected to. It represents an array of `modules.Peer`s.  
+        
+**inbound** | boolean  
+inbound is true when the peer initiated the connection. This field is exposed as outbound peers are generally trusted more than inbound peers, as inbound peers are easily manipulated by an adversary.  
+
+**local** | boolean  
+local is true if the peer's IP address belongs to a local address range such as 192.168.x.x or 127.x.x.x  
+
+**netaddress** | string  
+netaddress is the address of the peer. It represents a `modules.NetAddress`.  
+
+**version** | string  
+version is the version number of the peer.  
+
+**online** | boolean  
+online is true if the gateway is connected to at least one peer that isn't local.
+
+**maxdownloadspeed** | bytes per second   
+Max download speed permitted in bytes per second
+
+**maxuploadspeed** | bytes per second   
+>>>>>>> Sia/contract-not-found-handling
 Max upload speed permitted in bytes per second
 
 ## /gateway [POST]
@@ -653,7 +810,11 @@ connects the gateway to a peer. The peer is added to the node list if it is not 
 #### REQUIRED
 netaddress is the address of the peer to connect to. It should be a reachable ip address and port number, of the form `IP:port`. IPV6 addresses must be enclosed in square brackets.  
 
+<<<<<<< HEAD
 **netaddress** | string
+=======
+**netaddress** | string  
+>>>>>>> Sia/contract-not-found-handling
 Example IPV4 address: 123.456.789.0:123  
 Example IPV6 address: [123::456]:789  
 
@@ -673,13 +834,67 @@ disconnects the gateway from a peer. The peer remains in the node list. Disconne
 #### REQUIRED
 netaddress is the address of the peer to connect to. It should be a reachable ip address and port number, of the form `IP:port`. IPV6 addresses must be enclosed in square brackets.  
 
+<<<<<<< HEAD
 **netaddress** | string
+=======
+**netaddress** | string  
+>>>>>>> Sia/contract-not-found-handling
 Example IPV4 address: 123.456.789.0:123  
 Example IPV6 address: [123::456]:789  
 
 ### Response
 standard success or error response. See [standard responses](#standard-responses).
 
+<<<<<<< HEAD
+=======
+## /gateway/blacklist [GET]
+> curl example  
+
+```go
+curl -A "Sia-Agent" "localhost:9980/gateway/blacklist"
+```
+
+fetches the list of blacklisted addresses.
+
+### JSON Response
+> JSON Response Example
+```go
+{
+  "blacklist":
+  [
+    "123.456.789.0",  // string
+    "123.456.789.0",  // string
+    "123.456.789.0",  // string
+  ],
+}
+```
+**blacklist** | string  
+blacklist is a list of blacklisted address
+
+## /gateway/blacklist [POST]
+> curl example  
+
+```go
+curl -A "Sia-Agent" -u "":<apipassword> --data '{"action":"append","addresses":["123.456.789.0:9981","123.456.789.0:9981","123.456.789.0:9981"]}' "localhost:9980/gateway/blacklist"
+```
+```go
+curl -A "Sia-Agent" -u "":<apipassword> --data '{"action":"set","addresses":[]}' "localhost:9980/gateway/blacklist"
+```
+
+performs actions on the Gateway's blacklist. There are three `actions` that can be performed. `append` and `remove` are used for appending or removing addresses from the Gateway's blacklist. `set` is used to define all the addresses in the blacklist. If a list of addresses is provided with `set`, that list of addresses will become the Gateway's blacklist, replacing any blacklist that was currently in place. To clear the Gateway's blacklist, submit an empty list with `set`.
+
+### Path Parameters
+#### REQUIRED
+**action** | string  
+this is the action to be performed on the blacklist. Allowed inputs are `append`, `remove`, and `set`.
+
+**addresses** | string  
+this is a comma separated list of addresses that are to be appended to or removed from the blacklist. If the action is `append` or `remove` this field is required.
+
+### Response
+standard success or error response. See [standard responses](#standard-responses).
+
+>>>>>>> Sia/contract-not-found-handling
 # Host
 
 The host provides storage from local disks to the network. The host negotiates file contracts with remote renters to earn money for storing other users' files. The host's endpoints expose methods for viewing and modifying host settings, announcing to the network, and managing how files are stored on disk.
@@ -749,6 +964,9 @@ fetches status information about the host.
     "netaddress":           "123.456.789.0:9982", // string
     "windowsize":           144,                  // blocks
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Sia/contract-not-found-handling
     
     "collateral":       "57870370370",                     // hastings / byte / block
     "collateralbudget": "2000000000000000000000000000000", // hastings
@@ -758,6 +976,7 @@ fetches status information about the host.
     "mincontractprice":          "30000000000000000000000000", // hastings
     "mindownloadbandwidthprice": "250000000000000",            // hastings / byte
     "minsectoraccessprice":      "123",                        //hastings
+<<<<<<< HEAD
 =======
 
     "collateral":       "57870370370",                     // hastings / byte / block
@@ -767,6 +986,8 @@ fetches status information about the host.
     "mincontractprice":          "30000000000000000000000000", // hastings
     "mindownloadbandwidthprice": "250000000000000",            // hastings / byte
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
     "minstorageprice":           "231481481481",               // hastings / byte / block
     "minuploadbandwidthprice":   "100000000000000"             // hastings / byte
   },
@@ -800,7 +1021,11 @@ The maximum duration that a host will allow for a file contract. The host commit
 **maxrevisebatchsize** | bytes  
 The maximum size of a single batch of file contract revisions. The renter can perform DoS attacks on the host by uploading a batch of data then refusing to provide a signature to pay for the data. The host can reduce this exposure by limiting the batch size. Larger batch sizes allow for higher throughput as there is significant communication overhead associated with performing a batch upload.  
 
+<<<<<<< HEAD
 **netaddress** | string
+=======
+**netaddress** | string  
+>>>>>>> Sia/contract-not-found-handling
 The IP address or hostname (including port) that the host should be contacted at.  
 
 **remainingstorage** | bytes  
@@ -812,7 +1037,11 @@ The smallest amount of data in bytes that can be uploaded or downloaded when per
 **totalstorage** | bytes  
 The total amount of storage capacity on the host. It should be noted that the host can lie.  
 
+<<<<<<< HEAD
 **unlockhash** | hash
+=======
+**unlockhash** | hash  
+>>>>>>> Sia/contract-not-found-handling
 The unlock hash is the address at which the host can be paid when forming file contracts.  
 
 **windowsize** | blocks  
@@ -839,13 +1068,21 @@ The price that a renter has to pay when uploading data to the host.
 **revisionnumber** | int 
 The revision number indicates to the renter what iteration of settings the host is currently at. Settings are generally signed. If the renter has multiple conflicting copies of settings from the host, the renter can expect the one with the higher revision number to be more recent.  
 
+<<<<<<< HEAD
 **version** | string
+=======
+**version** | string  
+>>>>>>> Sia/contract-not-found-handling
 The version of external settings being used. This field helps coordinate updates while preserving compatibility with older nodes.  
 
 #### financialmetrics  
 The financial status of the host.  
   
+<<<<<<< HEAD
 **contractcount** | int
+=======
+**contractcount** | int  
+>>>>>>> Sia/contract-not-found-handling
 Number of open file contracts.  
 
 **contractcompensation** | hastings  
@@ -902,7 +1139,11 @@ The maximum duration of a file contract that the host will accept. The storage p
 **maxrevisebatchsize** | bytes  
 The maximum size of a single batch of file contract revisions. The renter can perform DoS attacks on the host by uploading a batch of data then refusing to provide a signature to pay for the data. The host can reduce this exposure by limiting the batch size. Larger batch sizes allow for higher throughput as there is significant communication overhead associated with performing a batch upload.  
 
+<<<<<<< HEAD
 **netaddress** | string
+=======
+**netaddress** | string  
+>>>>>>> Sia/contract-not-found-handling
 The IP address or hostname (including port) that the host should be contacted at. If left blank, the host will automatically figure out its ip address and use that. If given, the host will use the address given.  
 
 **windowsize** | blocks  
@@ -917,6 +1158,9 @@ The total amount of money that the host will allocate to collateral across all f
 **maxcollateral** | hastings  
 The maximum amount of collateral that the host will put into a
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Sia/contract-not-found-handling
 single file contract.
 
 **minbaserpcprice** | hastings  
@@ -925,15 +1169,21 @@ the host. This is charged for every interaction a renter has with a host to pay
 for resources consumed during the interaction. It is added to the
 `mindownloadbandwidthprice` and `minuploadbandwidthprice` when uploading or
 downloading files from the host.
+<<<<<<< HEAD
 =======
 single file contract.  
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
 
 **mincontractprice** | hastings  
 The minimum price that the host will demand from a renter when forming a contract. Typically this price is to cover transaction fees on the file contract revision and storage proof, but can also be used if the host has a low amount of collateral. The price is a minimum because the host may automatically adjust the price upwards in times of high demand.  
 
 **mindownloadbandwidthprice** | hastings / byte  
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Sia/contract-not-found-handling
 The minimum price that the host will demand from a renter when the renter is downloading data. If the host is saturated, the host may increase the price from the minimum.
 
 **minsectoraccessprice** | hastings  
@@ -943,9 +1193,12 @@ regardless of how much the renter intends to download this is charged to pay for
 the physical disk resources the host uses. It is multiplied by the number of
 sectors read then added to the `mindownloadbandwidthprice` when downloading a
 file.
+<<<<<<< HEAD
 =======
 The minimum price that the host will demand from a renter when the renter is downloading data. If the host is saturated, the host may increase the price from the minimum.  
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
 
 **minstorageprice** | hastings / byte / block  
 The minimum price that the host will demand when storing data for extended periods of time. If the host is low on space, the price of storage may be set higher than the minimum.  
@@ -959,12 +1212,17 @@ Information about the network, specifically various ways in which renters have c
 **downloadcalls** | int 
 The number of times that a renter has attempted to download something from the host.  
 
+<<<<<<< HEAD
 **errorcalls** | int
+=======
+**errorcalls** | int  
+>>>>>>> Sia/contract-not-found-handling
 The number of calls that have resulted in errors. A small number of errors are expected, but a large number of errors indicate either buggy software or malicious network activity. Usually buggy software.  
 
 **formcontractcalls** | int  
 The number of times that a renter has tried to form a contract with the host.  
 
+<<<<<<< HEAD
 **renewcalls** | int
 The number of times that a renter has tried to renew a contract with the host.  
 
@@ -981,6 +1239,24 @@ The number of times that a renter has attempted to use an unrecognized call. Lar
 connectabilitystatus is one of "checking", "connectable", or "not connectable", and indicates if the host can connect to itself on its configured NetAddress.  
 
 **workingstatus** | string
+=======
+**renewcalls** | int  
+The number of times that a renter has tried to renew a contract with the host.  
+
+**revisecalls** | int  
+The number of times that the renter has tried to revise a contract with the host.  
+
+**settingscalls** | int  
+The number of times that a renter has queried the host for the host's settings. The settings include the price of bandwidth, which is a price that can adjust every few minutes. This value is usually very high compared to the others.  
+
+**unrecognizedcalls** | int  
+The number of times that a renter has attempted to use an unrecognized call. Larger numbers typically indicate buggy software.  
+
+**connectabilitystatus** | string  
+connectabilitystatus is one of "checking", "connectable", or "not connectable", and indicates if the host can connect to itself on its configured NetAddress.  
+
+**workingstatus** | string  
+>>>>>>> Sia/contract-not-found-handling
 workingstatus is one of "checking", "working", or "not working" and indicates if the host is being actively used by renters.  
 
 ## /host [POST]
@@ -994,6 +1270,7 @@ Configures hosting parameters. All parameters are optional; unspecified paramete
 
 ### Query String Parameters
 #### OPTIONAL
+<<<<<<< HEAD
 **acceptingcontracts** | boolean
 When set to true, the host will accept new file contracts if the terms are reasonable. When set to false, the host will not accept new file contracts at all.  
 
@@ -1004,11 +1281,24 @@ The maximum size of a single download request from a renter. Each download reque
 The maximum duration of a file contract that the host will accept. The storage proof window must end before the current height + maxduration.  
 
 **maxrevisebatchsize** | bytes
+=======
+**acceptingcontracts** | boolean  
+When set to true, the host will accept new file contracts if the terms are reasonable. When set to false, the host will not accept new file contracts at all.  
+
+**maxdownloadbatchsize** | bytes  
+The maximum size of a single download request from a renter. Each download request has multiple round trips of communication that exchange money. Larger batch sizes mean fewer round trips, but more financial risk for the host - the renter can get a free batch when downloading by refusing to provide a signature.  
+
+**maxduration** | blocks  
+The maximum duration of a file contract that the host will accept. The storage proof window must end before the current height + maxduration.  
+
+**maxrevisebatchsize** | bytes  
+>>>>>>> Sia/contract-not-found-handling
 The maximum size of a single batch of file contract revisions. The renter can perform DoS attacks on the host by uploading a batch of data then refusing to provide a signature to pay for the data. The host can reduce this exposure by limiting the batch size. Larger batch sizes allow for higher throughput as there is significant communication overhead associated with performing a batch upload.  
 
 **netaddress** | string  
 The IP address or hostname (including port) that the host should be contacted at. If left blank, the host will automatically figure out its ip address and use that. If given, the host will use the address given.  
 
+<<<<<<< HEAD
 **windowsize** | blocks
 // The storage proof window is the number of blocks that the host has to get a storage proof onto the blockchain. The window size is the minimum size of window that the host will accept in a file contract.
 
@@ -1022,6 +1312,20 @@ The total amount of money that the host will allocate to collateral across all f
 The maximum amount of collateral that the host will put into a single file contract.  
 
 <<<<<<< HEAD
+=======
+**windowsize** | blocks  
+// The storage proof window is the number of blocks that the host has to get a storage proof onto the blockchain. The window size is the minimum size of window that the host will accept in a file contract.
+
+**collateral** | hastings / byte / block  
+The maximum amount of money that the host will put up as collateral per byte per block of storage that is contracted by the renter.  
+
+**collateralbudget** | hastings  
+The total amount of money that the host will allocate to collateral across all file contracts.  
+
+**maxcollateral** | hastings  
+The maximum amount of collateral that the host will put into a single file contract.  
+
+>>>>>>> Sia/contract-not-found-handling
 **minbaserpcprice** | hastings  
 The minimum price that the host will demand from a renter for interacting with
 the host. This is charged for every interaction a renter has with a host to pay
@@ -1029,7 +1333,11 @@ for resources consumed during the interaction. It is added to the
 `mindownloadbandwidthprice` and `minuploadbandwidthprice` when uploading or
 downloading files from the host.
 
+<<<<<<< HEAD
 **mincontractprice** | hastings
+=======
+**mincontractprice** | hastings  
+>>>>>>> Sia/contract-not-found-handling
 The minimum price that the host will demand from a renter when forming a contract. Typically this price is to cover transaction fees on the file contract revision and storage proof, but can also be used if the host has a low amount of collateral. The price is a minimum because the host may automatically adjust the price upwards in times of high demand.  
 
 **minsectoraccessprice** | hastings  
@@ -1040,6 +1348,7 @@ the physical disk resources the host uses. It is multiplied by the number of
 sectors read then added to the `mindownloadbandwidthprice` when downloading a
 file.
 
+<<<<<<< HEAD
 =======
 **mincontractprice** | hastings
 The minimum price that the host will demand from a renter when forming a contract. Typically this price is to cover transaction fees on the file contract revision and storage proof, but can also be used if the host has a low amount of collateral. The price is a minimum because the host may automatically adjust the price upwards in times of high demand.  
@@ -1052,6 +1361,15 @@ The minimum price that the host will demand from a renter when the renter is dow
 The minimum price that the host will demand when storing data for extended periods of time. If the host is low on space, the price of storage may be set higher than the minimum.  
 
 **minuploadbandwidthprice** | hastings / byte
+=======
+**mindownloadbandwidthprice** | hastings / byte  
+The minimum price that the host will demand from a renter when the renter is downloading data. If the host is saturated, the host may increase the price from the minimum.  
+
+**minstorageprice** | hastings / byte / block  
+The minimum price that the host will demand when storing data for extended periods of time. If the host is low on space, the price of storage may be set higher than the minimum.  
+
+**minuploadbandwidthprice** | hastings / byte  
+>>>>>>> Sia/contract-not-found-handling
 The minimum price that the host will demand from a renter when the renter is uploading data. If the host is saturated, the host may increase the price from the minimum.  
 
 ### Response
@@ -1118,6 +1436,7 @@ Get contract information from the host database. This call will return all stora
   ]
 }
 ```
+<<<<<<< HEAD
 **contractcost** | hastings
 Amount in hastings to cover the transaction fees for this storage obligation.
 
@@ -1158,12 +1477,55 @@ Negotion height is the height at which the storage obligation was negotiated.
 The proof deadline is the height by which the storage proof must be submitted.
 
 **obligationstatus** | string
+=======
+**contractcost** | hastings  
+Amount in hastings to cover the transaction fees for this storage obligation.
+
+**datasize** | bytes  
+Size of the data that is protected by the contract.
+
+**lockedcollateral** | hastings  
+Amount that is locked as collateral for this storage obligation.
+
+**obligationid** | hash  
+Id of the storageobligation, which is defined by the file contract id of the file contract that governs the storage obligation.
+
+**potentialdownloadrevenue** | hastings  
+Potential revenue for downloaded data that the host will reveive upon successful completion of the obligation.
+
+**potentialstoragerevenue** | hastings  
+Potential revenue for storage of data that the host will reveive upon successful completion of the obligation.
+
+**potentialuploadrevenue** | hastings  
+Potential revenue for uploaded data that the host will reveive upon successful completion of the obligation.
+
+**riskedcollateral** | hastings  
+Amount that the host might lose if the submission of the storage proof is not successful.
+
+**sectorrootscount** | int  
+Number of sector roots.
+
+**transactionfeesadded** | hastings  
+Amount for transaction fees that the host added to the storage obligation.
+
+**expirationheight** | blockheight  
+Expiration height is the height at which the storage obligation expires.
+
+**negotiationheight** | blockheight  
+Negotion height is the height at which the storage obligation was negotiated.
+
+**proofdeadline** | blockheight  
+The proof deadline is the height by which the storage proof must be submitted.
+
+**obligationstatus** | string  
+>>>>>>> Sia/contract-not-found-handling
 Status of the storage obligation. There are 4 different statuses:
  - `obligationFailed`:	the storage obligation failed, potential revenues and risked collateral are lost
  - `obligationRejected`:	the storage obligation was never started, no revenues gained or lost
  - `obligationSucceeded`:	the storage obligation was completed, revenues were gained
  - `obligationUnresolved`: 	the storage obligation has an uninitialized value. When the **proofdeadline** is in the past this might be a stale obligation.
 
+<<<<<<< HEAD
 **originconfirmed** | hash
 Origin confirmed indicates whether the file contract was seen on the blockchain for this storage obligation.
 
@@ -1177,6 +1539,21 @@ The host has constructed a storage proof
 Revision confirmed indicates whether there was a file contract revision seen on the blockchain for this storage obligation.
 
 **revisionconstructed** | boolean
+=======
+**originconfirmed** | hash  
+Origin confirmed indicates whether the file contract was seen on the blockchain for this storage obligation.
+
+**proofconfirmed** | boolean  
+Proof confirmed indicates whether there was a storage proof seen on the blockchain for this storage obligation.
+
+**proofconstructed** | boolean  
+The host has constructed a storage proof
+
+**revisionconfirmed** | boolean  
+Revision confirmed indicates whether there was a file contract revision seen on the blockchain for this storage obligation.
+
+**revisionconstructed** | boolean  
+>>>>>>> Sia/contract-not-found-handling
 Revision constructed indicates whether there was a file contract revision constructed for this storage obligation.
 
 ## /host/storage [GET]
@@ -1207,6 +1584,7 @@ Gets a list of folders tracked by the host's storage manager.
   ]
 }
 ```
+<<<<<<< HEAD
 **path** | string
 Absolute path to the storage folder on the local filesystem.  
 
@@ -1214,6 +1592,15 @@ Absolute path to the storage folder on the local filesystem.
 Maximum capacity of the storage folder in bytes. The host will not store more than this many bytes in the folder. This capacity is not checked against the drive's remaining capacity. Therefore, you must manually ensure the disk has sufficient capacity for the folder at all times. Otherwise you risk losing renter's data and failing storage proofs.  
 
 **capacityremaining** | bytes   
+=======
+**path** | string  
+Absolute path to the storage folder on the local filesystem.  
+
+**capacity** | bytes  
+Maximum capacity of the storage folder in bytes. The host will not store more than this many bytes in the folder. This capacity is not checked against the drive's remaining capacity. Therefore, you must manually ensure the disk has sufficient capacity for the folder at all times. Otherwise you risk losing renter's data and failing storage proofs.  
+
+**capacityremaining** | bytes  
+>>>>>>> Sia/contract-not-found-handling
 Unused capacity of the storage folder in bytes.  
 
 **failedreads, failedwrites** | int  
@@ -1231,6 +1618,12 @@ curl -A "Sia-Agent" -u "":<apipassword> --data "path=foo/bar&size=1000000000000"
 
 adds a storage folder to the manager. The manager may not check that there is enough space available on-disk to support as much storage as requested
 
+<<<<<<< HEAD
+=======
+### Storage Folder Limits
+A host can only have 65536 storage folders in total which have to be between 256 MiB and 16 PiB in size
+
+>>>>>>> Sia/contract-not-found-handling
 ### Query String Parameters
 #### REQUIRED
 **path** | string  
@@ -1274,6 +1667,12 @@ curl -A "Sia-Agent" -u "":<apipassword> --data "path=foo/bar&newsize=10000000000
 
 Grows or shrinks a storage file in the manager. The manager may not check that there is enough space on-disk to support growing the storasge folder, but should gracefully handle running out of space unexpectedly. When shrinking a storage folder, any data in the folder that neeeds to be moved will be placed into other storage folders, meaning that no data will be lost. If the manager is unable to migrate the data, an error will be returned and the operation will be stopped.
 
+<<<<<<< HEAD
+=======
+### Storage Folder Limits
+See [/host/storage/folders/add](#host-storage-folders-add-post)
+
+>>>>>>> Sia/contract-not-found-handling
 ### Query String Parameters
 #### REQUIRED
 **path** | string  
@@ -1297,7 +1696,11 @@ Deletes a sector, meaning that the manager will be unable to upload that sector 
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **merkleroot** | merkleroot
+=======
+**merkleroot** | merkleroot  
+>>>>>>> Sia/contract-not-found-handling
 Merkleroot of the sector to delete.  
 
 ### Response
@@ -1339,10 +1742,17 @@ See [host internal settings](#internalsettings)
 	"conversionrate": 95  // float64
 }
 ```
+<<<<<<< HEAD
 **estimatedscore** | big int
 estimatedscore is the estimated HostDB score of the host given the settings passed to estimatescore.  
   
 **conversionrate** | float64
+=======
+**estimatedscore** | big int  
+estimatedscore is the estimated HostDB score of the host given the settings passed to estimatescore.  
+  
+**conversionrate** | float64  
+>>>>>>> Sia/contract-not-found-handling
 conversionrate is the likelihood given the settings passed to estimatescore that the host will be selected by renters forming contracts.  
 
 # Host DB
@@ -1366,7 +1776,11 @@ Shows some general information about the state of the hostdb.
     "initialscancomplete": false  // boolean
 }
 ```
+<<<<<<< HEAD
 **initialscancomplete** | boolean
+=======
+**initialscancomplete** | boolean  
+>>>>>>> Sia/contract-not-found-handling
 indicates if all known hosts have been scanned at least once.
 
 ## /hostdb/active [GET]
@@ -1461,7 +1875,11 @@ There is a block approximately every 10 minutes. e.g. 1 day = 144 blocks
 **maxrevisebatchsize** | bytes  
 Maximum size in bytes of a single batch of file contract revisions. Larger batch sizes allow for higher throughput as there is significant communication overhead associated with performing a batch upload.  
 
+<<<<<<< HEAD
 **netaddress** | sting
+=======
+**netaddress** | sting  
+>>>>>>> Sia/contract-not-found-handling
 Remote address of the host. It can be an IPv4, IPv6, or hostname, along with the port. IPv6 addresses are enclosed in square brackets.  
 
 **remainingstorage** | bytes  
@@ -1473,7 +1891,11 @@ Smallest amount of data in bytes that can be uploaded or downloaded to or from t
 **totalstorage** | bytes  
 Total amount of storage capacity the host claims it has.  
 
+<<<<<<< HEAD
 **unlockhash** | hash
+=======
+**unlockhash** | hash  
+>>>>>>> Sia/contract-not-found-handling
 Address at which the host can be paid when forming file contracts.  
 
 **windowsize** | blocks  
@@ -1497,16 +1919,27 @@ The price that a renter has to pay to store files with the host.
 **uploadbandwidthprice** | hastings / byte  
 The price that a renter has to pay when uploading data to the host.  
 
+<<<<<<< HEAD
 **revisionnumber** | int
 The revision number indicates to the renter what iteration of settings the host is currently at. Settings are generally signed. If the renter has multiple conflicting copies of settings from the host, the renter can expect the one with the higher revision number to be more recent.  
 
 **version** | string
+=======
+**revisionnumber** | int  
+The revision number indicates to the renter what iteration of settings the host is currently at. Settings are generally signed. If the renter has multiple conflicting copies of settings from the host, the renter can expect the one with the higher revision number to be more recent.  
+
+**version** | string  
+>>>>>>> Sia/contract-not-found-handling
 The version of the host.  
 
 **firstseen** | blocks  
 Firstseen is the last block height at which this host was announced.  
 
+<<<<<<< HEAD
 **historicdowntime** | nanoseconds
+=======
+**historicdowntime** | nanoseconds  
+>>>>>>> Sia/contract-not-found-handling
 Total amount of time the host has been offline.  
 
 **historicuptime** | nanoseconds  
@@ -1515,7 +1948,11 @@ Total amount of time the host has been online.
 **scanhistory** 
 Measurements that have been taken on the host. The most recent measurements are kept in full detail.  
 
+<<<<<<< HEAD
 **historicfailedinteractions** | int
+=======
+**historicfailedinteractions** | int  
+>>>>>>> Sia/contract-not-found-handling
 Number of historic failed interactions with the host.  
 
 **historicsuccessfulinteractions** | int 
@@ -1524,7 +1961,11 @@ Number of historic successful interactions with the host.
 **recentfailedinteractions** | int  
 Number of recent failed interactions with the host.  
 
+<<<<<<< HEAD
 **recentsuccessfulinteractions** | int
+=======
+**recentsuccessfulinteractions** | int  
+>>>>>>> Sia/contract-not-found-handling
 Number of recent successful interactions with the host.  
 
 **lasthistoricupdate** | blocks  
@@ -1536,6 +1977,7 @@ List of IP subnet masks used by the host. For IPv4 the /24 and for IPv6 the /54 
 **lastipnetchange** | date  
 The last time the list of IP subnet masks was updated. When equal subnet masks are found for different hosts, the host that occupies the subnet mask for a longer time is preferred.  
 
+<<<<<<< HEAD
 **publickey** 
 Public key used to identify and verify hosts.  
         
@@ -1549,6 +1991,21 @@ Key used to verify signed host messages.
 The string representation of the full public key, used when calling /hostdb/hosts.  
 
 **filtered** | boolean
+=======
+**publickey**  
+Public key used to identify and verify hosts.  
+
+**algorithm** | string  
+Algorithm used for signing and verification. Typically "ed25519".  
+
+**key** | hash  
+Key used to verify signed host messages.  
+
+**publickeystring** | string  
+The string representation of the full public key, used when calling /hostdb/hosts.  
+
+**filtered** | boolean  
+>>>>>>> Sia/contract-not-found-handling
 Indicates if the host is currently being filtered from the HostDB
 
 ## /hostdb/all [GET]
@@ -1562,10 +2019,14 @@ Lists all of the hosts known to the renter. Hosts are not guaranteed to be in an
 
 ### JSON Response 
 <<<<<<< HEAD
+<<<<<<< HEAD
 Response is the same as [`/hostdb/active`](#hosts)
 =======
 Repsonse is the same as [`/hostdb/active`](#hosts)
 >>>>>>> siaprime/master
+=======
+Response is the same as [`/hostdb/active`](#hosts)
+>>>>>>> Sia/contract-not-found-handling
 
 ## /hostdb/hosts/:*pubkey* [GET]
 > curl example  
@@ -1603,9 +2064,13 @@ Example Pubkey: ed25519:1234567890abcdef1234567890abcdef1234567890abcdef12345678
     "burnadjustment":             0.1234,   // float64
     "collateraladjustment":       23.456,   // float64
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"durationadjustment":         1,        // float64
 =======
 >>>>>>> siaprime/master
+=======
+	"durationadjustment":         1,        // float64
+>>>>>>> Sia/contract-not-found-handling
     "interactionadjustment":      0.1234,   // float64
     "priceadjustment":            0.1234,   // float64
     "storageremainingadjustment": 0.1234,   // float64
@@ -1619,6 +2084,7 @@ Response is the same as [`/hostdb/active`](#hosts) with the additional of the **
 **scorebreakdown**  
 A set of scores as determined by the renter. Generally, the host's final score is all of the values multiplied together. Modified renters may have additional criteria that they use to judge a host, or may ignore certin criteia. In general, these fields should only be used as a loose guide for the score of a host, as every renter sees the world differently and uses different metrics to evaluate hosts.  
 
+<<<<<<< HEAD
 **score** | big int
 The overall score for the host. Scores are entriely relative, and are consistent only within the current hostdb. Between different machines, different configurations, and different versions the absolute scores for a given host can be off by many orders of magnitude. When displaying to a human, some form of normalization with respect to the other hosts (for example, divide all scores by the median score of the hosts) is recommended.  
 
@@ -1656,6 +2122,41 @@ The multiplier that gets applied to a host based on the uptime percentage of the
 The multiplier that gets applied to a host based on the version of Sia that they are running. Versions get penalties if there are known bugs, scaling limitations, performance limitations, etc. Generally, the most recent version is always the one with the highest score.  
 
 <<<<<<< HEAD
+=======
+**score** | big int  
+The overall score for the host. Scores are entriely relative, and are consistent only within the current hostdb. Between different machines, different configurations, and different versions the absolute scores for a given host can be off by many orders of magnitude. When displaying to a human, some form of normalization with respect to the other hosts (for example, divide all scores by the median score of the hosts) is recommended.  
+
+**conversionrate** | float64  
+conversionrate is the likelihood that the host will be selected by renters forming contracts.  
+
+**ageadjustment** | float64  
+The multiplier that gets applied to the host based on how long it has been a host. Older hosts typically have a lower penalty.  
+
+**burnadjustment** | float64  
+The multiplier that gets applied to the host based on how much proof-of-burn the host has performed. More burn causes a linear increase in score.  
+
+**collateraladjustment** | float64  
+The multiplier that gets applied to a host based on how much collateral the host is offering. More collateral is typically better, though above a point it can be detrimental.  
+
+**durationadjustment** | float64  
+The multiplier that gets applied to a host based on the max duration it accepts for file contracts. Typically '1' for hosts with an acceptable max duration, and '0' for hosts that have a max duration which is not long enough.
+
+**interactionadjustment** | float64  
+The multipler that gets applied to a host based on previous interactions with the host. A high ratio of successful interactions will improve this hosts score, and a high ratio of failed interactions will hurt this hosts score. This adjustment helps account for hosts that are on unstable connections, don't keep their wallets unlocked, ran out of funds, etc.  
+
+**pricesmultiplier** | float64  
+The multiplier that gets applied to a host based on the host's price. Lower prices are almost always better. Below a certain, very low price, there is no advantage.  
+
+**storageremainingadjustment** | float64  
+The multiplier that gets applied to a host based on how much storage is remaining for the host. More storage remaining is better, to a point.  
+
+**uptimeadjustment** | float64  
+The multiplier that gets applied to a host based on the uptime percentage of the host. The penalty increases extremely quickly as uptime drops below 90%.  
+
+**versionadjustment** | float64  
+The multiplier that gets applied to a host based on the version of Sia that they are running. Versions get penalties if there are known bugs, scaling limitations, performance limitations, etc. Generally, the most recent version is always the one with the highest score.  
+
+>>>>>>> Sia/contract-not-found-handling
 ## /hostdb/filtermode [GET]
 > curl example  
 
@@ -1680,11 +2181,17 @@ Returns the current filter mode of the hostDB and any filtered hosts.
 **filtermode** | string  
 Can be either whitelist, blacklist, or disable.  
 
+<<<<<<< HEAD
 **hosts** | array of strings
 Comma separated pubkeys.  
 
 =======
 >>>>>>> siaprime/master
+=======
+**hosts** | array of strings  
+Comma separated pubkeys.  
+
+>>>>>>> Sia/contract-not-found-handling
 ## /hostdb/filtermode [POST]
 > curl example  
 
@@ -1695,10 +2202,14 @@ curl -A "Sia-Agent" --user "":<apipassword> --data '{"filtermode" : "whitelist",
 curl -A "Sia-Agent" --user "":<apipassword> --data '{"filtermode" : "disable"}' "localhost:9980/hostdb/filtermode"
 ```
 <<<<<<< HEAD
+<<<<<<< HEAD
 Lets you enable and disable a filter mode for the hostdb. Currently the two modes supported are `blacklist` mode and `whitelist` mode. In `blacklist` mode, any hosts you identify as being on the `blacklist` will not be used to form contracts. In `whitelist` mode, only the hosts identified as being on the `whitelist` will be used to form contracts. In both modes, hosts that you are blacklisted will be filtered from your hostdb. To enable either mode, set `filtermode` to the desired mode and submit a list of host pubkeys as the corresponding `blacklist` or `whitelist`. To disable either list, the `host` field can be left blank (e.g. empty slice) and the `filtermode` should be set to `disable`.  
 =======
 Lets you enable and disable a filter mode for the hostdb. Currenlty the two modes supported are `blacklist` mode and `whitelist` mode. In `blacklist` mode, any hosts you identify as being on the `blacklist` will not be used to form contracts. In `whitelist` mode, only the hosts identified as being on the `whitelist` will be used to form contracts. In both modes, hosts that you are blacklisted will be filtered from your hostdb. To enable either mode, set `filtermode` to the desired mode and submit a list of host pubkeys as the corresponding `blacklist` or `whitelist`. To disable either list, the `host` field can be left blank (e.g. empty slice) and the `filtermode` should be set to `disable`.  
 >>>>>>> siaprime/master
+=======
+Lets you enable and disable a filter mode for the hostdb. Currently the two modes supported are `blacklist` mode and `whitelist` mode. In `blacklist` mode, any hosts you identify as being on the `blacklist` will not be used to form contracts. In `whitelist` mode, only the hosts identified as being on the `whitelist` will be used to form contracts. In both modes, hosts that you are blacklisted will be filtered from your hostdb. To enable either mode, set `filtermode` to the desired mode and submit a list of host pubkeys as the corresponding `blacklist` or `whitelist`. To disable either list, the `host` field can be left blank (e.g. empty slice) and the `filtermode` should be set to `disable`.  
+>>>>>>> Sia/contract-not-found-handling
 
 **NOTE:** Enabling and disabling a filter mode can result in changes with your current contracts with can result in an increase in contract fee spending. For example, if `blacklist` mode is enabled, any hosts that you currently have contracts with that are also on the provide list of `hosts` will have their contracts replaced with non-blacklisted hosts. When `whitelist` mode is enabled, contracts will be replaced until there are only contracts with whitelisted hosts. Even disabling a filter mode can result in a change in contracts if there are better scoring hosts in your hostdb that were previously being filtered out.  
 
@@ -1708,10 +2219,14 @@ Lets you enable and disable a filter mode for the hostdb. Currenlty the two mode
 Can be either whitelist, blacklist, or disable.  
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 **hosts** | array of string  
 =======
 **hosts** | array of string
 >>>>>>> siaprime/master
+=======
+**hosts** | array of string  
+>>>>>>> Sia/contract-not-found-handling
 Comma separated pubkeys.  
 
 ### Response
@@ -1741,6 +2256,7 @@ returns the status of the miner.
   "staleblocksmined": 0,      // int
 }
 ```
+<<<<<<< HEAD
 **blocksmined** | int
 Number of mined blocks. This value is remembered after restarting.  
 
@@ -1748,6 +2264,15 @@ Number of mined blocks. This value is remembered after restarting.
 How fast the cpu is hashing, in hashes per second.  
 
 **cpumining** | boolean
+=======
+**blocksmined** | int  
+Number of mined blocks. This value is remembered after restarting.  
+
+**cpuhashrate** | hashes / second  
+How fast the cpu is hashing, in hashes per second.  
+
+**cpumining** | boolean  
+>>>>>>> Sia/contract-not-found-handling
 true if the cpu miner is active.  
 
 **staleblocksmined** | int  
@@ -1780,6 +2305,27 @@ stops the cpu miner. Does nothing if the cpu miner is not running.
 
 standard success or error response. See [standard responses](#standard-responses).
 
+<<<<<<< HEAD
+=======
+## /miner/block [POST]
+> curl example  
+
+```
+curl -A "Sia-Agent" -data "<byte-encoded-block>" -u "":<apipassword> "localhost:9980/miner/block"
+```
+
+Submits a solved block and broadcasts it.
+
+### Byte Request
+
+For efficiency the block is submitted in a raw byte encoding using the Sia encoding.
+
+### Response
+
+standard success or error response. See [standard responses](#standard-responses).
+
+
+>>>>>>> Sia/contract-not-found-handling
 ## /miner/header [GET]
 > curl example  
 
@@ -1814,14 +2360,22 @@ curl -A "Sia-Agent" -data "<byte-encoded-header>" -u "":<apipassword> "localhost
 
 submits a header that has passed the POW.
 
+<<<<<<< HEAD
 ### Byte Response
+=======
+### Byte Request
+>>>>>>> Sia/contract-not-found-handling
 For efficiency headers are submitted as raw byte encodings of the header in the body of the request, rather than as a query string parameter or path parameter. The request body should contain only the 80 bytes of the encoded header. The encoding is the same encoding used in `/miner/header [GET]` endpoint.
 
 Blocks are mined by repeatedly changing the nonce of the header, hashing the header's bytes, and comparing the resulting hash to the target. The block with that nonce is valid if the hash is less than the target. If none of the 2^64 possible nonces result in a header with a hash less than the target, call /miner/header [GET] again to get a new block header with a different merkle root. The above process can then be repeated for the new block header.  
 
 The other fields can generally be ignored. The parent block ID field is the hash of the parent block's header. Modifying this field will result in an orphan block. The timestamp is the time at which the block was mined and is set by the Sia Daemon. Modifying this field can result in invalid block. The merkle root is the merkle root of a merkle tree consisting of the timestamp, the miner outputs (one leaf per payout), and the transactions (one leaf per transaction). Modifying this field will result in an invalid block.
 
+<<<<<<< HEAD
 Field | Byte range within response | Byte range within header
+=======
+Field | Byte range within request | Byte range within header
+>>>>>>> Sia/contract-not-found-handling
 -------------- | -------------- | --------------
 target | [0-32)
 header | [32-112)
@@ -1851,6 +2405,9 @@ Returns the current settings along with metrics on the renter's spending.
   "settings": {
     "allowance": {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Sia/contract-not-found-handling
       "funds":              "1234",         // hastings
       "hosts":              24,             // int
       "period":             6048,           // blocks
@@ -1859,12 +2416,15 @@ Returns the current settings along with metrics on the renter's spending.
       "expectedupload":     2,              // uint64
       "expecteddownload":   1,              // uint64
       "expectedredundancy": 3               // uint64
+<<<<<<< HEAD
 =======
       "funds":       "1234",  // hastings
       "hosts":       24,      // int
       "period":      6048,    // blocks
       "renewwindow": 3024     // blocks
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
     },
     "maxuploadspeed":     1234, // BPS
     "maxdownloadspeed":   1234, // BPS
@@ -1890,6 +2450,9 @@ Allowance dictates how much the renter is allowed to spend in a given period. No
 
 **funds** | hastings  
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Sia/contract-not-found-handling
 Funds determines the number of siacoins that the renter will spend when forming
 contracts with hosts. The renter will not allocate more than this amount of
 siacoins into the set of contracts each billing period. If the renter spends all
@@ -1898,7 +2461,11 @@ either until the user increase the allowance funds, or until a new billing
 period is reached. If there are not enough funds to repair all files, then files
 may be at risk of getting lost.
 
+<<<<<<< HEAD
 **hosts** | int
+=======
+**hosts** | int  
+>>>>>>> Sia/contract-not-found-handling
 Hosts sets the number of hosts that will be used to form the allowance. Sia
 gains most of its resiliancy from having a large number of hosts. More hosts
 will mean both more robustness and higher speeds when using the network, however
@@ -1965,7 +2532,11 @@ for downloads, it will not impact the total cost to the user very much.
 The user should not consider download bandwidth used during repairs, siad will
 consider repair bandwidth separately.
 
+<<<<<<< HEAD
 **expectedredundancy** | bytes    
+=======
+**expectedredundancy** | bytes  
+>>>>>>> Sia/contract-not-found-handling
 Expected redundancy is used in conjunction with expected storage to determine
 the total amount of raw storage that will be stored on hosts. If the expected
 storage is 1 TB and the expected redundancy is 3, then the renter will calculate
@@ -1976,6 +2547,7 @@ manually choosing redundancy settings for their file. If different files are
 being given different redundancy settings, then the average of all the
 redundancies should be used as the value for expected redundancy, weighted by
 how large the files are.
+<<<<<<< HEAD
 =======
 Amount of money allocated for contracts. Funds are spent on both storage and bandwidth.  
 
@@ -1988,6 +2560,8 @@ Duration of contracts formed, in number of blocks.
 **renewwindow** | blocks  
 If the current blockheight + the renew window >= the height the contract is scheduled to end, the contract is renewed automatically. Is always nonzero.  
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
 
 **maxuploadspeed** | bytes per second  
 MaxUploadSpeed by default is unlimited but can be set by the user to manage bandwidth.  
@@ -1995,7 +2569,11 @@ MaxUploadSpeed by default is unlimited but can be set by the user to manage band
 **maxdownloadspeed** | bytes per second  
 MaxDownloadSpeed by default is unlimited but can be set by the user to manage bandwidth.  
 
+<<<<<<< HEAD
 **streamcachesize** | int
+=======
+**streamcachesize** | int  
+>>>>>>> Sia/contract-not-found-handling
 The StreamCacheSize is the number of data chunks that will be cached during streaming.  
 
 #### financialmetrics  
@@ -2022,7 +2600,11 @@ Amount of money spent on uploads.
 **unspent** | hastings  
 Amount of money in the allowance that has not been spent.  
 
+<<<<<<< HEAD
 **currentperiod** | blockheight
+=======
+**currentperiod** | blockheight  
+>>>>>>> Sia/contract-not-found-handling
 Height at which the current allowance period began.  
 
 ## /renter [POST]
@@ -2035,10 +2617,17 @@ curl -A "Sia-Agent" -u "":<apipassword> --data "period=12096&renewwindow=4032&fu
 Modify settings that control the renter's behavior.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ### Query String Parameters
 =======
 ### Query Response Parameters
 >>>>>>> siaprime/master
+=======
+### Query String Parameters
+#### REQUIRED
+When setting the allowance the Funds and Period are required. Since these are the two required fields, the allowance can be canceled by submitting the zero values for these fields.
+
+>>>>>>> Sia/contract-not-found-handling
 #### OPTIONAL
 Any of the renter settings can be set, see fields [here](#settings)
 
@@ -2049,6 +2638,22 @@ Enables or disables the check for hosts using the same ip subnets within the hos
 
 standard success or error response. See [standard responses](#standard-responses).
 
+<<<<<<< HEAD
+=======
+## /renter/allowance/cancel [POST]
+> curl example  
+
+```go
+curl -A "Sia-Agent" -u "":<apipassword>  "localhost:9980/renter/allowance/cancel"
+```
+
+Cancel the Renter's allowance.
+
+### Response
+
+standard success or error response. See [standard responses](#standard-responses).
+
+>>>>>>> Sia/contract-not-found-handling
 ## /renter/contract/cancel [POST]
 > curl example  
 
@@ -2060,7 +2665,11 @@ cancels a specific contract of the Renter.
 
 ### Query String Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **id** | hash
+=======
+**id** | hash  
+>>>>>>> Sia/contract-not-found-handling
 ID of the file contract
 
 ### Response
@@ -2076,6 +2685,7 @@ curl -A "Sia-Agent" -u "":<apipassword> --data "destination=/home/backups/01-01-
 
 Creates a backup of all siafiles in the renter at the specified path.
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 ### Query String Parameters
 =======
@@ -2094,6 +2704,19 @@ flag indicating if the backup should be stored on hosts. If true,
 
 =======
 >>>>>>> siaprime/master
+=======
+### Query String Parameters
+#### REQUIRED
+**destination** | string  
+The path on disk where the backup will be created. Needs to be an absolute
+path.
+
+#### OPTIONAL
+**remote** | boolean  
+flag indicating if the backup should be stored on hosts. If true,
+**destination** is interpreted as the backup's name, not its path.
+
+>>>>>>> Sia/contract-not-found-handling
 ### Response
 
 standard success or error response. See [standard responses](#standard-responses).
@@ -2109,6 +2732,7 @@ Recovers an existing backup from the specified path by adding all the siafiles
 contained within it to the renter. Should a siafile for a certain path already
 exist, a number will be added as a suffix. e.g. 'myfile_1.sia'
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 ### Query String Parameters
 =======
@@ -2127,11 +2751,27 @@ interpreted as the backup's name, not its path.
 
 =======
 >>>>>>> siaprime/master
+=======
+### Query String Parameters
+#### REQUIRED
+**source** | string  
+The path on disk where the backup will be recovered from. Needs to be an
+absolute path.
+
+#### OPTIONAL
+**remote** | boolean  
+flag indicating if the backup is stored on hosts. If true, **source** is
+interpreted as the backup's name, not its path.
+
+>>>>>>> Sia/contract-not-found-handling
 ### Response
 
 standard success or error response. See [standard responses](#standard-responses).
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Sia/contract-not-found-handling
 ## /renter/uploadedbackups [POST]
 > curl example  
 
@@ -2157,22 +2797,35 @@ Lists the backups that have been uploaded to hosts.
 **name** | string  
 The name of the backup.
 
+<<<<<<< HEAD
 **UID** | string
 A unique identifier for the backup.
 
 **creationdate** | string
+=======
+**UID** | string  
+A unique identifier for the backup.
+
+**creationdate** | string  
+>>>>>>> Sia/contract-not-found-handling
 Unix timestamp of when the backup was created.
 
 **size** 
 Size in bytes of the backup.
 
+<<<<<<< HEAD
 =======
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
 ## /renter/contracts [GET]
 > curl example  
 
 ```go
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Sia/contract-not-found-handling
 curl -A "Sia-Agent" "localhost:9980/renter/contracts?disabled=true&expired=true&recoverable=false"
 ```
 
@@ -2198,6 +2851,7 @@ Recoverable contracts are contracts which the contractor is currently trying to 
 
 ### Query String Parameters
 #### OPTIONAL
+<<<<<<< HEAD
 **disabled** | boolean
 flag indicating if disabled contracts should be returned.
 =======
@@ -2216,6 +2870,15 @@ flag indicating if inactive contracts should be returned.
 flag indicating if expired contracts should be returned.
 
 **recoverable** | boolean
+=======
+**disabled** | boolean  
+flag indicating if disabled contracts should be returned.
+
+**expired** | boolean  
+flag indicating if expired contracts should be returned.
+
+**recoverable** | boolean  
+>>>>>>> Sia/contract-not-found-handling
 flag indicating if recoverable contracts should be returned.
 
 ### JSON Response
@@ -2247,15 +2910,21 @@ flag indicating if recoverable contracts should be returned.
     }
   ],
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Sia/contract-not-found-handling
   "passivecontracts": [],
   "refreshedcontracts": [],
   "disabledcontracts": [],
   "expiredcontracts": [],
   "expiredrefreshedcontracts": [],
+<<<<<<< HEAD
 =======
   "inactivecontracts": [],
   "expiredcontracts": [],
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
   "recoverablecontracts": [],
 }
 ```
@@ -2271,6 +2940,7 @@ Fees paid in order to form the file contract.
 **hostpublickey** 
 Public key of the host that the file contract is formed with.  
        
+<<<<<<< HEAD
 **hostversion** | string
 The version of the host. 
 
@@ -2281,12 +2951,28 @@ Algorithm used for signing and verification. Typically "ed25519".
 Key used to verify signed host messages.  
 
 **id** | hash
+=======
+**hostversion** | string  
+The version of the host. 
+
+**algorithm** | string  
+Algorithm used for signing and verification. Typically "ed25519".  
+
+**key** | hash  
+Key used to verify signed host messages.  
+
+**id** | hash  
+>>>>>>> Sia/contract-not-found-handling
 ID of the file contract.  
 
 **lasttransaction** | transaction 
 A signed transaction containing the most recent contract revision.  
 
+<<<<<<< HEAD
 **netaddress** | string
+=======
+**netaddress** | string  
+>>>>>>> Sia/contract-not-found-handling
 Address of the host the file contract was formed with.  
 
 **renterfunds** | hastings  
@@ -2330,7 +3016,11 @@ retrieves the contents of a directory on the sia network
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **siapath** | string
+=======
+**siapath** | string  
+>>>>>>> Sia/contract-not-found-handling
 Path to the directory on the sia netork  
 
 ### JSON Response
@@ -2361,6 +3051,7 @@ Path to the directory on the sia netork
 **directories**
 An array of sia directories
 
+<<<<<<< HEAD
 **aggregatenumfiles** | uint64
 the total number of files in the sub directory tree
 
@@ -2370,11 +3061,23 @@ the total number of stuck chunks in the sub directory tree
 **aggregatenumsize** | uint64
 
 **health** | float64
+=======
+**aggregatenumfiles** | uint64  
+the total number of files in the sub directory tree
+
+**aggregatenumstuckchunks** | uint64  
+the total number of stuck chunks in the sub directory tree
+
+**aggregatenumsize** | uint64  
+
+**health** | float64  
+>>>>>>> Sia/contract-not-found-handling
 This is the worst health of any of the files or subdirectories. Health is the percent of parity pieces missing.
  - health = 0 is full redundancy
  - health <= 1 is recoverable
  - health > 1 needs to be repaired from disk
 
+<<<<<<< HEAD
 **lasthealthchecktime** | timestamp
 The oldest time that the health of the directory or any of its files or sub directories' health was checked.
 
@@ -2394,6 +3097,27 @@ the number of files in the directory
 the number of directories in the directory
 
 **siapath** | string
+=======
+**lasthealthchecktime** | timestamp  
+The oldest time that the health of the directory or any of its files or sub directories' health was checked.
+
+**maxhealth** | float64  
+This is the worst health when comparing stuck health vs health
+
+**minredundancy** | float64  
+the lowest redundancy of any file or directory in the sub directory tree
+
+**mostrecentmodtime** | timestamp  
+the most recent mod time of any file or directory in the sub directory tree
+
+**numfiles** | uint64  
+the number of files in the directory
+
+**numsubdirs** | uint64  
+the number of directories in the directory
+
+**siapath** | string  
+>>>>>>> Sia/contract-not-found-handling
 The path to the directory on the sia network
 
 **files**
@@ -2410,18 +3134,27 @@ performs various functions on the renter's directories
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **siapath** | string
+=======
+**siapath** | string  
+>>>>>>> Sia/contract-not-found-handling
 Location where the directory will reside in the renter on the network. The path must be non-empty, may not include any path traversal strings ("./", "../"), and may not begin with a forward-slash character.  
 
 ### Query String Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **action** | string
 <<<<<<< HEAD
+=======
+**action** | string  
+>>>>>>> Sia/contract-not-found-handling
 Action can be either `create`, `delete` or `rename`.
  - `create` will create an empty directory on the sia network
  - `delete` will remove a directory and its contents from the sia network
  - `rename` will rename a directory on the sia network
 
+<<<<<<< HEAD
  **newsiapath** | string
  The new siapath of the renamed folder. Only required for the `rename` action.
 =======
@@ -2429,11 +3162,85 @@ Action can be either `create` or `delete`.
  - `create` will create an empty directory on the sia network
  - `delete` will remove a directory and its contents from the sia network
 >>>>>>> siaprime/master
+=======
+ **newsiapath** | string  
+ The new siapath of the renamed folder. Only required for the `rename` action.
+>>>>>>> Sia/contract-not-found-handling
 
 ### Response
 
 standard success or error response. See [standard responses](#standard-responses).
 
+<<<<<<< HEAD
+=======
+## /renter/downloadinfo/*uid [GET]
+> curl example  
+
+```go
+curl -A "Sia-Agent" "localhost:9980/renter/downloadinfo/9d8dd0d5b306f5bb412230bd12b590ae"
+```
+
+Lists a file in the download history by UID.
+
+### Path Parameters
+#### REQUIRED
+**uid** | string  
+UID returned by the /renter/download/*siapath* endpoint. It is set in the
+http header's 'ID' field.
+
+### JSON Response
+> JSON Response Example
+ 
+```go
+{
+  "destination":     "/home/users/alice/bar.txt", // string
+  "destinationtype": "file",                      // string
+  "length":          8192,                        // bytes
+  "offset":          2000,                        // bytes
+  "siapath":         "foo/bar.txt",               // string
+
+  "completed":           true,                    // boolean
+  "endtime":             "2009-11-10T23:10:00Z",  // RFC 3339 time
+  "error":               "",                      // string
+  "received":            8192,                    // bytes
+  "starttime":           "2009-11-10T23:00:00Z",  // RFC 3339 time
+  "totaldatatransfered": 10031                    // bytes
+}
+```
+**destination** | string  
+Local path that the file will be downloaded to.  
+
+**destinationtype** | string  
+What type of destination was used. Can be "file", indicating a download to disk, can be "buffer", indicating a download to memory, and can be "http stream", indicating that the download was streamed through the http API.  
+
+**length** | bytes  
+Length of the download. If the download was a partial download, this will indicate the length of the partial download, and not the length of the full file.  
+
+**offset** | bytes  
+Offset within the file of the download. For full file downloads, the offset will be '0'. For partial downloads, the offset may be anywhere within the file. offset+length will never exceed the full file size.  
+
+**siapath** | string  
+Siapath given to the file when it was uploaded.  
+
+**completed** | boolean  
+Whether or not the download has completed. Will be false initially, and set to true immediately as the download has been fully written out to the file, to the http stream, or to the in-memory buffer. Completed will also be set to true if there is an error that causes the download to fail.  
+
+**endtime** | date, RFC 3339 time  
+Time at which the download completed. Will be zero if the download has not yet completed.  
+
+**error** | string  
+Error encountered while downloading. If there was no error (yet), it will be the empty string.  
+
+**received** | bytes  
+Number of bytes downloaded thus far. Will only be updated as segments of the file complete fully. This typically has a resolution of tens of megabytes.  
+
+**starttime** | date, RFC 3339 time  
+Time at which the download was initiated.
+
+**totaldatatransfered** | bytes  
+The total amount of data transfered when downloading the file. This will eventually include data transferred during contract + payment negotiation, as well as data from failed piece downloads.  
+
+>>>>>>> Sia/contract-not-found-handling
 ## /renter/downloads [GET]
 > curl example  
 
@@ -2466,15 +3273,23 @@ Lists all files in the download queue.
   ]
 }
 ```
+<<<<<<< HEAD
 **destination** | string
 Local path that the file will be downloaded to.  
 
 **destinationtype** | string
+=======
+**destination** | string  
+Local path that the file will be downloaded to.  
+
+**destinationtype** | string  
+>>>>>>> Sia/contract-not-found-handling
 What type of destination was used. Can be "file", indicating a download to disk, can be "buffer", indicating a download to memory, and can be "http stream", indicating that the download was streamed through the http API.  
 
 **length** | bytes  
 Length of the download. If the download was a partial download, this will indicate the length of the partial download, and not the length of the full file.  
 
+<<<<<<< HEAD
 **offset** | bytes
 Offset within the file of the download. For full file downloads, the offset will be '0'. For partial downloads, the offset may be anywhere within the file. offset+length will never exceed the full file size.  
 
@@ -2482,12 +3297,25 @@ Offset within the file of the download. For full file downloads, the offset will
 Siapath given to the file when it was uploaded.  
 
 **completed** | oolean  
+=======
+**offset** | bytes  
+Offset within the file of the download. For full file downloads, the offset will be '0'. For partial downloads, the offset may be anywhere within the file. offset+length will never exceed the full file size.  
+
+**siapath** | string  
+Siapath given to the file when it was uploaded.  
+
+**completed** | boolean  
+>>>>>>> Sia/contract-not-found-handling
 Whether or not the download has completed. Will be false initially, and set to true immediately as the download has been fully written out to the file, to the http stream, or to the in-memory buffer. Completed will also be set to true if there is an error that causes the download to fail.  
 
 **endtime** | date, RFC 3339 time  
 Time at which the download completed. Will be zero if the download has not yet completed.  
 
+<<<<<<< HEAD
 **error** | string
+=======
+**error** | string  
+>>>>>>> Sia/contract-not-found-handling
 Error encountered while downloading. If there was no error (yet), it will be the empty string.  
 
 **received** | bytes  
@@ -2496,12 +3324,17 @@ Number of bytes downloaded thus far. Will only be updated as segments of the fil
 **starttime** | date, RFC 3339 time  
 Time at which the download was initiated.
 
+<<<<<<< HEAD
 **totaldatatransfered** | bytes
 <<<<<<< HEAD
 The total amount of data transferred when downloading the file. This will eventually include data transferred during contract + payment negotiation, as well as data from failed piece downloads.  
 =======
 The total amount of data transfered when downloading the file. This will eventually include data transferred during contract + payment negotiation, as well as data from failed piece downloads.  
 >>>>>>> siaprime/master
+=======
+**totaldatatransfered** | bytes  
+The total amount of data transferred when downloading the file. This will eventually include data transferred during contract + payment negotiation, as well as data from failed piece downloads.  
+>>>>>>> Sia/contract-not-found-handling
 
 ## /renter/downloads/clear [POST]
 > curl example  
@@ -2517,7 +3350,11 @@ Clears the download history of the renter for a range of unix time stamps.  Both
 **before** | unix timestamp  
 unix timestamp found in the download history
 
+<<<<<<< HEAD
 **after** | unix timestamp   
+=======
+**after** | unix timestamp  
+>>>>>>> Sia/contract-not-found-handling
 unix timestamp found in the download history
 
 ### Response
@@ -2571,11 +3408,15 @@ The allowance settings used for the estimation are also returned, see the fields
 
 ```go
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Sia/contract-not-found-handling
 curl -A "Sia-Agent" "localhost:9980/renter/files?cached=false"
 ```
 
 ### Query String Parameters
 #### OPTIONAL
+<<<<<<< HEAD
 **cached** | boolean
 determines whether cached values should be returned or if the latest values should be computed. Cached values speed the endpoint up significantly. The default value is 'false'.
 
@@ -2584,6 +3425,11 @@ curl -A "Sia-Agent" "localhost:9980/renter/files"
 ```
 
 >>>>>>> siaprime/master
+=======
+**cached** | boolean  
+determines whether cached values should be returned or if the latest values should be computed. Cached values speed the endpoint up significantly. The default value is 'false'.
+
+>>>>>>> Sia/contract-not-found-handling
 lists the status of all files.
 
 ### JSON Response
@@ -2621,12 +3467,17 @@ lists the status of all files.
 ```
 #### files
 
+<<<<<<< HEAD
 **accesstime** | timestamp
+=======
+**accesstime** | timestamp  
+>>>>>>> Sia/contract-not-found-handling
 indicates the last time the siafile was accessed
 
 **available** | boolean  
 true if the file is available for download. Files may be available before they are completely uploaded.  
 
+<<<<<<< HEAD
 **changetime** | timestamp
 indicates the last time the siafile metadata was updated
 
@@ -2637,6 +3488,18 @@ indicates the encryption used for the siafile
 indicates when the siafile was created
 
 **expiration** | block height
+=======
+**changetime** | timestamp  
+indicates the last time the siafile metadata was updated
+
+**ciphertype** | string  
+indicates the encryption used for the siafile
+
+**createtime** | timestamp  
+indicates when the siafile was created
+
+**expiration** | block height  
+>>>>>>> Sia/contract-not-found-handling
 Block height at which the file ceases availability.  
 
 **filesize** | bytes  
@@ -2645,6 +3508,7 @@ Size of the file in bytes.
 **health** | float64 
 health is an indication of the amount of redundancy missing where 0 is full redundancy and >1 means the file is not available. The health of the siafile is the health of the worst unstuck chunk.
 
+<<<<<<< HEAD
 **localpath** | string
 Path to the local file on disk.  
 
@@ -2667,11 +3531,36 @@ indicates if the source file is found on disk
 indicates if the siafile is recoverable
 
 **redundancy** | float64
+=======
+**localpath** | string  
+Path to the local file on disk.  
+
+**maxhealth** | float64  
+the maxhealth is either the health or the stuckhealth of the siafile, whichever is worst
+
+**maxhealthpercent** | float64  
+maxhealthpercent is the maxhealth converted to be out of 100% to be more easily understood
+
+**modtime** | timestamp  
+indicates the last time the siafile contents where modified
+
+**numstuckchunks** | uint64  
+indicates the number of stuck chunks in a file. A chunk is stuck if it cannot reach full redundancy
+
+**ondisk** | boolean  
+indicates if the source file is found on disk
+
+**recoverable** | boolean  
+indicates if the siafile is recoverable
+
+**redundancy** | float64  
+>>>>>>> Sia/contract-not-found-handling
 Average redundancy of the file on the network. Redundancy is calculated by dividing the amount of data uploaded in the file's open contracts by the size of the file. Redundancy does not necessarily correspond to availability. Specifically, a redundancy >= 1 does not indicate the file is available as there could be a chunk of the file with 0 redundancy.  
 
 **renewing** | boolean  
 true if the file's contracts will be automatically renewed by the renter.  
 
+<<<<<<< HEAD
 **siapath** | string
 Path to the file in the renter on the network.  
 
@@ -2679,6 +3568,15 @@ Path to the file in the renter on the network.
 a file is stuck if there are any stuck chunks in the file, which means the file cannot reach full redundancy
 
 **stuckhealth** | float64
+=======
+**siapath** | string  
+Path to the file in the renter on the network.  
+
+**stuck** | bool  
+a file is stuck if there are any stuck chunks in the file, which means the file cannot reach full redundancy
+
+**stuckhealth** | float64  
+>>>>>>> Sia/contract-not-found-handling
 stuckhealth is the worst health of any of the stuck chunks.
 
 **uploadedbytes** | bytes  
@@ -2698,7 +3596,11 @@ Lists the status of specified file.
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **siapath** | string
+=======
+**siapath** | string  
+>>>>>>> Sia/contract-not-found-handling
 Path to the file in the renter on the network.
 
 ### JSON Response
@@ -2715,12 +3617,20 @@ endpoint for changing file metadata.
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **siapath** | string
+=======
+**siapath** | string  
+>>>>>>> Sia/contract-not-found-handling
 SiaPath of the file on the network. The path must be non-empty, may not include any path traversal strings ("./", "../"), and may not begin with a forward-slash character.
 
 ### Query String Parameters
 #### OPTIONAL
+<<<<<<< HEAD
 **trackingpath** | string
+=======
+**trackingpath** | string  
+>>>>>>> Sia/contract-not-found-handling
 If provided, this parameter changes the tracking path of a file to the  specified path. Useful if moving the file to a different location on disk.
 
 ### Response
@@ -2738,7 +3648,11 @@ deletes a renter file entry. Does not delete any downloads or original files, on
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **siapath** | string
+=======
+**siapath** | string  
+>>>>>>> Sia/contract-not-found-handling
 Path to the file in the renter on the network.
 
 ### Response
@@ -2756,11 +3670,16 @@ downloads a file to the local filesystem. The call will block until the file has
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **siapath** | string
+=======
+**siapath** | string  
+>>>>>>> Sia/contract-not-found-handling
 Path to the file in the renter on the network.
 
 ### Query String Parameters
 #### REQUIRED (Either one or the other)
+<<<<<<< HEAD
 **destination** | string
 Location on disk that the file will be downloaded to.  
 
@@ -2782,13 +3701,35 @@ If async is true, the http request will be non blocking. Can't be used with:
 Length of the requested data. Has to be <= filesize-offset.  
 
 **offset** | bytes
+=======
+**destination** | string  
+Location on disk that the file will be downloaded to.  
+
+**httpresp** | boolean  
+If httresp is true, the data will be written to the http response.
+
+#### OPTIONAL
+**async** | boolean  
+If async is true, the http request will be non blocking. Can't be used with
+httpresp.
+
+**length** | bytes  
+Length of the requested data. Has to be <= filesize-offset.  
+
+**offset** | bytes  
+>>>>>>> Sia/contract-not-found-handling
 Offset relative to the file start from where the download starts.  
 
 ### Response
 
+<<<<<<< HEAD
 standard success or error response. See [standard responses](#standard-responses).
 
 <<<<<<< HEAD
+=======
+Unlike most responses, this response modifies the http response header. The download will set the 'ID' field in the http response header to a unique identifier which can be used to cancel an async download with the /renter/download/cancel endpoint and retrieve a download's info from the download history using the /renter/downloadinfo endpoint. Apart from that the response is a standard success or error response. See [standard responses](#standard-responses).
+
+>>>>>>> Sia/contract-not-found-handling
 ## /renter/download/cancel [POST]
 > curl example  
 
@@ -2799,16 +3740,25 @@ curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/download/cancel?i
 cancels the download with the given id.
 
 ### Query String Parameters
+<<<<<<< HEAD
 **id** | string
 ID returned by the /renter/download/*siapath* endpoint when setting
 async=true. It is set in the http header's 'ID' field.
+=======
+**id** | string  
+ID returned by the /renter/download/*siapath* endpoint. It is set in the http
+header's 'ID' field.
+>>>>>>> Sia/contract-not-found-handling
 
 ### Response
 
 standard success or error response. See [standard responses](#standard-responses).
 
+<<<<<<< HEAD
 =======
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
 ## /renter/downloadsync/*siapath* [GET]
 > curl example  
 
@@ -2820,12 +3770,20 @@ downloads a file to the local filesystem. The call will return immediately.
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **siapath** | string
+=======
+**siapath** | string  
+>>>>>>> Sia/contract-not-found-handling
 Path to the file in the renter on the network.
 
 ### Query String Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **destination** | string
+=======
+**destination** | string  
+>>>>>>> Sia/contract-not-found-handling
 Location on disk that the file will be downloaded to.  
 
 ### Response
@@ -2865,10 +3823,17 @@ Returns some information about a potentially ongoing recovery scan.
   "scannedheight" : 1000 // uint64
 }
 ```
+<<<<<<< HEAD
 **scaninprogress** | boolean
 indicates if a scan for recoverable contracts is currently in progress.
 
 **scannedheight** | uint64
+=======
+**scaninprogress** | boolean  
+indicates if a scan for recoverable contracts is currently in progress.
+
+**scannedheight** | uint64  
+>>>>>>> Sia/contract-not-found-handling
 indicates the progress of a currently ongoing scan in terms of number of blocks
 that have already been scanned.
 
@@ -2881,7 +3846,11 @@ curl -A "Sia-Agent" -u "":<apipassword> --data "newsiapath=myfile2" "localhost:9
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **siapath** | string
+=======
+**siapath** | string  
+>>>>>>> Sia/contract-not-found-handling
 Path to the file in the renter on the network.
 
 ### Query String Parameters
@@ -2911,7 +3880,11 @@ downloads a file using http streaming. This call blocks until the data is receiv
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **siapath** | string
+=======
+**siapath** | string  
+>>>>>>> Sia/contract-not-found-handling
 Path to the file in the renter on the network.
 
 ### Response
@@ -2929,12 +3902,20 @@ uploads a file to the network from the local filesystem.
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **siapath** | string
+=======
+**siapath** | string  
+>>>>>>> Sia/contract-not-found-handling
 Location where the file will reside in the renter on the network. The path must be non-empty, may not include any path traversal strings ("./", "../"), and may not begin with a forward-slash character.  
 
 ### Query String Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **source** | string
+=======
+**source** | string  
+>>>>>>> Sia/contract-not-found-handling
 Location on disk of the file being uploaded.  
 
 #### OPTIONAL
@@ -2945,7 +3926,11 @@ The number of data pieces to use when erasure coding the file.
 The number of parity pieces to use when erasure coding the file. Total redundancy of the file is (datapieces+paritypieces)/datapieces.  
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 **force** | boolean
+=======
+**force** | boolean  
+>>>>>>> Sia/contract-not-found-handling
 Delete potential existing file at siapath.
 
 ### Response
@@ -2963,7 +3948,11 @@ uploads a file to the network using a stream.
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **siapath** | string
+=======
+**siapath** | string  
+>>>>>>> Sia/contract-not-found-handling
 Location where the file will reside in the renter on the network. The path must be non-empty, may not include any path traversal strings ("./", "../"), and may not begin with a forward-slash character.  
 
 ### Query String Parameters
@@ -2980,13 +3969,66 @@ Delete potential existing file at siapath.
 **repair**
 Repair existing file from stream. Can't be specified together with datapieces, paritypieces and force.
 
+<<<<<<< HEAD
 =======
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
 ### Response
 
 standard success or error response. See [standard responses](#standard-responses).
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+## /renter/uploadready [GET]
+> curl example  
+
+```go
+curl -A "Sia-Agent" "localhost:9980/renter/uploadready?datapieces=10&paritypieces=20"
+```
+
+Returns the whether or not the renter is ready for upload.
+
+### Path Parameters
+#### OPTIONAL
+datapieces and paritypieces are both optional, however if one is supplied then
+the other needs to be supplied. If neither are supplied then the deafult values
+for the erasure coding will be used 
+
+**datapieces** | int  
+The number of data pieces to use when erasure coding the file.  
+
+**paritypieces** | int  
+The number of parity pieces to use when erasure coding the file.   
+
+### JSON Response
+> JSON Response Example
+```go
+{
+  "ready":false,            // bool
+  "contractsneeded":30,     // int
+  "numactivecontracts":20,  // int
+  "datapieces":10,          // int
+  "paritypieces":20         // int 
+}
+```
+**ready** | boolean  
+ready indicates if the renter is ready to fully upload a file based on the erasure coding.  
+
+**contractsneeded** | int  
+contractsneeded is how many contracts are needed to fully upload a file.  
+
+**numactivecontracts** | int  
+numactivecontracts is the number of active contracts the renter has.
+
+**datapieces** | int  
+The number of data pieces to use when erasure coding the file.  
+
+**paritypieces** | int  
+The number of parity pieces to use when erasure coding the file.
+
+>>>>>>> Sia/contract-not-found-handling
 ## /renter/validate/*siapath* [POST]
 > curl example  
 
@@ -3006,8 +4048,11 @@ siapath to test.
 ### Response
 standard success or error response, a successful response means a valid siapath. See [standard responses](#standard-responses).
 
+<<<<<<< HEAD
 =======
 >>>>>>> siaprime/master
+=======
+>>>>>>> Sia/contract-not-found-handling
 # Transaction Pool
 
 ## /tpool/confirmed/:id [GET]
@@ -3021,7 +4066,11 @@ returns whether the requested transaction has been seen on the blockchain. Note,
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **id** | hash
+=======
+**id** | hash  
+>>>>>>> Sia/contract-not-found-handling
 id of the transaction being queried
 
 ### JSON Response
@@ -3032,7 +4081,11 @@ id of the transaction being queried
   "confirmed": true // boolean
 }
 ```
+<<<<<<< HEAD
 **confirmed** | boolean
+=======
+**confirmed** | boolean  
+>>>>>>> Sia/contract-not-found-handling
 indicates if a transaction is confirmed on the blockchain
 
 ## /tpool/fee [GET]
@@ -3053,10 +4106,17 @@ returns the minimum and maximum estimated fees expected by the transaction pool.
   "maximum": "5678"  // hastings / byte
 }
 ```
+<<<<<<< HEAD
 **minimum** | hastings / byte
 the minimum estimated fee
 
 **maximum** | hastings / byte
+=======
+**minimum** | hastings / byte  
+the minimum estimated fee
+
+**maximum** | hastings / byte  
+>>>>>>> Sia/contract-not-found-handling
 the maximum estimated fee
 
 ## /tpool/raw/:id [GET]
@@ -3070,7 +4130,11 @@ returns the ID for the requested transaction and its raw encoded parents and tra
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **id** | hash 
+=======
+**id** | hash  
+>>>>>>> Sia/contract-not-found-handling
 id of the transaction being queried
 
 ### JSON Response
@@ -3103,16 +4167,24 @@ submits a raw transaction to the transaction pool, broadcasting it to the transa
 
 ### Query String Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **parents** | string 
 JSON- or base64-encoded transaction parents
 
 **transaction** | string
+=======
+**parents** | string  
+JSON- or base64-encoded transaction parents
+
+**transaction** | string  
+>>>>>>> Sia/contract-not-found-handling
 JSON- or base64-encoded transaction
 
 ### Response
 
 standard success or error response. See [standard responses](#standard-responses).
 
+<<<<<<< HEAD
 ## /tpool/confirmed/:id [GET]
 > curl example  
 
@@ -3135,6 +4207,77 @@ id of the transaction being queried
 ```
 **confirmed** | boolean
 boolean that indicates if transaction was confirmed
+=======
+## /tpool/transactions [GET]
+> curl example  
+
+```go
+curl -A "Sia-Agent" "localhost:9980/tpool/transactions"
+```
+
+returns the transactions of the transaction pool.
+
+### JSON Response
+> JSON Response Example
+ 
+```go
+{
+  "transactions": [     
+    {
+      "siacoininputs":  [ // []SiacoinInput
+        {
+          "parentid": "b44db5d70f50b5c81b81d049fbdf9af27b4468f877d26c23a04c1093a7c4b541",
+          "unlockconditions": {
+            "publickeys": [
+               {
+                "algorithm": "ed25519",
+                "key": "EKjiRsUyMOLER+8u3uXxemOEKMxRc2TxCh0QkcSCVHY="
+               }
+              ],
+            "signaturesrequired": 1,
+            "timelock": 0
+          }
+        },
+      ]      
+      "siacoinoutputs": []        // []SiacoinOutput        
+      "filecontracts":  []        // []FileContract
+      "filecontractrevisions": [] // []FileContractRevision 
+      "storageproofs":  []        // []StorageProof         
+      "siafundinputs":  []        // []SiafundInput
+      "siafundoutputs": []        // []SiafundOutput      
+      "minerfees": [              // []Currency   
+        "61440000000000000000000"
+      ],          
+      "arbitrarydata": [          // [][]byte
+        "RkNJZGVudGlmaWVyAAAAACYzhrmGh2OL2Y9eBn5UYIFxCi4HKFvtR43pEgaBpkDqEa3LrQlWGyk+a0tBXi4nkIIaISIfTJMZs3sBgi0PFl4NyGOgqYppVQGaYnPuaRZKONJWE2jYZUu/iY3xLvpYIciu5JVlRIStwfGepaPWW4jLe4tf3AabKINgFk6p52m6"
+      ],
+      "transactionsignatures": [ // []TransactionSignature
+                    {
+                        "coveredfields": {
+                            "arbitrarydata": [],
+                            "filecontractrevisions": [],
+                            "filecontracts": [],
+                            "minerfees": [],
+                            "siacoininputs": [],
+                            "siacoinoutputs": [],
+                            "siafundinputs": [],
+                            "siafundoutputs": [],
+                            "storageproofs": [],
+                            "transactionsignatures": [],
+                            "wholetransaction": true
+                        },
+                        "parentid": "b44db5d70f50b5c81b81d049fbdf9af27b4468f877d26c23a04c1093a7c4b541",
+                        "publickeyindex": 0,
+                        "signature": "QAVQSrcTv2xBHjWiTuuxVgWtUYECEZNbud41u7wgFIGcsKuBnbtT2yaH/GMw00/aMCpZ70qqBpQwQ/akAn/pAA==",
+                        "timelock": 0
+                    },
+    }
+  ]
+}
+```
+See [/wallet/transaction/:id](#wallettransactionid-get) for description of
+transaction fields.
+>>>>>>> Sia/contract-not-found-handling
 
 # Wallet
 
@@ -3231,7 +4374,11 @@ Gets a new address from the wallet generated by the primary seed. An error will 
   "address": "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab"
 }
 ```
+<<<<<<< HEAD
 **address** | hash
+=======
+**address** | hash  
+>>>>>>> Sia/contract-not-found-handling
 Wallet address that can receive siacoins or siafunds. Addresses are 76 character long hex strings.  
 
 ## /wallet/addresses [GET]
@@ -3248,14 +4395,22 @@ Fetches the list of addresses from the wallet. If the wallet has not been create
  
 ```go
 {
+<<<<<<< HEAD
   "addresses": [
+=======
+  "addresses": [ // []hash
+>>>>>>> Sia/contract-not-found-handling
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab",
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
   ]
 }
 ```
+<<<<<<< HEAD
 **addresses**  
+=======
+**addresses** | []hash  
+>>>>>>> Sia/contract-not-found-handling
 Array of wallet addresses owned by the wallet.  
 
 ## /wallet/seedaddrs [GET]
@@ -3282,14 +4437,22 @@ addresses will be returned.
 
 ```go
 {
+<<<<<<< HEAD
   "addresses": [
+=======
+  "addresses": [ // []hash
+>>>>>>> Sia/contract-not-found-handling
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab",
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
   ]
 }
 ```
+<<<<<<< HEAD
 **addresses**  
+=======
+**addresses** | []hash  
+>>>>>>> Sia/contract-not-found-handling
 Array of wallet addresses previously generated by the wallet.
 
 ## /wallet/backup [GET]
@@ -3321,10 +4484,17 @@ Changes the wallet's encryption key.
 
 ### Query String Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **encryptionpassword** | string
 encryptionpassword is the wallet's current encryption password.  
 
 **newpassword** | string
+=======
+**encryptionpassword** | string  
+encryptionpassword is the wallet's current encryption password or primary seed.  
+
+**newpassword** | string  
+>>>>>>> Sia/contract-not-found-handling
 newpassword is the new password for the wallet.  
 
 ### Response
@@ -3342,7 +4512,11 @@ Initializes the wallet. After the wallet has been initialized once, it does not 
 
 ### Query String Parameters
 #### OPTIONAL WALLET PARAMETERS
+<<<<<<< HEAD
 **encryptionpassword** | string
+=======
+**encryptionpassword** | string  
+>>>>>>> Sia/contract-not-found-handling
 Password that will be used to encrypt the wallet. All subsequent calls should use this password. If left blank, the seed that gets returned will also be the encryption password.  
 
 **dictionary** | string  
@@ -3373,7 +4547,11 @@ Initializes the wallet using a preexisting seed. After the wallet has been initi
 
 ### Query String Parameters
 #### REQUIRED WALLET PARAMETERS
+<<<<<<< HEAD
 **seed** | string
+=======
+**seed** | string  
+>>>>>>> Sia/contract-not-found-handling
 Dictionary-encoded phrase that corresponds to the seed being used to initialize the wallet.  
 
 #### OPTIONAL
@@ -3468,6 +4646,60 @@ JSON array of outputs. The structure of each output is: {"unlockhash": "<destina
 
 ```go
 {
+<<<<<<< HEAD
+=======
+  "transactions": [     
+    {
+      "siacoininputs":  [ // []SiacoinInput
+        {
+          "parentid": "b44db5d70f50b5c81b81d049fbdf9af27b4468f877d26c23a04c1093a7c4b541",
+          "unlockconditions": {
+            "publickeys": [
+               {
+                "algorithm": "ed25519",
+                "key": "EKjiRsUyMOLER+8u3uXxemOEKMxRc2TxCh0QkcSCVHY="
+               }
+              ],
+            "signaturesrequired": 1,
+            "timelock": 0
+          }
+        },
+      ]      
+      "siacoinoutputs": []        // []SiacoinOutput        
+      "filecontracts":  []        // []FileContract
+      "filecontractrevisions": [] // []FileContractRevision 
+      "storageproofs":  []        // []StorageProof         
+      "siafundinputs":  []        // []SiafundInput
+      "siafundoutputs": []        // []SiafundOutput      
+      "minerfees": [              // []Currency   
+        "61440000000000000000000"
+      ],          
+      "arbitrarydata": [          // [][]byte
+        "RkNJZGVudGlmaWVyAAAAACYzhrmGh2OL2Y9eBn5UYIFxCi4HKFvtR43pEgaBpkDqEa3LrQlWGyk+a0tBXi4nkIIaISIfTJMZs3sBgi0PFl4NyGOgqYppVQGaYnPuaRZKONJWE2jYZUu/iY3xLvpYIciu5JVlRIStwfGepaPWW4jLe4tf3AabKINgFk6p52m6"
+      ],
+      "transactionsignatures": [ // []TransactionSignature
+                    {
+                        "coveredfields": {
+                            "arbitrarydata": [],
+                            "filecontractrevisions": [],
+                            "filecontracts": [],
+                            "minerfees": [],
+                            "siacoininputs": [],
+                            "siacoinoutputs": [],
+                            "siafundinputs": [],
+                            "siafundoutputs": [],
+                            "storageproofs": [],
+                            "transactionsignatures": [],
+                            "wholetransaction": true
+                        },
+                        "parentid": "b44db5d70f50b5c81b81d049fbdf9af27b4468f877d26c23a04c1093a7c4b541",
+                        "publickeyindex": 0,
+                        "signature": "QAVQSrcTv2xBHjWiTuuxVgWtUYECEZNbud41u7wgFIGcsKuBnbtT2yaH/GMw00/aMCpZ70qqBpQwQ/akAn/pAA==",
+                        "timelock": 0
+                    },
+    }
+  ]
+>>>>>>> Sia/contract-not-found-handling
   "transactionids": [
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -3475,8 +4707,16 @@ JSON array of outputs. The structure of each output is: {"unlockhash": "<destina
   ]
 }
 ```
+<<<<<<< HEAD
 **transactionids**  
 Array of IDs of the transactions that were created when sending the coins. The last transaction contains the output headed to the 'destination'. Transaction IDs are 64 character long hex strings.  
+=======
+**transactions**
+Array of transactions that were created when sending the coins. The last transaction contains the output headed to the 'destination'. Transaction IDs are 64 character long hex strings.
+
+**transactionids**  
+Array of IDs of the transactions that were created when sending the coins.
+>>>>>>> Sia/contract-not-found-handling
 
 ## /wallet/siafunds [POST]
 > curl example  
@@ -3500,6 +4740,60 @@ Address that is receiving the funds.
  
 ```go
 {
+<<<<<<< HEAD
+=======
+  "transactions": [     
+    {
+      "siacoininputs":  [ // []SiacoinInput
+        {
+          "parentid": "b44db5d70f50b5c81b81d049fbdf9af27b4468f877d26c23a04c1093a7c4b541",
+          "unlockconditions": {
+            "publickeys": [
+               {
+                "algorithm": "ed25519",
+                "key": "EKjiRsUyMOLER+8u3uXxemOEKMxRc2TxCh0QkcSCVHY="
+               }
+              ],
+            "signaturesrequired": 1,
+            "timelock": 0
+          }
+        },
+      ]      
+      "siacoinoutputs": []        // []SiacoinOutput        
+      "filecontracts":  []        // []FileContract
+      "filecontractrevisions": [] // []FileContractRevision 
+      "storageproofs":  []        // []StorageProof         
+      "siafundinputs":  []        // []SiafundInput
+      "siafundoutputs": []        // []SiafundOutput      
+      "minerfees": [              // []Currency   
+        "61440000000000000000000"
+      ],          
+      "arbitrarydata": [          // [][]byte
+        "RkNJZGVudGlmaWVyAAAAACYzhrmGh2OL2Y9eBn5UYIFxCi4HKFvtR43pEgaBpkDqEa3LrQlWGyk+a0tBXi4nkIIaISIfTJMZs3sBgi0PFl4NyGOgqYppVQGaYnPuaRZKONJWE2jYZUu/iY3xLvpYIciu5JVlRIStwfGepaPWW4jLe4tf3AabKINgFk6p52m6"
+      ],
+      "transactionsignatures": [ // []TransactionSignature
+                    {
+                        "coveredfields": {
+                            "arbitrarydata": [],
+                            "filecontractrevisions": [],
+                            "filecontracts": [],
+                            "minerfees": [],
+                            "siacoininputs": [],
+                            "siacoinoutputs": [],
+                            "siafundinputs": [],
+                            "siafundoutputs": [],
+                            "storageproofs": [],
+                            "transactionsignatures": [],
+                            "wholetransaction": true
+                        },
+                        "parentid": "b44db5d70f50b5c81b81d049fbdf9af27b4468f877d26c23a04c1093a7c4b541",
+                        "publickeyindex": 0,
+                        "signature": "QAVQSrcTv2xBHjWiTuuxVgWtUYECEZNbud41u7wgFIGcsKuBnbtT2yaH/GMw00/aMCpZ70qqBpQwQ/akAn/pAA==",
+                        "timelock": 0
+                    },
+    }
+  ]
+>>>>>>> Sia/contract-not-found-handling
   "transactionids": [
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -3508,7 +4802,14 @@ Address that is receiving the funds.
 }
 ```
 **transactionids**  
+<<<<<<< HEAD
 Array of IDs of the transactions that were created when sending the coins. The last transaction contains the output headed to the 'destination'. Transaction IDs are 64 character long hex strings.  
+=======
+Array of transactions that were created when sending the funds. The last transaction contains the output headed to the 'destination'. Transaction IDs are 64 character long hex strings.  
+
+**transactionids**  
+Array of IDs of the transactions that were created when sending the coins.
+>>>>>>> Sia/contract-not-found-handling
 
 ## /wallet/siagkey [POST]
 > curl example  
@@ -3635,7 +4936,11 @@ Scans the blockchain for outputs belonging to a seed and send them to an address
 
 ### Query String Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **seed** | string
+=======
+**seed** | string  
+>>>>>>> Sia/contract-not-found-handling
 Dictionary-encoded phrase that corresponds to the seed being added to the wallet.  
 
 #### OPTIONAL
@@ -3680,7 +4985,11 @@ Gets the transaction associated with a specific transaction id.
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **id** | hash
+=======
+**id** | hash  
+>>>>>>> Sia/contract-not-found-handling
 ID of the transaction being requested.  
 
 ### JSON Response
@@ -3829,7 +5138,11 @@ Returns all of the transactions related to a specific address.
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **addr** | hash
+=======
+**addr** | hash  
+>>>>>>> Sia/contract-not-found-handling
 Unlock hash (i.e. wallet address) whose transactions are being requested.  
 
 ### JSON Response
@@ -3878,7 +5191,11 @@ Returns the unlock conditions of :addr, if they are known to the wallet.
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **addr** | hash
+=======
+**addr** | hash  
+>>>>>>> Sia/contract-not-found-handling
 Unlock hash (i.e. wallet address) whose transactions are being requested.  
 
 ### JSON Response
@@ -3963,7 +5280,11 @@ Takes the address specified by :addr and returns a JSON response indicating if t
 
 ### Path Parameters
 #### REQUIRED
+<<<<<<< HEAD
 **addr** | hash
+=======
+**addr** | hash  
+>>>>>>> Sia/contract-not-found-handling
 Unlock hash (i.e. wallet address) whose transactions are being requested.  
 
 ### JSON Response
@@ -3991,13 +5312,13 @@ Returns the set of addresses that the wallet is watching. This set only includes
 
 ```go
 {
-  "addresses": [
+  "addresses": [ // []hash
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "abcdef0123456789abcdef0123456789abcd1234567890ef0123456789abcdef"
   ]
 }
 ```
-**addresses**  
+**addresses** | []hash  
 The addresses currently watched by the wallet.  
 
 ## /wallet/watch [POST]
@@ -4007,32 +5328,32 @@ The addresses currently watched by the wallet.
 curl -A "Sia-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:9980/wallet/watch"
 ```
 
+Update the set of addresses for the wallet to watch.
+
 ### Request Body
 > Request Body Example
 
 ```go
 {
-  // The addresses to add or remove from the current set.
-  "addresses": [
+  "addresses": [    // []hash
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "abcdef0123456789abcdef0123456789abcd1234567890ef0123456789abcdef"
   ],
-
-  // If true, remove the addresses instead of adding them.
-  "remove": false,
-
-  // If true, the wallet will not rescan the blockchain. Only set this flag if
-  // the addresses have never appeared in the blockchain.
-  "unused": true,
+  "remove": false,  // boolean
+  "unused": true,   // boolean
 ```
+
+**addresses** | []hash  
+The addresses to add or remove from the current set.
+
+**remove** | boolean  
+If true, remove the addresses instead of adding them.
+
+**unused** | boolean  
+If true, the wallet will not rescan the blockchain. Only set this flag if the addresses have never appeared in the blockchain.
 
 ### Response
 
 standard success or error response. See [standard responses](#standard-responses).
 
 # Version
-<<<<<<< HEAD
-<a href='https://sia.tech/docs/v140'>**v140**
-=======
-<a href='https://sia.tech/docs/v140'>**v140**
->>>>>>> siaprime/master

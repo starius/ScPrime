@@ -1,7 +1,6 @@
 package contractor
 
 import (
-	"errors"
 	"sync"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
@@ -9,6 +8,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 var errInvalidEditor = errors.New("editor has been invalidated because its contract is being renewed")
@@ -147,10 +148,12 @@ func (c *Contractor) Editor(pk types.SiaPublicKey, cancel <-chan struct{}) (_ Ed
 	// sanity checks to see that the host is not swindling us.
 	contract, haveContract := c.staticContracts.View(id)
 	if !haveContract {
-		return nil, errors.New("no record of that contract")
+		return nil, errors.New("contract was not found in the renter's contract set")
 	}
-	host, haveHost := c.hdb.Host(contract.HostPublicKey)
-	if height > contract.EndHeight {
+	host, haveHost, err := c.hdb.Host(contract.HostPublicKey)
+	if err != nil {
+		return nil, errors.AddContext(err, "error geting host from hostdb:")
+	} else if height > contract.EndHeight {
 		return nil, errors.New("contract has already ended")
 	} else if !haveHost {
 		return nil, errors.New("no record of that host")

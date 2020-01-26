@@ -28,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"sync"
 
 	"gitlab.com/NebulousLabs/errors"
@@ -57,25 +58,27 @@ var (
 // A hostDB is a database of hosts that the renter can use for figuring out who
 // to upload to, and download from.
 type hostDB interface {
+	modules.Alerter
+
 	// ActiveHosts returns the list of hosts that are actively being selected
 	// from.
-	ActiveHosts() []modules.HostDBEntry
+	ActiveHosts() ([]modules.HostDBEntry, error)
 
 	// AllHosts returns the full list of hosts known to the hostdb, sorted in
 	// order of preference.
-	AllHosts() []modules.HostDBEntry
+	AllHosts() ([]modules.HostDBEntry, error)
 
 	// Close closes the hostdb.
 	Close() error
 
 	// Filter returns the hostdb's filterMode and filteredHosts
-	Filter() (modules.FilterMode, map[string]types.SiaPublicKey)
+	Filter() (modules.FilterMode, map[string]types.SiaPublicKey, error)
 
 	// SetFilterMode sets the renter's hostdb filter mode
 	SetFilterMode(lm modules.FilterMode, hosts []types.SiaPublicKey) error
 
 	// Host returns the HostDBEntry for a given host.
-	Host(pk types.SiaPublicKey) (modules.HostDBEntry, bool)
+	Host(pk types.SiaPublicKey) (modules.HostDBEntry, bool, error)
 
 	// initialScanComplete returns a boolean indicating if the initial scan of the
 	// hostdb is completed.
@@ -83,7 +86,7 @@ type hostDB interface {
 
 	// IPViolationsCheck returns a boolean indicating if the IP violation check is
 	// enabled or not.
-	IPViolationsCheck() bool
+	IPViolationsCheck() (bool, error)
 
 	// RandomHosts returns a set of random hosts, weighted by their estimated
 	// usefulness / attractiveness to the renter. RandomHosts will not return
@@ -101,7 +104,7 @@ type hostDB interface {
 
 	// SetIPViolationCheck enables/disables the IP violation check within the
 	// hostdb.
-	SetIPViolationCheck(enabled bool)
+	SetIPViolationCheck(enabled bool) error
 
 	// EstimateHostScore returns the estimated score breakdown of a host with the
 	// provided settings.
@@ -111,6 +114,8 @@ type hostDB interface {
 // A hostContractor negotiates, revises, renews, and provides access to file
 // contracts.
 type hostContractor interface {
+	modules.Alerter
+
 	// SetAllowance sets the amount of money the contractor is allowed to
 	// spend on contracts over a given time period, divided among the number
 	// of hosts specified. Note that contractor can start forming contracts as
@@ -146,7 +151,7 @@ type hostContractor interface {
 
 	// PeriodSpending returns the amount spent on contracts during the current
 	// billing period.
-	PeriodSpending() modules.ContractorSpending
+	PeriodSpending() (modules.ContractorSpending, error)
 
 	// OldContracts returns the oldContracts of the renter's hostContractor.
 	OldContracts() []modules.RenterContract
@@ -185,11 +190,18 @@ type hostContractor interface {
 	// SetRateLimits sets the bandwidth limits for connections created by the
 	// contractor and its submodules.
 	SetRateLimits(int64, int64, uint64)
+
+	// Synced returns a channel that is closed when the contractor is fully
+	// synced with the peer-to-peer network.
+	Synced() <-chan struct{}
 }
 
 // A Renter is responsible for tracking all of the files that a user has
 // uploaded to Sia, as well as the locations and health of these files.
 type Renter struct {
+	// Alert management.
+	staticAlerter *modules.GenericAlerter
+
 	// File management.
 	staticFileSet       *siafile.SiaFileSet
 	staticBackupFileSet *siafile.SiaFileSet
@@ -209,7 +221,7 @@ type Renter struct {
 	//
 	// TODO: Currently the download history doesn't include repair-initiated
 	// downloads, and instead only contains user-initiated downloads.
-	downloadHistory   []*download
+	downloadHistory   map[modules.DownloadID]*download
 	downloadHistoryMu sync.Mutex
 
 	// Upload management.
@@ -244,6 +256,7 @@ type Renter struct {
 	staticBackupsDir string
 	memoryManager    *memoryManager
 	mu               *siasync.RWMutex
+	repairLog        *persist.Logger
 	tg               threadgroup.ThreadGroup
 	tpool            modules.TransactionPool
 	wal              *writeaheadlog.WAL
@@ -252,6 +265,9 @@ type Renter struct {
 
 // Close closes the Renter and its dependencies
 func (r *Renter) Close() error {
+	if r == nil {
+		return nil
+	}
 	r.tg.Stop()
 	r.hostDB.Close()
 	return r.hostContractor.Close()
@@ -270,7 +286,10 @@ func (r *Renter) PriceEstimation(allowance modules.Allowance) (modules.RenterPri
 	// Use provide allowance. If no allowance provided use the existing
 	// allowance. If no allowance exists, use a sane default allowance.
 	if reflect.DeepEqual(allowance, modules.Allowance{}) {
-		rs := r.Settings()
+		rs, err := r.Settings()
+		if err != nil {
+			return modules.RenterPriceEstimation{}, modules.Allowance{}, errors.AddContext(err, "error getting renter settings:")
+		}
 		allowance = rs.Allowance
 		if reflect.DeepEqual(allowance, modules.Allowance{}) {
 			allowance = modules.DefaultAllowance
@@ -298,8 +317,8 @@ func (r *Renter) PriceEstimation(allowance modules.Allowance) (modules.RenterPri
 	}
 	// Get hosts from pubkeys
 	for _, pk := range pks {
-		host, ok := r.hostDB.Host(pk)
-		if !ok || host.Filtered {
+		host, ok, err := r.hostDB.Host(pk)
+		if !ok || host.Filtered || err != nil {
 			continue
 		}
 		// confirm host wasn't already added
@@ -615,10 +634,10 @@ func (r *Renter) SetFileTrackingPath(siaPath modules.SiaPath, newPath string) er
 }
 
 // ActiveHosts returns an array of hostDB's active hosts
-func (r *Renter) ActiveHosts() []modules.HostDBEntry { return r.hostDB.ActiveHosts() }
+func (r *Renter) ActiveHosts() ([]modules.HostDBEntry, error) { return r.hostDB.ActiveHosts() }
 
 // AllHosts returns an array of all hosts
-func (r *Renter) AllHosts() []modules.HostDBEntry { return r.hostDB.AllHosts() }
+func (r *Renter) AllHosts() ([]modules.HostDBEntry, error) { return r.hostDB.AllHosts() }
 
 // Filter returns the renter's hostdb's filterMode and filteredHosts
 func (r *Renter) Filter() (modules.FilterMode, map[string]types.SiaPublicKey, error) {
@@ -628,7 +647,10 @@ func (r *Renter) Filter() (modules.FilterMode, map[string]types.SiaPublicKey, er
 		return fm, hosts, err
 	}
 	defer r.tg.Done()
-	fm, hosts = r.hostDB.Filter()
+	fm, hosts, err := r.hostDB.Filter()
+	if err != nil {
+		return fm, hosts, errors.AddContext(err, "error getting hostdb filter:")
+	}
 	return fm, hosts, nil
 }
 
@@ -639,7 +661,11 @@ func (r *Renter) SetFilterMode(lm modules.FilterMode, hosts []types.SiaPublicKey
 	}
 	defer r.tg.Done()
 	// Check to see how many hosts are needed for the allowance
-	minHosts := r.Settings().Allowance.Hosts
+	settings, err := r.Settings()
+	if err != nil {
+		return errors.AddContext(err, "error getting renter settings:")
+	}
+	minHosts := settings.Allowance.Hosts
 	if len(hosts) < int(minHosts) && lm == modules.HostDBActiveWhitelist {
 		r.log.Printf("WARN: There are fewer whitelisted hosts than the allowance requires.  Have %v whitelisted hosts, need %v to support allowance\n", len(hosts), minHosts)
 	}
@@ -653,7 +679,9 @@ func (r *Renter) SetFilterMode(lm modules.FilterMode, hosts []types.SiaPublicKey
 }
 
 // Host returns the host associated with the given public key
-func (r *Renter) Host(spk types.SiaPublicKey) (modules.HostDBEntry, bool) { return r.hostDB.Host(spk) }
+func (r *Renter) Host(spk types.SiaPublicKey) (modules.HostDBEntry, bool, error) {
+	return r.hostDB.Host(spk)
+}
 
 // InitialScanComplete returns a boolean indicating if the initial scan of the
 // hostdb is completed.
@@ -667,7 +695,11 @@ func (r *Renter) ScoreBreakdown(e modules.HostDBEntry) (modules.HostScoreBreakdo
 // EstimateHostScore returns the estimated host score
 func (r *Renter) EstimateHostScore(e modules.HostDBEntry, a modules.Allowance) (modules.HostScoreBreakdown, error) {
 	if reflect.DeepEqual(a, modules.Allowance{}) {
-		a = r.Settings().Allowance
+		settings, err := r.Settings()
+		if err != nil {
+			return modules.HostScoreBreakdown{}, errors.AddContext(err, "error getting renter settings:")
+		}
+		a = settings.Allowance
 	}
 	if reflect.DeepEqual(a, modules.Allowance{}) {
 		a = modules.DefaultAllowance
@@ -710,7 +742,9 @@ func (r *Renter) OldContracts() []modules.RenterContract {
 }
 
 // PeriodSpending returns the host contractor's period spending
-func (r *Renter) PeriodSpending() modules.ContractorSpending { return r.hostContractor.PeriodSpending() }
+func (r *Renter) PeriodSpending() (modules.ContractorSpending, error) {
+	return r.hostContractor.PeriodSpending()
+}
 
 // RecoverableContracts returns the host contractor's recoverable contracts.
 func (r *Renter) RecoverableContracts() []modules.RecoverableContract {
@@ -724,14 +758,18 @@ func (r *Renter) RefreshedContract(fcid types.FileContractID) bool {
 }
 
 // Settings returns the renter's allowance
-func (r *Renter) Settings() modules.RenterSettings {
+func (r *Renter) Settings() (modules.RenterSettings, error) {
 	download, upload, _ := r.hostContractor.RateLimits()
+	enabled, err := r.hostDB.IPViolationsCheck()
+	if err != nil {
+		return modules.RenterSettings{}, errors.AddContext(err, "error getting IPViolationsCheck:")
+	}
 	return modules.RenterSettings{
 		Allowance:         r.hostContractor.Allowance(),
-		IPViolationsCheck: r.hostDB.IPViolationsCheck(),
+		IPViolationsCheck: enabled,
 		MaxDownloadSpeed:  download,
 		MaxUploadSpeed:    upload,
-	}
+	}, nil
 }
 
 // ProcessConsensusChange returns the process consensus change
@@ -750,8 +788,8 @@ func (r *Renter) SetIPViolationCheck(enabled bool) {
 // Enforce that Renter satisfies the modules.Renter interface.
 var _ modules.Renter = (*Renter)(nil)
 
-// NewCustomRenter initializes a renter and returns it.
-func NewCustomRenter(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, hdb hostDB, w modules.Wallet, hc hostContractor, persistDir string, deps modules.Dependencies) (*Renter, error) {
+// renterBlockingStartup handles the blocking portion of NewCustomRenter.
+func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, hdb hostDB, w modules.Wallet, hc hostContractor, persistDir string, deps modules.Dependencies) (*Renter, error) {
 	if g == nil {
 		return nil, errNilGateway
 	}
@@ -794,7 +832,8 @@ func NewCustomRenter(g modules.Gateway, cs modules.ConsensusSet, tpool modules.T
 			heapDirectories: make(map[modules.SiaPath]*directory),
 		},
 
-		bubbleUpdates: make(map[string]bubbleStatus),
+		bubbleUpdates:   make(map[string]bubbleStatus),
+		downloadHistory: make(map[modules.DownloadID]*download),
 
 		cs:               cs,
 		deps:             deps,
@@ -803,12 +842,12 @@ func NewCustomRenter(g modules.Gateway, cs modules.ConsensusSet, tpool modules.T
 		hostDB:           hdb,
 		hostContractor:   hc,
 		persistDir:       persistDir,
+		staticAlerter:    modules.NewAlerter("renter"),
 		staticFilesDir:   filepath.Join(persistDir, modules.SiapathRoot),
 		staticBackupsDir: filepath.Join(persistDir, modules.BackupRoot),
 		mu:               siasync.New(modules.SafeMutexDelay, 1),
 		tpool:            tpool,
 	}
-
 	r.memoryManager = newMemoryManager(defaultMemory, r.tg.StopChan())
 	r.stuckStack = callNewStuckStack()
 
@@ -822,35 +861,98 @@ func NewCustomRenter(g modules.Gateway, cs modules.ConsensusSet, tpool modules.T
 	// After persist is initialized, create the worker pool.
 	r.staticWorkerPool = r.newWorkerPool()
 
-	// Subscribe to the consensus set.
-	err := cs.ConsensusSetSubscribe(r, modules.ConsensusChangeRecent, r.tg.StopChan())
+	// Spin up background threads which are not depending on the renter being
+	// up-to-date with consensus.
+	if !r.deps.Disrupt("DisableRepairAndHealthLoops") {
+		go r.threadedUpdateRenterHealth()
+	}
+	// Unsubscribe on shutdown.
+	err := r.tg.OnStop(func() error {
+		cs.Unsubscribe(r)
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
+	return r, nil
+}
 
+// renterAsyncStartup handles the non-blocking portion of NewCustomRenter.
+func renterAsyncStartup(r *Renter, cs modules.ConsensusSet) error {
+	if r.deps.Disrupt("BlockAsyncStartup") {
+		return nil
+	}
+	// Subscribe to the consensus set in a separate goroutine.
+	done := make(chan struct{})
+	defer close(done)
+	err := cs.ConsensusSetSubscribe(r, modules.ConsensusChangeRecent, r.tg.StopChan())
+	if err != nil && strings.Contains(err.Error(), threadgroup.ErrStopped.Error()) {
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	// Spin up the remaining background threads once we are caught up with the
+	// consensus set.
 	// Spin up the workers for the work pool.
 	go r.threadedDownloadLoop()
 	if !r.deps.Disrupt("DisableRepairAndHealthLoops") {
 		go r.threadedUploadAndRepair()
-		go r.threadedUpdateRenterHealth()
 		go r.threadedStuckFileLoop()
 	}
-
 	// Spin up the snapshot synchronization thread.
 	go r.threadedSynchronizeSnapshots()
+	return nil
+}
 
-	return r, nil
+// NewCustomRenter initializes a renter and returns it.
+func NewCustomRenter(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, hdb hostDB, w modules.Wallet, hc hostContractor, persistDir string, deps modules.Dependencies) (*Renter, <-chan error) {
+	errChan := make(chan error, 1)
+
+	// Blocking startup.
+	r, err := renterBlockingStartup(g, cs, tpool, hdb, w, hc, persistDir, deps)
+	if err != nil {
+		errChan <- err
+		return nil, errChan
+	}
+
+	// non-blocking startup
+	go func() {
+		defer close(errChan)
+		if err := r.tg.Add(); err != nil {
+			errChan <- err
+			return
+		}
+		defer r.tg.Done()
+		err := renterAsyncStartup(r, cs)
+		if err != nil {
+			errChan <- err
+		}
+	}()
+	return r, errChan
 }
 
 // New returns an initialized renter.
-func New(g modules.Gateway, cs modules.ConsensusSet, wallet modules.Wallet, tpool modules.TransactionPool, persistDir string) (*Renter, error) {
-	hdb, err := hostdb.New(g, cs, tpool, persistDir)
-	if err != nil {
-		return nil, err
+func New(g modules.Gateway, cs modules.ConsensusSet, wallet modules.Wallet, tpool modules.TransactionPool, persistDir string) (*Renter, <-chan error) {
+	errChan := make(chan error, 1)
+	hdb, errChanHDB := hostdb.New(g, cs, tpool, persistDir)
+	if err := modules.PeekErr(errChanHDB); err != nil {
+		errChan <- err
+		return nil, errChan
 	}
-	hc, err := contractor.New(cs, wallet, tpool, hdb, persistDir)
-	if err != nil {
-		return nil, err
+	hc, errChanContractor := contractor.New(cs, wallet, tpool, hdb, persistDir)
+	if err := modules.PeekErr(errChanContractor); err != nil {
+		errChan <- err
+		return nil, errChan
 	}
-	return NewCustomRenter(g, cs, tpool, hdb, wallet, hc, persistDir, modules.ProdDependencies)
+	renter, errChanRenter := NewCustomRenter(g, cs, tpool, hdb, wallet, hc, persistDir, modules.ProdDependencies)
+	if err := modules.PeekErr(errChanRenter); err != nil {
+		errChan <- err
+		return nil, errChan
+	}
+	go func() {
+		errChan <- errors.Compose(<-errChanHDB, <-errChanContractor, <-errChanRenter)
+		close(errChan)
+	}()
+	return renter, errChan
 }

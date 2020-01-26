@@ -27,7 +27,7 @@ func addStorageToAllHosts(sts []*serverTester) error {
 	for _, st := range sts {
 		values := url.Values{}
 		values.Set("path", st.dir)
-		values.Set("size", "1048576")
+		values.Set("size", "14680064") //14MiB
 		err := st.stdPostAPI("/host/storage/folders/add", values)
 		if err != nil {
 			return err

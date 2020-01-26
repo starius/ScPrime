@@ -1,16 +1,16 @@
 package contractor
 
 import (
-	"errors"
 	"sync"
 	"sync/atomic"
-
-	"gitlab.com/NebulousLabs/fastrand"
 
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TODO If we already have an active contract with a host for
@@ -79,7 +79,6 @@ func (rs *recoveryScanner) threadedScan(cs consensusSet, scanStart modules.Conse
 // ProcessConsensusChange scans the blockchain for information relevant to the
 // recoveryScanner.
 func (rs *recoveryScanner) ProcessConsensusChange(cc modules.ConsensusChange) {
-
 	//skip if wallet is not initialised
 	unlocked, err := rs.c.wallet.Unlocked()
 	if err != nil || !unlocked {
@@ -173,7 +172,10 @@ func (c *Contractor) findRecoverableContracts(renterSeed proto.RenterSeed, b typ
 // was formed with and retrieving the latest revision and sector roots.
 func (c *Contractor) managedRecoverContract(rc modules.RecoverableContract, rs proto.EphemeralRenterSeed, blockHeight types.BlockHeight) error {
 	// Get the corresponding host.
-	host, ok := c.hdb.Host(rc.HostPublicKey)
+	host, ok, err := c.hdb.Host(rc.HostPublicKey)
+	if err != nil {
+		return errors.AddContext(err, "error geting host from hostdb:")
+	}
 	if !ok {
 		return errors.New("Can't recover contract with unknown host")
 	}
@@ -226,8 +228,8 @@ func (c *Contractor) managedRecoverContract(rc modules.RecoverableContract, rs p
 	return nil
 }
 
-// managedRecoverContracts recovers known recoverable contracts.
-func (c *Contractor) managedRecoverContracts() {
+// callRecoverContracts recovers known recoverable contracts.
+func (c *Contractor) callRecoverContracts() {
 	if c.staticDeps.Disrupt("DisableContractRecovery") {
 		return
 	}
