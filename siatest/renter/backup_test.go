@@ -516,7 +516,6 @@ func TestRemoteBackup(t *testing.T) {
 			if _, _, err := r.DownloadToDisk(rf, false); err != nil {
 				t.Error(err)
 			}
-			time.Sleep(time.Second)
 			if _, _, err := r.DownloadToDisk(rf2, false); err != nil {
 				t.Error(err)
 			}
