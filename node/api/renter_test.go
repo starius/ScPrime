@@ -60,6 +60,11 @@ func setupTestDownload(t *testing.T, size int, name string, waitOnRedundancy boo
 		t.Fatal(err)
 	}
 
+	//override defaults
+	expectedstorage := strconv.Itoa(size)
+	expecteddownload := strconv.Itoa(size)
+	expectedupload := strconv.Itoa(size)
+
 	// Set an allowance for the renter, allowing a contract to be formed.
 	allowanceValues := url.Values{}
 	testFunds := testFunds
@@ -79,6 +84,7 @@ func setupTestDownload(t *testing.T, size int, name string, waitOnRedundancy boo
 	var rc RenterContracts
 	err = st.getAPI("/renter/contracts", &rc)
 	for err == nil && len(rc.Contracts) < 1 && time.Since(timerStart) < 30*time.Second {
+		t.Logf("Waiting for contracts, %v seconds passed", time.Since(timerStart).Seconds())
 		time.Sleep(time.Second)
 		err = st.getAPI("/renter/contracts", &rc)
 	}
@@ -440,7 +446,7 @@ func TestRenterAsyncDownloadError(t *testing.T) {
 	}
 	t.Parallel()
 
-	st, _ := setupTestDownload(t, 1e4, "test.dat", false)
+	st, _ := setupTestDownload(t, 8765, "test.dat", false)
 	defer st.server.panicClose()
 
 	// don't wait for the upload to complete, try to download immediately to

@@ -191,32 +191,32 @@ func TestHostDBHostsHandler(t *testing.T) {
 		t.Error("Zero vaue score in score breakdown")
 	}
 	if hh.ScoreBreakdown.AgeAdjustment == 0 {
-		t.Error("Zero value in host score breakdown")
+		t.Error("Zero value AgeAdjustment in host score breakdown")
 	}
 	if hh.ScoreBreakdown.BurnAdjustment == 0 {
-		t.Error("Zero value in host score breakdown")
+		t.Error("Zero value BurnAdjustment in host score breakdown")
 	}
 	if hh.ScoreBreakdown.CollateralAdjustment == 0 {
-		t.Error("Zero value in host score breakdown")
+		t.Error("Zero value CollateralAdjustment in host score breakdown")
 	}
 	if hh.ScoreBreakdown.PriceAdjustment == 0 {
-		t.Error("Zero value in host score breakdown")
+		t.Error("Zero value PriceAdjustment in host score breakdown")
 	}
 	if hh.ScoreBreakdown.StorageRemainingAdjustment == 0 {
-		t.Error("Zero value in host score breakdown")
+		t.Error("Zero value StorageRemainingAdjustment in host score breakdown")
 	}
 	if hh.ScoreBreakdown.UptimeAdjustment == 0 {
-		t.Error("Zero value in host score breakdown")
+		t.Error("Zero value UptimeAdjustment in host score breakdown")
 	}
 	if hh.ScoreBreakdown.VersionAdjustment == 0 {
-		t.Error("Zero value in host score breakdown")
+		t.Error("Zero value VersionAdjustment in host score breakdown")
 	}
 
 	// Check that none of the supported values equals 1. A value of 1 indicates
 	// that the hostdb is not performing any penalties or rewards for that
 	// field, meaning that the calibration for that field is probably incorrect.
 	if hh.ScoreBreakdown.AgeAdjustment == 1 {
-		t.Error("One value in host score breakdown")
+		t.Error("ScoreBreakdown.AgeAdjustment = 1")
 	}
 	// Burn adjustment is not yet supported.
 	//
@@ -224,19 +224,19 @@ func TestHostDBHostsHandler(t *testing.T) {
 	//	t.Error("One value in host score breakdown")
 	// }
 	if hh.ScoreBreakdown.CollateralAdjustment == 1 {
-		t.Error("One value in host score breakdown")
+		t.Error("ScoreBreakdown.CollateralAdjustment = 1")
 	}
 	if hh.ScoreBreakdown.PriceAdjustment == 1 {
-		t.Error("One value in host score breakdown")
+		t.Error("ScoreBreakdown.PriceAdjustment = 1")
 	}
 	if hh.ScoreBreakdown.StorageRemainingAdjustment == 1 {
-		t.Error("One value in host score breakdown")
+		t.Error("ScoreBreakdown.StorageRemainingAdjustment = 1")
 	}
 	if hh.ScoreBreakdown.UptimeAdjustment == 1 {
-		t.Error("ScoreBreakdown.UptimeAdjustment value =1 in host score breakdown")
+		t.Error("ScoreBreakdown.UptimeAdjustment = 1")
 	}
 	if hh.ScoreBreakdown.VersionAdjustment == 1 {
-		t.Error("One value in host score breakdown")
+		t.Error("ScoreBreakdown.VersionAdjustment = 1")
 	}
 }
 

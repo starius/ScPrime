@@ -606,8 +606,8 @@ func wallettransactionscmd() {
 		}
 
 		// Convert the siacoins to a float.
-		incomingSiacoinsFloat, _ := new(big.Rat).SetFrac(txn.ConfirmedIncomingValue.Big(), types.ExternalSiacoinPrecision.Big()).Float64()
-		outgoingSiacoinsFloat, _ := new(big.Rat).SetFrac(txn.ConfirmedOutgoingValue.Big(), types.ExternalSiacoinPrecision.Big()).Float64()
+		incomingSiacoinsFloat, _ := new(big.Rat).SetFrac(txn.ConfirmedIncomingValue.Big(), types.ScPrimecoinPrecision.Big()).Float64()
+		outgoingSiacoinsFloat, _ := new(big.Rat).SetFrac(txn.ConfirmedOutgoingValue.Big(), types.ScPrimecoinPrecision.Big()).Float64()
 
 		// Print the results.
 		if uint64(txn.ConfirmationTimestamp) != unconfirmedTransactionTimestamp {

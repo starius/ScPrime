@@ -116,7 +116,15 @@ type (
 		MaxTargetAdjustmentUp   *big.Rat `json:"maxtargetadjustmentup"`
 		MaxTargetAdjustmentDown *big.Rat `json:"maxtargetadjustmentdown"`
 
+		// SiacoinPrecision is the number of base units in a siacoin. This constant is used
+		// for mining rewards calculation and supported for compatibility with
+		// existing 3rd party intergations.
+		// DEPRECATED: Since February 2020 one scprimecoin equals 10^27 Hastings
+		// Use the types.ScPrimecoinPrecision constant.
 		SiacoinPrecision types.Currency `json:"siacoinprecision"`
+		// ScPrimecoinPrecision is the number of base units in a scprimecoin that is used
+		// by clients (1 SCP = 10^27 H).
+		ScPrimecoinPrecision types.Currency `json:"scprimecoinprecision"`
 	}
 
 	// DaemonVersion holds the version information for siad
@@ -311,7 +319,8 @@ func (api *API) daemonConstantsHandler(w http.ResponseWriter, _ *http.Request, _
 		MaxTargetAdjustmentUp:   types.MaxTargetAdjustmentUp,
 		MaxTargetAdjustmentDown: types.MaxTargetAdjustmentDown,
 
-		SiacoinPrecision: types.SiacoinPrecision,
+		SiacoinPrecision:     types.SiacoinPrecision,
+		ScPrimecoinPrecision: types.ScPrimecoinPrecision,
 	}
 
 	WriteJSON(w, sc)

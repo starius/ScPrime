@@ -42,12 +42,12 @@ type (
 var (
 	// DefaultAllowance is the allowance used for the group's renters
 	DefaultAllowance = modules.Allowance{
-		Funds:       types.ExternalSiacoinPrecision.Mul64(200),
+		Funds:       types.ScPrimecoinPrecision.Mul64(200),
 		Hosts:       5,
 		Period:      50,
 		RenewWindow: 24,
 
-		ExpectedStorage:    modules.SectorSize * 2048, //=8 MiB in testing
+		ExpectedStorage:    modules.SectorSize * 1024, //=4 MiB in testing
 		ExpectedUpload:     modules.SectorSize * 512,
 		ExpectedDownload:   modules.SectorSize * 512,
 		ExpectedRedundancy: 5.0,
@@ -157,7 +157,7 @@ func addStorageFolderToHosts(hosts map[*TestNode]struct{}) error {
 	for host := range hosts {
 		wg.Add(1)
 		go func(i int, host *TestNode) {
-			storage := 4 * contractmanager.MinimumSectorsPerStorageFolder * modules.SectorSize
+			storage := 2 * contractmanager.MinimumSectorsPerStorageFolder * modules.SectorSize
 			if host.params.HostStorage > 0 {
 				storage = host.params.HostStorage
 			}
