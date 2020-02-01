@@ -41,7 +41,7 @@ for arch in amd64 arm; do
 		echo Packaging ${os} ${arch}...
 
 		# create workspace
-		folder=release/SiaPrime-$version-$os-$arch
+		folder=release/ScPrime-$version-$os-$arch
 		rm -rf $folder
 		mkdir -p $folder
 		# compile and sign binaries
@@ -64,11 +64,11 @@ for arch in amd64 arm; do
 		# zip
 		(
 			cd release
-			zip -rq SiaPrime-$version-$os-$arch.zip SiaPrime-$version-$os-$arch
-			openssl dgst -sha256 -sign $keyfile -out SiaPrime-$version-$os-$arch.zip.sig SiaPrime-$version-$os-$arch.zip
+			zip -rq ScPrime-$version-$os-$arch.zip ScPrime-$version-$os-$arch
+			openssl dgst -sha256 -sign $keyfile -out ScPrime-$version-$os-$arch.zip.sig ScPrime-$version-$os-$arch.zip
 			# verify signature
 			if [[ -n $pubkeyfile ]]; then
-				openssl dgst -sha256 -verify $pubkeyfile -signature SiaPrime-$version-$os-$arch.zip.sig SiaPrime-$version-$os-$arch.zip
+				openssl dgst -sha256 -verify $pubkeyfile -signature ScPrime-$version-$os-$arch.zip.sig ScPrime-$version-$os-$arch.zip
 			fi
 		)
 	done
