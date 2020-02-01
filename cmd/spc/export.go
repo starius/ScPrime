@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"gitlab.com/SiaPrime/SiaPrime/types"
-
 	"github.com/spf13/cobra"
+
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 var (

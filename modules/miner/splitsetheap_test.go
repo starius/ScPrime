@@ -4,8 +4,9 @@ import (
 	"math/rand"
 	"testing"
 
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TestMapHeapSimple test max-heap and min-heap versions of the MapHeap on the

@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/SiaPrime/writeaheadlog"
-
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/SiaPrime/writeaheadlog"
+
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // equalFiles is a helper that compares two SiaFiles for equality.

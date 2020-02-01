@@ -11,6 +11,7 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
@@ -35,8 +36,8 @@ func TestWalletGETEncrypted(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to create gateway:", err)
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChanCS := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChanCS; err != nil {
 		t.Fatal("Failed to create consensus set:", err)
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -174,8 +175,8 @@ func TestWalletBlankEncrypt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -242,8 +243,8 @@ func TestIntegrationWalletInitSeed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -612,13 +613,13 @@ func TestWalletTransactionGETid(t *testing.T) {
 		t.Error("miner payout should appear as an output, not an input")
 	}
 	if len(wtgid.Transaction.Outputs) != 2 {
-		t.Fatal("a single miner payout output should have been created")
+		t.Fatal("Two miner payout output should have been created")
 	}
-	for i := 0; i < 2; i++ {
-		if wtgid.Transaction.Outputs[i].FundType != types.SpecifierMinerPayout {
+	for _, output := range wtgid.Transaction.Outputs {
+		if output.FundType != types.SpecifierMinerPayout {
 			t.Error("fund type should be a miner payout")
 		}
-		if wtgid.Transaction.Outputs[i].Value.IsZero() {
+		if output.Value.IsZero() {
 			t.Error("output should have a nonzero value")
 		}
 	}
@@ -632,8 +633,8 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(txns) != 1 {
-		t.Fatal("expected a single transaction")
+	if len(txns) != 2 {
+		t.Fatalf("wallet.SendSiacoins() should generate 2 transactions but got %v. ", len(txns))
 	}
 	_, err = st.miner.AddBlock()
 	if err != nil {
@@ -641,20 +642,19 @@ func TestWalletTransactionGETid(t *testing.T) {
 	}
 
 	var wtgid2 WalletTransactionGETid
-	err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", txns[0].ID()), &wtgid2)
+	err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", txns[1].ID()), &wtgid2)
 	if err != nil {
 		t.Fatal(err)
 	}
 	txn := wtgid2.Transaction
-
-	if txn.TransactionID != txns[0].ID() {
+	if txn.TransactionID != txns[1].ID() {
 		t.Error("wrong transaction was fetched")
-	} else if len(txn.Inputs) != 1 || len(txn.Outputs) != 3 {
-		t.Error("expected 1 input and 3 outputs, got", len(txn.Inputs), len(txn.Outputs))
+	} else if len(txn.Inputs) != 1 || len(txn.Outputs) != 2 {
+		t.Error("expected 1 input and 2 outputs, got", len(txn.Inputs), len(txn.Outputs))
 	} else if !txn.Outputs[0].Value.Equals(sentValue) {
 		t.Errorf("expected first output to equal %v, got %v", sentValue, txn.Outputs[0].Value)
-	} else if exp := txn.Inputs[0].Value.Sub(sentValue); !txn.Outputs[1].Value.Add(txn.Outputs[2].Value).Equals(exp) {
-		t.Errorf("expected sum(1 and 2 outputs) to equal %v, got %v", exp, txn.Outputs[1].Value.Add(txn.Outputs[2].Value))
+	} else if exp := txn.Inputs[0].Value.Sub(sentValue); !txn.Outputs[1].Value.Equals(exp) {
+		t.Errorf("expected first output to equal %v, got %v", exp, txn.Outputs[1].Value)
 	}
 
 	// Create a second wallet and send money to that wallet.
@@ -687,8 +687,8 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(wtg.UnconfirmedTransactions) != 1 {
-		t.Fatal("expecting one unconfirmed transaction in sender wallet")
+	if len(wtg.UnconfirmedTransactions) != 2 {
+		t.Fatalf("expecting 2 unconfirmed transactions in sender wallet, got %v", len(wtg.UnconfirmedTransactions))
 	}
 
 	// Testing GET :id for unconfirmed transactions
@@ -697,12 +697,11 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	//var wutgid2 WalletTransactionGETid
-	//err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", wtg.UnconfirmedTransactions[1].TransactionID), &wutgid2)
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
+	var wutgid2 WalletTransactionGETid
+	err = st.getAPI(fmt.Sprintf("/wallet/transaction/%s", wtg.UnconfirmedTransactions[1].TransactionID), &wutgid2)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Check that undocumented API behavior used in Sia-UI still works with
 	// current API.
@@ -710,11 +709,11 @@ func TestWalletTransactionGETid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(wtg.UnconfirmedTransactions) != 1 {
-		t.Fatal("expecting one unconfirmed transaction in sender wallet")
+	if len(wtg.UnconfirmedTransactions) != 2 {
+		t.Fatal("expecting two unconfirmed transactions in sender wallet")
 	}
 	// Get the id of the non-change output sent to the receiving wallet.
-	expectedOutputID := wtg.UnconfirmedTransactions[0].Outputs[0].ID
+	expectedOutputID := wtg.UnconfirmedTransactions[1].Outputs[0].ID
 
 	// Check the unconfirmed transactions struct to make sure all fields are
 	// filled out correctly in the receiving wallet.
@@ -1211,12 +1210,15 @@ func TestWalletSiafunds(t *testing.T) {
 
 	// form allowance
 	allowanceValues := url.Values{}
-	testFunds := "10000000000000000000000000000" // 10k SC
+	testFunds := "100000000000000000000000000000" // 100k SC
 	testPeriod := "20"
 	allowanceValues.Set("funds", testFunds)
 	allowanceValues.Set("period", testPeriod)
 	allowanceValues.Set("renewwindow", testRenewWindow)
 	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
+	allowanceValues.Set("expectedstorage", "10240")
+	allowanceValues.Set("expectedupload", "4096")
+	allowanceValues.Set("expecteddownload", "4096")
 	err = st.stdPostAPI("/renter", allowanceValues)
 	if err != nil {
 		t.Fatal(err)

@@ -18,6 +18,7 @@ package consensus
 
 import (
 	bolt "github.com/coreos/bbolt"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"

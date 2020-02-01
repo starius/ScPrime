@@ -27,7 +27,7 @@ const (
 	// before spending an output that has been spent in the past. If the
 	// transaction spending the output has not made it to the transaction pool
 	// after the limit, the assumption is that it never will.
-	RespendTimeout = 40
+	RespendTimeout = 100
 )
 
 var (
@@ -295,4 +295,14 @@ func (w *Wallet) SetSettings(s modules.WalletSettings) error {
 	w.defragDisabled = s.NoDefrag
 	w.mu.Unlock()
 	return nil
+}
+
+// managedCanSpendUnlockHash returns true if and only if the the wallet has keys to spend from
+// outputs with the given unlockHash.
+func (w *Wallet) managedCanSpendUnlockHash(unlockHash types.UnlockHash) bool {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+
+	_, isSpendable := w.keys[unlockHash]
+	return isSpendable
 }

@@ -1,12 +1,16 @@
 package hostdb
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 )
 
@@ -84,21 +88,28 @@ func TestSaveLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	hdbt.hdb, err = NewCustomHostDB(hdbt.gateway, hdbt.cs, hdbt.tpool, filepath.Join(hdbt.persistDir, modules.RenterDir), &quitAfterLoadDeps{})
-	if err != nil {
+	var errChan <-chan error
+	hdbt.hdb, errChan = NewCustomHostDB(hdbt.gateway, hdbt.cs, hdbt.tpool, filepath.Join(hdbt.persistDir, modules.RenterDir), &quitAfterLoadDeps{})
+	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 
 	// Last change and disableIPViolationCheck should have been reloaded.
-	hdbt.hdb.mu.Lock()
-	lastChange := hdbt.hdb.lastChange
-	disableIPViolationCheck := !hdbt.hdb.IPViolationsCheck()
-	hdbt.hdb.mu.Unlock()
-	if lastChange != stashedLC {
-		t.Error("wrong consensus change ID was loaded:", hdbt.hdb.lastChange)
-	}
-	if disableIPViolationCheck != true {
-		t.Error("disableIPViolationCheck should've been true but was false")
+	err = build.Retry(100, 100*time.Millisecond, func() error {
+		hdbt.hdb.mu.Lock()
+		lastChange := hdbt.hdb.lastChange
+		subnetViolationCheck, _ := hdbt.hdb.IPViolationsCheck()
+		hdbt.hdb.mu.Unlock()
+		if lastChange != stashedLC {
+			return fmt.Errorf("wrong consensus change ID was loaded: %v", hdbt.hdb.lastChange)
+		}
+		if subnetViolationCheck != false {
+			return errors.New("IPViolationsCheck() should've returned false but was true")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Error(err)
 	}
 
 	// Check that AllHosts was loaded.

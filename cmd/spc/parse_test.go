@@ -2,11 +2,13 @@ package main
 
 import (
 	"math/big"
+	"strings"
 	"testing"
 
 	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
+// TestParseFileSize probes the parseFilesize function
 func TestParseFilesize(t *testing.T) {
 	tests := []struct {
 		in, out string
@@ -43,6 +45,7 @@ func TestParseFilesize(t *testing.T) {
 	}
 }
 
+// TestParsePeriod probes the parsePeriod function
 func TestParsePeriod(t *testing.T) {
 	tests := []struct {
 		in, out string
@@ -92,6 +95,7 @@ func TestParsePeriod(t *testing.T) {
 	}
 }
 
+// TestCurrencyUnits probes the currencyUnits function
 func TestCurrencyUnits(t *testing.T) {
 	tests := []struct {
 		in, out string
@@ -99,26 +103,89 @@ func TestCurrencyUnits(t *testing.T) {
 		{"1", "1 H"},
 		{"1000", "1000 H"},
 		{"100000000000", "100000000000 H"},
-		{"1000000000000", "1 pS"},
-		{"1234560000000", "1.235 pS"},
-		{"12345600000000", "12.35 pS"},
-		{"123456000000000", "123.5 pS"},
-		{"1000000000000000", "1 nS"},
-		{"1000000000000000000", "1 uS"},
-		{"1000000000000000000000", "1 mS"},
-		{"1000000000000000000000000", "1 SCP"},
-		{"1000000000000000000000000000", "1 KS"},
-		{"1000000000000000000000000000000", "1 MS"},
-		{"1000000000000000000000000000000000", "1 GS"},
-		{"1000000000000000000000000000000000000", "1 TS"},
-		{"1234560000000000000000000000000000000", "1.235 TS"},
-		{"1234560000000000000000000000000000000000", "1235 TS"},
+		{"1000000000000000", "1 pS"},
+		{"1234560000000000", "1.235 pS"},
+		{"12345600000000000", "12.35 pS"},
+		{"123456000000000000", "123.5 pS"},
+		{"1000000000000000000", "1 nS"},
+		{"1000000000000000000000", "1 uS"},
+		{"1000000000000000000000000", "1 mS"},
+		{"1000000000000000000000000000", "1 SCP"},
+		{"1000000000000000000000000000000", "1 KS"},
+		{"1000000000000000000000000000000000", "1 MS"},
+		{"1000000000000000000000000000000000000", "1 GS"},
+		{"1000000000000000000000000000000000000000", "1 TS"},
+		{"1234560000000000000000000000000000000000", "1.235 TS"},
+		{"1234560000000000000000000000000000000000000", "1235 TS"},
 	}
 	for _, test := range tests {
 		i, _ := new(big.Int).SetString(test.in, 10)
 		out := currencyUnits(types.NewCurrency(i))
 		if out != test.out {
 			t.Errorf("currencyUnits(%v): expected %v, got %v", test.in, test.out, out)
+		}
+	}
+}
+
+// TestRateLimitUnits probes the ratelimitUnits function
+func TestRatelimitUnits(t *testing.T) {
+	tests := []struct {
+		in  int64
+		out string
+	}{
+		{0, "0 B/s"},
+		{123, "123 B/s"},
+		{1234, "1.234 KB/s"},
+		{1234000, "1.234 MB/s"},
+		{1234000000, "1.234 GB/s"},
+		{1234000000000, "1.234 TB/s"},
+	}
+	for _, test := range tests {
+		out := ratelimitUnits(test.in)
+		if out != test.out {
+			t.Errorf("ratelimitUnits(%v): expected %v, got %v", test.in, test.out, out)
+		}
+	}
+}
+
+// TestParseRateLimit probes the parseRatelimit function
+func TestParseRatelimit(t *testing.T) {
+	tests := []struct {
+		in  string
+		out int64
+		err error
+	}{
+		{"x", 0, errUnableToParseRateLimit},
+		{"1", 0, errUnableToParseRateLimit},
+		{"B/s", 0, errUnableToParseRateLimit},
+		{"Bps", 0, errUnableToParseRateLimit},
+		{"1Bps", 0, errUnableToParseRateLimit},
+		{"1B/s", 1, nil},
+		{"1 B/s", 1, nil},
+		{"8Bps", 1, nil},
+		{"8 Bps", 1, nil},
+		{"1KB/s", 1000, nil},
+		{"1 KB/s", 1000, nil},
+		{"8Kbps", 1000, nil},
+		{"8 Kbps", 1000, nil},
+		{"1MB/s", 1000000, nil},
+		{"1 MB/s", 1000000, nil},
+		{"8Mbps", 1000000, nil},
+		{"8 Mbps", 1000000, nil},
+		{"1GB/s", 1000000000, nil},
+		{"1 GB/s", 1000000000, nil},
+		{"8Gbps", 1000000000, nil},
+		{"8 Gbps", 1000000000, nil},
+		{"1TB/s", 1000000000000, nil},
+		{"1 TB/s", 1000000000000, nil},
+		{"8Tbps", 1000000000000, nil},
+		{"8 Tbps", 1000000000000, nil},
+	}
+
+	for _, test := range tests {
+		res, err := parseRatelimit(test.in)
+		if res != test.out || (err != test.err && !strings.Contains(err.Error(), test.err.Error())) {
+			t.Errorf("parsePeriod(%v): expected %v %v, got %v %v", test.in, test.out, test.err, res, err)
 		}
 	}
 }

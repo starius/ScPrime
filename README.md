@@ -52,7 +52,6 @@ SiaPrime Coins will be available on cryptocurrency exchanges. We will also be
 creating fiat to storage gateways to encourage broad adoption of the SiaPrime 
 storage model. 
 
-
 Usage
 -----
 This release comes with 2 binaries, `spd` and `spc`. `spd` is a background
@@ -88,3 +87,11 @@ You can also run `make test` and `make test-long` to run the short and full test
 suites, respectively. Finally, `make cover` will generate code coverage reports
 for each package; they are stored in the `cover` folder and can be viewed in
 your browser.
+
+### Running Sia on a Raspberry Pi
+
+Official binaries are not provided for the Raspberry Pi, but you can easily
+compile them yourself by installing the Go toolchain on your Raspberry Pi.
+Alternatively, you can cross-compile by running `GOOS=linux GOARCH=arm64 make`.
+Raspberry Pi compatible binaries will then be installed in
+`$GOPATH/bin/linux_arm64/`.

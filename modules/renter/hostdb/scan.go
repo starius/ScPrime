@@ -11,14 +11,14 @@ import (
 	"sort"
 	"time"
 
-	"gitlab.com/NebulousLabs/fastrand"
-
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb/hosttree"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // equalIPNets checks if two slices of IP subnets contain the same subnets.
@@ -601,7 +601,7 @@ func (hdb *HostDB) threadedScan() {
 	// Wait until the consensus set is synced. Only then we can be sure that
 	// the initial scan covers the whole network.
 	for {
-		if hdb.cs.Synced() {
+		if hdb.managedSynced() {
 			break
 		}
 		select {

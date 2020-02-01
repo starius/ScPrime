@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
@@ -179,6 +178,8 @@ type (
 	// A ConsensusSet accepts blocks and builds an understanding of network
 	// consensus.
 	ConsensusSet interface {
+		Alerter
+
 		// AcceptBlock adds a block to consensus. An error will be returned if the
 		// block is invalid, has been seen before, is an orphan, or doesn't
 		// contribute to the heaviest fork known to the consensus set. If the block
@@ -219,10 +220,6 @@ type (
 		// routines.
 		Flush() error
 
-		// SiafundClaim returns number of siacoins claimed by given SiafundOutput.
-		// It takes into account height and hardfork changes.
-		SiafundClaim(types.SiafundOutput) types.Currency
-
 		// Height returns the current height of consensus.
 		Height() types.BlockHeight
 
@@ -254,7 +251,9 @@ type (
 		// not found in the subscriber database, no action is taken.
 		Unsubscribe(ConsensusSetSubscriber)
 
-		Db() *persist.BoltDatabase
+		// SiafundClaim returns number of siacoins claimed by given SiafundOutput.
+		// It takes into account height and hardfork changes.
+		SiafundClaim(types.SiafundOutput) types.Currency
 	}
 )
 
@@ -271,4 +270,9 @@ func (cc ConsensusChange) Append(cc2 ConsensusChange) ConsensusChange {
 		SiafundOutputDiffs:        append(cc.SiafundOutputDiffs, cc2.SiafundOutputDiffs...),
 		DelayedSiacoinOutputDiffs: append(cc.DelayedSiacoinOutputDiffs, cc2.DelayedSiacoinOutputDiffs...),
 	}
+}
+
+// String returns the ConsensusChangeID as a string.
+func (ccID ConsensusChangeID) String() string {
+	return crypto.Hash(ccID).String()
 }

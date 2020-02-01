@@ -8,14 +8,15 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
-
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
+	"time"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 var (
@@ -101,7 +102,10 @@ func (c *Contractor) managedCheckForDuplicates() {
 // contract has been.
 func (c *Contractor) managedEstimateRenewFundingRequirements(contract modules.RenterContract, blockHeight types.BlockHeight, allowance modules.Allowance) (types.Currency, error) {
 	// Fetch the host pricing to use in the estimate.
-	host, exists := c.hdb.Host(contract.HostPublicKey)
+	host, exists, err := c.hdb.Host(contract.HostPublicKey)
+	if err != nil {
+		return types.ZeroCurrency, errors.AddContext(err, "error geting host from hostdb:")
+	}
 	if !exists {
 		return types.ZeroCurrency, errors.New("could not find host in hostdb")
 	}
@@ -206,10 +210,10 @@ func (c *Contractor) managedEstimateRenewFundingRequirements(contract modules.Re
 	return estimatedCost, nil
 }
 
-// managedInterruptContractMaintenance will issue an interrupt signal to any
+// callInterruptContractMaintenance will issue an interrupt signal to any
 // running maintenance, stopping that maintenance. If there are multiple threads
 // running maintenance, they will all be stopped.
-func (c *Contractor) managedInterruptContractMaintenance() {
+func (c *Contractor) callInterruptContractMaintenance() {
 	// Spin up a thread to grab the maintenance lock. Signal that the lock was
 	// acquired after the lock is acquired.
 	gotLock := make(chan struct{})
@@ -286,17 +290,17 @@ func (c *Contractor) managedMarkContractsUtility() error {
 				return u, nil
 			}
 
-			// Start the contract in good standing if the utility isn't locked
-			// but don't completely ignore the utility. A locked utility can
-			// always get worse but not better.
-			// TODO recheck if this is the right way.
-			u.GoodForUpload = true
-			u.GoodForRenew = true
+			// Contract has no utility if the contract has been marked bad.
+			if u.BadContract {
+				u.GoodForUpload = false
+				u.GoodForRenew = false
+				return u, nil
+			}
 
-			host, exists := c.hdb.Host(contract.HostPublicKey)
+			host, exists, err := c.hdb.Host(contract.HostPublicKey)
 			// Contract has no utility if the host is not in the database. Or is
-			// filtered by the blacklist or whitelist.
-			if !exists || host.Filtered {
+			// filtered by the blacklist or whitelist. Or if there was an error
+			if !exists || host.Filtered || err != nil {
 				// Log if the utility has changed.
 				if u.GoodForUpload || u.GoodForRenew {
 					c.log.Printf("Marking contract as having no utility because found in hostDB: %v, or host is Filtered: %v - %v", exists, host.Filtered, contract.ID)
@@ -566,7 +570,11 @@ func (c *Contractor) managedPrunedRedundantAddressRange() {
 
 	// Let the hostdb filter out bad hosts and cancel contracts with those
 	// hosts.
-	badHosts := c.hdb.CheckForIPViolations(pks)
+	badHosts, err := c.hdb.CheckForIPViolations(pks)
+	if err != nil {
+		c.log.Println("WARN: errror checking for IP violations:", err)
+		return
+	}
 	for _, host := range badHosts {
 		if err := c.managedCancelContract(cids[host.String()]); err != nil {
 			c.log.Print("WARNING: Wasn't able to cancel contract in managedPrunedRedundantAddressRange", err)
@@ -588,7 +596,10 @@ func (c *Contractor) managedRenew(sc *proto.SafeContract, contractFunding types.
 	}
 
 	// Fetch the host associated with this contract.
-	host, ok := c.hdb.Host(contract.HostPublicKey)
+	host, ok, err := c.hdb.Host(contract.HostPublicKey)
+	if err != nil {
+		return modules.RenterContract{}, errors.AddContext(err, "error getting host from hostdb:")
+	}
 	c.mu.Lock()
 	if reflect.DeepEqual(c.allowance, modules.Allowance{}) {
 		c.mu.Unlock()
@@ -824,7 +835,7 @@ func (c *Contractor) managedFindRecoverableContracts() {
 	c.mu.RLock()
 	cc := c.recentRecoveryChange
 	c.mu.RUnlock()
-	if err := c.managedInitRecoveryScan(cc); err != nil {
+	if err := c.callInitRecoveryScan(cc); err != nil {
 		c.log.Debug(err)
 		return
 	}
@@ -856,6 +867,13 @@ func (c *Contractor) threadedContractMaintenance() {
 	}
 	defer c.tg.Done()
 
+	// No contract maintenance unless contractor is synced.
+	if !c.managedSynced() {
+		c.log.Debugln("Skipping contract maintenance since consensus isn't synced yet")
+		return
+	}
+	c.log.Debugln("starting contract maintenance")
+
 	// Only one instance of this thread should be running at a time. Under
 	// normal conditions, fine to return early if another thread is already
 	// doing maintenance. The next block will trigger another round. Under
@@ -869,20 +887,29 @@ func (c *Contractor) threadedContractMaintenance() {
 	}
 	defer c.maintenanceLock.Unlock()
 
+	// Register the WalletLockedDuringMaintenance alert if necessary.
+	var registerWalletLockedDuringMaintenance bool
+	defer func() {
+		if registerWalletLockedDuringMaintenance {
+			c.staticAlerter.RegisterAlert(modules.AlertIDWalletLockedDuringMaintenance, AlertMSGWalletLockedDuringMaintenance, modules.ErrLockedWallet.Error(), modules.SeverityWarning)
+		} else {
+			c.staticAlerter.UnregisterAlert(modules.AlertIDWalletLockedDuringMaintenance)
+		}
+	}()
+
 	// Perform general cleanup of the contracts. This includes recovering lost
 	// contracts, archiving contracts, and other cleanup work. This should all
 	// happen before the rest of the maintenance.
 	c.managedFindRecoverableContracts()
-	c.managedRecoverContracts()
+	c.callRecoverContracts()
 	c.managedArchiveContracts()
 	c.managedCheckForDuplicates()
 	c.managedPrunePubkeyMap()
-
 	//Save the work if CheckForIPViolation set to false
-	if c.hdb.IPViolationsCheck() {
+	subnetfilterenabled, _ := c.hdb.IPViolationsCheck()
+	if subnetfilterenabled {
 		c.managedPrunedRedundantAddressRange()
 	}
-
 	err = c.managedMarkContractsUtility()
 	if err != nil {
 		c.log.Debugln("Unable to mark contract utilities:", err)
@@ -934,17 +961,25 @@ func (c *Contractor) threadedContractMaintenance() {
 		c.log.Debugln("Examining a contract:", contract.HostPublicKey, contract.ID)
 		// Skip any host that does not match our whitelist/blacklist filter
 		// settings.
-		host, _ := c.hdb.Host(contract.HostPublicKey)
+		host, _, err := c.hdb.Host(contract.HostPublicKey)
+		if err != nil {
+			c.log.Println("WARN: error getting host", err)
+			continue
+		}
 		if host.Filtered {
 			c.log.Debugln("Contract skipped because it is filtered")
 			continue
+		}
+		// Skip hosts that can't use the current renter-host protocol.
+		if build.VersionCmp(host.Version, modules.MinimumSupportedRenterHostProtocolVersion) < 0 {
+			c.log.Debugln("Contract skipped because host is using an outdated version", host.Version)
 		}
 
 		// Skip any contracts which do not exist or are otherwise unworthy for
 		// renewal.
 		utility, ok := c.managedContractUtility(contract.ID)
 		if !ok || !utility.GoodForRenew {
-			if uint64(blockHeight-contract.StartHeight) < types.BlocksPerWeek {
+			if blockHeight-contract.StartHeight < types.BlocksPerWeek {
 				c.log.Debugln("Contract did not last 1 week and is not being renewed", contract.ID)
 			}
 			c.log.Debugln("Contract skipped because it is not good for renew (utility.GoodForRenew, exists)", utility.GoodForRenew, ok)
@@ -1028,7 +1063,12 @@ func (c *Contractor) threadedContractMaintenance() {
 	// Depend on the PeriodSpending function to get a breakdown of spending in
 	// the contractor. Then use that to determine how many funds remain
 	// available in the allowance for renewals.
-	spending := c.PeriodSpending()
+	spending, err := c.PeriodSpending()
+	if err != nil {
+		// This should only error if the contractor is shutting down
+		c.log.Println("WARN: error getting period spending:", err)
+		return
+	}
 	var fundsRemaining types.Currency
 	// Check for an underflow. This can happen if the user reduced their
 	// allowance at some point to less than what we've already spent.
@@ -1037,6 +1077,15 @@ func (c *Contractor) threadedContractMaintenance() {
 	}
 	c.log.Debugln("The allowance has this many remaning funds:", fundsRemaining)
 
+	// Register the AllowanceLowFunds alert if necessary.
+	var registerLowFundsAlert bool
+	defer func() {
+		if registerLowFundsAlert {
+			c.staticAlerter.RegisterAlert(modules.AlertIDAllowanceLowFunds, AlertMSGAllowanceLowFunds, "", modules.SeverityWarning)
+		} else {
+			c.staticAlerter.UnregisterAlert(modules.AlertIDAllowanceLowFunds)
+		}
+	}()
 	// Go through the contracts we've assembled for renewal. Any contracts that
 	// need to be renewed because they are expiring (renewSet) get priority over
 	// contracts that need to be renewed because they have exhausted their funds
@@ -1045,14 +1094,16 @@ func (c *Contractor) threadedContractMaintenance() {
 	for _, renewal := range renewSet {
 		unlocked, err := c.wallet.Unlocked()
 		if !unlocked || err != nil {
-			c.log.Println("contractor is attempting to renew contracts that are about to expire, however the wallet is locked")
+			registerWalletLockedDuringMaintenance = true
+			c.log.Println("Contractor is attempting to renew contracts that are about to expire, however the wallet is locked")
 			return
 		}
 
 		c.log.Println("Attempting to perform a renewal:", renewal.id)
 		// Skip this renewal if we don't have enough funds remaining.
-		if renewal.amount.Cmp(fundsRemaining) > 0 {
-			c.log.Debugln("Skipping renewal because there are not enough funds remaining in the allowance", renewal.id, renewal.amount, fundsRemaining)
+		if renewal.amount.Cmp(fundsRemaining) > 0 || c.staticDeps.Disrupt("LowFundsRenewal") {
+			c.log.Println("Skipping renewal because there are not enough funds remaining in the allowance", renewal.id, renewal.amount, fundsRemaining)
+			registerLowFundsAlert = true
 			continue
 		}
 
@@ -1079,6 +1130,12 @@ func (c *Contractor) threadedContractMaintenance() {
 		}
 	}
 	for _, renewal := range refreshSet {
+		unlocked, err := c.wallet.Unlocked()
+		if !unlocked || err != nil {
+			registerWalletLockedDuringMaintenance = true
+			c.log.Println("Contractor is attempting to refresh contracts that have run out of funds, however the wallet is locked")
+			return
+		}
 
 		// Skip this renewal if we don't have enough funds remaining.
 		c.log.Debugln("Attempting to perform a contract refresh:", renewal.id)
@@ -1136,14 +1193,13 @@ func (c *Contractor) threadedContractMaintenance() {
 
 	for _, contract := range allContracts {
 		blacklist = append(blacklist, contract.HostPublicKey)
-		if c.hdb.IPViolationsCheck() {
-			//NOTE: FilterHostsSubnet
+		subnetfilterenabled, _ := c.hdb.IPViolationsCheck()
+		if subnetfilterenabled {
 			if !contract.Utility.Locked || contract.Utility.GoodForRenew || contract.Utility.GoodForUpload {
 				addressBlacklist = append(addressBlacklist, contract.HostPublicKey)
 			}
 		}
 	}
-
 	// Add the hosts we have recoverable contracts with to the blacklist to
 	// avoid losing existing data by forming a new/empty contract.
 	for _, contract := range c.recoverableContracts {
@@ -1164,12 +1220,14 @@ func (c *Contractor) threadedContractMaintenance() {
 	for _, host := range hosts {
 		unlocked, err := c.wallet.Unlocked()
 		if !unlocked || err != nil {
+			registerWalletLockedDuringMaintenance = true
 			c.log.Println("contractor is attempting to establish new contracts with hosts, however the wallet is locked")
 			return
 		}
 
 		// Determine if we have enough money to form a new contract.
-		if fundsRemaining.Cmp(initialContractFunds) < 0 {
+		if fundsRemaining.Cmp(initialContractFunds) < 0 || c.staticDeps.Disrupt("LowFundsFormation") {
+			registerLowFundsAlert = true
 			c.log.Println("WARN: need to form new contracts, but unable to because of a low allowance")
 			break
 		}
@@ -1182,9 +1240,10 @@ func (c *Contractor) threadedContractMaintenance() {
 		}
 
 		// Attempt forming a contract with this host.
+		start := time.Now()
 		fundsSpent, newContract, err := c.managedNewContract(host, initialContractFunds, endHeight)
 		if err != nil {
-			c.log.Printf("Attempted to form a contract with %v, but negotiation failed: %v\n", host.NetAddress, err)
+			c.log.Printf("Attempted to form a contract with %v, time spent %v, but negotiation failed: %v\n", host.NetAddress, time.Since(start).Round(time.Millisecond), err)
 			continue
 		}
 		fundsRemaining = fundsRemaining.Sub(fundsSpent)

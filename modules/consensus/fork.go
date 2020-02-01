@@ -2,10 +2,12 @@ package consensus
 
 import (
 	"errors"
-	bolt "github.com/coreos/bbolt"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	bolt "github.com/coreos/bbolt"
 )
 
 var (

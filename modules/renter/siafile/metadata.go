@@ -6,14 +6,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
-
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 	"gitlab.com/SiaPrime/writeaheadlog"
+
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 type (
@@ -166,6 +166,7 @@ type (
 		Redundancy          float64
 		Size                uint64
 		StuckHealth         float64
+		UID                 SiafileUID
 	}
 
 	// CachedHealthMetadata is a healper struct that contains the siafile health

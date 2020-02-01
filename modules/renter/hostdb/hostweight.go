@@ -83,16 +83,6 @@ const (
 	priceFloor = 0.1
 )
 
-var (
-	// requiredStorage indicates the amount of storage that the host must be
-	// offering in order to be considered a valuable/worthwhile host.
-	requiredStorage = build.Select(build.Var{
-		Standard: uint64(20e9),
-		Dev:      uint64(1e6),
-		Testing:  uint64(1e3),
-	}).(uint64)
-)
-
 // collateralAdjustments improves the host's weight according to the amount of
 // collateral that they have provided.
 func (hdb *HostDB) collateralAdjustments(entry modules.HostDBEntry, allowance modules.Allowance) float64 {
@@ -360,12 +350,8 @@ func versionAdjustments(entry modules.HostDBEntry) float64 {
 	if build.VersionCmp(entry.Version, "1.4.2") < 0 {
 		base = base * 0.99999 // Safety value to make sure we update the version penalties every time we update the host.
 	}
-	// Light penalty for hosts below 1.4.1
-	if build.VersionCmp(entry.Version, "1.4.1") < 0 {
-		base = base * 0.7
-	}
-	// Heavy penalty for hosts below v1.4.0
-	if build.VersionCmp(entry.Version, "1.4.0") < 0 {
+	// Heavy penalty for hosts that cannot use the current renter-host protocol.
+	if build.VersionCmp(entry.Version, modules.MinimumSupportedRenterHostProtocolVersion) < 0 {
 		base = math.SmallestNonzeroFloat64
 	}
 	return base
@@ -538,7 +524,7 @@ func (hdb *HostDB) EstimateHostScore(entry modules.HostDBEntry, allowance module
 		return modules.HostScoreBreakdown{}, err
 	}
 	defer hdb.tg.Done()
-	return hdb.managedEstimatedScoreBreakdown(entry, allowance, true, true, true), nil
+	return hdb.managedEstimatedScoreBreakdown(entry, allowance, true, true, true)
 }
 
 // ScoreBreakdown provdes a detailed set of scalars and bools indicating
@@ -548,13 +534,16 @@ func (hdb *HostDB) ScoreBreakdown(entry modules.HostDBEntry) (modules.HostScoreB
 		return modules.HostScoreBreakdown{}, err
 	}
 	defer hdb.tg.Done()
-	return hdb.managedScoreBreakdown(entry, false, false, false), nil
+	return hdb.managedScoreBreakdown(entry, false, false, false)
 }
 
 // managedEstimatedScoreBreakdown computes the score breakdown of a host.
 // Certain adjustments can be ignored.
-func (hdb *HostDB) managedEstimatedScoreBreakdown(entry modules.HostDBEntry, allowance modules.Allowance, ignoreAge, ignoreDuration, ignoreUptime bool) modules.HostScoreBreakdown {
-	hosts := hdb.ActiveHosts()
+func (hdb *HostDB) managedEstimatedScoreBreakdown(entry modules.HostDBEntry, allowance modules.Allowance, ignoreAge, ignoreDuration, ignoreUptime bool) (modules.HostScoreBreakdown, error) {
+	hosts, err := hdb.ActiveHosts()
+	if err != nil {
+		return modules.HostScoreBreakdown{}, errors.AddContext(err, "error getting Active hosts:")
+	}
 	weightFunc := hdb.managedCalculateHostWeightFn(allowance)
 
 	// Compute the totalScore.
@@ -566,13 +555,16 @@ func (hdb *HostDB) managedEstimatedScoreBreakdown(entry modules.HostDBEntry, all
 	}
 	// Compute the breakdown.
 
-	return weightFunc(entry).HostScoreBreakdown(totalScore, ignoreAge, ignoreDuration, ignoreUptime)
+	return weightFunc(entry).HostScoreBreakdown(totalScore, ignoreAge, ignoreDuration, ignoreUptime), nil
 }
 
 // managedScoreBreakdown computes the score breakdown of a host. Certain
 // adjustments can be ignored.
-func (hdb *HostDB) managedScoreBreakdown(entry modules.HostDBEntry, ignoreAge, ignoreDuration, ignoreUptime bool) modules.HostScoreBreakdown {
-	hosts := hdb.ActiveHosts()
+func (hdb *HostDB) managedScoreBreakdown(entry modules.HostDBEntry, ignoreAge, ignoreDuration, ignoreUptime bool) (modules.HostScoreBreakdown, error) {
+	hosts, err := hdb.ActiveHosts()
+	if err != nil {
+		return modules.HostScoreBreakdown{}, errors.AddContext(err, "error getting Active hosts:")
+	}
 
 	// Compute the totalScore.
 	hdb.mu.Lock()
@@ -582,5 +574,5 @@ func (hdb *HostDB) managedScoreBreakdown(entry modules.HostDBEntry, ignoreAge, i
 		totalScore = totalScore.Add(hdb.weightFunc(host).Score())
 	}
 	// Compute the breakdown.
-	return hdb.weightFunc(entry).HostScoreBreakdown(totalScore, ignoreAge, ignoreDuration, ignoreUptime)
+	return hdb.weightFunc(entry).HostScoreBreakdown(totalScore, ignoreAge, ignoreDuration, ignoreUptime), nil
 }

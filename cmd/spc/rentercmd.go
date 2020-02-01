@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"text/tabwriter"
 	"time"
 
@@ -119,11 +121,10 @@ var (
 	}
 
 	renterFilesListCmd = &cobra.Command{
-		Use:     "list",
-		Aliases: []string{"ls"},
-		Short:   "List the status of all files",
-		Long:    "List the status of all files known to the renter on the ScPrime network.",
-		Run:     renterfileslistcmd,
+		Use:   "ls [path]",
+		Short: "List the status of all files within specified dir",
+		Long:  "List the status of all files known to the renter within the specified folder on the ScPrime network. To query the root dir either '\"\"', '/' or '.' can be supplied",
+		Run:   renterfileslistcmd,
 	}
 
 	renterFilesRenameCmd = &cobra.Command{
@@ -132,6 +133,13 @@ var (
 		Short:   "Rename a file",
 		Long:    "Rename a file.",
 		Run:     wrap(renterfilesrenamecmd),
+	}
+
+	renterSetLocalPathCmd = &cobra.Command{
+		Use:   "setlocalpath [siapath] [newlocalpath]",
+		Short: "Changes the local path of the file",
+		Long:  "Changes the local path of the file",
+		Run:   wrap(rentersetlocalpathcmd),
 	}
 
 	renterFilesUnstuckCmd = &cobra.Command{
@@ -156,6 +164,17 @@ var (
 An allowance can be provided for a more accurate estimate, if no allowance is provided the current set allowance will be used,
 and if no allowance is set an allowance of 500SCP, 12w period, 50 hosts, and 4w renew window will be used.`,
 		Run: renterpricescmd,
+	}
+
+	renterRatelimitCmd = &cobra.Command{
+		Use:   "ratelimit [maxdownloadspeed] [maxuploadspeed]",
+		Short: "set maxdownloadspeed and maxuploadspeed",
+		Long: `Set the maxdownloadspeed and maxuploadspeed in 
+Bytes per second: B/s, KB/s, MB/s, GB/s, TB/s
+or
+Bits per second: Bps, Kbps, Mbps, Gbps, Tbps
+Set them to 0 for no limit.`,
+		Run: wrap(renterratelimitcmd),
 	}
 
 	renterSetAllowanceCmd = &cobra.Command{
@@ -219,7 +238,11 @@ func rentercmd() {
 
 	// Get Renter
 	rg, err := httpClient.RenterGet()
-	if err != nil {
+	if errors.Contains(err, api.ErrAPICallNotRecognized) {
+		// Assume module is not loaded if status command is not recognized.
+		fmt.Printf("Renter:\n  Status: %s\n\n", moduleNotReadyStatus)
+		return
+	} else if err != nil {
 		die("Could not get renter info:", err)
 	}
 
@@ -238,6 +261,11 @@ func rentercmd() {
 `, currencyUnits(rg.Settings.Allowance.Funds), currencyUnits(totalSpent), currencyUnits(fm.Unspent))
 	}
 
+	// detailed allowance spending for current period
+	if renterVerbose {
+		renterallowancespending(rg)
+	}
+
 	// File and Contract Data
 	fmt.Println()
 	fmt.Printf(`Data Storage:`)
@@ -245,15 +273,28 @@ func rentercmd() {
 	if err != nil {
 		die(err)
 	}
+
+	if !renterListVerbose {
+		return
+	}
+
+	// Print out ratelimit info about the renter
+	fmt.Println()
+	rateLimitSummary(rg.Settings.MaxDownloadSpeed, rg.Settings.MaxUploadSpeed)
 }
 
 // renterFilesAndContractSummary prints out a summary of what the renter is
 // storing
 func renterFilesAndContractSummary() error {
 	rf, err := httpClient.RenterGetDir(modules.RootSiaPath())
-	if err != nil {
+	if errors.Contains(err, api.ErrAPICallNotRecognized) {
+		// Assume module is not loaded if status command is not recognized.
+		fmt.Printf("\n  Status: %s\n\n", moduleNotReadyStatus)
+		return nil
+	} else if err != nil {
 		return err
 	}
+
 	rc, err := httpClient.RenterContractsGet()
 	if err != nil {
 		return err
@@ -264,7 +305,6 @@ func renterFilesAndContractSummary() error {
   Total Stored:   %v
   Min Redundancy: %v
   Contracts:      %v
-
 `, rf.Directories[0].AggregateNumFiles, filesizeUnits(rf.Directories[0].AggregateSize), rf.Directories[0].AggregateMinRedundancy, len(rc.ActiveContracts))
 
 	return nil
@@ -344,34 +384,10 @@ func renterdownloadscmd() {
 	}
 }
 
-// renterallowancecmd is the handler for the command `spc renter allowance`.
-// displays the current allowance.
-func renterallowancecmd() {
-	rg, err := httpClient.RenterGet()
-	if err != nil {
-		die("Could not get allowance:", err)
-	}
-	allowance := rg.Settings.Allowance
-
-	// Normalize the expectations over the period.
-	allowance.ExpectedUpload *= uint64(allowance.Period)
-	allowance.ExpectedDownload *= uint64(allowance.Period)
-
-	// Show allowance info
-	fmt.Printf(`Allowance:
-	Amount:               %v
-	Period:               %v blocks
-	Renew Window:         %v blocks
-	Hosts:                %v
-
-Expectations for period:
-	Expected Storage:     %v
-	Expected Upload:      %v
-	Expected Download:    %v
-	Expected Redundancy:  %v
-`, currencyUnits(allowance.Funds), allowance.Period, allowance.RenewWindow, allowance.Hosts, filesizeUnits(allowance.ExpectedStorage),
-		filesizeUnits(allowance.ExpectedUpload), filesizeUnits(allowance.ExpectedDownload), allowance.ExpectedRedundancy)
-
+// renterallowancespending prints info about the current period spending
+// this also get called by 'spc renter -v' which is why it's in its own
+// function
+func renterallowancespending(rg api.RenterGET) {
 	// Show spending detail
 	fm := rg.FinancialMetrics
 	totalSpent := fm.ContractFees.Add(fm.UploadSpending).
@@ -408,6 +424,40 @@ Spending:
 			currencyUnits(fm.ContractFees), currencyUnits(fm.Unspent),
 			currencyUnits(unspentAllocated), currencyUnits(unspentUnallocated))
 	}
+}
+
+// renterallowancecmd is the handler for the command `spc renter allowance`.
+// displays the current allowance.
+func renterallowancecmd() {
+	rg, err := httpClient.RenterGet()
+	if err != nil {
+		die("Could not get allowance:", err)
+	}
+	allowance := rg.Settings.Allowance
+
+	// Normalize the expectations over the period.
+	allowance.ExpectedUpload *= uint64(allowance.Period)
+	allowance.ExpectedDownload *= uint64(allowance.Period)
+
+	// Show allowance info
+	fmt.Printf(`Allowance:
+	Amount:               %v
+	Period:               %v blocks
+	Renew Window:         %v blocks
+	Hosts:                %v
+
+Expectations for period:
+	Expected Storage:     %v
+	Expected Upload:      %v
+	Expected Download:    %v
+	Expected Redundancy:  %v
+`, currencyUnits(allowance.Funds), allowance.Period, allowance.RenewWindow, allowance.Hosts, filesizeUnits(allowance.ExpectedStorage),
+		filesizeUnits(allowance.ExpectedUpload), filesizeUnits(allowance.ExpectedDownload), allowance.ExpectedRedundancy)
+
+	// Show detailed current Period spending metrics
+	renterallowancespending(rg)
+
+	fm := rg.FinancialMetrics
 
 	fmt.Printf("\n  Previous Spending:")
 	if fm.PreviousSpending.IsZero() && fm.WithheldFunds.IsZero() {
@@ -439,7 +489,7 @@ again:
 	default:
 		goto again
 	}
-	err := httpClient.RenterCancelAllowance()
+	err := httpClient.RenterAllowanceCancelPost()
 	if err != nil {
 		die("error canceling allowance:", err)
 	}
@@ -616,7 +666,7 @@ contracts later in the billing cycle will be reported as 'unspent unallocated'.
 The command 'spc renter allowance' can be used to see a breakdown of spending.
 
 The following units can be used to set the allowance:
-    H   (10^24 H per scprimecoin)
+    H   (10^27 H per scprimecoin)
     SPC (1 scprimecoin per SPC)
     KS  (1000 scprimecoins per KS)`)
 	fmt.Println()
@@ -658,7 +708,7 @@ The following units can be used to set the period:
 
     b (blocks - 10 minutes)
     d (days - 144 blocks or 1440 minutes)
-    w (weeks - 1008 blocks or 10080 blocks)`)
+    w (weeks - 1008 blocks or 10080 minutes)`)
 	fmt.Println()
 	fmt.Println("Current value:", periodUnits(allowance.Period), "weeks")
 	fmt.Println("Default value:", periodUnits(modules.DefaultAllowance.Period), "weeks")
@@ -743,7 +793,7 @@ The following units can be used to set the renew window:
 
     b (blocks - 10 minutes)
     d (days - 144 blocks or 1440 minutes)
-    w (weeks - 1008 blocks or 10080 blocks)`)
+    w (weeks - 1008 blocks or 10080 minutes)`)
 	fmt.Println()
 	fmt.Println("Current value:", periodUnits(allowance.RenewWindow), "weeks")
 	fmt.Println("Default value:", periodUnits(modules.DefaultAllowance.RenewWindow), "weeks")
@@ -1490,7 +1540,7 @@ func renterdirdownload(path, destination string) {
 
 // renterdownloadcancelcmd is the handler for the command `spc renter download cancel [cancelID]`
 // Cancels the ongoing download.
-func renterdownloadcancelcmd(cancelID string) {
+func renterdownloadcancelcmd(cancelID modules.DownloadID) {
 	if err := httpClient.RenterCancelDownloadPost(cancelID); err != nil {
 		die("Couldn't cancel download:", err)
 	}
@@ -1896,7 +1946,8 @@ func renterfileslistcmd(cmd *cobra.Command, args []string) {
 					redundancyStr = "-"
 				}
 				healthStr := fmt.Sprintf("%.2f%%", subDir.AggregateMaxHealthPercentage)
-				fmt.Fprintf(w, "\t%9s\t%9s\t%8s\t%10s\t%7s\t%5s\t%8s\t%7s\t%11s", "-", "-", "-", redundancyStr, healthStr, "-", "-", "-", "-")
+				stuckStr := yesNo(subDir.AggregateNumStuckChunks > 0)
+				fmt.Fprintf(w, "\t%9s\t%9s\t%8s\t%10s\t%7s\t%5s\t%8s\t%7s\t%11s", "-", "-", "-", redundancyStr, healthStr, stuckStr, "-", "-", "-")
 			}
 			fmt.Fprintln(w, "\t\t\t\t\t\t\t\t\t\t")
 		}
@@ -1950,20 +2001,63 @@ func renterfilesrenamecmd(path, newpath string) {
 	fmt.Printf("Renamed %s to %s\n", path, newpath)
 }
 
+//rentersetlocalpathcmd is the handler for the command `spc renter setlocalpath [siapath] [newlocalpath]`
+//Changes the trackingpath of the file
+//through API Endpoint
+func rentersetlocalpathcmd(siapath, newlocalpath string) {
+	//Parse Siapath
+	siaPath, err := modules.NewSiaPath(siapath)
+	if err != nil {
+		die("Couldn't parse Siapath:", err)
+	}
+	err = httpClient.RenterSetRepairPathPost(siaPath, newlocalpath)
+	if err != nil {
+		die("Could not Change the path of the file:", err)
+	}
+	fmt.Printf("Updated %s localpath to %s\n", siapath, newlocalpath)
+}
+
 // renterfilesunstuckcmd is the handler for the command `spc renter
 // unstuckall`. Sets all files to unstuck.
 func renterfilesunstuckcmd() {
-	rfg, err := httpClient.RenterFilesGet(false)
+	rfg, err := httpClient.RenterFilesGet(true)
 	if err != nil {
 		die("Couldn't get list of all files:", err)
 	}
-	for _, f := range rfg.Files {
-		err = httpClient.RenterSetFileStuckPost(f.SiaPath, false)
-		if err != nil {
-			die(fmt.Sprintf("Couldn't set %v to unstuck: %v", f.SiaPath, err))
+	// Declare a worker function to mark files as not stuck.
+	var atomicFilesDone uint64
+	toUnstuck := make(chan modules.SiaPath)
+	worker := func() {
+		for siaPath := range toUnstuck {
+			err = httpClient.RenterSetFileStuckPost(siaPath, false)
+			if err != nil {
+				die(fmt.Sprintf("Couldn't set %v to unstuck: %v", siaPath, err))
+			}
+			atomic.AddUint64(&atomicFilesDone, 1)
 		}
 	}
-	fmt.Printf("Set all files to 'unstuck'")
+	// Spin up some workers.
+	var wg sync.WaitGroup
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			worker()
+		}()
+	}
+	// Pass the files on to the workers.
+	lastStatusUpdate := time.Now()
+	for _, f := range rfg.Files {
+		toUnstuck <- f.SiaPath
+		if time.Since(lastStatusUpdate) > time.Second {
+			fmt.Printf("\r%v of %v files set to 'unstuck'",
+				atomic.LoadUint64(&atomicFilesDone), len(rfg.Files))
+			lastStatusUpdate = time.Now()
+		}
+	}
+	close(toUnstuck)
+	wg.Wait()
+	fmt.Println("\nSet all files to 'unstuck'")
 }
 
 // renterfilesuploadcmd is the handler for the command `spc renter upload
@@ -2075,7 +2169,7 @@ func renterpricescmd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		die("Could not read the renter prices:", err)
 	}
-	periodFactor := uint64(rpg.Allowance.Period / types.BlockHeight(4032))
+	periodFactor := uint64(rpg.Allowance.Period / types.BlocksPerMonth)
 
 	// Display Estimate
 	fmt.Println("Renter Prices (estimated):")
@@ -2094,4 +2188,24 @@ func renterpricescmd(cmd *cobra.Command, args []string) {
 	fmt.Fprintln(w, "\tHosts:\t", rpg.Allowance.Hosts)
 	fmt.Fprintln(w, "\tRenew Window:\t", rpg.Allowance.RenewWindow)
 	w.Flush()
+}
+
+// renterratelimitcmd is the handler for the command `spc renter ratelimit`
+// which sets the maxuploadspeed and maxdownloadspeed in bytes-per-second for
+// the renter module
+func renterratelimitcmd(downloadSpeedStr, uploadSpeedStr string) {
+	downloadSpeedInt, err := parseRatelimit(downloadSpeedStr)
+	if err != nil {
+		die(errors.AddContext(err, "unable to parse download speed"))
+	}
+	uploadSpeedInt, err := parseRatelimit(uploadSpeedStr)
+	if err != nil {
+		die(errors.AddContext(err, "unable to parse upload speed"))
+	}
+
+	err = httpClient.RenterRateLimitPost(downloadSpeedInt, uploadSpeedInt)
+	if err != nil {
+		die(errors.AddContext(err, "Could not set renter ratelimit speed"))
+	}
+	fmt.Println("Set renter maxdownloadspeed to ", downloadSpeedInt, " and maxuploadspeed to ", uploadSpeedInt)
 }

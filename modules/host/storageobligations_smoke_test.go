@@ -12,14 +12,14 @@ import (
 	"testing"
 	"time"
 
-	bolt "github.com/coreos/bbolt"
-	"gitlab.com/NebulousLabs/fastrand"
-
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	bolt "github.com/coreos/bbolt"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 var (
@@ -32,7 +32,9 @@ type stubTPool struct{}
 func (stubTPool) AcceptTransactionSet(ts []types.Transaction) error {
 	return errTxFail
 }
+func (stubTPool) Alerts() []modules.Alert                            { return []modules.Alert{} }
 func (stubTPool) FeeEstimation() (min, max types.Currency)           { return types.Currency{}, types.Currency{} }
+func (stubTPool) Transactions() []types.Transaction                  { return nil }
 func (stubTPool) TransactionSet(oid crypto.Hash) []types.Transaction { return nil }
 func (stubTPool) Broadcast(ts []types.Transaction)                   {}
 func (stubTPool) Close() error                                       { return nil }

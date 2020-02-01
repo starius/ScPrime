@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // TestDefragWallet mines many blocks and checks that the wallet's outputs are

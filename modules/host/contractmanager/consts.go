@@ -102,7 +102,7 @@ var (
 	}).(uint64)
 
 	// MinimumSectorsPerStorageFolder defines the minimum number of sectors
-	// that a storage folder is allowed to have.
+	// that a storage folder is allowed to have. uint64(1 << 6) = 64
 	MinimumSectorsPerStorageFolder = build.Select(build.Var{
 		Dev:      uint64(1 << 6), // 16 MiB
 		Standard: uint64(1 << 6), // 256 MiB

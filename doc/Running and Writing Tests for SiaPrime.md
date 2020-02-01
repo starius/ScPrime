@@ -231,6 +231,7 @@ func TestParseFilesize(t *testing.T) {
 }
 ```
 
+<<<<<<< HEAD:doc/Running and Writing Tests for SiaPrime.md
 <a name="siaPrimetest">
 ### SiaPrimetest Package
 When deciding what tests to write for SiaPrime, you should consider whether the 
@@ -242,6 +243,19 @@ package should use the API to execute the test. The idea is that everything that
 is trying to be tested should be able to be controlled and verified through the 
 API. If you are looking for a place to start, there are many examples of older 
 tests that could be upgraded to siaprimetests.
+=======
+<a name="siatest"></a>
+### Siatest Package
+When deciding what tests to write for Sia, you should consider whether the best
+test is a unit test or a siatest. Ideally both a unit test and a siatest is
+written for new code. A unit test should explicitly test the new code
+functionality and a siatest should test the integration of the code and how it
+affects the rest of the platform. All the tests in the siatest package should
+use the API to execute the test. The idea is that everything that is trying to
+be tested should be able to be controlled and verified through the API. If you
+are looking for a place to start, there are many examples of older tests that
+could be upgraded to siatests.
+>>>>>>> Sia/contract-not-found-handling:doc/Running and Writing Tests for Sia.md
 
 <a name="questions"></a>
 ## Questions?
@@ -264,7 +278,12 @@ Odds are, someone else is wondering the same thing.
 [pkg/testing]: https://golang.org/pkg/testing/
 [makefile]: https://gitlab.com/SiaPrime/SiaPrime/blob/master/Makefile
 [luke]: https://gist.github.com/lukechampine/6418449
+<<<<<<< HEAD:doc/Running and Writing Tests for SiaPrime.md
 [developers]: https://gitlab.com/SiaPrime/SiaPrime/blob/master/doc/Developers.md
+=======
+[guide]: https://gitlab.com/NebulousLabs/Sia/blob/master/CONTRIBUTING.md
+[developers]: https://gitlab.com/NebulousLabs/Sia/blob/master/doc/Developers.md
+>>>>>>> Sia/contract-not-found-handling:doc/Running and Writing Tests for Sia.md
 [table]: http://dave.cheney.net/2013/06/09/writing-table-driven-tests-in-go
 [boltdb_test.go]: https://gitlab.com/SiaPrime/SiaPrime/blob/master/persist/boltdb_test.go
 [cheney-benchmarks]: http://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go

@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
-
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 type (
@@ -197,11 +197,10 @@ func (s *streamer) managedFillCache() bool {
 		// close the destination buffer to avoid deadlocks.
 		return ddw.Close()
 	})
-	// Set the in-memory buffer to nil just to be safe in case of a memory
-	// leak.
-	defer func() {
-		d.destination = nil
-	}()
+	// Start the download.
+	if err := d.Start(); err != nil {
+		return false
+	}
 	// Block until the download has completed.
 	select {
 	case <-d.completeChan:

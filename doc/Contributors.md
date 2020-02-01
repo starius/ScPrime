@@ -56,6 +56,13 @@
 * Google Inc.
 
 
+<<<<<<< HEAD
 [developers]: https://gitlab.com/SiaPrime/SiaPrime/blob/master/doc/Developers.md
 [doc]: https://gitlab.com/SiaPrime/SiaPrime/tree/master/doc
 [discord]: https://discord.gg/Cvxj5pQ
+=======
+[guide]: https://gitlab.com/NebulousLabs/Sia/blob/master/CONTRIBUTING.md
+[developers]: https://gitlab.com/NebulousLabs/Sia/blob/master/doc/Developers.md
+[doc]: https://gitlab.com/NebulousLabs/Sia/tree/master/doc
+[discord]: https://discord.gg/sia
+>>>>>>> Sia/contract-not-found-handling

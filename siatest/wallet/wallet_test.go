@@ -15,10 +15,13 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/siatest"
 	"gitlab.com/SiaPrime/SiaPrime/siatest/dependencies"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TestTransactionReorg makes sure that a processedTransaction isn't returned
-// by the API after bein reverted.
+// by the API after being reverted.
 func TestTransactionReorg(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -493,7 +496,7 @@ func TestWalletLastAddresses(t *testing.T) {
 	}
 
 	// Create a new server
-	testNode, err := siatest.NewCleanNode(node.AllModules(siatest.TestDir(t.Name())))
+	testNode, err := siatest.NewCleanNodeAsync(node.AllModules(siatest.TestDir(t.Name())))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -602,5 +605,88 @@ func TestWalletSendUnsynced(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "cannot send scprimefunds until fully synced") {
 		t.Fatal("expected to get synced error but got:", err)
+	}
+}
+
+// TestWalletChangePasswordWithSeed initializes a wallet with a custom password
+// and uses the primary seed to change that password.
+func TestWalletChangePasswordWithSeed(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	// Create a new server
+	testNode, err := siatest.NewNode(node.AllModules(walletTestDir(t.Name())))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := testNode.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	// Reinit the wallet by using a specific password.
+	seed := modules.Seed{}
+	fastrand.Read(seed[:])
+	seedStr, err := modules.SeedToString(seed, mnemonics.DictionaryID("english"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	password := "password"
+	if err := testNode.WalletInitSeedPost(seedStr, password, true); err != nil {
+		t.Fatal(err)
+	}
+	// Change the password again without using the password.
+	newPassword := "newpassword"
+	if err := testNode.WalletChangePasswordWithSeedPost(seed, newPassword); err != nil {
+		t.Fatal(err)
+	}
+	// Try unlocking the wallet using the old password.
+	if err := testNode.WalletUnlockPost(password); err == nil {
+		t.Fatal("Shouldn't be able to unlock the wallet with the old password")
+	}
+	// Unlock the wallet using the new password.
+	if err := testNode.WalletUnlockPost(newPassword); err != nil {
+		t.Fatal("Failed to unlock wallet")
+	}
+}
+
+// TestWalletForceInit confirms that the force flag can be set to true even if
+// there wasn't a wallet previously created and encrypted
+func TestWalletForceInit(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+
+	// Create Wallet without the wallet initialized
+	walletParams := node.Wallet(filepath.Join(walletTestDir(t.Name()), "wallet"))
+	walletParams.SkipWalletInit = true
+	wallet, err := siatest.NewCleanNodeAsync(walletParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Force initialize the wallet, this should still worked even if a wallet
+	// wasn't initialized and encrypted yet
+	wip, err := wallet.WalletInitPost("", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify that we can unlock the wallet
+	err = wallet.WalletUnlockPost(wip.PrimarySeed)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Force initialize a new wallet
+	wip, err = wallet.WalletInitPost("", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify that we can unlock the wallet
+	err = wallet.WalletUnlockPost(wip.PrimarySeed)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

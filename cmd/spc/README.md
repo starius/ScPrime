@@ -1,7 +1,7 @@
-Siac Usage
+spc usage
 ==========
 
-`spc` is the command line interface to SiaPrime, for use by power users
+`spc` is the command line interface to ScPrime, for use by power users
 and those on headless servers. It comes as a part of the command line
 package, and can be run as `./spc` from the same folder, or just by
 calling `spc` if you move the binary into your path.
@@ -25,7 +25,7 @@ Wallet:
 * `spc wallet unlock` unlock a wallet
 * `spc wallet balance` retrieve wallet balance
 * `spc wallet address` get a wallet address
-* `spc wallet send [amount] [dest]` sends siaprimecoins to an address
+* `spc wallet send [amount] [dest]` sends scprimecoins to an address
 
 Renter:
 * `spc renter list` list all renter files
@@ -79,12 +79,12 @@ Exact:               61516457999999999999999999999999 H
 ```
 
 * `spc wallet address` returns a never seen before address for sending
-siaprimecoins to.
+scprimecoins to.
 
-* `spc wallet send [amount] [dest]` Sends `amount` siaprimecoins to
+* `spc wallet send [amount] [dest]` Sends `amount` scprimecoins to
 `dest`. `amount` is in the form XXXXUU where an X is a number and U is
 a unit, for example MS, S, mS, ps, etc. If no unit is given hastings
-is assumed. `dest` must be a valid siaprimecoin address.
+is assumed. `dest` must be a valid scprimecoin address.
 
 * `spc wallet lock` locks a wallet. After calling, the wallet must be unlocked
 using the encryption password in order to use it further
@@ -101,7 +101,7 @@ seed into itself. This can be used for wallet recovery and merging.
 
 is used to configure hosting.
 
-In version `1.4.1`, siaprime hosting is configured as follows:
+In version `1.4.1`, scprime hosting is configured as follows:
 
 | Setting                  | Value                                           |
 | -------------------------|-------------------------------------------------|
@@ -152,8 +152,8 @@ the filename.
 currently on the sia network by nickname, and their filesizes.
 
 * `spc renter download [nickname] [destination]` downloads a file
-from the siaprime network onto your computer. `nickname` is the name
-used to refer to your file in the siaprime network, and `destination` is 
+from the scprime network onto your computer. `nickname` is the name
+used to refer to your file in the scprime network, and `destination` is 
 the path to where the file will be. If a file already exists there, it
 will be overwritten.
 
@@ -192,7 +192,7 @@ is virtually useless outside of debugging.
 * `spc consensus` prints the current block ID, current block height, and
 current target.
 
-* `spc stop` sends the stop signal to SiaPrime daemon to safely terminate.
+* `spc stop` sends the stop signal to ScPrime daemon to safely terminate.
 This has the same affect as C^c on the terminal.
 
 * `spc version` displays the version string of spc and daemon.

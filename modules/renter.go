@@ -22,10 +22,10 @@ var (
 		Period:      types.BlockHeight(types.BlocksPerMonth),    // 1 Month
 		RenewWindow: types.BlockHeight(2 * types.BlocksPerWeek), // 2 Weeks
 
-		ExpectedStorage:    1e12,                                 // 1 TB
-		ExpectedUpload:     uint64(200e9) / types.BlocksPerMonth, // 200 GB per month
-		ExpectedDownload:   uint64(100e9) / types.BlocksPerMonth, // 100 GB per month
-		ExpectedRedundancy: 3.0,                                  // default is 10/30 erasure coding
+		ExpectedStorage:    1e12,                                         // 1 TB
+		ExpectedUpload:     uint64(200e9) / uint64(types.BlocksPerMonth), // 200 GB per month
+		ExpectedDownload:   uint64(200e9) / uint64(types.BlocksPerMonth), // 200 GB per month
+		ExpectedRedundancy: 3.0,                                          // default is 10/30 erasure coding
 	}
 	// ErrHostFault indicates if an error is the host's fault.
 	ErrHostFault = errors.New("host has returned an error")
@@ -130,6 +130,10 @@ const (
 )
 
 type (
+	// DownloadID is a unique identifier used to identify downloads within the
+	// download history.
+	DownloadID string
+
 	// CombinedChunkID is a unique identifier for a combined chunk which makes up
 	// part of its filename on disk.
 	CombinedChunkID string
@@ -200,7 +204,6 @@ type Allowance struct {
 	Hosts       uint64            `json:"hosts"`
 	Period      types.BlockHeight `json:"period"`
 	RenewWindow types.BlockHeight `json:"renewwindow"`
-	//	FilterHostsSubnet bool              `json:"filterhostssubnet"`
 
 	// ExpectedStorage is the amount of data that we expect to have in a contract.
 	ExpectedStorage uint64 `json:"expectedstorage"`
@@ -222,8 +225,17 @@ type Allowance struct {
 type ContractUtility struct {
 	GoodForUpload bool
 	GoodForRenew  bool
-	LastOOSErr    types.BlockHeight // OOS means Out Of Storage
-	Locked        bool              // Locked utilities can only be set to false.
+
+	// BadContract will be set to true if there's good reason to believe that
+	// the contract is unusuable and will continue to be unusuable. For example,
+	// if the host is claiming that the contract does not exist, the contract
+	// should be marked as bad.
+	BadContract bool
+	LastOOSErr  types.BlockHeight // OOS means Out Of Storage
+
+	// If a contract is locked, the utility should not be updated. 'Locked' is a
+	// value that gets persisted.
+	Locked bool
 }
 
 // DirectoryInfo provides information about a siadir
@@ -401,7 +413,6 @@ type RenterSettings struct {
 	IPViolationsCheck bool      `json:"ipviolationcheck"`
 	MaxUploadSpeed    int64     `json:"maxuploadspeed"`
 	MaxDownloadSpeed  int64     `json:"maxdownloadspeed"`
-	//	StreamCacheSize   uint64    `json:"streamcachesize"`
 }
 
 // HostDBScans represents a sortable slice of scans.
@@ -558,12 +569,14 @@ type UploadedBackup struct {
 // A Renter uploads, tracks, repairs, and downloads a set of files for the
 // user.
 type Renter interface {
+	Alerter
+
 	// ActiveHosts provides the list of hosts that the renter is selecting,
 	// sorted by preference.
-	ActiveHosts() []HostDBEntry
+	ActiveHosts() ([]HostDBEntry, error)
 
 	// AllHosts returns the full list of hosts known to the renter.
-	AllHosts() []HostDBEntry
+	AllHosts() ([]HostDBEntry, error)
 
 	// Close closes the Renter.
 	Close() error
@@ -603,7 +616,7 @@ type Renter interface {
 
 	// PeriodSpending returns the amount spent on contracts in the current
 	// billing period.
-	PeriodSpending() ContractorSpending
+	PeriodSpending() (ContractorSpending, error)
 
 	// RecoverableContracts returns the contracts that the contractor deems
 	// recoverable. That means they are not expired yet and also not part of the
@@ -638,17 +651,24 @@ type Renter interface {
 	// DeleteFile deletes a file entry from the renter.
 	DeleteFile(siaPath SiaPath) error
 
-	// Download performs a download according to the parameters passed, including
-	// downloads of `offset` and `length` type.
-	Download(params RenterDownloadParameters) error
+	// Download creates a download according to the parameters passed, including
+	// downloads of `offset` and `length` type. It returns a method to
+	// start the download.
+	Download(params RenterDownloadParameters) (DownloadID, func() error, error)
 
-	// Download performs a download according to the parameters passed without
-	// blocking, including downloads of `offset` and `length` type.
-	DownloadAsync(params RenterDownloadParameters, onComplete func(error) error) (cancel func(), err error)
+	// DownloadAsync creates a file download using the passed parameters without
+	// blocking until the download is finished. The download needs to be started
+	// using the method returned by DownloadAsync. DownloadAsync also accepts an
+	// optional input function which will be registered to be called when the
+	// download is finished.
+	DownloadAsync(params RenterDownloadParameters, onComplete func(error) error) (uid DownloadID, start func() error, cancel func(), err error)
 
 	// ClearDownloadHistory clears the download history of the renter
 	// inclusive for before and after times.
 	ClearDownloadHistory(after, before time.Time) error
+
+	// DownloadByUID returns a download from the download history given its uid.
+	DownloadByUID(uid DownloadID) (DownloadInfo, bool)
 
 	// DownloadHistory lists all the files that have been scheduled for download.
 	DownloadHistory() []DownloadInfo
@@ -668,7 +688,7 @@ type Renter interface {
 	SetFilterMode(fm FilterMode, hosts []types.SiaPublicKey) error
 
 	// Host provides the DB entry and score breakdown for the requested host.
-	Host(pk types.SiaPublicKey) (HostDBEntry, bool)
+	Host(pk types.SiaPublicKey) (HostDBEntry, bool, error)
 
 	// InitialScanComplete returns a boolean indicating if the initial scan of the
 	// hostdb is completed.
@@ -693,7 +713,7 @@ type Renter interface {
 	ScoreBreakdown(entry HostDBEntry) (HostScoreBreakdown, error)
 
 	// Settings returns the Renter's current settings.
-	Settings() RenterSettings
+	Settings() (RenterSettings, error)
 
 	// SetSettings sets the Renter's settings.
 	SetSettings(RenterSettings) error

@@ -54,6 +54,12 @@ bwIDAQAB
 )
 
 type (
+	// DaemonAlertsGet contains information about currently registered alerts
+	// across all loaded modules.
+	DaemonAlertsGet struct {
+		Alerts []modules.Alert `json:"alerts"`
+	}
+
 	// DaemonVersionGet contains information about the running daemon's version.
 	DaemonVersionGet struct {
 		Version     string
@@ -110,7 +116,15 @@ type (
 		MaxTargetAdjustmentUp   *big.Rat `json:"maxtargetadjustmentup"`
 		MaxTargetAdjustmentDown *big.Rat `json:"maxtargetadjustmentdown"`
 
+		// SiacoinPrecision is the number of base units in a siacoin. This constant is used
+		// for mining rewards calculation and supported for compatibility with
+		// existing 3rd party intergations.
+		// DEPRECATED: Since February 2020 one scprimecoin equals 10^27 Hastings
+		// Use the types.ScPrimecoinPrecision constant.
 		SiacoinPrecision types.Currency `json:"siacoinprecision"`
+		// ScPrimecoinPrecision is the number of base units in a scprimecoin that is used
+		// by clients (1 SCP = 10^27 H).
+		ScPrimecoinPrecision types.Currency `json:"scprimecoinprecision"`
 	}
 
 	// DaemonVersion holds the version information for siad
@@ -217,6 +231,28 @@ func updateToRelease(version string) error {
 	return nil
 }
 
+// daemonAlertsHandlerGET handles the API call that returns the alerts of all
+// loaded modules.
+func (api *API) daemonAlertsHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	alerts := make([]modules.Alert, 0) // initialize slice to avoid "null" in response.
+	alerters := []modules.Alerter{
+		api.gateway,
+		api.cs,
+		api.tpool,
+		api.wallet,
+		api.renter,
+		api.host,
+	}
+	for _, a := range alerters {
+		if a != nil {
+			alerts = append(alerts, a.Alerts()...)
+		}
+	}
+	WriteJSON(w, DaemonAlertsGet{
+		Alerts: alerts,
+	})
+}
+
 // daemonUpdateHandlerGET handles the API call that checks for an update.
 func (api *API) daemonUpdateHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	release, err := fetchLatestRelease()
@@ -283,7 +319,8 @@ func (api *API) daemonConstantsHandler(w http.ResponseWriter, _ *http.Request, _
 		MaxTargetAdjustmentUp:   types.MaxTargetAdjustmentUp,
 		MaxTargetAdjustmentDown: types.MaxTargetAdjustmentDown,
 
-		SiacoinPrecision: types.SiacoinPrecision,
+		SiacoinPrecision:     types.SiacoinPrecision,
+		ScPrimecoinPrecision: types.ScPrimecoinPrecision,
 	}
 
 	WriteJSON(w, sc)

@@ -1,9 +1,9 @@
 package api
 
 import (
+	"errors"
 	"math/big"
 
-	"errors"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 )

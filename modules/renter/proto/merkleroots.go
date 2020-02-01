@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"io"
 
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // merkleRootsCacheHeight is the height of the subTrees in cachedSubTrees. A

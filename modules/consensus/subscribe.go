@@ -4,11 +4,11 @@ import (
 	"errors"
 	"time"
 
-	bolt "github.com/coreos/bbolt"
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
-
 	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
+
+	bolt "github.com/coreos/bbolt"
 )
 
 // computeConsensusChange computes the consensus change from the change entry
@@ -117,6 +117,12 @@ func (cs *ConsensusSet) updateSubscribers(ce changeEntry) {
 		cs.log.Critical("computeConsensusChange failed:", err)
 		return
 	}
+
+	// Log re-orgs.
+	if len(cc.RevertedBlocks) > 0 {
+		cs.log.Println("ConsensusChange with re-org detected: ", cc.ID, len(cc.RevertedBlocks))
+	}
+
 	for _, subscriber := range cs.subscribers {
 		subscriber.ProcessConsensusChange(cc)
 	}

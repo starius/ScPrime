@@ -10,13 +10,13 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/SiaPrime/writeaheadlog"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/SiaPrime/writeaheadlog"
 )
 
 var (
@@ -598,7 +598,7 @@ func (sf *SiaFile) Health(offline map[string]bool, goodForRenew map[string]bool)
 	}
 
 	// Check if all chunks are stuck, if so then set health to max health to
-	// avoid file being targetted for repair
+	// avoid file being targeted for repair
 	if int(numStuckChunks) == sf.numChunks {
 		health = float64(0)
 	}
