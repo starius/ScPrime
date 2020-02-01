@@ -28,36 +28,49 @@ fi
 # setup build-time vars
 ldflags="-s -w -X 'gitlab.com/SiaPrime/SiaPrime/build.GitRevision=`git rev-parse --short HEAD`' -X 'gitlab.com/SiaPrime/SiaPrime/build.BuildTime=`date`' -X 'gitlab.com/SiaPrime/SiaPrime/build.ReleaseTag=${rc}'"
 
-for os in darwin linux windows; do
-	echo Packaging ${os}...
-	# create workspace
-	folder=release/SiaPrime-$version-$os-amd64
-	rm -rf $folder
-	mkdir -p $folder
-	# compile and sign binaries
-	for pkg in spc spd; do
-		bin=$pkg
-		if [ "$os" == "windows" ]; then
-			bin=${pkg}.exe
-		fi
-		GOOS=${os} go build -a -tags 'netgo' -ldflags="$ldflags" -o $folder/$bin ./cmd/$pkg
-		openssl dgst -sha256 -sign $keyfile -out $folder/${bin}.sig $folder/$bin
-		# verify signature
-		if [[ -n $pubkeyfile ]]; then
-			openssl dgst -sha256 -verify $pubkeyfile -signature $folder/${bin}.sig $folder/$bin
+for arch in amd64 arm; do
+	for os in darwin linux windows; do
+
+		# We don't need ARM versions for windows or mac (just linux)
+		if [ "$arch" == "arm" ]; then
+			if [ "$os" == "windows" ] || [ "$os" == "darwin" ]; then
+				continue
+			fi
 		fi
 
+		echo Packaging ${os} ${arch}...
+
+		# create workspace
+		folder=release/SiaPrime-$version-$os-$arch
+		rm -rf $folder
+		mkdir -p $folder
+		# compile and sign binaries
+		for pkg in spc spd; do
+			bin=$pkg
+			if [ "$os" == "windows" ]; then
+				bin=${pkg}.exe
+			fi
+			GOOS=${os} GOARCH=${arch} go build -a -tags 'netgo' -ldflags="$ldflags" -o $folder/$bin ./cmd/$pkg
+			openssl dgst -sha256 -sign $keyfile -out $folder/${bin}.sig $folder/$bin
+			# verify signature
+			if [[ -n $pubkeyfile ]]; then
+				openssl dgst -sha256 -verify $pubkeyfile -signature $folder/${bin}.sig $folder/$bin
+			fi
+
+		done
+
+		# add other artifacts
+		cp -r doc LICENSE README.md $folder
+		# zip
+		(
+			cd release
+			zip -rq SiaPrime-$version-$os-$arch.zip SiaPrime-$version-$os-$arch
+			openssl dgst -sha256 -sign $keyfile -out SiaPrime-$version-$os-$arch.zip.sig SiaPrime-$version-$os-$arch.zip
+			# verify signature
+			if [[ -n $pubkeyfile ]]; then
+				openssl dgst -sha256 -verify $pubkeyfile -signature SiaPrime-$version-$os-$arch.zip.sig SiaPrime-$version-$os-$arch.zip
+			fi
+		)
 	done
-	# add other artifacts
-	cp -r doc LICENSE README.md $folder
-	# zip
-	(
-		cd release
-		zip -rq SiaPrime-$version-$os-amd64.zip SiaPrime-$version-$os-amd64
-		openssl dgst -sha256 -sign $keyfile -out SiaPrime-$version-$os-amd64.zip.sig SiaPrime-$version-$os-amd64.zip
-		# verify signature
-		if [[ -n $pubkeyfile ]]; then
-			openssl dgst -sha256 -verify $pubkeyfile -signature SiaPrime-$version-$os-amd64.zip.sig SiaPrime-$version-$os-amd64.zip
-		fi
-	)
 done
+
