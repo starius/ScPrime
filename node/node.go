@@ -415,7 +415,7 @@ func New(params NodeParams) (*Node, <-chan error) {
 		errChan <- errors.Extend(err, errors.New("unable to create miner"))
 		return nil, errChan
 	}
-	if w != nil {
+	if m != nil {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
