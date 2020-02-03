@@ -586,7 +586,7 @@ func wallettransactionscmd() {
 	txns := append(wtg.ConfirmedTransactions, wtg.UnconfirmedTransactions...)
 	sts, err := wallet.ComputeValuedTransactions(txns, cg.Height)
 	if err != nil {
-
+		die("Could not compute valued transaction: ", err)
 	}
 	for _, txn := range sts {
 		// Determine the number of outgoing siacoins and siafunds.
