@@ -404,7 +404,7 @@ func New(params NodeParams) (*Node, <-chan error) {
 			return nil, nil
 		}
 		i++
-		printfRelease("(%d/%d) Loading miner...\n", i, numModules)
+		printfRelease("(%d/%d) Loading miner...", i, numModules)
 		m, err := miner.New(cs, tp, w, filepath.Join(dir, modules.MinerDir))
 		if err != nil {
 			return nil, err
@@ -415,7 +415,7 @@ func New(params NodeParams) (*Node, <-chan error) {
 		errChan <- errors.Extend(err, errors.New("unable to create miner"))
 		return nil, errChan
 	}
-	if w != nil {
+	if m != nil {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
