@@ -33,6 +33,9 @@ var (
 		Header:  "spd.config",
 		Version: "1.0.0",
 	}
+
+	// ConfigName is the name of the config file on disk
+	ConfigName = "spd.config"
 )
 
 // SetRatelimit sets the ratelimit related fields in the config and persists it

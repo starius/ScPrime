@@ -32,8 +32,7 @@ require (
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20191111145210-66b93e150b27
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20180716154133-88a11db9e46c
 	gitlab.com/SiaPrime/writeaheadlog v0.0.0-20190830195947-8d9d57b6e40f
-	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
-	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
+	golang.org/x/crypto v0.0.0-20191107222254-f4817d981bb6
 	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa // indirect
 	golang.org/x/sys v0.0.0-20200124204421-9fbb57f87de9 // indirect
 	golang.org/x/text v0.3.2 // indirect
