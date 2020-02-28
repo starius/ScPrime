@@ -1,10 +1,9 @@
 package transactionpool
 
 import (
-	"testing"
-
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
+	"testing"
 
 	"gitlab.com/NebulousLabs/fastrand"
 )

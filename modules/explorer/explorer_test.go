@@ -94,6 +94,50 @@ func createExplorerTester(name string) (*explorerTester, error) {
 	return et, nil
 }
 
+// TestNilExplorerDependencies tries to initialize an explorer with nil
+// dependencies, checks that the correct error is returned.
+func TestNilExplorerDependencies(t *testing.T) {
+	_, err := New(nil, "expdir")
+	if err != errNilCS {
+		t.Fatal("Expecting errNilCS")
+	}
+}
+
+// TestExplorerGenesisHeight checks that when the explorer is initialized and given the
+// genesis block, the result has the correct height.
+func TestExplorerGenesisHeight(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	// Create the dependencies.
+	testdir := build.TempDir(modules.HostDir, t.Name())
+	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
+		t.Fatal(err)
+	}
+
+	// Create the explorer - from the subscription only the genesis block will
+	// be received.
+	e, err := New(cs, testdir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	block, height, exists := e.Block(types.GenesisID)
+	if !exists {
+		t.Error("explorer missing genesis block after initialization")
+	}
+	if block.ID() != types.GenesisID {
+		t.Error("explorer returned wrong genesis block")
+	}
+	if height != 0 {
+		t.Errorf("genesis block hash wrong height: expected 0, got %v", height)
+	}
+}
+
 // reorgToBlank creates a bunch of empty blocks on top of the genesis block
 // that reorgs the explorer to a state of all blank blocks.
 func (et *explorerTester) reorgToBlank() error {
@@ -143,48 +187,4 @@ func (et *explorerTester) reorgToBlank() error {
 		et.cs.AcceptBlock(block) // error is not checked, will not always be nil
 	}
 	return nil
-}
-
-// TestNilExplorerDependencies tries to initialize an explorer with nil
-// dependencies, checks that the correct error is returned.
-func TestNilExplorerDependencies(t *testing.T) {
-	_, err := New(nil, "expdir")
-	if err != errNilCS {
-		t.Fatal("Expecting errNilCS")
-	}
-}
-
-// TestExplorerGenesisHeight checks that when the explorer is initialized and given the
-// genesis block, the result has the correct height.
-func TestExplorerGenesisHeight(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	// Create the dependencies.
-	testdir := build.TempDir(modules.HostDir, t.Name())
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
-	if err != nil {
-		t.Fatal(err)
-	}
-	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err := <-errChan; err != nil {
-		t.Fatal(err)
-	}
-
-	// Create the explorer - from the subscription only the genesis block will
-	// be received.
-	e, err := New(cs, testdir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	block, height, exists := e.Block(types.GenesisID)
-	if !exists {
-		t.Error("explorer missing genesis block after initialization")
-	}
-	if block.ID() != types.GenesisID {
-		t.Error("explorer returned wrong genesis block")
-	}
-	if height != 0 {
-		t.Errorf("genesis block hash wrong height: expected 0, got %v", height)
-	}
 }

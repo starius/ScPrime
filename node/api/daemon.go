@@ -84,7 +84,7 @@ type (
 	// release API endpoint. Only the fields relevant to updating are
 	// included.
 	gitlabRelease struct {
-		TagName string `json:"name"`
+		Name string `json:"name"`
 	}
 
 	// SiaConstants is a struct listing all of the constants in use.
@@ -186,8 +186,8 @@ func updateToRelease(version string) error {
 		return err
 	}
 
-	// process zip, finding siad/siac binaries and signatures
-	for _, binary := range []string{"siad", "siac"} {
+	// process zip, finding spd/spc binaries and signatures
+	for _, binary := range []string{"spd", "spc"} {
 		var binData io.ReadCloser
 		var signature []byte
 		var binaryName string // needed for TargetPath below
@@ -234,19 +234,24 @@ func updateToRelease(version string) error {
 // daemonAlertsHandlerGET handles the API call that returns the alerts of all
 // loaded modules.
 func (api *API) daemonAlertsHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-	alerts := make([]modules.Alert, 0) // initialize slice to avoid "null" in response.
-	alerters := []modules.Alerter{
-		api.gateway,
-		api.cs,
-		api.tpool,
-		api.wallet,
-		api.renter,
-		api.host,
+	alerts := make([]modules.Alert, 0, 6) // initialize slice to avoid "null" in response.
+	if api.gateway != nil {
+		alerts = append(alerts, api.gateway.Alerts()...)
 	}
-	for _, a := range alerters {
-		if a != nil {
-			alerts = append(alerts, a.Alerts()...)
-		}
+	if api.cs != nil {
+		alerts = append(alerts, api.cs.Alerts()...)
+	}
+	if api.tpool != nil {
+		alerts = append(alerts, api.tpool.Alerts()...)
+	}
+	if api.wallet != nil {
+		alerts = append(alerts, api.wallet.Alerts()...)
+	}
+	if api.renter != nil {
+		alerts = append(alerts, api.renter.Alerts()...)
+	}
+	if api.host != nil {
+		alerts = append(alerts, api.host.Alerts()...)
 	}
 	WriteJSON(w, DaemonAlertsGet{
 		Alerts: alerts,
@@ -260,7 +265,7 @@ func (api *API) daemonUpdateHandlerGET(w http.ResponseWriter, _ *http.Request, _
 		WriteError(w, Error{Message: "Failed to fetch latest release: " + err.Error()}, http.StatusInternalServerError)
 		return
 	}
-	latestVersion := release.TagName[1:] // delete leading 'v'
+	latestVersion := release.Name[1:] // delete leading 'v'
 	WriteJSON(w, UpdateInfo{
 		Available: build.VersionCmp(latestVersion, build.Version) > 0,
 		Version:   latestVersion,
@@ -277,7 +282,7 @@ func (api *API) daemonUpdateHandlerPOST(w http.ResponseWriter, _ *http.Request, 
 		WriteError(w, Error{Message: "Failed to fetch latest release: " + err.Error()}, http.StatusInternalServerError)
 		return
 	}
-	err = updateToRelease(release.TagName)
+	err = updateToRelease(release.Name)
 	if err != nil {
 		if rerr := update.RollbackError(err); rerr != nil {
 			WriteError(w, Error{Message: "Serious error: Failed to rollback from bad update: " + rerr.Error()}, http.StatusInternalServerError)

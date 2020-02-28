@@ -247,9 +247,7 @@ Feel free to ask for help on the #general-dev channel on [discord][discord].
 [test-doc]: https://gitlab.com/SiaPrime/SiaPrime/blob/master/doc/Testing.md
 [stashing]: https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning
 [remote]: https://git-scm.com/book/en/v2/Git-Basics-Working-with-Remotes
-[sia]: https://gitlab.com/NebulousLabs/Sia
 [signup]: https://github.com/join?source=header-home
 [source]: https://golang.org/doc/install/source
 [stashing]: https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning
-[test-doc]: https://gitlab.com/NebulousLabs/Sia/blob/master/doc/Testing.md
 [tour]: https://tour.golang.org/welcome/1

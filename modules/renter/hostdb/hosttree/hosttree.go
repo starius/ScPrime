@@ -17,22 +17,9 @@ var (
 	// already exists in the tree.
 	ErrHostExists = errors.New("host already exists in the tree")
 
-	// errNegativeWeight is returned from an Insert() call if an entry with a
-	// negative weight is added to the tree. Entries must always have a positive
-	// weight.
-	errNegativeWeight = errors.New("cannot insert using a negative weight")
-
-	// errNilEntry is returned if a fetch call results in a nil tree entry. nodes
-	// should always have a non-nil entry, unless they have been Delete()ed.
-	errNilEntry = errors.New("node has a nil entry")
-
 	// ErrNoSuchHost is returned if Remove is called with a public key that does
 	// not exist in the tree.
 	ErrNoSuchHost = errors.New("no host with specified public key")
-
-	// errWeightTooHeavy is returned from a SelectRandom() call if a weight that exceeds
-	// the total weight of the tree is requested.
-	errWeightTooHeavy = errors.New("requested a too-heavy weight")
 )
 
 type (
@@ -56,8 +43,8 @@ type (
 		// weightFn calculates the weight of a hostEntry
 		weightFn WeightFunc
 
-		//filterByIP switches the IP Address subnet filtering on or off
-		filterByIP bool
+		//iprestriction is the number of hosts from same subnet allowed for use or off if set to zero
+		iprestriction int
 
 		mu sync.Mutex
 	}
@@ -102,10 +89,10 @@ func New(wf WeightFunc, resolver modules.Resolver) *HostTree {
 		root: &node{
 			count: 1,
 		},
-		resolver:   resolver,
-		weightFn:   wf,
-		filterByIP: false,
-		// NOTE: IPSubnetFiltering disabled by default
+		resolver:      resolver,
+		weightFn:      wf,
+		iprestriction: 0,
+		// NOTE: IPRestriction disabled by default
 	}
 }
 
@@ -331,7 +318,7 @@ func (ht *HostTree) SelectRandom(n int, blacklist, addressBlacklist []types.SiaP
 	var removedEntries []*hostEntry
 
 	// Create a filter.
-	filter := NewFilter(ht.resolver)
+	filter := NewFilter(ht.resolver, ht.iprestriction)
 
 	// Add the hosts from the addressBlacklist to the filter.
 	for _, pubkey := range addressBlacklist {
@@ -358,6 +345,7 @@ func (ht *HostTree) SelectRandom(n int, blacklist, addressBlacklist []types.SiaP
 	}
 
 	var hosts []modules.HostDBEntry
+	iprestrictioncheck := ht.iprestriction > 0
 
 	for len(hosts) < n && len(ht.hosts) > 0 {
 		randWeight := fastrand.BigIntn(ht.root.weight.Big())
@@ -374,10 +362,11 @@ func (ht *HostTree) SelectRandom(n int, blacklist, addressBlacklist []types.SiaP
 			// check.
 			hosts = append(hosts, node.entry.HostDBEntry)
 
+			//node.entry.IPNets
 			// If the host passed the filter, we add it to the filter if
-			// the CheckForIPViolation switch is set to true so the filter will disable
+			// the IPRestriction is enabled (numhosts>0) so the filter will disable
 			// selecting hosts with NetAddress from the same subnet
-			if ht.filterByIP {
+			if iprestrictioncheck {
 				filter.Add(node.entry.NetAddress)
 			}
 		}
@@ -428,18 +417,20 @@ func (ht *HostTree) insert(hdbe modules.HostDBEntry) error {
 	return nil
 }
 
-// SetFilterByIPEnabled enables or disables the host filtering by IP address.
-// If enabled HostTree does not select more than one host from a single IP or
-// the same subnet
-func (ht *HostTree) SetFilterByIPEnabled(enabled bool) {
+// SetIPRestriction sets the number of allowed hosts or disables the host
+// filtering by IP address. If enabled HostTree does not select more than
+// specified number of hosts from a single IP or the same subnet.
+func (ht *HostTree) SetIPRestriction(numhosts int) {
 	ht.mu.Lock()
-	ht.filterByIP = enabled
+	ht.iprestriction = numhosts
 	ht.mu.Unlock()
 }
 
-// FilterByIPEnabled tells if the IP filtering (Same subnet IP) is enabled or not
-func (ht *HostTree) FilterByIPEnabled() bool {
+// IPRestriction tells if the IP filtering (Same subnet IP) is enabled or not
+// returns 0 if disabled or the number of allowed hosts from the same IP address
+// subnet.
+func (ht *HostTree) IPRestriction() int {
 	ht.mu.Lock()
 	defer ht.mu.Unlock()
-	return ht.filterByIP
+	return ht.iprestriction
 }

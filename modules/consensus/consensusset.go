@@ -9,7 +9,7 @@ package consensus
 import (
 	"errors"
 
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
@@ -123,7 +123,6 @@ func consensusSetBlockingStartup(gateway modules.Gateway, persistDir string, dep
 		staticDeps: deps,
 		persistDir: persistDir,
 	}
-
 	// Create the diffs for the genesis transaction outputs
 	for _, transaction := range types.GenesisBlock.Transactions {
 		// Create the diffs for the genesis siacoin outputs.

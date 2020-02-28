@@ -4,7 +4,8 @@ package consensus
 // There is an assumption that the transaction has already been verified.
 
 import (
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
+
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"

@@ -17,7 +17,7 @@ package consensus
 // the genesis block will call 'append' later on during initialization.
 
 import (
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"

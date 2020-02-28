@@ -24,12 +24,11 @@ import (
 
 // renterTester contains all of the modules that are used while testing the renter.
 type renterTester struct {
-	cs        modules.ConsensusSet
-	gateway   modules.Gateway
-	miner     modules.TestMiner
-	tpool     modules.TransactionPool
-	wallet    modules.Wallet
-	walletKey crypto.CipherKey
+	cs      modules.ConsensusSet
+	gateway modules.Gateway
+	miner   modules.TestMiner
+	tpool   modules.TransactionPool
+	wallet  modules.Wallet
 
 	renter *Renter
 	dir    string
@@ -60,7 +59,7 @@ func (rt *renterTester) addRenter(r *Renter) error {
 // createZeroByteFileOnDisk creates a 0 byte file on disk so that a Stat of the
 // local path won't return an error
 func (rt *renterTester) createZeroByteFileOnDisk() (string, error) {
-	path := filepath.Join(rt.renter.staticFilesDir, persist.RandomSuffix())
+	path := filepath.Join(rt.renter.staticFileSystem.Root(), persist.RandomSuffix())
 	err := ioutil.WriteFile(path, []byte{}, 0600)
 	if err != nil {
 		return "", err
@@ -170,7 +169,9 @@ func newRenterWithDependency(g modules.Gateway, cs modules.ConsensusSet, wallet 
 // stubHostDB is the minimal implementation of the hostDB interface. It can be
 // embedded in other mock hostDB types, removing the need to re-implement all
 // of the hostDB's methods on every mock.
-type stubHostDB struct{}
+type stubHostDB struct {
+	iprestriction int
+}
 
 func (stubHostDB) ActiveHosts() ([]modules.HostDBEntry, error) { return nil, nil }
 func (stubHostDB) AllHosts() ([]modules.HostDBEntry, error)    { return nil, nil }
@@ -193,22 +194,10 @@ func (stubHostDB) Host(types.SiaPublicKey) (modules.HostDBEntry, bool, error) {
 func (stubHostDB) ScoreBreakdown(modules.HostDBEntry) (modules.HostScoreBreakdown, error) {
 	return modules.HostScoreBreakdown{}, nil
 }
-
-// stubContractor is the minimal implementation of the hostContractor
-// interface.
-type stubContractor struct{}
-
-func (stubContractor) SetAllowance(modules.Allowance) error { return nil }
-func (stubContractor) Allowance() modules.Allowance         { return modules.Allowance{} }
-func (stubContractor) Contract(modules.NetAddress) (modules.RenterContract, bool) {
-	return modules.RenterContract{}, false
-}
-func (stubContractor) Contracts() []modules.RenterContract                    { return nil }
-func (stubContractor) CurrentPeriod() types.BlockHeight                       { return 0 }
-func (stubContractor) IsOffline(modules.NetAddress) bool                      { return false }
-func (stubContractor) Editor(types.FileContractID) (contractor.Editor, error) { return nil, nil }
-func (stubContractor) Downloader(types.FileContractID) (contractor.Downloader, error) {
-	return nil, nil
+func (sh stubHostDB) IPRestriction() (int, error) { return sh.iprestriction, nil }
+func (sh stubHostDB) SetIPRestriction(numhosts int) error {
+	sh.iprestriction = numhosts
+	return nil
 }
 
 type pricesStub struct {
@@ -220,6 +209,7 @@ type pricesStub struct {
 func (pricesStub) Alerts() []modules.Alert            { return []modules.Alert{} }
 func (pricesStub) InitialScanComplete() (bool, error) { return true, nil }
 func (pricesStub) IPViolationsCheck() (bool, error)   { return true, nil }
+func (pricesStub) IPRestriction() (int, error)        { return 1, nil }
 
 func (ps pricesStub) RandomHosts(_ int, _, _ []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
 	return ps.dbEntries, nil

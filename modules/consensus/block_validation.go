@@ -99,7 +99,7 @@ func checkMinerPayoutsWithDevFund(b types.Block, height types.BlockHeight) bool 
 // checkMinerPayoutsWithDevFund to compare a block's miner payouts to the
 // block's subsidy and returns true if they are equal.
 func checkMinerPayouts(b types.Block, height types.BlockHeight) bool {
-	// If soft fork has occured
+	// If soft fork has occurred
 	if types.DevFundEnabled && height >= types.DevFundInitialBlockHeight {
 		return checkMinerPayoutsWithDevFund(b, height)
 	}

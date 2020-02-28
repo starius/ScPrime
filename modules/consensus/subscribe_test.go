@@ -6,7 +6,7 @@ import (
 
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 // mockSubscriber receives and holds changes to the consensus set, remembering

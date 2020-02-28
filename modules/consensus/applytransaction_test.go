@@ -4,7 +4,6 @@ package consensus
 import (
 	"testing"
 
-
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 )

@@ -8,7 +8,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
 
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 // computeConsensusChange computes the consensus change from the change entry

@@ -12,9 +12,9 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/threadgroup"
+	bolt "go.etcd.io/bbolt"
 )
 
 const tpoolSyncRate = time.Minute * 2
@@ -206,6 +206,7 @@ func (tp *TransactionPool) initPersist() error {
 			tp.tg.OnStop(func() {
 				tp.consensusSet.Unsubscribe(tp)
 			})
+			return
 		}
 		if err != nil {
 			tp.log.Critical(err)

@@ -23,7 +23,7 @@ func TestDaemonAPIPassword(t *testing.T) {
 	testDir := daemonTestDir(t.Name())
 
 	// Create a new server
-	testNode, err := siatest.NewCleanNodeAsync(node.Gateway(testDir))
+	testNode, err := siatest.NewCleanNode(node.Gateway(testDir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestDaemonRatelimit(t *testing.T) {
 	testDir := daemonTestDir(t.Name())
 
 	// Create a new server
-	testNode, err := siatest.NewCleanNodeAsync(node.Gateway(testDir))
+	testNode, err := siatest.NewCleanNode(node.Gateway(testDir))
 	if err != nil {
 		t.Fatal(err)
 	}

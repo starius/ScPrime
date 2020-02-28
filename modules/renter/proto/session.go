@@ -97,7 +97,6 @@ func (s *Session) Lock(id types.FileContractID, secretKey crypto.SecretKey) (typ
 	}
 	// Verify the claimed signatures.
 	if err := modules.VerifyFileContractRevisionTransactionSignatures(resp.Revision, resp.Signatures, s.height); err != nil {
-
 		return resp.Revision, resp.Signatures, errors.AddContext(err, "unable to verify signatures on contract revision")
 	}
 	return resp.Revision, resp.Signatures, nil
@@ -110,6 +109,11 @@ func (s *Session) Unlock() error {
 	}
 	extendDeadline(s.conn, modules.NegotiateSettingsTime)
 	return s.writeRequest(modules.RPCLoopUnlock, nil)
+}
+
+// HostSettings returns the currently active host settings of the session.
+func (s *Session) HostSettings() modules.HostExternalSettings {
+	return s.host.HostExternalSettings
 }
 
 // Settings calls the Settings RPC, returning the host's reported settings.
@@ -843,7 +847,7 @@ func (cs *ContractSet) managedNewSession(host modules.HostDBEntry, currentHeight
 		Timeout: 45 * time.Second, // TODO: Constant
 	}).Dial("tcp", string(host.NetAddress))
 	if err != nil {
-		return nil, errors.AddContext(err, "unsucessful dial when creating a new session")
+		return nil, errors.AddContext(err, "unsuccessful dial when creating a new session")
 	}
 	conn := ratelimit.NewRLConn(c, cs.rl, cancel)
 

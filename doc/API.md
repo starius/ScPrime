@@ -1,4 +1,4 @@
-Siad API
+ScPrime API
 ========
 
 SiaPrime uses semantic versioning and is backwards compatible to version v1.0.0.
@@ -1850,3 +1850,6 @@ addresses will be reported in /wallet/unspent.
 ###### Response
 standard success or error response. See
 [#standard-responses](#standard-responses).
+
+The Sia API documentation can be found here:
+[Sia API](https://sia.tech/docs/ "Sia API")
