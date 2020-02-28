@@ -28,7 +28,7 @@ func TestIntegrationAutoRenew(t *testing.T) {
 
 	// form a contract with the host
 	a := modules.Allowance{
-		Funds:              types.SiacoinPrecision.Mul64(100), // 100 SC
+		Funds:              types.ScPrimecoinPrecision.Mul64(100), // 100 SCP
 		Hosts:              1,
 		Period:             50,
 		RenewWindow:        10,
@@ -36,6 +36,7 @@ func TestIntegrationAutoRenew(t *testing.T) {
 		ExpectedUpload:     modules.DefaultAllowance.ExpectedUpload,
 		ExpectedDownload:   modules.DefaultAllowance.ExpectedDownload,
 		ExpectedRedundancy: modules.DefaultAllowance.ExpectedRedundancy,
+		MaxPeriodChurn:     modules.DefaultAllowance.MaxPeriodChurn,
 	}
 	err = c.SetAllowance(a)
 	if err != nil {
@@ -111,7 +112,7 @@ func TestIntegrationRenewInvalidate(t *testing.T) {
 
 	// form a contract with the host
 	a := modules.Allowance{
-		Funds:              types.SiacoinPrecision.Mul64(100), // 100 SC
+		Funds:              types.ScPrimecoinPrecision.Mul64(100), // 100 SCP
 		Hosts:              1,
 		Period:             50,
 		RenewWindow:        10,
@@ -119,6 +120,7 @@ func TestIntegrationRenewInvalidate(t *testing.T) {
 		ExpectedUpload:     modules.DefaultAllowance.ExpectedUpload,
 		ExpectedDownload:   modules.DefaultAllowance.ExpectedDownload,
 		ExpectedRedundancy: modules.DefaultAllowance.ExpectedRedundancy,
+		MaxPeriodChurn:     modules.DefaultAllowance.MaxPeriodChurn,
 	}
 	err = c.SetAllowance(a)
 	if err != nil {

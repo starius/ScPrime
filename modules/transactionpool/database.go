@@ -8,8 +8,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/errors"
+	bolt "go.etcd.io/bbolt"
 )
 
 // database.go contains objects related to the layout of the transaction pool's

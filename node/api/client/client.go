@@ -22,7 +22,7 @@ type Client struct {
 	Password string
 
 	// UserAgent must match the User-Agent required by the siad server. If not
-	// set, it defaults to "Sia-Agent".
+	// set, it defaults to "SiaPrime-Agent".
 	UserAgent string
 }
 

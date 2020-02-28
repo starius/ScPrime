@@ -8,7 +8,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 // TestDBOpen tests the wallet.openDB method.

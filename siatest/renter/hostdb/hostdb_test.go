@@ -40,7 +40,7 @@ func TestInitialScanComplete(t *testing.T) {
 	renterTemplate.HostDBDeps = deps
 
 	tg, err := siatest.NewGroup(testDir, renterTemplate, node.Host(filepath.Join(testDir, "host")),
-		siatest.Miner(filepath.Join(testDir, "miner")))
+		node.Miner(filepath.Join(testDir, "miner")))
 	if err != nil {
 		t.Fatal("Failed to create group: ", err)
 	}
@@ -202,7 +202,7 @@ func TestPruneRedundantAddressRange(t *testing.T) {
 	}
 
 	// Disable the IPViolationCheck to avoid race conditions during testing.
-	if err := renter.RenterSetCheckIPViolationPost(false); err != nil {
+	if err := renter.RenterIPRestrictionPost(0); err != nil {
 		t.Fatal(err)
 	}
 
@@ -260,7 +260,7 @@ func TestPruneRedundantAddressRange(t *testing.T) {
 	}
 
 	// Enable the IPViolationCheck again to cancel the "youngest" host.
-	if err := renter.RenterSetCheckIPViolationPost(true); err != nil {
+	if err := renter.RenterIPRestrictionPost(1); err != nil {
 		t.Fatal(err)
 	}
 
@@ -552,7 +552,7 @@ func TestDisableIPViolationCheck(t *testing.T) {
 	}
 
 	// Disable the ip violation check.
-	if err := renter.RenterSetCheckIPViolationPost(false); err != nil {
+	if err := renter.RenterIPRestrictionPost(0); err != nil {
 		t.Fatal("Failed to disable IP violation check", err)
 	}
 

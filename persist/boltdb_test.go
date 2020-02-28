@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/fastrand"
+	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 )

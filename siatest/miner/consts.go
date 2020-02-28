@@ -3,6 +3,7 @@ package miner
 import (
 	"os"
 
+	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/siatest"
 )
 
@@ -11,7 +12,7 @@ import (
 // directory again.
 func minerTestDir(testName string) string {
 	path := siatest.TestDir("miner", testName)
-	if err := os.MkdirAll(path, 0777); err != nil {
+	if err := os.MkdirAll(path, persist.DefaultDiskPermissionsTest); err != nil {
 		panic(err)
 	}
 	return path

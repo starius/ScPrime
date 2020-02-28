@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -70,7 +71,18 @@ func TestCreateLoadBackup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Recover the backup into the same renter. Nothing should change.
+	// Get current allowance.
+	rg, err := r.RenterGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	allowance := rg.Settings.Allowance
+	// Reset allowance.
+	if err := r.RenterAllowanceCancelPost(); err != nil {
+		t.Fatal(err)
+	}
+	// Recover the backup into the same renter. No new files should appear but the
+	// allowance should be set again.
 	if err := r.RenterRecoverLocalBackupPost(backupPath); err != nil {
 		t.Fatal(err)
 	}
@@ -80,6 +92,13 @@ func TestCreateLoadBackup(t *testing.T) {
 	}
 	if len(files) != 1 {
 		t.Fatal("expected 1 file but got", len(files))
+	}
+	rg, err = r.RenterGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(rg.Settings.Allowance, allowance) {
+		t.Fatal("allowance doesn't match allowance before reset")
 	}
 	// Get the renter's seed.
 	wsg, err := r.WalletSeedsGet()
@@ -104,9 +123,9 @@ func TestCreateLoadBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The .siadir file should also be recovered.
-	dirMDPath := filepath.Join(r.Dir, modules.RenterDir, modules.SiapathRoot, "subDir", modules.SiaDirExtension)
+	dirMDPath := filepath.Join(r.Dir, modules.RenterDir, modules.FileSystemRoot, modules.HomeFolderRoot, modules.UserRoot, "subDir", modules.SiaDirExtension)
 	if _, err := os.Stat(dirMDPath); os.IsNotExist(err) {
-		t.Fatal(".siadir file doesn't exist")
+		t.Fatal(".siadir file doesn't exist:", dirMDPath)
 	}
 	// There shouldn't be a .siadir_1 file as we don't replace existing .siadir
 	// files.
@@ -119,7 +138,7 @@ func TestCreateLoadBackup(t *testing.T) {
 	}
 	// Delete the file and upload another file to the same siapath. This one should
 	// have the same siapath but not the same UID.
-	if err := r.RenterDeletePost(rf.SiaPath()); err != nil {
+	if err := r.RenterFileDeletePost(rf.SiaPath()); err != nil {
 		t.Fatal(err)
 	}
 	subDir, err = r.FilesDir().CreateDir("subDir")
@@ -349,10 +368,10 @@ func TestRemoteBackup(t *testing.T) {
 	}
 
 	// Delete both files and restore the first snapshot.
-	if err := r.RenterDeletePost(rf.SiaPath()); err != nil {
+	if err := r.RenterFileDeletePost(rf.SiaPath()); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.RenterDeletePost(rf2.SiaPath()); err != nil {
+	if err := r.RenterFileDeletePost(rf2.SiaPath()); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.RenterRecoverBackupPost("foo"); err != nil {
@@ -371,7 +390,7 @@ func TestRemoteBackup(t *testing.T) {
 		t.Fatal("expected second file to be unavailable")
 	}
 	// Delete the first file again.
-	if err := r.RenterDeletePost(rf.SiaPath()); err != nil {
+	if err := r.RenterFileDeletePost(rf.SiaPath()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -395,8 +414,14 @@ func TestRemoteBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Regression test for a bug where RenterFilesGet would fail when snapshots
+	// existed.
+	_, err = r.RenterFilesGet(false)
+	if err != nil {
+		t.Fatal(err)
+	}
 	// Confirm siadir exists by querying directory
-	rd, err := r.RenterGetDir(modules.RootSiaPath())
+	rd, err := r.RenterDirGet(modules.RootSiaPath())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -406,7 +431,7 @@ func TestRemoteBackup(t *testing.T) {
 	if len(rd.Files) != 0 {
 		t.Fatal("Expected 0 files but got", rd.Files)
 	}
-	rd, err = r.RenterGetDir(rd.Directories[1].SiaPath)
+	rd, err = r.RenterDirGet(rd.Directories[1].SiaPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -464,7 +489,7 @@ func TestRemoteBackup(t *testing.T) {
 	}
 
 	// Confirm siadir exists by querying directory
-	rd, err = r.RenterGetDir(modules.RootSiaPath())
+	rd, err = r.RenterDirGet(modules.RootSiaPath())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -474,7 +499,7 @@ func TestRemoteBackup(t *testing.T) {
 	if len(rd.Files) != 0 {
 		t.Fatal("Expected 0 files but got", rd.Files)
 	}
-	rd, err = r.RenterGetDir(rd.Directories[1].SiaPath)
+	rd, err = r.RenterDirGet(rd.Directories[1].SiaPath)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -14,7 +14,7 @@ import (
 
 // newStub is used to test the New function. It implements all of the contractor's
 // dependencies.
-type newStub struct{}
+type newStub struct{ iprestriction int }
 
 // consensus set stubs
 func (newStub) ConsensusSetSubscribe(modules.ConsensusSetSubscriber, modules.ConsensusChangeID, <-chan struct{}) error {
@@ -22,10 +22,16 @@ func (newStub) ConsensusSetSubscribe(modules.ConsensusSetSubscriber, modules.Con
 }
 func (newStub) Synced() bool                               { return true }
 func (newStub) Unsubscribe(modules.ConsensusSetSubscriber) { return }
+func (newStub) TryTransactionSet([]types.Transaction) (modules.ConsensusChange, error) {
+	return modules.ConsensusChange{}, nil
+}
 
 // wallet stubs
-func (newStub) NextAddress() (uc types.UnlockConditions, err error)          { return }
-func (newStub) PrimarySeed() (modules.Seed, uint64, error)                   { return modules.Seed{}, 0, nil }
+func (newStub) NextAddress() (uc types.UnlockConditions, err error) { return }
+func (newStub) PrimarySeed() (modules.Seed, uint64, error)          { return modules.Seed{}, 0, nil }
+func (newStub) RegisterTransaction(types.Transaction, []types.Transaction) (modules.TransactionBuilder, error) {
+	return nil, nil
+}
 func (newStub) StartTransaction() (tb modules.TransactionBuilder, err error) { return }
 func (newStub) Unlocked() (bool, error)                                      { return true, nil }
 
@@ -46,6 +52,9 @@ func (newStub) SetFilterMode(fm modules.FilterMode, hosts []types.SiaPublicKey) 
 func (newStub) Host(types.SiaPublicKey) (settings modules.HostDBEntry, ok bool, err error) { return }
 func (newStub) IncrementSuccessfulInteractions(key types.SiaPublicKey) error               { return nil }
 func (newStub) IncrementFailedInteractions(key types.SiaPublicKey) error                   { return nil }
+func (newStub) InitialScanComplete() (complete bool, err error) {
+	return true, nil
+}
 func (newStub) RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
 	return nil, nil
 }
@@ -54,10 +63,21 @@ func (newStub) ScoreBreakdown(modules.HostDBEntry) (modules.HostScoreBreakdown, 
 }
 func (newStub) SetAllowance(allowance modules.Allowance) error { return nil }
 func (newStub) UpdateContracts([]modules.RenterContract) error { return nil }
-func (newStub) SetIPViolationCheck(enabled bool) error         { return nil }
-func (newStub) IPViolationsCheck() (bool, error) {
-	return false, nil
-	//hdb.hostTree.FilterByIPEnabled()
+func (sh newStub) SetIPViolationCheck(enabled bool) error {
+	if enabled {
+		sh.iprestriction = 1
+	} else {
+		sh.iprestriction = 0
+	}
+	return nil
+}
+func (sh newStub) IPViolationsCheck() (bool, error) {
+	return sh.iprestriction > 0, nil
+}
+func (sh newStub) IPRestriction() (int, error) { return sh.iprestriction, nil }
+func (sh newStub) SetIPRestriction(numhosts int) error {
+	sh.iprestriction = numhosts
+	return nil
 }
 
 // TestNew tests the New function.
@@ -120,7 +140,9 @@ func TestAllowance(t *testing.T) {
 
 // stubHostDB mocks the hostDB dependency using zero-valued implementations of
 // its methods.
-type stubHostDB struct{}
+type stubHostDB struct {
+	iprestriction int
+}
 
 func (stubHostDB) AllHosts() (hs []modules.HostDBEntry, err error)    { return }
 func (stubHostDB) ActiveHosts() (hs []modules.HostDBEntry, err error) { return }
@@ -135,6 +157,10 @@ func (stubHostDB) Host(types.SiaPublicKey) (h modules.HostDBEntry, ok bool, err 
 func (stubHostDB) IncrementSuccessfulInteractions(key types.SiaPublicKey) error          { return nil }
 func (stubHostDB) IncrementFailedInteractions(key types.SiaPublicKey) error              { return nil }
 func (stubHostDB) PublicKey() (spk types.SiaPublicKey)                                   { return }
+
+func (stubHostDB) InitialScanComplete() (complete bool, err error) {
+	return true, nil
+}
 func (stubHostDB) RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey) (hs []modules.HostDBEntry, _ error) {
 	return
 }
@@ -144,159 +170,21 @@ func (stubHostDB) ScoreBreakdown(modules.HostDBEntry) (modules.HostScoreBreakdow
 func (stubHostDB) SetAllowance(allowance modules.Allowance) error { return nil }
 func (stubHostDB) UpdateContracts([]modules.RenterContract) error { return nil }
 
-func (stubHostDB) SetIPViolationCheck(enabled bool) error { return nil }
-func (stubHostDB) IPViolationsCheck() (bool, error) {
-	return false, nil
-	//hdb.hostTree.FilterByIPEnabled()
+func (sh stubHostDB) SetIPViolationCheck(enabled bool) error {
+	if enabled {
+		sh.iprestriction = 1
+	} else {
+		sh.iprestriction = 0
+	}
+	return nil
 }
-
-// TestAllowanceSpending verifies that the contractor will not spend more or
-// less than the allowance if uploading causes repeated early renewal, and that
-// correct spending metrics are returned, even across renewals.
-func TestAllowanceSpending(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	t.Parallel()
-
-	// create testing trio
-	h, c, m, err := newTestingTrio(t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// make the host's upload price very high so this test requires less
-	// computation
-	settings := h.InternalSettings()
-	settings.MinUploadBandwidthPrice = types.SiacoinPrecision.Div64(10)
-	err = h.SetInternalSettings(settings)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = h.Announce()
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = m.AddBlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = build.Retry(50, 100*time.Millisecond, func() error {
-		hosts, err := c.hdb.RandomHosts(1, nil, nil)
-		if err != nil {
-			return err
-		}
-		if len(hosts) == 0 {
-			return errors.New("host has not been scanned yet")
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// set an allowance
-	testAllowance := modules.Allowance{
-		Funds:              types.SiacoinPrecision.Mul64(6000),
-		RenewWindow:        100,
-		Hosts:              1,
-		Period:             200,
-		ExpectedStorage:    modules.DefaultAllowance.ExpectedStorage,
-		ExpectedUpload:     modules.DefaultAllowance.ExpectedUpload,
-		ExpectedDownload:   modules.DefaultAllowance.ExpectedDownload,
-		ExpectedRedundancy: modules.DefaultAllowance.ExpectedRedundancy,
-	}
-	err = c.SetAllowance(testAllowance)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = build.Retry(50, 100*time.Millisecond, func() error {
-		if len(c.Contracts()) != 1 {
-			return errors.New("allowance forming seems to have failed")
-		}
-		return nil
-	})
-	if err != nil {
-		t.Error(err)
-	}
-
-	// exhaust a contract and add a block several times. Despite repeatedly
-	// running out of funds, the contractor should not spend more than the
-	// allowance.
-	for i := 0; i < 15; i++ {
-		for _, contract := range c.Contracts() {
-			ed, err := c.Editor(contract.HostPublicKey, nil)
-			if err != nil {
-				continue
-			}
-
-			// upload 10 sectors to the contract
-			for sec := 0; sec < 10; sec++ {
-				ed.Upload(make([]byte, modules.SectorSize))
-			}
-			err = ed.Close()
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-		_, err := m.AddBlock()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	var minerRewards types.Currency
-	w := c.wallet.(*WalletBridge).W.(modules.Wallet)
-	txns, err := w.Transactions(0, 1000)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, txn := range txns {
-		for _, so := range txn.Outputs {
-			if so.FundType == types.SpecifierMinerPayout && so.RelatedAddress != types.DevFundUnlockHash {
-				minerRewards = minerRewards.Add(so.Value)
-			}
-		}
-	}
-	balance, _, _, err := w.ConfirmedBalance()
-	if err != nil {
-		t.Fatal(err)
-	}
-	spent := minerRewards.Sub(balance)
-	if spent.Cmp(testAllowance.Funds) > 0 {
-		t.Fatal("contractor spent too much money: spent", spent.HumanString(), "allowance funds:", testAllowance.Funds.HumanString())
-	}
-
-	// we should have spent at least the allowance minus the cost of one more refresh
-	refreshCost := c.Contracts()[0].TotalCost.Mul64(2)
-	expectedMinSpending := testAllowance.Funds.Sub(refreshCost)
-	if spent.Cmp(expectedMinSpending) < 0 {
-		t.Fatal("contractor spent to little money: spent", spent.HumanString(), "expected at least:", expectedMinSpending.HumanString())
-	}
-
-	// PeriodSpending should reflect the amount of spending accurately
-	reportedSpending, err := c.PeriodSpending()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if reportedSpending.TotalAllocated.Cmp(spent) != 0 {
-		t.Fatal("reported incorrect spending for this billing cycle: got", reportedSpending.TotalAllocated.HumanString(), "wanted", spent.HumanString())
-	}
-	// COMPATv132 totalallocated should equal contractspending field.
-	if reportedSpending.ContractSpendingDeprecated.Cmp(reportedSpending.TotalAllocated) != 0 {
-		t.Fatal("TotalAllocated should be equal to ContractSpending for compatibility")
-	}
-
-	var expectedFees types.Currency
-	for _, contract := range c.Contracts() {
-		expectedFees = expectedFees.Add(contract.TxnFee)
-		expectedFees = expectedFees.Add(contract.SiafundFee)
-		expectedFees = expectedFees.Add(contract.ContractFee)
-	}
-	if expectedFees.Cmp(reportedSpending.ContractFees) != 0 {
-		t.Fatalf("expected %v reported fees but was %v",
-			expectedFees.HumanString(), reportedSpending.ContractFees.HumanString())
-	}
+func (sh stubHostDB) IPViolationsCheck() (bool, error) {
+	return sh.iprestriction > 0, nil
+}
+func (sh stubHostDB) IPRestriction() (int, error) { return sh.iprestriction, nil }
+func (sh stubHostDB) SetIPRestriction(numhosts int) error {
+	sh.iprestriction = numhosts
+	return nil
 }
 
 // TestIntegrationSetAllowance tests the SetAllowance method.
@@ -392,6 +280,7 @@ func TestIntegrationSetAllowance(t *testing.T) {
 		t.Errorf("expected %q, got %q", ErrAllowanceZeroExpectedRedundancy, err)
 	}
 	a.ExpectedRedundancy = modules.DefaultAllowance.ExpectedRedundancy
+	a.MaxPeriodChurn = modules.DefaultAllowance.MaxPeriodChurn
 
 	// reasonable values; should succeed
 	a.Funds = types.SiacoinPrecision.Mul64(100)
@@ -525,6 +414,7 @@ func TestHostMaxDuration(t *testing.T) {
 		ExpectedUpload:     modules.DefaultAllowance.ExpectedUpload,
 		ExpectedDownload:   modules.DefaultAllowance.ExpectedDownload,
 		ExpectedRedundancy: modules.DefaultAllowance.ExpectedRedundancy,
+		MaxPeriodChurn:     modules.DefaultAllowance.MaxPeriodChurn,
 	}
 	err = c.SetAllowance(a)
 	if err != nil {
@@ -644,6 +534,7 @@ func TestLinkedContracts(t *testing.T) {
 		ExpectedUpload:     modules.DefaultAllowance.ExpectedUpload,
 		ExpectedDownload:   modules.DefaultAllowance.ExpectedDownload,
 		ExpectedRedundancy: modules.DefaultAllowance.ExpectedRedundancy,
+		MaxPeriodChurn:     modules.DefaultAllowance.MaxPeriodChurn,
 	}
 	err = c.SetAllowance(a)
 	if err != nil {
@@ -749,6 +640,10 @@ func (ws *testWalletShim) StartTransaction() (modules.TransactionBuilder, error)
 	return nil, nil
 }
 func (ws *testWalletShim) Unlocked() (bool, error) { return true, nil }
+
+func (ws *testWalletShim) RegisterTransaction(types.Transaction, []types.Transaction) (modules.TransactionBuilder, error) {
+	return nil, nil
+}
 
 // TestWalletBridge tests the walletBridge type.
 func TestWalletBridge(t *testing.T) {

@@ -274,7 +274,7 @@ func startDaemon(config Config) (err error) {
 	nodeParams.PoolConfig = config.MiningPoolConfig
 
 	// Start and run the server.
-	srv, err := server.New(config.Spd.APIaddr, config.Spd.RequiredUserAgent, config.APIPassword, nodeParams)
+	srv, err := server.New(config.Spd.APIaddr, config.Spd.RequiredUserAgent, config.APIPassword, nodeParams, loadStart)
 	if err != nil {
 		return err
 	}
@@ -287,7 +287,7 @@ func startDaemon(config Config) (err error) {
 
 	// Print a 'startup complete' message.
 	startupTime := time.Since(loadStart)
-	fmt.Println("Finished loading in", startupTime.Seconds(), "seconds")
+	fmt.Printf("Finished full startup in %.3f seconds\n", startupTime.Seconds())
 
 	// wait for Serve to return or for kill signal to be caught
 	err = func() error {

@@ -15,7 +15,7 @@ import (
 func (hdb *HostDB) RandomHosts(n int, blacklist, addressBlacklist []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
 	hdb.mu.RLock()
 	initialScanComplete := hdb.initialScanComplete
-	ipCheckDisabled := !hdb.hostTree.FilterByIPEnabled()
+	ipCheckDisabled := hdb.hostTree.IPRestriction() < 1
 	hdb.mu.RUnlock()
 	if !initialScanComplete {
 		return []modules.HostDBEntry{}, ErrInitialScanIncomplete

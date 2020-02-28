@@ -12,16 +12,6 @@ var (
 	ipv6Localhost = net.IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
 )
 
-// host is a implementation of the address interface for testing.
-type host struct {
-	address string
-}
-
-// Host returns the address field of the host struct.
-func (h host) Host() string {
-	return h.address
-}
-
 // testTooManyAddressesResolver is a resolver for the TestTwoAddresses test.
 type testTooManyAddressesResolver struct{}
 
@@ -64,6 +54,10 @@ func (testFilterIPv4Resolver) LookupIP(host string) ([]net.IP, error) {
 		return []net.IP{{128, 1, 1, 1}}, nil
 	case "host6":
 		return []net.IP{{128, 1, 1, 9}}, nil
+	case "host7":
+		return []net.IP{{128, 1, 1, 10}}, nil
+	case "host8":
+		return []net.IP{{128, 1, 1, 11}}, nil
 	default:
 		panic("shouldn't happen")
 	}
@@ -101,7 +95,7 @@ func (testFilterIPv6Resolver) LookupIP(host string) ([]net.IP, error) {
 // addresses are always filtered.
 func TestTooManyAddresses(t *testing.T) {
 	// Check that returning more than 2 addresses causes a host to be filtered.
-	filter := NewFilter(testTooManyAddressesResolver{})
+	filter := NewFilter(testTooManyAddressesResolver{}, 1)
 	host := modules.NetAddress("any.address:1234")
 
 	// Add host to filter.
@@ -117,7 +111,7 @@ func TestTooManyAddresses(t *testing.T) {
 // they have the same address type.
 func TestTwoAddresses(t *testing.T) {
 	// Check that returning more than 2 addresses causes a host to be filtered.
-	filter := NewFilter(testTwoAddressesResolver{})
+	filter := NewFilter(testTwoAddressesResolver{}, 1)
 
 	// Create a few hosts for testing.
 	hostValid1 := modules.NetAddress("ipv4.ipv6:1234")
@@ -136,14 +130,14 @@ func TestTwoAddresses(t *testing.T) {
 
 // TestFilterIPv4 tests filtering IPv4 addresses.
 func TestFilterIPv4(t *testing.T) {
-	filter := NewFilter(testFilterIPv4Resolver{})
-
 	host1 := modules.NetAddress("host1:1234")
 	host2 := modules.NetAddress("host2:1234")
 	host3 := modules.NetAddress("host3:1234")
 	host4 := modules.NetAddress("host4:1234")
 	host5 := modules.NetAddress("host5:1234")
 	host6 := modules.NetAddress("host6:1234")
+
+	filter := NewFilter(testFilterIPv4Resolver{}, 1)
 
 	// Host1 shouldn't be filtered.
 	if filter.Filtered(host1) {
@@ -182,7 +176,7 @@ func TestFilterIPv4(t *testing.T) {
 
 // TestFilterIPv6 tests filtering IPv4 addresses.
 func TestFilterIPv6(t *testing.T) {
-	filter := NewFilter(testFilterIPv6Resolver{})
+	filter := NewFilter(testFilterIPv6Resolver{}, 1)
 
 	host1 := modules.NetAddress("host1:1234")
 	host2 := modules.NetAddress("host2:1234")
@@ -244,5 +238,66 @@ func TestFilterIPv6(t *testing.T) {
 	// Host9 should be filtered.
 	if !filter.Filtered(host9) {
 		t.Error("host9 wasn't filtered")
+	}
+}
+
+// TestIPRestriction tests filtering when IPRestriction is set to 3.
+func TestIPRestriction(t *testing.T) {
+	filter := NewFilter(testFilterIPv4Resolver{}, 3)
+
+	host1 := modules.NetAddress("host1:1234")
+	host2 := modules.NetAddress("host2:1234")
+	host3 := modules.NetAddress("host3:1234")
+	host4 := modules.NetAddress("host4:1234")
+	host5 := modules.NetAddress("host5:1234")
+	host6 := modules.NetAddress("host6:1234")
+	host7 := modules.NetAddress("host7:1234")
+	host8 := modules.NetAddress("host8:1234")
+
+	// Host1 shouldn't be filtered.
+	if filter.Filtered(host1) {
+		t.Error("host1 was filtered")
+	}
+	filter.Add(host1)
+
+	// Host2 shouldn't be filtered.
+	if filter.Filtered(host2) {
+		t.Error("host2 was filtered")
+	}
+	filter.Add(host2)
+
+	// Host3 shouldn't be filtered.
+	if filter.Filtered(host3) {
+		t.Error("host3 was filtered")
+	}
+	filter.Add(host3)
+
+	// Host4 shouldn't be filtered.
+	if filter.Filtered(host4) {
+		t.Error("host4 was filtered")
+	}
+	filter.Add(host4)
+
+	// Host5 shouldn't be filtered.
+	if filter.Filtered(host5) {
+		t.Error("host5 was filtered")
+	}
+	filter.Add(host5)
+
+	// Host6 shouldn't be filtered.
+	if filter.Filtered(host6) {
+		t.Error("host6 was filtered")
+	}
+	filter.Add(host6)
+
+	// Host7 shouldn't be filtered.
+	if filter.Filtered(host7) {
+		t.Error("host7 was filtered")
+	}
+	filter.Add(host7)
+
+	// Host8 should be filtered.
+	if !filter.Filtered(host8) {
+		t.Error("host8 wasn't filtered")
 	}
 }

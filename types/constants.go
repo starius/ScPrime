@@ -54,7 +54,6 @@ var (
 	BlocksPerMonth = 30 * BlocksPerDay
 	// BlocksPerYear is the number of blocks expected to be mined per year.
 	BlocksPerYear = 365 * BlocksPerDay
-
 	// BurnAddressBlockHeight is the height at which the dev fund will be burnt
 	// instead of being claimed by the dev fund. Setting this value to 0 will
 	// prevent the dev fund from being burnt at any height.
@@ -106,7 +105,6 @@ var (
 	// GenesisID is used in many places. Calculating it once saves lots of
 	// redundant computation.
 	GenesisID BlockID
-
 	// GenesisAirdropAllocation is the output creating the initial coins allocated
 	// for the airdrop at network launch
 	GenesisAirdropAllocation []SiacoinOutput

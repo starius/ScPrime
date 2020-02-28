@@ -3,22 +3,22 @@ package siatest
 import (
 	"net"
 	"path/filepath"
+	"runtime"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/node"
 )
 
 // TestNextNodeAddress probes nextNodeAddress to verify that the addresses are
 // indexing properly
 func TestNextNodeAddress(t *testing.T) {
-	if !testing.Short() {
+	if !testing.Short() || runtime.GOOS == "darwin" {
 		t.SkipNow()
 	}
 	// Confirm testNodeAddressCounter is initialized correctly
 	ac := newNodeAddressCounter()
 	if ac.address.String() != "127.1.0.0" {
-		t.Fatalf("testNodeAddressCounter inital value incorrect; got %v expected %v", ac.address.String(), "127.1.0.0")
+		t.Fatalf("testNodeAddressCounter initial value incorrect; got %v expected %v", ac.address.String(), "127.1.0.0")
 	}
 
 	// Check address iteration
@@ -61,7 +61,8 @@ func TestNextNodeAddress(t *testing.T) {
 // TestNodeBlacklistConnections probes the functionality of connecting nodes and
 // blacklisting nodes to confirm nodes connect as intended
 func TestNodeBlacklistConnections(t *testing.T) {
-	if testing.Short() {
+	// Skip if testing short or running on mac
+	if testing.Short() || runtime.GOOS == "darwin" {
 		t.SkipNow()
 	}
 	t.Parallel()
@@ -69,12 +70,12 @@ func TestNodeBlacklistConnections(t *testing.T) {
 	// Create a host and a renter and connect them
 	testDir := siatestTestDir(t.Name())
 	renterParams := node.Renter(filepath.Join(testDir, "renter"))
-	renter, err := newCleanNode(renterParams, false)
+	renter, err := NewCleanNode(renterParams)
 	if err != nil {
 		t.Fatal(err)
 	}
 	hostParams := node.Host(filepath.Join(testDir, "host"))
-	host, err := newCleanNode(hostParams, false)
+	host, err := NewCleanNode(hostParams)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +85,7 @@ func TestNodeBlacklistConnections(t *testing.T) {
 	}
 
 	// Have the host Blacklist the renter, confirm they are no longer peers
-	err = host.GatewaySetBlacklistPost([]modules.NetAddress{renter.GatewayAddress()})
+	err = host.GatewaySetBlacklistPost([]string{renter.GatewayAddress().Host()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +100,7 @@ func TestNodeBlacklistConnections(t *testing.T) {
 
 	// Create a miner and connect to the group
 	minerParams := node.Miner(filepath.Join(testDir, "miner"))
-	miner, err := newCleanNode(minerParams, false)
+	miner, err := NewCleanNode(minerParams)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +118,7 @@ func TestNodeBlacklistConnections(t *testing.T) {
 	// disconnected and blacklisted the original renter
 	renterParams = node.Renter(filepath.Join(testDir, "renterTwo"))
 	renterParams.RPCAddress = renter.GatewayAddress().Host() + ":0"
-	renterTwo, err := NewCleanNodeAsync(renterParams)
+	renterTwo, err := NewCleanNode(renterParams)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +145,7 @@ func TestNodeBlacklistConnections(t *testing.T) {
 
 	// Reset the Host blacklist, now renterTwo should be able to connect to the
 	// host
-	err = host.GatewaySetBlacklistPost([]modules.NetAddress{})
+	err = host.GatewaySetBlacklistPost([]string{})
 	if err != nil {
 		t.Fatal(err)
 	}

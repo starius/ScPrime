@@ -31,7 +31,9 @@ var (
 	errNilCS                 = errors.New("cannot create hostdb with nil consensus set")
 	errNilGateway            = errors.New("cannot create hostdb with nil gateway")
 	errNilTPool              = errors.New("cannot create hostdb with nil transaction pool")
-	// errHostNotFoundInTree is returned when the host is not found in the hosttree
+
+	// errHostNotFoundInTree is returned when the host is not found in the
+	// hosttree
 	errHostNotFoundInTree = errors.New("host not found in hosttree")
 )
 
@@ -413,6 +415,10 @@ func (hdb *HostDB) AllHosts() (allHosts []modules.HostDBEntry, err error) {
 // CheckForIPViolations accepts a number of host public keys and returns the
 // ones that violate the rules of the addressFilter.
 func (hdb *HostDB) CheckForIPViolations(hosts []types.SiaPublicKey) ([]types.SiaPublicKey, error) {
+	if hdb.hostTree.IPRestriction() == 0 {
+		return nil, nil
+	}
+
 	if err := hdb.tg.Add(); err != nil {
 		return nil, errors.AddContext(err, "error adding hostdb threadgroup:")
 	}
@@ -421,9 +427,6 @@ func (hdb *HostDB) CheckForIPViolations(hosts []types.SiaPublicKey) ([]types.Sia
 	// If the check was disabled we don't return any bad hosts.
 	hdb.mu.RLock()
 	defer hdb.mu.RUnlock()
-	if !hdb.hostTree.FilterByIPEnabled() {
-		return nil, nil
-	}
 
 	var entries []modules.HostDBEntry
 	var badHosts []types.SiaPublicKey
@@ -448,7 +451,7 @@ func (hdb *HostDB) CheckForIPViolations(hosts []types.SiaPublicKey) ([]types.Sia
 	})
 
 	// Create a filter and apply it.
-	filter := hosttree.NewFilter(hdb.deps.Resolver())
+	filter := hosttree.NewFilter(hdb.deps.Resolver(), hdb.hostTree.IPRestriction())
 	for _, entry := range entries {
 		// Check if the host violates the rules.
 		if filter.Filtered(entry.NetAddress) {
@@ -592,14 +595,14 @@ func (hdb *HostDB) InitialScanComplete() (complete bool, err error) {
 	return
 }
 
-// IPViolationsCheck returns a boolean indicating if the IP violation check is
+// IPRestriction returns a boolean indicating if the IP violation check is
 // enabled or not.
-func (hdb *HostDB) IPViolationsCheck() (bool, error) {
+func (hdb *HostDB) IPRestriction() (int, error) {
 	if err := hdb.tg.Add(); err != nil {
-		return false, errors.AddContext(err, "error adding hostdb threadgroup:")
+		return 0, errors.AddContext(err, "error adding hostdb threadgroup:")
 	}
 	defer hdb.tg.Done()
-	return hdb.hostTree.FilterByIPEnabled(), nil
+	return hdb.hostTree.IPRestriction(), nil
 }
 
 // SetAllowance updates the allowance used by the hostdb for weighing hosts by
@@ -627,16 +630,16 @@ func (hdb *HostDB) SetAllowance(allowance modules.Allowance) error {
 	return hdb.managedSetWeightFunction(wf)
 }
 
-// SetIPViolationCheck enables or disables the IP violation check. If disabled,
+// SetIPRestriction enables or disables the IP violation check. If disabled,
 // CheckForIPViolations won't return bad hosts and RandomHosts will return the
 // address blacklist.
-func (hdb *HostDB) SetIPViolationCheck(enabled bool) error {
+func (hdb *HostDB) SetIPRestriction(numhosts int) error {
 	if err := hdb.tg.Add(); err != nil {
 		return errors.AddContext(err, "error adding hostdb threadgroup:")
 	}
 	defer hdb.tg.Done()
 
-	hdb.hostTree.SetFilterByIPEnabled(enabled)
+	hdb.hostTree.SetIPRestriction(numhosts)
 	return nil
 }
 

@@ -3,7 +3,7 @@ package persist
 import (
 	"time"
 
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 // BoltDatabase is a persist-level wrapper for the bolt database, providing

@@ -7,8 +7,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/fastrand"
+	bolt "go.etcd.io/bbolt"
 )
 
 // TestTryValidTransactionSet submits a valid transaction set to the

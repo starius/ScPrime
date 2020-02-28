@@ -1,6 +1,6 @@
 package consensus
 
-import bolt "github.com/coreos/bbolt"
+import bolt "go.etcd.io/bbolt"
 
 // dbBacktrackToCurrentPath is a convenience function to call
 // backtrackToCurrentPath without a bolt.Tx.

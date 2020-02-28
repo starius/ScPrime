@@ -5,10 +5,10 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	bolt "github.com/coreos/bbolt"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-
 	"gitlab.com/NebulousLabs/errors"
+	bolt "go.etcd.io/bbolt"
+
+	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // difficulty.go defines the Oak difficulty adjustment algorithm.

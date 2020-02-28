@@ -7,7 +7,7 @@ package consensus
 // ignored otherwise, which is suboptimal.
 
 import (
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
