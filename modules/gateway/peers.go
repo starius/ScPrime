@@ -12,6 +12,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
 	"gitlab.com/NebulousLabs/fastrand"
+	connmonitor "gitlab.com/NebulousLabs/monitor"
 	"gitlab.com/NebulousLabs/ratelimit"
 )
 
@@ -38,6 +39,7 @@ func (s invalidVersionError) Error() string {
 
 type peer struct {
 	modules.Peer
+	m    *connmonitor.Monitor
 	rl   *ratelimit.RateLimit
 	sess streamSession
 }
@@ -126,6 +128,8 @@ func (g *Gateway) permanentListen(closeChan chan struct{}) {
 			g.log.Debugln("[PL] Closing permanentListen:", err)
 			return
 		}
+		// Monitor bandwidth on conn
+		conn = connmonitor.NewMonitoredConn(conn, g.m)
 
 		go g.threadedAcceptConn(conn)
 
@@ -241,6 +245,7 @@ func (g *Gateway) managedAcceptConnPeer(conn net.Conn, remoteVersion string) err
 			NetAddress: remoteAddr,
 			Version:    remoteVersion,
 		},
+		m:    g.m,
 		rl:   rl,
 		sess: newServerStream(conn, remoteVersion),
 	}
@@ -447,9 +452,6 @@ func (g *Gateway) managedConnect(addr modules.NetAddress) error {
 		g.log.Debugln("Unable to connect to", addr, "error:", err)
 		return err
 	}
-	if _, exists := g.blacklist[addr.Host()]; exists {
-		return errors.New("can't connect to blacklisted address")
-	}
 	g.mu.RLock()
 	_, exists := g.peers[addr]
 	g.mu.RUnlock()
@@ -498,6 +500,7 @@ func (g *Gateway) managedConnect(addr modules.NetAddress) error {
 			NetAddress: addr,
 			Version:    remoteVersion,
 		},
+		m:    g.m,
 		rl:   g.rl,
 		sess: newClientStream(conn, remoteVersion),
 	})

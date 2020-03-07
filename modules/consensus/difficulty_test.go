@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/SiaPrime/SiaPrime/types"
 )

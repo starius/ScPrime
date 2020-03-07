@@ -18,7 +18,7 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 // TestSynchronize tests that the consensus set can successfully synchronize

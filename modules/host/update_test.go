@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/SiaPrime/SiaPrime/persist"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
 	"gitlab.com/NebulousLabs/fastrand"
@@ -52,7 +53,7 @@ func TestStorageProof(t *testing.T) {
 	const dataSize = 777
 	data := fastrand.Bytes(dataSize)
 	root := crypto.MerkleRoot(data)
-	err = ioutil.WriteFile(filepath.Join(ht.host.persistDir, "foo"), data, 0777)
+	err = ioutil.WriteFile(filepath.Join(ht.host.persistDir, "foo"), data, persist.DefaultDiskPermissionsTest)
 	if err != nil {
 		t.Fatal(err)
 	}

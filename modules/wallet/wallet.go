@@ -9,9 +9,9 @@ import (
 	"sort"
 	"sync"
 
-	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/threadgroup"
+	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"

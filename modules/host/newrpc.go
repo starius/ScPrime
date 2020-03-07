@@ -12,8 +12,8 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/fastrand"
+	bolt "go.etcd.io/bbolt"
 )
 
 // managedRPCLoopSettings writes an RPC response containing the host's
@@ -71,7 +71,7 @@ func (h *Host) managedRPCLoopLock(s *rpcSession) error {
 	})
 	h.mu.RUnlock()
 	if err != nil || h.dependencies.Disrupt("loopLockNoRecordOfThatContract") {
-		s.writeError(errors.New(modules.V1413ContractNotRecognizedErrString))
+		s.writeError(errors.New(modules.V1420ContractNotRecognizedErrString))
 		return extendErr("could get storage obligation "+req.ContractID.String()+": ", err)
 	}
 

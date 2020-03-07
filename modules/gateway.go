@@ -2,6 +2,7 @@ package modules
 
 import (
 	"net"
+	"time"
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 )
@@ -30,6 +31,7 @@ var (
 			"59.167.191.60:4281",
 			"81.149.127.41:4281",
 			"107.2.170.129:4281",
+			"195.130.205.91:4281",
 		},
 		Dev:     []NetAddress(nil),
 		Testing: []NetAddress(nil),
@@ -69,6 +71,9 @@ type (
 	Gateway interface {
 		Alerter
 
+		// BandwidthCounters returns the Gateway's upload and download bandwidth
+		BandwidthCounters() (uint64, uint64, time.Time, error)
+
 		// Connect establishes a persistent connection to a peer.
 		Connect(NetAddress) error
 
@@ -93,17 +98,17 @@ type (
 		DisconnectManual(NetAddress) error
 
 		// AddToBlacklist adds addresses to the blacklist of the gateway
-		AddToBlacklist(addresses []NetAddress) error
+		AddToBlacklist(addresses []string) error
 
 		// Blacklist returns the current blacklist of the Gateway
 		Blacklist() ([]string, error)
 
 		// RemoveFromBlacklist removes addresses from the blacklist of the
 		// gateway
-		RemoveFromBlacklist(addresses []NetAddress) error
+		RemoveFromBlacklist(addresses []string) error
 
 		// SetBlacklist sets the blacklist of the gateway
-		SetBlacklist(addresses []NetAddress) error
+		SetBlacklist(addresses []string) error
 
 		// Address returns the Gateway's address.
 		Address() NetAddress

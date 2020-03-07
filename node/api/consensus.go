@@ -8,12 +8,9 @@ import (
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/crypto"
-
-	//"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
 	"gitlab.com/SiaPrime/SiaPrime/types"
 
-	//bolt "github.com/coreos/bbolt"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -305,9 +302,11 @@ func (api *API) consensusBlocksHandler(w http.ResponseWriter, req *http.Request,
 	id, height := req.FormValue("id"), req.FormValue("height")
 	if id != "" && height != "" {
 		WriteError(w, Error{"can't specify both id and height"}, http.StatusBadRequest)
+		return
 	}
 	if id == "" && height == "" {
 		WriteError(w, Error{"either id or height has to be provided"}, http.StatusBadRequest)
+		return
 	}
 
 	var b types.Block

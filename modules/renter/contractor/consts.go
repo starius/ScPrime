@@ -20,6 +20,22 @@ var (
 
 // Constants related to contract formation parameters.
 var (
+	// ContractFeeFundingMulFactor is the multiplying factor for contract fees
+	// to determine the funding for a new contract
+	ContractFeeFundingMulFactor = uint64(10)
+
+	// MaxInitialContractFundingDivFactor is the dividing factor for determining
+	// the maximum amount of funds to put into a new contract
+	MaxInitialContractFundingDivFactor = uint64(3)
+
+	// MaxInitialContractFundingMulFactor is the multiplying factor for
+	// determining the maximum amount of funds to put into a new contract
+	MaxInitialContractFundingMulFactor = uint64(2)
+
+	// MinInitialContractFundingDivFactor is the dividing factor for determining
+	// the minimum amount of funds to put into a new contract
+	MinInitialContractFundingDivFactor = uint64(20)
+
 	// consecutiveRenewalsBeforeReplacement is the number of times a contract
 	// attempt to be renewed before it is marked as !goodForRenew.
 	consecutiveRenewalsBeforeReplacement = build.Select(build.Var{
@@ -75,7 +91,7 @@ var (
 // Constants related to the safety values for when the contractor is forming
 // contracts.
 var (
-	maxCollateral   = types.SiacoinPrecision.Mul64(60e3) // 60 KS
+	maxCollateral   = types.SiacoinPrecision.Mul64(60e3) // 60 SCP
 	maxStoragePrice = build.Select(build.Var{
 		Dev:      types.SiacoinPrecision.Mul64(1e6).Div(modules.BlockBytesPerMonthTerabyte),   // 1 order of magnitude greater
 		Standard: types.SiacoinPrecision.Mul64(100e3).Div(modules.BlockBytesPerMonthTerabyte), // 100KS / TB / Month

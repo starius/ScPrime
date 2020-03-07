@@ -13,9 +13,9 @@ import (
 	"gitlab.com/SiaPrime/SiaPrime/types"
 	"gitlab.com/SiaPrime/SiaPrime/types/typesutil"
 
-	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/demotemutex"
 	"gitlab.com/NebulousLabs/errors"
+	bolt "go.etcd.io/bbolt"
 )
 
 var (

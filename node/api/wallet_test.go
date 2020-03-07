@@ -1216,9 +1216,9 @@ func TestWalletSiafunds(t *testing.T) {
 	allowanceValues.Set("period", testPeriod)
 	allowanceValues.Set("renewwindow", testRenewWindow)
 	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
-	allowanceValues.Set("expectedstorage", "10240")
-	allowanceValues.Set("expectedupload", "4096")
-	allowanceValues.Set("expecteddownload", "4096")
+	allowanceValues.Set("expectedstorage", "8192")
+	allowanceValues.Set("expectedupload", "3072")
+	allowanceValues.Set("expecteddownload", "3072")
 	err = st.stdPostAPI("/renter", allowanceValues)
 	if err != nil {
 		t.Fatal(err)

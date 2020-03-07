@@ -9,7 +9,7 @@ they are accessed.
 
 Since SiaFile's are rapidly accessed during downloads and repairs, the
 SiaFile was built with the requirement that all reads and writes must be able
-to happen in contant time, knowing only the offset of thte logical data
+to happen in constant time, knowing only the offset of the logical data
 within the SiaFile. To achieve that, all the data is page-aligned which also
 improves disk performance. Overall the SiaFile package is designed to
 minimize disk I/O operations and to keep the memory footprint as small as
@@ -25,8 +25,6 @@ possible without sacrificing performance.
 - Loading a a SiaFile's header into memory
     - i9-9900K with Intel SSDPEKNW010T8 -> 20,000 reads/second
 
-<<<<<<< HEAD
-=======
 ## Partial Uploads
 This section contains information about how partial uploads are handled
 within the siafile package. "Partial Upload" refers to being able to upload a
@@ -91,7 +89,6 @@ it is, the status of the partial chunk will be moved to
 `CombinedChunkStatusComplete` and both `Health` and `Redundancy` will start
 reporting the actual values for the combined chunk.
 
->>>>>>> Sia/contract-not-found-handling
 ## Structure of the SiaFile:
 - Header
     - [Metadata](#metadata)
@@ -132,10 +129,7 @@ The SiaFile is split up into the following subsystems.
 - [Persistence Subsystem](#persistence-subsystem)
 - [SiaFileSet Subsystem](#siafileset-subsystem)
 - [Snapshot Subsystem](#snapshot-subsystem)
-<<<<<<< HEAD
-=======
 - [Partials Siafile Subsystem](#partials-siafile-subsystem)
->>>>>>> Sia/contract-not-found-handling
 
 ### Erasure Coding Subsystem
 **Key Files**
@@ -158,7 +152,7 @@ format and most of the exported methods of the package.
 The persistence subsystem handles all of the disk I/O and marshaling of
 datatypes. It provides helper functions to read the SiaFile from disk and
 atomically write to disk using the
-[writeaheadlog](https://gitlab.com/NebulousLabs/writeaheadlog) package.
+[writeaheadlog](https://gitlab.com/SiaPrime/writeaheadlog) package.
 
 ### SiaFileSet Subsystem
 **Key Files**
@@ -183,8 +177,6 @@ be used to modify the underlying SiaFile directly. It is used to reduce
 locking contention within parts of the codebase where readonly access is good
 enough like the download code for example.
 
-<<<<<<< HEAD
-=======
 ### Partials Siafile Subsystem
 **Key Files**
 - [partialssiafile.go](./partialssiafile.go)
@@ -192,4 +184,3 @@ enough like the download code for example.
 The partials siafile subsystem contains code which is exclusively used by
 partials siafiles or partial upload related helper functions. All other
 methods are shared by regular siafiles and partials siafiles.
->>>>>>> Sia/contract-not-found-handling

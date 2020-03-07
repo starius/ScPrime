@@ -200,6 +200,7 @@ use it instead of displaying the typical interactive prompt.`,
 	}
 )
 
+/* #nosec */
 const askPasswordText = "We need to encrypt the new data using the current wallet password, please provide: "
 
 const currentPasswordText = "Current Password: "
@@ -611,7 +612,7 @@ func wallettransactionscmd() {
 
 		// Print the results.
 		if uint64(txn.ConfirmationTimestamp) != unconfirmedTransactionTimestamp {
-			fmt.Printf(time.Unix(int64(txn.ConfirmationTimestamp), 0).Format("2006-01-02 15:04:05-0700"))
+			fmt.Println(time.Unix(int64(txn.ConfirmationTimestamp), 0).Format("2006-01-02 15:04:05-0700"))
 		} else {
 			fmt.Printf("             unconfirmed")
 		}

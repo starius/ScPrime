@@ -4,6 +4,7 @@
 
 # build artifacts
 cover
+fullcover
 release
 
 # pdflatex
@@ -17,3 +18,6 @@ sia.iml
 
 # Mac
 .DS_Store
+
+# VSCode debug files
+debug.test

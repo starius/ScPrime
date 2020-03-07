@@ -96,6 +96,9 @@ type NodeParams struct {
 	RenterDeps       modules.Dependencies
 	WalletDeps       modules.Dependencies
 
+	// Dependencies for storage monitor supporting dependency injection.
+	StorageManagerDeps modules.Dependencies
+
 	// Custom settings for modules
 	Allowance   modules.Allowance
 	Bootstrap   bool
@@ -242,13 +245,13 @@ func (n *Node) Close() (err error) {
 // of initialization because the siatest package cannot import any of the
 // modules directly (so that the modules may use the siatest package to test
 // themselves).
-func New(params NodeParams) (*Node, <-chan error) {
+func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 	dir := params.Dir
-	numModules := params.NumModules()
-	i := 0
-	printfRelease("Loading modules:\n")
 	errChan := make(chan error, 1)
 
+	numModules := params.NumModules()
+	i := 0
+	printlnRelease("Starting modules:")
 	// Gateway.
 	loadStart := time.Now()
 	g, err := func() (modules.Gateway, error) {
@@ -269,7 +272,7 @@ func New(params NodeParams) (*Node, <-chan error) {
 			gatewayDeps = modules.ProdDependencies
 		}
 		i++
-		printfRelease("(%d/%d) Loading gateway... ", i, numModules)
+		printfRelease("(%d/%d) Loading gateway...", i, numModules)
 		return gateway.NewCustomGateway(params.RPCAddress, params.Bootstrap, filepath.Join(dir, modules.GatewayDir), gatewayDeps)
 	}()
 	if err != nil {
@@ -431,16 +434,21 @@ func New(params NodeParams) (*Node, <-chan error) {
 		if !params.CreateHost {
 			return nil, nil
 		}
+		if params.HostAddress == "" {
+			params.HostAddress = "localhost:0"
+		}
 		hostDeps := params.HostDeps
 		if hostDeps == nil {
 			hostDeps = modules.ProdDependencies
 		}
-		if params.HostAddress == "" {
-			params.HostAddress = "localhost:0"
+		smDeps := params.StorageManagerDeps
+		if smDeps == nil {
+			smDeps = new(modules.ProductionDependencies)
 		}
 		i++
 		printfRelease("(%d/%d) Loading host...", i, numModules)
-		return host.NewCustomHost(hostDeps, cs, g, tp, w, params.HostAddress, filepath.Join(dir, modules.HostDir))
+		host, err := host.NewCustomTestHost(hostDeps, smDeps, cs, g, tp, w, params.HostAddress, filepath.Join(dir, modules.HostDir))
+		return host, err
 	}()
 	if err != nil {
 		errChan <- errors.Extend(err, errors.New("unable to create host"))
@@ -528,10 +536,6 @@ func New(params NodeParams) (*Node, <-chan error) {
 		errChan <- errors.Extend(err, errors.New("unable to create renter"))
 		return nil, errChan
 	}
-	go func() {
-		errChan <- errors.Compose(<-errChanCS, <-errChanRenter)
-		close(errChan)
-	}()
 	if r != nil {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
@@ -592,6 +596,12 @@ func New(params NodeParams) (*Node, <-chan error) {
 	if sm != nil {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
+
+	printfRelease("API is now available, module loading completed in %.3f seconds\n", time.Since(loadStartTime).Seconds())
+	go func() {
+		errChan <- errors.Compose(<-errChanCS, <-errChanRenter)
+		close(errChan)
+	}()
 
 	return &Node{
 		ConsensusSet:    cs,

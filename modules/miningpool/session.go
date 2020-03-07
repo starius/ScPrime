@@ -133,7 +133,7 @@ func (s *Session) getJob(jobID uint64, nonce string) (*Job, error) {
 		}
 	}
 
-	return nil, nil // for stale/unkonwn job response
+	return nil, nil // for stale/unknonwn job response
 }
 
 func (s *Session) clearJobs() {

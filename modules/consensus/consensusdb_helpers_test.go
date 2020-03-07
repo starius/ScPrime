@@ -4,7 +4,7 @@ package consensus
 // compatibility with the test suite.
 
 import (
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/SiaPrime/SiaPrime/encoding"
 	"gitlab.com/SiaPrime/SiaPrime/types"

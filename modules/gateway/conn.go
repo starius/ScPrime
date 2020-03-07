@@ -6,6 +6,8 @@ import (
 
 	"gitlab.com/SiaPrime/SiaPrime/build"
 	"gitlab.com/SiaPrime/SiaPrime/modules"
+
+	"gitlab.com/NebulousLabs/monitor"
 )
 
 // peerConn is a simple type that implements the modules.PeerConn interface.
@@ -48,5 +50,8 @@ func (g *Gateway) staticDial(addr modules.NetAddress) (net.Conn, error) {
 		return nil, err
 	}
 	conn.SetDeadline(time.Now().Add(connStdDeadline))
+
+	// Monitor the conn bandwidth
+	conn = connmonitor.NewMonitoredConn(conn, g.m)
 	return conn, nil
 }
