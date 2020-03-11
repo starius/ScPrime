@@ -31,8 +31,8 @@ require (
 	gitlab.com/NebulousLabs/monitor v0.0.0-20191205095550-2b0fd3e1012a
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20191111145210-66b93e150b27
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20180716154133-88a11db9e46c
-	gitlab.com/scpcorp/siamux v0.0.0-20200305150916-556cdafa0158
-	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200303151758-be2de949f80c
+	gitlab.com/scpcorp/siamux v0.0.0-20200311132905-d9e44bda336f
+	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200311132821-9a59657fecfa
 	go.etcd.io/bbolt v1.3.3
 	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
