@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
-	siaPersist "gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	siaPersist "gitlab.com/scpcorp/ScPrime/persist"
 )
 
 const (

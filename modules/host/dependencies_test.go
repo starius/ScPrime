@@ -3,7 +3,7 @@ package host
 import (
 	"net"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 type (

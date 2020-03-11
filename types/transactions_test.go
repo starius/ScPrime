@@ -3,7 +3,7 @@ package types
 import (
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/crypto"
 )
 
 // TestTransactionIDs probes all of the ID functions of the Transaction type.

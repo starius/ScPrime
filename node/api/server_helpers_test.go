@@ -16,22 +16,22 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/threadgroup"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/config"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
-	"gitlab.com/SiaPrime/SiaPrime/modules/explorer"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
-	"gitlab.com/SiaPrime/SiaPrime/modules/host"
-	"gitlab.com/SiaPrime/SiaPrime/modules/index"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miningpool"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
-	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
-	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/config"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/consensus"
+	"gitlab.com/scpcorp/ScPrime/modules/explorer"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/modules/host"
+	"gitlab.com/scpcorp/ScPrime/modules/index"
+	"gitlab.com/scpcorp/ScPrime/modules/miner"
+	"gitlab.com/scpcorp/ScPrime/modules/miningpool"
+	"gitlab.com/scpcorp/ScPrime/modules/renter"
+	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
+	"gitlab.com/scpcorp/ScPrime/modules/wallet"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // A Server is a collection of siad modules that can be communicated with over
@@ -158,6 +158,12 @@ func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, 
 		panic("assembleServerTester called during short tests")
 	}
 
+	// Create the siamux
+	mux, err := modules.NewSiaMux(testdir, "localhost:0")
+	if err != nil {
+		return nil, err
+	}
+
 	// Create the modules.
 	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
@@ -193,11 +199,11 @@ func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, 
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.New(cs, g, tp, w, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := host.New(cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
 	if err != nil {
 		return nil, err
 	}
-	r, errChan := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
+	r, errChan := renter.New(g, cs, w, tp, mux, filepath.Join(testdir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
@@ -242,6 +248,12 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 		panic("assembleServerTester called during short tests")
 	}
 
+	// Create the siamux.
+	mux, err := modules.NewSiaMux(testdir, "localhost:0")
+	if err != nil {
+		return nil, err
+	}
+
 	// Create the modules.
 	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
@@ -277,11 +289,11 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.New(cs, g, tp, w, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := host.New(cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
 	if err != nil {
 		return nil, err
 	}
-	r, errChan := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
+	r, errChan := renter.New(g, cs, w, tp, mux, filepath.Join(testdir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		return nil, err
 	}

@@ -1,4 +1,4 @@
-// +build !windows,!solaris
+// +build linux darwin
 
 package renter
 
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"

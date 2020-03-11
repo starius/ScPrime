@@ -3,8 +3,8 @@ package host
 import (
 	"net"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 // managedLearnHostname discovers the external IP of the Host. If the host's

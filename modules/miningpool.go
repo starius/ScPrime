@@ -3,7 +3,7 @@ package modules
 import (
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (

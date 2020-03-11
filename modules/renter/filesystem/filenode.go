@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -112,6 +112,7 @@ func (n *FileNode) managedFileInfo(siaPath modules.SiaPath, offline map[string]b
 		Recoverable:      onDisk || redundancy >= 1,
 		Redundancy:       redundancy,
 		Renewing:         true,
+		Skylinks:         n.Metadata().Skylinks,
 		SiaPath:          siaPath,
 		Stuck:            numStuckChunks > 0,
 		StuckHealth:      stuckHealth,
@@ -194,6 +195,7 @@ func (n *FileNode) staticCachedInfo(siaPath modules.SiaPath) (modules.FileInfo, 
 		Recoverable:      onDisk || md.CachedUserRedundancy >= 1,
 		Redundancy:       md.CachedUserRedundancy,
 		Renewing:         true,
+		Skylinks:         md.Skylinks,
 		SiaPath:          siaPath,
 		Stuck:            md.NumStuckChunks > 0,
 		StuckHealth:      md.CachedStuckHealth,

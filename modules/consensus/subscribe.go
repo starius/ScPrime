@@ -4,9 +4,9 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
 
 	bolt "go.etcd.io/bbolt"
 )

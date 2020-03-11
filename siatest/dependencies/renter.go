@@ -3,7 +3,7 @@ package dependencies
 import (
 	"sync"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 // DependencyDisableCloseUploadEntry prevents SiaFileEntries in the upload code
@@ -38,6 +38,16 @@ type DependencyFailUploadStreamFromReader struct {
 // Disrupt prevents SiafileEntries in the upload code from being closed.
 func (d *DependencyFailUploadStreamFromReader) Disrupt(s string) bool {
 	return s == "failUploadStreamFromReader"
+}
+
+// DependencyDisableUploadGougingCheck ignores the upload gouging check
+type DependencyDisableUploadGougingCheck struct {
+	modules.ProductionDependencies
+}
+
+// Disrupt will prevent the uploads to fail due to upload gouging
+func (d *DependencyDisableUploadGougingCheck) Disrupt(s string) bool {
+	return s == "DisableUploadGouging"
 }
 
 // DependencyToggleWatchdogBroadcast can toggle the watchdog's ability to

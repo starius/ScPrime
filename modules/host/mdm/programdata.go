@@ -8,8 +8,8 @@ import (
 	"sort"
 	"sync"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
 )
 
 // programData is a buffer for the program data. It will read packets from r and
@@ -181,6 +181,11 @@ func (pd *programData) Hash(offset uint64) (crypto.Hash, error) {
 	var h crypto.Hash
 	copy(h[:], d)
 	return h, nil
+}
+
+// Bytes returns 'length' bytes from offset 'offset' from the programData.
+func (pd *programData) Bytes(offset, length uint64) ([]byte, error) {
+	return pd.managedBytes(offset, length)
 }
 
 // Len returns the length of the program data.

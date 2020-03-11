@@ -4,9 +4,9 @@ import (
 	"sort"
 	"sync"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
@@ -421,16 +421,12 @@ func (ht *HostTree) insert(hdbe modules.HostDBEntry) error {
 // filtering by IP address. If enabled HostTree does not select more than
 // specified number of hosts from a single IP or the same subnet.
 func (ht *HostTree) SetIPRestriction(numhosts int) {
-	ht.mu.Lock()
 	ht.iprestriction = numhosts
-	ht.mu.Unlock()
 }
 
 // IPRestriction tells if the IP filtering (Same subnet IP) is enabled or not
 // returns 0 if disabled or the number of allowed hosts from the same IP address
 // subnet.
 func (ht *HostTree) IPRestriction() int {
-	ht.mu.Lock()
-	defer ht.mu.Unlock()
 	return ht.iprestriction
 }

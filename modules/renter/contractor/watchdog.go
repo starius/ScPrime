@@ -6,9 +6,9 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // Key Assumptions:
@@ -228,7 +228,13 @@ func (w *watchdog) sendTxnSet(txnSet []types.Transaction, reason string) {
 	// Send the transaction set in a go-routine to avoid deadlock when this
 	// sendTxnSet is called within ProcessConsensusChange.
 	go func() {
-		err := w.tpool.AcceptTransactionSet(txnSet)
+		err := w.contractor.tg.Add()
+		if err != nil {
+			return
+		}
+		defer w.contractor.tg.Done()
+
+		err = w.tpool.AcceptTransactionSet(txnSet)
 		if err != nil && err != modules.ErrDuplicateTransactionSet {
 			w.contractor.log.Println("watchdog send transaction error: "+reason, err)
 		}

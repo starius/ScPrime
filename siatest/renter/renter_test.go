@@ -19,19 +19,19 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/host/contractmanager"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
-	"gitlab.com/SiaPrime/SiaPrime/siatest/dependencies"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/host/contractmanager"
+	"gitlab.com/scpcorp/ScPrime/modules/renter"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // test is a helper struct for running subtests when tests can use the same test
@@ -683,13 +683,66 @@ func testDirectories(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal("Expected IsNotExist err, but got err:", err)
 	}
 
+	// create a file to test file deletion
+	lf1, err := ld.NewFile(size)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rf1, err := r.UploadBlocking(lf1, dataPieces, parityPieces, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Test deleting a file by its relative path
+	err = r.RenterFileDeletePost(rf1.SiaPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Test deleting directory
 	if err = r.RenterDirDeletePost(rd.SiaPath()); err != nil {
 		t.Fatal(err)
 	}
 
+	// Create a new set of remote files and dirs, so we can test deleting with a
+	// root path
+	rd2, err := r.UploadNewDirectory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ld2, err := fd.CreateDir("subDir1a/subDir2a/subDir3a-" + persist.RandomSuffix())
+	if err != nil {
+		t.Fatal(err)
+	}
+	lf2, err := ld2.NewFile(size)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rf2, err := r.UploadBlocking(lf2, dataPieces, parityPieces, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Test deleting a file by its root path
+	rf2RootPath, err := modules.NewSiaPath("/home/user/" + rf2.SiaPath().Path)
+	err = r.RenterFileDeleteRootPost(rf2RootPath)
+	if err != nil {
+		t.Fatal(fmt.Errorf(err.Error() + " => " + rf2RootPath.Path))
+	}
+
+	// Test deleting directory by its root path
+	rd2RootPath, err := modules.NewSiaPath("/home/user/" + rd2.SiaPath().Path)
+	if err = r.RenterDirDeleteRootPost(rd2RootPath); err != nil {
+		t.Fatal(fmt.Errorf(err.Error() + " => " + rd2RootPath.Path))
+	}
+
 	// Check that siadir was deleted from disk
 	_, err = os.Stat(rd.SiaPath().SiaDirSysPath(r.RenterFilesDir()))
+	if !os.IsNotExist(err) {
+		t.Fatal("Expected IsNotExist err, but got err:", err)
+	}
+	// Check that siadir was deleted from disk by root path
+	_, err = os.Stat(rd2.SiaPath().SiaDirSysPath(r.RenterFilesDir()))
 	if !os.IsNotExist(err) {
 		t.Fatal("Expected IsNotExist err, but got err:", err)
 	}
@@ -2542,7 +2595,7 @@ func TestRenterFailingStandbyDownload(t *testing.T) {
 	// File should be at redundancy of 1.5
 	files, err := r.RenterFilesGet(false)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Failed to create group:", err)
 	}
 	if files.Files[0].Redundancy != 1.5 {
 		t.Fatal("Expected filed redundancy to be 1.5 but was", files.Files[0].Redundancy)
@@ -2591,7 +2644,7 @@ func TestRenterFailingStandbyDownload(t *testing.T) {
 		return errors.New("Contract not formed with new host")
 	})
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Failed to add renter:", err)
 	}
 
 	// Since there is another host, another contract should form and the

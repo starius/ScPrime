@@ -1,38 +1,66 @@
 ---
+<<<<<<< HEAD
 title: ScPrime API Documentation
+=======
+title: Sia API Documentation
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 
 language_tabs: # must be one of https://git.io/vQNgJ
   - go
 
 toc_footers:
+<<<<<<< HEAD
   - <a href='https://scpri.me'>The Official ScPrime Website
-  - <a href='https://gitlab.com/SiaPrime/SiaPrime'>ScPrime on GitLab</a>
+  - <a href='https://gitlab.com/scpcorp/ScPrime'>ScPrime on GitLab</a>
+=======
+  - <a href='https://sia.tech'>The Official Sia Website
+  - <a href='https://gitlab.com/NebulousLabs/Sia'>Sia on GitLab</a>
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 
 search: true
 ---
 
 # Introduction
 
+<<<<<<< HEAD
 ## Welcome to the ScPrime Storage Platform API!
 > Example GET curl call 
 
 ```go
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/transactions?startheight=1&endheight=250"
+=======
+## Welcome to the Sia Storage Platform API!
+> Example GET curl call 
+
+```go
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/transactions?startheight=1&endheight=250"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 > Example POST curl call with data
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "amount=123&destination=abcd" "localhost:4280/wallet/siacoins"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "amount=123&destination=abcd" "localhost:9980/wallet/siacoins"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 > Example POST curl call without data or authentication
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -X POST "localhost:4280/gateway/connect/123.456.789.0:4281"
 ```
 
 ScPrime uses semantic versioning and is backwards compatible to version v1.0.0.
+=======
+curl -A "Sia-Agent" -X POST "localhost:9980/gateway/connect/123.456.789.0:9981"
+```
+
+Sia uses semantic versioning and is backwards compatible to version v1.0.0.
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 
 API calls return either JSON or no content. Success is indicated by 2xx HTTP
 status codes, while errors are indicated by 4xx and 5xx HTTP status codes. If an
@@ -46,8 +74,13 @@ production.
 **Notes:**
 
 - Requests must set their User-Agent string to contain the substring
+<<<<<<< HEAD
   "SiaPrime-Agent".
 - By default, siad listens on "localhost:4280". This can be changed using the
+=======
+  "Sia-Agent".
+- By default, siad listens on "localhost:9980". This can be changed using the
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
   `--api-addr` flag when running siad.
 - **Do not bind or expose the API to a non-loopback address unless you are aware
   of the possible dangers.**
@@ -69,7 +102,11 @@ The following details the documentation standards for the API endpoints.
 
 Contributors should follow these standards when submitting updates to the API
 documentation.  If you find API endpoints that do not adhere to these
+<<<<<<< HEAD
 documentation standards please let the ScPrime team know by submitting an issue
+=======
+documentation standards please let the Sia team know by submitting an issue
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 [here](https://gitlab.com/NebulousLabs/Sia/issues)
 
 # Standard Responses
@@ -97,15 +134,24 @@ The standard error response indicating the request failed for any reason, is a
 > Example POST curl call with Authentication
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" --user "":<apipassword> --data "amount=123&destination=abcd" "localhost:4280/wallet/siacoins"
+=======
+curl -A "Sia-Agent" --user "":<apipassword> --data "amount=123&destination=abcd" "localhost:9980/wallet/siacoins"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 API authentication is enabled by default, using a password stored in a flat
 file. The location of this file is:
 
  - Linux:   `$HOME/.sia/apipassword`
+<<<<<<< HEAD
  - MacOS:   `$HOME/Library/Application Support/ScPrime/apipassword`
  - Windows: `%LOCALAPPDATA%\ScPrime\apipassword`
+=======
+ - MacOS:   `$HOME/Library/Application Support/Sia/apipassword`
+ - Windows: `%LOCALAPPDATA%\Sia\apipassword`
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 
 
 Note that the file contains a trailing newline, which must be trimmed before
@@ -134,7 +180,11 @@ to siad.
 
 Unless otherwise noted, all parameters should be identified in their smallest
 possible unit. For example, size should always be specified in bytes and
+<<<<<<< HEAD
 ScPrimecoins should always be specified in hastings. JSON values returned by the API
+=======
+Siacoins should always be specified in hastings. JSON values returned by the API
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 will also use the smallest possible unit, unless otherwise noted.
 
 If a number is returned as a string in JSON, it should be treated as an
@@ -152,7 +202,11 @@ endpoint returns information about the state of the blockchain.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/consensus"
+=======
+curl -A "Sia-Agent" "localhost:9980/consensus"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns information about the consensus set, such as the current block height.
@@ -179,8 +233,13 @@ Also returns the set of constants in use in the consensus code.
   "siafundcount":           "10000",    // siafund
   "siafundportion":         "39/1000",  // fraction
 
+<<<<<<< HEAD
   "initialcoinbase": 300000, // ScPrimecoins (see note in Daemon.md)
   "minimumcoinbase": 30000,  // ScPrimecoins (see note in Daemon.md)
+=======
+  "initialcoinbase": 300000, // Siacoins (see note in Daemon.md)
+  "minimumcoinbase": 30000,  // Siacoins (see note in Daemon.md)
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 
   "roottarget": [0,0,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // hash
   "rootdepth":  [255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255],  // hash
@@ -259,10 +318,17 @@ Number of Hastings in one Siacoin.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/consensus/blocks?height=20032"
 ```
 ```go
 curl -A "SiaPrime-Agent" "localhost:4280/consensus/blocks?id=00000000000033b9eb57fa63a51adeea857e70f6415ebbfe5df2a01f0d0477f4"
+=======
+curl -A "Sia-Agent" "localhost:9980/consensus/blocks?height=20032"
+```
+```go
+curl -A "Sia-Agent" "localhost:9980/consensus/blocks?id=00000000000033b9eb57fa63a51adeea857e70f6415ebbfe5df2a01f0d0477f4"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns the block for a given id or height.
@@ -384,7 +450,11 @@ Transactions contained within the block
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" --data "[JSON-encoded-txnset]" "localhost:4280/validate/transactionset"
+=======
+curl -A "Sia-Agent" --data "[JSON-encoded-txnset]" "localhost:9980/validate/transactionset"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 validates a set of transactions using the current utxo set.
@@ -408,7 +478,11 @@ the rest of Sia.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/daemon/alerts"
+=======
+curl -A "Sia-Agent" "localhost:9980/daemon/alerts"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns the alerts of the Sia instance.
@@ -446,7 +520,11 @@ that are about to expire due to that.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/constants"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/daemon/constants"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns the some of the constants that the Sia daemon uses. 
@@ -585,7 +663,11 @@ very large number of base units. We call 10^24 of these a siacoin.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/settings"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/daemon/settings"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 Returns the settings for the daemon
 
@@ -611,7 +693,11 @@ set.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "maxdownloadspeed=1000000&maxuploadspeed=20000" "localhost:4280/daemon/settings"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "maxdownloadspeed=1000000&maxuploadspeed=20000" "localhost:9980/daemon/settings"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Modify settings that control the daemon's behavior.
@@ -632,7 +718,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/stop"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/daemon/stop"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Cleanly shuts down the daemon. This may take a few seconds.
@@ -645,7 +735,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/update"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/daemon/update"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 Returns the the status of any updates available for the daemon
 
@@ -669,7 +763,11 @@ Version is the version of the latest release.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/update"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/daemon/update"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 Updates the daemon to the latest available version release.
 
@@ -681,7 +779,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/version"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/daemon/version"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns the version of the Sia daemon currently running. 
@@ -709,7 +811,11 @@ peers on its own.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/gateway"
+=======
+curl -A "Sia-Agent" "localhost:9980/gateway"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 returns information about the gateway, including the list of connected peers.
@@ -719,12 +825,20 @@ returns information about the gateway, including the list of connected peers.
  
 ```go
 {
+<<<<<<< HEAD
     "netaddress":"333.333.333.333:4281",  // string
+=======
+    "netaddress":"333.333.333.333:9981",  // string
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
     "peers":[
         {
             "inbound":    false,                   // boolean
             "local":      false,                   // boolean
+<<<<<<< HEAD
             "netaddress": "222.222.222.222:4281",  // string
+=======
+            "netaddress": "222.222.222.222:9981",  // string
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
             "version":    "1.0.0",                 // string
         },
     ],
@@ -771,7 +885,11 @@ Max upload speed permitted in bytes per second
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "maxdownloadspeed=1000000&maxuploadspeed=20000" "localhost:4280/gateway"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "maxdownloadspeed=1000000&maxuploadspeed=20000" "localhost:9980/gateway"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Modify settings that control the gateway's behavior.
@@ -792,7 +910,11 @@ responses](#standard-responses).
 ## /gateway/bandwidth [GET]
 > curl example
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/gateway/bandwidth"
+=======
+curl -A "Sia-Agent" "localhost:9980/gateway/bandwidth"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 returns the total upload and download bandwidth usage for the gateway
@@ -822,7 +944,11 @@ bandwidth is not currently persisted this will be startup timestamp.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -X POST "localhost:4280/gateway/connect/123.456.789.0:4281"
+=======
+curl -A "Sia-Agent" -X POST "localhost:9980/gateway/connect/123.456.789.0:9981"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 connects the gateway to a peer. The peer is added to the node list if it is not
@@ -847,7 +973,11 @@ responses](#Standard-Responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/gateway/disconnect/123.456.789.0:4281"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/gateway/disconnect/123.456.789.0:9981"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 disconnects the gateway from a peer. The peer remains in the node list.
@@ -872,7 +1002,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/gateway/blacklist"
+=======
+curl -A "Sia-Agent" "localhost:9980/gateway/blacklist"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 fetches the list of blacklisted addresses.
@@ -896,10 +1030,17 @@ blacklist is a list of blacklisted address
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data '{"action":"append","addresses":["123.123.123.123","123.123.123.123","123.123.123.123"]}' "localhost:4280/gateway/blacklist"
 ```
 ```go
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data '{"action":"set","addresses":[]}' "localhost:4280/gateway/blacklist"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data '{"action":"append","addresses":["123.123.123.123","123.123.123.123","123.123.123.123"]}' "localhost:9980/gateway/blacklist"
+```
+```go
+curl -A "Sia-Agent" -u "":<apipassword> --data '{"action":"set","addresses":[]}' "localhost:9980/gateway/blacklist"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 performs actions on the Gateway's blacklist. There are three `actions` that can
@@ -935,7 +1076,11 @@ announcing to the network, and managing how files are stored on disk.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/host"
+=======
+curl -A "Sia-Agent" "localhost:9980/host"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 fetches status information about the host.
@@ -1006,6 +1151,13 @@ fetches status information about the host.
     "minsectoraccessprice":      "123",                        //hastings
     "minstorageprice":           "231481481481",               // hastings / byte / block
     "minuploadbandwidthprice":   "100000000000000"             // hastings / byte
+<<<<<<< HEAD
+=======
+
+    "ephemeralaccountexpiry":     "604800",                          // seconds
+    "maxephemeralaccountbalance": "2000000000000000000000000000000", // hastings
+    "maxephemeralaccountrisk":    "2000000000000000000000000000000", // hastings
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
   },
 
   "networkmetrics": {
@@ -1266,6 +1418,42 @@ The minimum price that the host will demand from a renter when the renter is
 uploading data. If the host is saturated, the host may increase the price from
 the minimum.  
 
+<<<<<<< HEAD
+=======
+**ephemeralaccountexpiry** | seconds  
+The  maximum amount of time an ephemeral account can be inactive before it is
+considered to be expired and gets deleted. After an account has expired, the
+account owner has no way of retrieving the funds. Setting this value to 0 means
+ephemeral accounts never expire, regardless of how long they have been inactive.
+
+**maxephemeralaccountbalance** | hastings  
+The maximum amount of money that the host will allow a user to deposit into a
+single ephemeral account.
+
+**maxephemeralaccountrisk** | hastings  
+To increase performance, the host will allow a user to withdraw from an
+ephemeral account without requiring the user to wait until the host has
+persisted the updated ephemeral account balance to complete a transaction. This
+means that the user can perform actions such as downloads with significantly
+less latency. This also means that if the host loses power at that exact moment,
+the host will forget that the user has spent money and the user will be able to
+spend that money again.
+
+maxephemeralaccountrisk is the maximum amount of money that the host is willing
+to risk to a system failure. The account manager will keep track of the total
+amount of money that has been withdrawn, but has not yet been persisted to disk.
+If a user's withdrawal would put the host over the maxephemeralaccountrisk, the
+host will wait to complete the user's transaction until it has persisted the
+widthdrawal, to prevent the host from having too much money at risk.
+
+Note that money is only at risk if the host experiences an unclean shutdown
+while in the middle of a transaction with a user, and generally the amount at
+risk will be minuscule unless the host experiences an unclean shutdown while in
+the middle of many transactions with many users at once. This value should be
+larger than maxephemeralaccountbalance but does not need to be significantly
+larger.
+
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 **networkmetrics**    
 Information about the network, specifically various ways in which renters have
 contacted the host.  
@@ -1304,16 +1492,56 @@ and indicates if the host can connect to itself on its configured NetAddress.
 
 **workingstatus** | string  
 workingstatus is one of "checking", "working", or "not working" and indicates if
+<<<<<<< HEAD
 the host is being actively used by renters.  
 
 **publickey** | SiaPublicKey  
 Public key used to identify the host.  
+=======
+the host is being actively used by renters.
+
+**publickey** | SiaPublicKey  
+Public key used to identify the host.
+
+## /host/bandwidth [GET]
+> curl example
+```go
+curl -A "Sia-Agent" "localhost:9980/host/bandwidth"
+```
+
+returns the total upload and download bandwidth usage for the host
+
+### JSON Response
+```go
+{
+  "download":  12345                                  // bytes
+  "upload":    12345                                  // bytes
+  "starttime": "2018-09-23T08:00:00.000000000+04:00", // Unix timestamp
+}
+```
+
+**download** | bytes  
+the total number of bytes that have been sent from the host to renters since the
+starttime.
+
+**upload** | bytes  
+the total number of bytes that have been received by the host from renters since the
+starttime.
+
+**starttime** | Unix timestamp  
+the time at which the host started monitoring the bandwidth, since the
+bandwidth is not currently persisted this will be startup timestamp.
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 
 ## /host [POST]
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host?acceptingcontracts=true&maxduration=12096&windowsize=1008"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/host?acceptingcontracts=true&maxduration=12096&windowsize=1008"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Configures hosting parameters. All parameters are optional; unspecified
@@ -1404,6 +1632,36 @@ The minimum price that the host will demand from a renter when the renter is
 uploading data. If the host is saturated, the host may increase the price from
 the minimum.  
 
+<<<<<<< HEAD
+=======
+**maxephemeralaccountbalance** | hastings  
+The maximum amount of money that the host will allow a user to deposit into a
+single ephemeral account.
+
+**maxephemeralaccountrisk** | hastings  
+To increase performance, the host will allow a user to withdraw from an
+ephemeral account without requiring the user to wait until the host has
+persisted the updated ephemeral account balance to complete a transaction. This
+means that the user can perform actions such as downloads with significantly
+less latency. This also means that if the host loses power at that exact moment,
+the host will forget that the user has spent money and the user will be able to
+spend that money again.
+
+maxephemeralaccountrisk is the maximum amount of money that the host is willing
+to risk to a system failure. The account manager will keep track of the total
+amount of money that has been withdrawn, but has not yet been persisted to disk.
+If a user's withdrawal would put the host over the maxephemeralaccountrisk, the
+host will wait to complete the user's transaction until it has persisted the
+widthdrawal, to prevent the host from having too much money at risk.
+
+Note that money is only at risk if the host experiences an
+unclean shutdown while in the middle of a transaction with a user, and generally
+the amount at risk will be minuscule unless the host experiences an unclean
+shutdown while in the middle of many transactions with many users at once. This
+value should be larger than 'maxephemeralaccountbalance but does not need to be
+significantly larger.
+
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ### Response
 
 standard success or error response. See [standard
@@ -1413,12 +1671,20 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host/announce"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/host/announce"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 > curl example with a custom netaddress
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host/announce?netaddress=siahost.example.net"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/host/announce?netaddress=siahost.example.net"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Announce the host to the network as a source of storage. Generally only needs to
@@ -1443,7 +1709,11 @@ responses](#Standard-Responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/host/contracts"
+=======
+curl -A "Sia-Agent" "localhost:9980/host/contracts"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 
@@ -1559,7 +1829,11 @@ constructed for this storage obligation.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/host/storage"
+=======
+curl -A "Sia-Agent" "localhost:9980/host/storage"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Gets a list of folders tracked by the host's storage manager.
@@ -1607,7 +1881,11 @@ Number of successful read & write operations.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "path=foo/bar&size=1000000000000" "localhost:4280/host/storage/folders/add"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "path=foo/bar&size=1000000000000" "localhost:9980/host/storage/folders/add"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 adds a storage folder to the manager. The manager may not check that there is
@@ -1636,7 +1914,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "path=foo/bar&force=false" "localhost:4280/host/storage/folders/remove"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "path=foo/bar&force=false" "localhost:9980/host/storage/folders/remove"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Remove a storage folder from the manager. All storage on the folder will be
@@ -1665,7 +1947,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "path=foo/bar&newsize=1000000000000" "localhost:4280/host/storage/folders/resize"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "path=foo/bar&newsize=1000000000000" "localhost:9980/host/storage/folders/resize"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Grows or shrinks a storage file in the manager. The manager may not check that
@@ -1696,7 +1982,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host/storage/sectors/delete/[merkleroot]"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/host/storage/sectors/delete/[merkleroot]"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Deletes a sector, meaning that the manager will be unable to upload that sector
@@ -1719,7 +2009,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/host/estimatescore"
+=======
+curl -A "Sia-Agent" "localhost:9980/host/estimatescore"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns the estimated HostDB score of the host using its current settings,
@@ -1740,7 +2034,14 @@ See [host internal settings](#internalsettings)
  - mincontractprice          
  - mindownloadbandwidthprice  
  - minstorageprice            
+<<<<<<< HEAD
  - minuploadbandwidthprice    
+=======
+ - minuploadbandwidthprice
+ - ephemeralaccountexpiry    
+ - maxephemeralaccountbalance
+ - maxephemeralaccountrisk
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 
 ### JSON Response
 > JSON Response Example
@@ -1768,7 +2069,11 @@ identifies hosts by their public key and keeps track of metrics such as price.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/hostdb"
+=======
+curl -A "Sia-Agent" "localhost:9980/hostdb"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Shows some general information about the state of the hostdb.
@@ -1788,7 +2093,11 @@ indicates if all known hosts have been scanned at least once.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/hostdb/active"
+=======
+curl -A "Sia-Agent" "localhost:9980/hostdb/active"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 lists all of the active hosts known to the renter, sorted by preference.
@@ -1998,7 +2307,11 @@ Indicates if the host is currently being filtered from the HostDB
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/hostdb/all"
+=======
+curl -A "Sia-Agent" "localhost:9980/hostdb/all"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Lists all of the hosts known to the renter. Hosts are not guaranteed to be in
@@ -2011,7 +2324,11 @@ Response is the same as [`/hostdb/active`](#hosts)
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/hostdb/hosts/ed25519:8a95848bc71e9689e2f753c82c35dc47a1d62867f77c0113ebb6fa5b51723215"
+=======
+curl -A "Sia-Agent" "localhost:9980/hostdb/hosts/ed25519:8a95848bc71e9689e2f753c82c35dc47a1d62867f77c0113ebb6fa5b51723215"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 fetches detailed information about a particular host, including metrics
@@ -2024,7 +2341,11 @@ overall.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/hostdb/hosts/<pubkey>"
+=======
+curl -A "Sia-Agent" "localhost:9980/hostdb/hosts/<pubkey>"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 ### REQUIRED
 **pubkey**  
@@ -2127,7 +2448,11 @@ always the one with the highest score.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" --user "":<apipassword> "localhost:4280/hostdb/filtermode"
+=======
+curl -A "Sia-Agent" --user "":<apipassword> "localhost:9980/hostdb/filtermode"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```  
 Returns the current filter mode of the hostDB and any filtered hosts.
 
@@ -2154,10 +2479,17 @@ Comma separated pubkeys.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" --user "":<apipassword> --data '{"filtermode" : "whitelist","hosts" : ["ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"]}' "localhost:4280/hostdb/filtermode"
 ```  
 ```go
 curl -A "SiaPrime-Agent" --user "":<apipassword> --data '{"filtermode" : "disable"}' "localhost:4280/hostdb/filtermode"
+=======
+curl -A "Sia-Agent" --user "":<apipassword> --data '{"filtermode" : "whitelist","hosts" : ["ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"]}' "localhost:9980/hostdb/filtermode"
+```  
+```go
+curl -A "Sia-Agent" --user "":<apipassword> --data '{"filtermode" : "disable"}' "localhost:9980/hostdb/filtermode"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 Lets you enable and disable a filter mode for the hostdb. Currently the two
 modes supported are `blacklist` mode and `whitelist` mode. In `blacklist` mode,
@@ -2203,7 +2535,11 @@ basic CPU mining implementation.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/miner"
+=======
+curl -A "Sia-Agent" "localhost:9980/miner"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 returns the status of the miner.
 
@@ -2237,7 +2573,11 @@ had its chain extended first.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/miner/start"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/miner/start"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Starts a single threaded CPU miner. Does nothing if the CPU miner is already
@@ -2252,7 +2592,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/miner/stop"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/miner/stop"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 stops the cpu miner. Does nothing if the cpu miner is not running.
@@ -2266,7 +2610,11 @@ responses](#standard-responses).
 > curl example  
 
 ```
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -data "<byte-encoded-block>" -u "":<apipassword> "localhost:4280/miner/block"
+=======
+curl -A "Sia-Agent" -data "<byte-encoded-block>" -u "":<apipassword> "localhost:9980/miner/block"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Submits a solved block and broadcasts it.
@@ -2286,7 +2634,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/miner/header"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/miner/header"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 provides a block header that is ready to be grinded on for work.
@@ -2323,7 +2675,11 @@ merkle root | [80-112) | [48-80)
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -data "<byte-encoded-header>" -u "":<apipassword> "localhost:4280/miner"
+=======
+curl -A "Sia-Agent" -data "<byte-encoded-header>" -u "":<apipassword> "localhost:9980/miner"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 submits a header that has passed the POW.
@@ -2368,7 +2724,11 @@ allocated funds.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/renter"
+=======
+curl -A "Sia-Agent" "localhost:9980/renter"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns the current settings along with metrics on the renter's spending.
@@ -2441,7 +2801,11 @@ period is over, the contracts will be renewed and the spending will be reset.
 
 **renewwindow** | blocks  
 The renew window is how long the user has to renew their contracts. At the end
+<<<<<<< HEAD
 of the period, all of the contracts expire. The contracts need to be renewewd
+=======
+of the period, all of the contracts expire. The contracts need to be renewed
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 before they expire, otherwise the user will lose all of their files. The renew
 window is the window of time at the end of the period during which the renter
 will renew the users contracts. For example, if the renew window is 1 week long,
@@ -2564,7 +2928,11 @@ The time at which the pause will end.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "period=12096&renewwindow=4032&funds=1000&hosts=50" "localhost:4280/renter"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "period=12096&renewwindow=4032&funds=1000&hosts=50" "localhost:9980/renter"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Modify settings that control the renter's behavior.
@@ -2593,7 +2961,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword>  "localhost:4280/renter/allowance/cancel"
+=======
+curl -A "Sia-Agent" -u "":<apipassword>  "localhost:9980/renter/allowance/cancel"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Cancel the Renter's allowance.
@@ -2607,7 +2979,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "id=bd7ef21b13fb85eda933a9ff2874ec50a1ffb4299e98210bf0dd343ae1632f80" "localhost:4280/renter/contract/cancel"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "id=bd7ef21b13fb85eda933a9ff2874ec50a1ffb4299e98210bf0dd343ae1632f80" "localhost:9980/renter/contract/cancel"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 cancels a specific contract of the Renter.
@@ -2626,7 +3002,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "destination=/home/backups/01-01-1968.backup" "localhost:4280/renter/backup"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "destination=/home/backups/01-01-1968.backup" "localhost:9980/renter/backup"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Creates a backup of all siafiles in the renter at the specified path.
@@ -2650,7 +3030,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "source=/home/backups/01-01-1968.backup" "localhost:4280/renter/recoverbackup"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "source=/home/backups/01-01-1968.backup" "localhost:9980/renter/recoverbackup"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Recovers an existing backup from the specified path by adding all the siafiles
@@ -2677,7 +3061,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploadedbackups"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/uploadedbackups"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Lists the backups that have been uploaded to hosts.
@@ -2710,7 +3098,11 @@ Unix timestamp of when the backup was created.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/renter/contracts?disabled=true&expired=true&recoverable=false"
+=======
+curl -A "Sia-Agent" "localhost:9980/renter/contracts?disabled=true&expired=true&recoverable=false"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns the renter's contracts. Active, passive, and refreshed contracts are
@@ -2860,7 +3252,11 @@ acknowldege that the contract exists.
 > curl example
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/renter/contractstatus?id=<filecontractid>"
+=======
+curl -A "Sia-Agent" "localhost:9980/renter/contractstatus?id=<filecontractid>"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 ### Query String Parameters
@@ -2917,7 +3313,11 @@ The height at which the storage proof window for this contract ends.
 > curl example
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/renter/contractorchurnstatus"
+=======
+curl -A "Sia-Agent" "localhost:9980/renter/contractorchurnstatus"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns the churn status for the renter's contractor.
@@ -2944,7 +3344,11 @@ Maximum allowed aggregate churn per period.
 > curl example
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/setmaxperiodchurn?newmax=123456789"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/setmaxperiodchurn?newmax=123456789"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 sets the new max churn per period.
@@ -2958,17 +3362,28 @@ New maximum churn per period.
 standard success or error response. See [standard responses](#standard-responses).
 
 
+<<<<<<< HEAD
 ## /renter/dir/*siapath [GET]
+=======
+## /renter/dir/*siapath* [GET]
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 > curl example  
 
 > The root siadir path is "" so submitting the API call without an empty siapath
 will return the root siadir information.  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/renter/dir/"
 ```  
 ```go
 curl -A "SiaPrime-Agent" "localhost:4280/renter/dir/mydir"
+=======
+curl -A "Sia-Agent" "localhost:9980/renter/dir/"
+```  
+```go
+curl -A "Sia-Agent" "localhost:9980/renter/dir/mydir"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 retrieves the contents of a directory on the sia network
@@ -3045,11 +3460,19 @@ The path to the directory on the sia network
 
 **files** Same response as [files](#files)
 
+<<<<<<< HEAD
 ## /renter/dir/*siapath [POST]
 > curl example  
 
 ```go
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "action=delete" "localhost:4280/renter/dir/mydir"
+=======
+## /renter/dir/*siapath* [POST]
+> curl example  
+
+```go
+curl -A "Sia-Agent" -u "":<apipassword> --data "action=delete" "localhost:9980/renter/dir/mydir"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 performs various functions on the renter's directories
@@ -3061,6 +3484,14 @@ Location where the directory will reside in the renter on the network. The path
 must be non-empty, may not include any path traversal strings ("./", "../"), and
 may not begin with a forward-slash character.  
 
+<<<<<<< HEAD
+=======
+**root** | bool
+Whether or not to treat the siapath as being relative to the user's home
+directory. If this field is not set, the siapath will be interpreted as
+relative to 'home/user/'.  
+
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ### Query String Parameters
 ### REQUIRED
 **action** | string  
@@ -3084,11 +3515,19 @@ Action can be either `create`, `delete` or `rename`.
 standard success or error response. See [standard
 responses](#standard-responses).
 
+<<<<<<< HEAD
 ## /renter/downloadinfo/*uid [GET]
 > curl example  
 
 ```go
 curl -A "SiaPrime-Agent" "localhost:4280/renter/downloadinfo/9d8dd0d5b306f5bb412230bd12b590ae"
+=======
+## /renter/downloadinfo/*uid* [GET]
+> curl example  
+
+```go
+curl -A "Sia-Agent" "localhost:9980/renter/downloadinfo/9d8dd0d5b306f5bb412230bd12b590ae"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Lists a file in the download history by UID.
@@ -3169,7 +3608,11 @@ well as data from failed piece downloads.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/renter/downloads"
+=======
+curl -A "Sia-Agent" "localhost:9980/renter/downloads"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Lists all files in the download queue.
@@ -3248,7 +3691,11 @@ well as data from failed piece downloads.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/downloads/clear?before=1551398400&after=1552176000"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/renter/downloads/clear?before=1551398400&after=1552176000"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Clears the download history of the renter for a range of unix time stamps.  Both
@@ -3275,7 +3722,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/renter/prices"
+=======
+curl -A "Sia-Agent" "localhost:9980/renter/prices"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Lists the estimated prices of performing various storage and data operations. An
@@ -3327,7 +3778,11 @@ The allowance settings used for the estimation are also returned, see the fields
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/renter/files?cached=false"
+=======
+curl -A "Sia-Agent" "localhost:9980/renter/files?cached=false"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 ### Query String Parameters
@@ -3461,7 +3916,11 @@ progress is 100.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/renter/file/myfile"
+=======
+curl -A "Sia-Agent" "localhost:9980/renter/file/myfile"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Lists the status of specified file.
@@ -3478,7 +3937,11 @@ Same response as [files](#files)
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "trackingpath=/home/myfile" "localhost:4280/renter/file/myfile"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "trackingpath=/home/myfile" "localhost:9980/renter/file/myfile"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 endpoint for changing file metadata.
@@ -3505,7 +3968,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/delete/myfile"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/renter/delete/myfile"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 deletes a renter file entry. Does not delete any downloads or original files,
@@ -3516,6 +3983,15 @@ only the entry in the renter. Will return an error if the target is a folder.
 **siapath** | string  
 Path to the file in the renter on the network.
 
+<<<<<<< HEAD
+=======
+### OPTIONAL
+ **root** | bool
+ Whether or not to treat the siapath as being relative to the user's home
+ directory. If this field is not set, the siapath will be interpreted as
+ relative to 'home/user/'.  
+
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ### Response
 
 standard success or error response. See [standard
@@ -3525,7 +4001,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/download/myfile?httpresp=true"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/download/myfile?httpresp=true"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 downloads a file to the local filesystem. The call will block until the file has
@@ -3573,7 +4053,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/download/cancel?id=<downloadid>"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/download/cancel?id=<downloadid>"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 cancels the download with the given id.
@@ -3592,7 +4076,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/downloadasync/myfile?destination=/home/myfile"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/downloadasync/myfile?destination=/home/myfile"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 downloads a file to the local filesystem. The call will return immediately.
@@ -3616,7 +4104,11 @@ responses](#standard-responses).
 > curl example  
 
 ```bash
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/renter/fuse"
+=======
+curl -A "Sia-Agent" "localhost:9980/renter/fuse"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Lists the set of folders that have been mounted to the user's filesystem and
@@ -3650,7 +4142,11 @@ The siapath that has been mounted to the mountpoint.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/fuse/mount?readonly=true"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/renter/fuse/mount?readonly=true"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Mounts a Sia directory to the local filesystem using FUSE.
@@ -3702,7 +4198,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/fuse/unmount?mount=/home/user/videos"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/renter/fuse/unmount?mount=/home/user/videos"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 ### Query String Parameters
@@ -3719,7 +4219,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/recoveryscan"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/renter/recoveryscan"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 starts a rescan of the whole blockchain to find recoverable contracts. The
@@ -3735,7 +4239,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/renter/recoveryscan"
+=======
+curl -A "Sia-Agent" "localhost:9980/renter/recoveryscan"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns some information about a potentially ongoing recovery scan.
@@ -3760,7 +4268,11 @@ that have already been scanned.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "newsiapath=myfile2" "localhost:4280/renter/rename/myfile"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "newsiapath=myfile2" "localhost:9980/renter/rename/myfile"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 ### Path Parameters
@@ -3781,6 +4293,7 @@ responses](#standard-responses).
 ## /renter/stream/*siapath* [GET]
 > curl example  
 
+<<<<<<< HEAD
 > Stream the whole file.  
 
 ```go
@@ -3791,6 +4304,17 @@ curl -A "SiaPrime-Agent" "localhost:4280/renter/stream/myfile"
 
 ```go
 curl -A "SiaPrime-Agent" -H "Range: bytes=0-1023" "localhost:4280/renter/stream/myfile"
+=======
+```sh
+curl -A "Sia-Agent" "localhost:9980/renter/stream/myfile"
+```  
+
+> The file can be streamed partially by using standard partial http requests
+> which means setting the "Range" field in the http header.  
+
+```sh
+curl -A "Sia-Agent" -H "Range: bytes=0-1023" "localhost:9980/renter/stream/myfile"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 downloads a file using http streaming. This call blocks until the data is
@@ -3822,7 +4346,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "source=/home/myfile" "localhost:4280/renter/upload/myfile"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "source=/home/myfile" "localhost:9980/renter/upload/myfile"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 uploads a file to the network from the local filesystem.
@@ -3859,9 +4387,15 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploadstream/myfile?datapieces=10&paritypieces=20" --data-binary @myfile.dat
 
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploadstream/myfile?repair=true" --data-binary @myfile.dat
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/uploadstream/myfile?datapieces=10&paritypieces=20" --data-binary @myfile.dat
+
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/uploadstream/myfile?repair=true" --data-binary @myfile.dat
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 uploads a file to the network using a stream. If the upload stream POST call
@@ -3900,7 +4434,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/renter/uploadready?datapieces=10&paritypieces=20"
+=======
+curl -A "Sia-Agent" "localhost:9980/renter/uploadready?datapieces=10&paritypieces=20"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns the whether or not the renter is ready for upload.
@@ -3948,7 +4486,11 @@ The number of parity pieces to use when erasure coding the file.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "duration=10m" "localhost:4280/renter/uploads/pause"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "duration=10m" "localhost:9980/renter/uploads/pause"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 This endpoint will pause any future uploads or repairs for the duration
@@ -3974,7 +4516,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploads/resume"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/uploads/resume"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 This endpoint will resume uploads and repairs.
@@ -3987,7 +4533,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/validatesiapath/isthis-aval_idsiapath"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/validatesiapath/isthis-aval_idsiapath"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 validates whether or not the provided siapaht is a valid siapath. SiaPaths
@@ -4004,13 +4554,211 @@ siapath to test.
 standard success or error response, a successful response means a valid siapath.
 See [standard responses](#standard-responses).
 
+<<<<<<< HEAD
+=======
+# Skynet
+
+## /skynet/blacklist [POST]
+> curl example
+```go
+curl -A "Sia-Agent" --user "":<apipassword> --data '{"add" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:9980/skynet/blacklist"
+
+curl -A "Sia-Agent" --user "":<apipassword> --data '{"remove" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:9980/skynet/blacklist"
+```
+
+updates the list of skylinks that should be blacklisted from Skynet. This
+endpoint can be used to both add and remove skylinks from the blacklist.
+
+### Path Parameters
+### REQUIRED
+At least one of the following fields needs to be non empty.
+
+**add** | array of strings  
+add is an array of skylinks that should be added to the blacklisted
+
+**remove** | array of strings  
+remove is an array of skylinks that should be removed from the blacklist
+
+### Response
+
+standard success or error response. See [standard
+responses](#standard-responses).
+
+## /skynet/skylink/*skylink* [GET]
+> curl example  
+
+> Stream the whole file.  
+
+```bash
+# entire file
+curl -A "Sia-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
+
+# directory
+curl -A "Sia-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder"
+
+# sub file
+curl -A "Sia-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder/file.txt"
+```  
+
+downloads a skylink using http streaming. This call blocks until the data is
+received.
+
+### Path Parameters 
+### Required
+**skylink** | string  
+The skylink that should be downloaded. The skylink can contain an optional path.
+This path can specify a directory or a particular file. If specified, only that
+file or directory will be returned.
+
+### Query String Parameters
+### OPTIONAL
+
+**attachment** | bool  
+If 'attachment' is set to true, the Content-Disposition http header will be set
+to 'attachment' instead of 'inline'. This will cause web browsers to download
+the file as though it is an attachment instead of rendering it.
+
+**format** | string  
+If 'format' is set, the skylink can point to a directory and it will return the
+data inside that directory. Format will decide the format in which it is
+returned. Currently we only support 'concat', which will return the concatenated
+data of all subfiles in that directory.
+
+### Response Header
+
+**Skynet-File-Metadata** | SkyfileMetadata
+
+The header field "Skynet-FileMetadata" will be set such that it has an encoded
+json object which matches the modules.SkyfileMetadata struct. If a path was
+supplied, this metadata will be relative to the given path.
+
+> Skynet-File-Metadata Response Header Example 
+```go
+{
+"mode":               // os.FileMode
+"filename": "folder", // string
+"subfiles": [         // []SkyfileSubfileMetadata | null
+  {
+  "mode":         640                 // os.FileMode
+  "filename":     "folder/file1.txt", // string
+  "contenttype":  "text/plain",       // string
+  "offset":       0,                  // uint64
+  "len":          6                   // uint64
+  }
+]
+}
+```
+
+### Response Body
+
+The response body is the raw data for the file.
+
+## /skynet/skyfile/*siapath* [POST]
+> curl example  
+
+```go
+// This command uploads the file 'myImage.png' to the Sia folder
+// 'var/skynet/images/myImage.png'. Users who download the file will see the name
+// 'image.png'.
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/skynet/skyfile/images/myImage.png?name=image.png" --data-binary @myImage.png
+```
+
+uploads a file to the network using a stream. If the upload stream POST call
+fails or quits before the file is fully uploaded, the file can be repaired by a
+subsequent call to the upload stream endpoint using the `repair` flag.
+
+### Path Parameters
+### REQUIRED
+**siapath** | string  
+Location where the file will reside in the renter on the network. The path must
+be non-empty, may not include any path traversal strings ("./", "../"), and may
+not begin with a forward-slash character. If the 'root' flag is not set, the
+path will be prefixed with 'var/skynet/', placing the skyfile into the Sia
+system's default skynet folder.
+
+### Query String Parameters
+### OPTIONAL
+**basechunkredundancy** | uint8  
+The amount of redundancy to use when uploading the base chunk. The base chunk is
+the first chunk of the file, and is always uploaded using 1-of-N redundancy.
+
+**convertpath** string  
+The siapath of an existing siafile that should be converted to a skylink. A new
+skyfile will be created. Both the new skyfile and the existing siafile are
+required to be maintained on the network in order for the skylink to remain
+active. This field is mutually exclusive with uploading streaming.
+
+**filename** | string  
+The name of the file. This name will be encoded into the skyfile metadata, and
+will be a part of the skylink. If the name changes, the skylink will change as
+well.
+
+**force** | bool  
+If there is already a file that exists at the provided siapath, setting this
+flag will cause the new file to overwrite/delete the existing file. If this flag
+is not set, an error will be returned preventing the user from destroying
+existing data.
+
+**mode** | uint32  
+The file mode / permissions of the file. Users who download this file will be
+presented a file with this mode. If no mode is set, the default of 0644 will be
+used.
+
+**root** | bool  
+Whether or not to treat the siapath as being relative to the root directory. If
+this field is not set, the siapath will be interpreted as relative to
+'var/skynet'.
+
+### Http Headers
+### OPTIONAL
+**Content-Disposition** | string  
+If the filename is set in the Content-Disposition field, that filename will be
+used as the filename of the object being uploaded. Note that this header is only
+taken into consideration when using a multipart form upload.
+
+For more details on setting Content-Disposition:
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
+
+**Skynet-Disable-Force** | bool  
+This request header allows overruling the behaviour of the `force` parameter
+that can be passed in through the query string parameters. This header is useful
+for Skynet portal operators that would like to have some control over the
+requests that are being passed to siad. To avoid having to parse query string
+parameters and overrule them that way, this header can be set to disable the
+force flag and disallow overwriting the file at the given siapath.
+
+### JSON Response
+> JSON Response Example
+```go
+{
+"skylink":    "CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg" // string
+"merkleroot": "QAf9Q7dBSbMarLvyeE6HTQmwhr7RX9VMrP9xIMzpU3I" // hash
+"bitfield":   2048 // int
+}
+```
+**skylink** | string  
+This is the skylink that can be used with the `/skynet/skylink` GET endpoint to
+retrieve the file that has been uploaded.
+
+**merkleroot** | hash  
+This is the hash that is encoded into the skylink.
+
+**bitfield** | int  
+This is the bitfield that gets encoded into the skylink. The bitfield contains a
+version, an offset and a length in a heavily compressed and optimized format.
+
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 # Transaction Pool
 
 ## /tpool/confirmed/:id [GET]
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/tpool/confirmed/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/tpool/confirmed/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 returns whether the requested transaction has been seen on the blockchain. Note,
@@ -4037,7 +4785,11 @@ indicates if a transaction is confirmed on the blockchain
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/tpool/fee"
+=======
+curl -A "Sia-Agent" "localhost:9980/tpool/fee"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 returns the minimum and maximum estimated fees expected by the transaction pool.
@@ -4061,7 +4813,11 @@ the maximum estimated fee
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/tpool/raw/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
+=======
+curl -A "Sia-Agent" "localhost:9980/tpool/raw/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 returns the ID for the requested transaction and its raw encoded parents and
@@ -4095,7 +4851,11 @@ raw, base64 encoded transaction data
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" --data "<raw-encoded-tset>" "localhost:4280/tpool/raw"
+=======
+curl -A "Sia-Agent" --data "<raw-encoded-tset>" "localhost:9980/tpool/raw"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 submits a raw transaction to the transaction pool, broadcasting it to the
@@ -4118,7 +4878,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/tpool/transactions"
+=======
+curl -A "Sia-Agent" "localhost:9980/tpool/transactions"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 returns the transactions of the transaction pool.
@@ -4190,7 +4954,11 @@ transaction fields.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/wallet"
+=======
+curl -A "Sia-Agent" "localhost:9980/wallet"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns basic information about the wallet, such as whether the wallet is locked
@@ -4268,7 +5036,11 @@ cannot be used because the wallet considers it a dust output.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "source=/home/legacy-wallet&encryptionpassword=mypassword" "localhost:4280/wallet/033x"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "source=/home/legacy-wallet&encryptionpassword=mypassword" "localhost:9980/wallet/033x"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Loads a v0.3.3.x wallet into the current wallet, harvesting all of the secret
@@ -4292,7 +5064,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/address"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/address"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Gets a new address from the wallet generated by the primary seed. An error will
@@ -4314,7 +5090,11 @@ long hex strings.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/wallet/addresses"
+=======
+curl -A "Sia-Agent" "localhost:9980/wallet/addresses"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Fetches the list of addresses from the wallet. If the wallet has not been
@@ -4341,7 +5121,11 @@ Array of wallet addresses owned by the wallet.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/wallet/seedaddrs"
+=======
+curl -A "Sia-Agent" "localhost:9980/wallet/seedaddrs"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Fetches addresses generated by the wallet in reverse order. The last address
@@ -4375,7 +5159,11 @@ Array of wallet addresses previously generated by the wallet.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/backup?destination=/home/wallet-settings.backup"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/backup?destination=/home/wallet-settings.backup"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Creates a backup of the wallet settings file. Though this can easily be done
@@ -4397,7 +5185,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/wallet/changepassword?encryptionpassword=<currentpassword>&newpassword=<newpassword>"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/wallet/changepassword?encryptionpassword=<currentpassword>&newpassword=<newpassword>"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Changes the wallet's encryption key.  
@@ -4420,7 +5212,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "encryptionpassword=<password>&force=false" "localhost:4280/wallet/init"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "encryptionpassword=<password>&force=false" "localhost:9980/wallet/init"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Initializes the wallet. After the wallet has been initialized once, it does not
@@ -4458,7 +5254,11 @@ Wallet seed used to generate addresses that the wallet is able to spend.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "seed=<seed>&encryptionpassword=<password>&force=false" "localhost:4280/wallet/init/seed"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "seed=<seed>&encryptionpassword=<password>&force=false" "localhost:9980/wallet/init/seed"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Initializes the wallet using a preexisting seed. After the wallet has been
@@ -4487,7 +5287,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "seed=<seed>" "localhost:4280/wallet/seed"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "seed=<seed>" "localhost:9980/wallet/seed"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Gives the wallet a seed to track when looking for incoming transactions. The
@@ -4511,7 +5315,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/seeds"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/seeds"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns the list of seeds in use by the wallet. The primary seed is the only
@@ -4555,7 +5363,11 @@ however only the primary seed is being used to generate new addresses.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "amount=1000&destination=c134a8372bd250688b36867e6522a37bdc391a344ede72c2a79206ca1c34c84399d9ebf17773" "localhost:4280/wallet/siacoins"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "amount=1000&destination=c134a8372bd250688b36867e6522a37bdc391a344ede72c2a79206ca1c34c84399d9ebf17773" "localhost:9980/wallet/siacoins"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Sends siacoins to an address or set of addresses. The outputs are arbitrarily
@@ -4653,7 +5465,11 @@ Array of IDs of the transactions that were created when sending the coins.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "amount=10&destination=c134a8372bd250688b36867e6522a37bdc391a344ede72c2a79206ca1c34c84399d9ebf17773" "localhost:4280/wallet/siafunds"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "amount=10&destination=c134a8372bd250688b36867e6522a37bdc391a344ede72c2a79206ca1c34c84399d9ebf17773" "localhost:9980/wallet/siafunds"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Sends siafunds to an address. The outputs are arbitrarily selected from
@@ -4747,7 +5563,11 @@ Array of IDs of the transactions that were created when sending the coins.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "encryptionpassword=<password>&keyfiles=/file1,/home/file2" "localhost:4280/wallet/siagkey"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "encryptionpassword=<password>&keyfiles=/file1,/home/file2" "localhost:9980/wallet/siagkey"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Loads a key into the wallet that was generated by siag. Most siafunds are
@@ -4773,7 +5593,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:4280/wallet/sign"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:9980/wallet/sign"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Signs a transaction. The wallet will attempt to sign each input specified. The
@@ -4870,7 +5694,11 @@ will add signatures for every TransactionSignature that it has keys for.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "seed=<seed>" "localhost:4280/wallet/sweep/seed"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "seed=<seed>" "localhost:9980/wallet/sweep/seed"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Scans the blockchain for outputs belonging to a seed and send them to an address
@@ -4906,7 +5734,11 @@ Number of siafunds transferred to the wallet as a result of the sweep.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/wallet/lock"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/wallet/lock"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Locks the wallet, wiping all secret keys. After being locked, the keys are
@@ -4923,7 +5755,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/wallet/transaction/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
+=======
+curl -A "Sia-Agent" "localhost:9980/wallet/transaction/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Gets the transaction associated with a specific transaction id.
@@ -5047,7 +5883,11 @@ Amount of funds that have been moved in the output.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/wallet/transactions"
+=======
+curl -A "Sia-Agent" "localhost:9980/wallet/transactions"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns a list of transactions related to the wallet in chronological order.
@@ -5094,7 +5934,11 @@ See the documentation for '/wallet/transaction/:id' for more information.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/wallet/transactions/abf1ba4ad65820ce2bd5d63466b8555d0ec9bfe5f5fa920b4fef6ad98f443e2809e5ae619b74"
+=======
+curl -A "Sia-Agent" "localhost:9980/wallet/transactions/abf1ba4ad65820ce2bd5d63466b8555d0ec9bfe5f5fa920b4fef6ad98f443e2809e5ae619b74"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns all of the transactions related to a specific address.
@@ -5125,7 +5969,11 @@ See the documentation for '/wallet/transaction/:id' for more information.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "encryptionpassword=<password>" "localhost:4280/wallet/unlock"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "encryptionpassword=<password>" "localhost:9980/wallet/unlock"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Unlocks the wallet. The wallet is capable of knowing whether the correct
@@ -5146,7 +5994,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/unlockconditions/2d6c6d705c80f17448d458e47c3fb1a02a24e018a82d702cda35262085a3167d98cc7a2ba339"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/unlockconditions/2d6c6d705c80f17448d458e47c3fb1a02a24e018a82d702cda35262085a3167d98cc7a2ba339"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns the unlock conditions of :addr, if they are known to the wallet.
@@ -5184,7 +6036,11 @@ The set of keys whose signatures count towards signaturesrequired.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/unspent"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/unspent"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns a list of outputs that the wallet can spend.
@@ -5233,7 +6089,11 @@ Whether the output comes from a watched address or from the wallet's seed.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/wallet/verify/address/75d9a7351022681ba3539d7e0c5699d143ab5a7747604998cace1299ab6c04c5ea2aa2e87aac"
+=======
+curl -A "Sia-Agent" "localhost:9980/wallet/verify/address/75d9a7351022681ba3539d7e0c5699d143ab5a7747604998cace1299ab6c04c5ea2aa2e87aac"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Takes the address specified by :addr and returns a JSON response indicating if
@@ -5259,7 +6119,11 @@ valid indicates if the address supplied to :addr is a valid UnlockHash.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" "localhost:4280/wallet/verifypassword?password=<password>"
+=======
+curl -A "Sia-Agent" "localhost:9980/wallet/verifypassword?password=<password>"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Takes a password and verifies if it is the password used to encrypt the wallet.
@@ -5285,7 +6149,11 @@ wallet.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/watch"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/watch"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Returns the set of addresses that the wallet is watching. This set only includes
@@ -5310,7 +6178,11 @@ The addresses currently watched by the wallet.
 > curl example  
 
 ```go
+<<<<<<< HEAD
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:4280/wallet/watch"
+=======
+curl -A "Sia-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:9980/wallet/watch"
+>>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ```
 
 Update the set of addresses for the wallet to watch.

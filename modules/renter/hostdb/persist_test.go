@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
@@ -61,9 +61,9 @@ func TestSaveLoad(t *testing.T) {
 	host1.PublicKey.Key = fastrand.Bytes(32)
 	host2.PublicKey.Key = fastrand.Bytes(32)
 	host3.PublicKey.Key = []byte("baz")
-	hdbt.hdb.hostTree.Insert(host1)
-	hdbt.hdb.hostTree.Insert(host2)
-	hdbt.hdb.hostTree.Insert(host3)
+	hdbt.hdb.staticHostTree.Insert(host1)
+	hdbt.hdb.staticHostTree.Insert(host2)
+	hdbt.hdb.staticHostTree.Insert(host3)
 
 	// Manually set listed Hosts and filterMode
 	filteredHosts := make(map[string]types.SiaPublicKey)
@@ -114,11 +114,11 @@ func TestSaveLoad(t *testing.T) {
 	}
 
 	// Check that AllHosts was loaded.
-	h1, ok0 := hdbt.hdb.hostTree.Select(host1.PublicKey)
-	h2, ok1 := hdbt.hdb.hostTree.Select(host2.PublicKey)
-	h3, ok2 := hdbt.hdb.hostTree.Select(host3.PublicKey)
-	if !ok0 || !ok1 || !ok2 || len(hdbt.hdb.hostTree.All()) != 3 {
-		t.Error("allHosts was not restored properly", ok0, ok1, ok2, len(hdbt.hdb.hostTree.All()))
+	h1, ok0 := hdbt.hdb.staticHostTree.Select(host1.PublicKey)
+	h2, ok1 := hdbt.hdb.staticHostTree.Select(host2.PublicKey)
+	h3, ok2 := hdbt.hdb.staticHostTree.Select(host3.PublicKey)
+	if !ok0 || !ok1 || !ok2 || len(hdbt.hdb.staticHostTree.All()) != 3 {
+		t.Error("allHosts was not restored properly", ok0, ok1, ok2, len(hdbt.hdb.staticHostTree.All()))
 	}
 	if h1.FirstSeen != 1 {
 		t.Error("h1 block height loaded incorrectly")

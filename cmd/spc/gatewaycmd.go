@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 var (

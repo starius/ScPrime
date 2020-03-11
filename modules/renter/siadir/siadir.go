@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/writeaheadlog"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/writeaheadlog"
 )
 
 type (

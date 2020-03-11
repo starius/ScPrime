@@ -6,7 +6,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestChildTargetOak checks the childTargetOak function, especially for edge

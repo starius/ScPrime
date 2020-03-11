@@ -3,8 +3,8 @@ package siafile
 import (
 	"path/filepath"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/writeaheadlog"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/writeaheadlog"
 
 	"gitlab.com/NebulousLabs/errors"
 )

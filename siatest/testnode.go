@@ -12,13 +12,13 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
-	"gitlab.com/SiaPrime/SiaPrime/node/api/server"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/node/api/client"
+	"gitlab.com/scpcorp/ScPrime/node/api/server"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 var (
@@ -282,6 +282,13 @@ func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error)
 		}
 		nodeParams.RPCAddress = addr + ":0"
 	}
+
+	// Check if the SiaMuxAddress is set, if not we want to set it to use a
+	// random port in testing
+	if nodeParams.SiaMuxAddress == "" {
+		nodeParams.SiaMuxAddress = "localhost:0"
+	}
+
 	// Create server
 	var s *server.Server
 	var err error

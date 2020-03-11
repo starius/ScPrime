@@ -68,16 +68,19 @@ import (
 	"net"
 	"path/filepath"
 	"sync"
+	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/host/contractmanager"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/host/contractmanager"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
+	connmonitor "gitlab.com/NebulousLabs/monitor"
+	"gitlab.com/scpcorp/siamux"
 )
 
 const (
@@ -101,12 +104,13 @@ var (
 	errNilWallet  = errors.New("host cannot use a nil wallet")
 	errNilGateway = errors.New("host cannot use nil gateway")
 
-	// persistMetadata is the header that gets written to the persist file, and is
-	// used to recognize other persist files.
-	persistMetadata = persist.Metadata{
-		Header:  "Sia Host",
-		Version: "1.2.0",
-	}
+	// rpcPriceGuaranteePeriod defines the amount of time a host will guarantee
+	// its prices to the renter.
+	rpcPriceGuaranteePeriod = build.Select(build.Var{
+		Standard: 10 * time.Minute,
+		Dev:      1 * time.Minute,
+		Testing:  5 * time.Second,
+	}).(time.Duration)
 )
 
 // A Host contains all the fields necessary for storing files for clients and
@@ -138,8 +142,12 @@ type Host struct {
 	tpool         modules.TransactionPool
 	wallet        modules.Wallet
 	staticAlerter *modules.GenericAlerter
+	staticMux     *siamux.SiaMux
 	dependencies  modules.Dependencies
 	modules.StorageManager
+
+	// Subsystems
+	staticAccountManager *accountManager
 
 	// Host ACID fields - these fields need to be updated in serial, ACID
 	// transactions.
@@ -164,14 +172,22 @@ type Host struct {
 	// be locked separately.
 	lockedStorageObligations map[types.FileContractID]*siasync.TryMutex
 
-	// Utilities.
-	db         *persist.BoltDatabase
-	listener   net.Listener
-	log        *persist.Logger
-	mu         sync.RWMutex
-	persistDir string
-	port       string
-	tg         siasync.ThreadGroup
+	// The price table contains a set of RPC costs, along with an expiry that
+	// dictates up until what time the host guarantees the prices that are
+	// listed. These host's RPC prices are dynamic, and are subject to various
+	// conditions specific to the RPC in question. Examples of such conditions
+	// are congestion, load, liquidity, etc.
+	priceTable modules.RPCPriceTable
+
+	// Misc state.
+	db            *persist.BoltDatabase
+	listener      net.Listener
+	log           *persist.Logger
+	mu            sync.RWMutex
+	staticMonitor *connmonitor.Monitor
+	persistDir    string
+	port          string
+	tg            siasync.ThreadGroup
 }
 
 // checkUnlockHash will check that the host has an unlock hash. If the host
@@ -208,12 +224,41 @@ func (h *Host) checkUnlockHash() error {
 	return nil
 }
 
+// managedInternalSettings returns the settings of a host.
+func (h *Host) managedInternalSettings() modules.HostInternalSettings {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.settings
+}
+
+// managedUpdatePriceTable will recalculate the RPC costs and update the host's
+// price table accordingly.
+func (h *Host) managedUpdatePriceTable() {
+	// create a new RPC price table and set the expiry
+	his := h.managedInternalSettings()
+	priceTable := modules.RPCPriceTable{
+		Expiry:               time.Now().Add(rpcPriceGuaranteePeriod).Unix(),
+		UpdatePriceTableCost: h.managedCalculateUpdatePriceTableRPCPrice(),
+
+		// TODO: hardcoded MDM costs should be updated to use better values.
+		InitBaseCost:   his.MinBaseRPCPrice,
+		MemoryTimeCost: his.MinBaseRPCPrice,
+		ReadBaseCost:   his.MinBaseRPCPrice,
+		ReadLengthCost: his.MinBaseRPCPrice,
+	}
+
+	// update the pricetable
+	h.mu.Lock()
+	h.priceTable = priceTable
+	h.mu.Unlock()
+}
+
 // newHost returns an initialized Host, taking a set of dependencies as input.
 // By making the dependencies an argument of the 'new' call, the host can be
 // mocked such that the dependencies can return unexpected errors or unique
 // behaviors during testing, enabling easier testing of the failure modes of
 // the Host.
-func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, listenerAddress string, persistDir string) (*Host, error) {
+func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, listenerAddress string, persistDir string) (*Host, error) {
 	// Check that all the dependencies were provided.
 	if cs == nil {
 		return nil, errNilCS
@@ -230,13 +275,13 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 
 	// Create the host object.
 	h := &Host{
-		cs:            cs,
-		g:             g,
-		tpool:         tpool,
-		wallet:        wallet,
-		staticAlerter: modules.NewAlerter("host"),
-		dependencies:  dependencies,
-
+		cs:                       cs,
+		g:                        g,
+		tpool:                    tpool,
+		wallet:                   wallet,
+		staticAlerter:            modules.NewAlerter("host"),
+		staticMux:                mux,
+		dependencies:             dependencies,
 		lockedStorageObligations: make(map[types.FileContractID]*siasync.TryMutex),
 
 		persistDir: persistDir,
@@ -262,6 +307,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	if err != nil {
 		return nil, err
 	}
+
 	h.tg.AfterStop(func() {
 		err = h.log.Close()
 		if err != nil {
@@ -298,11 +344,26 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 		}
 	})
 
+	// Add the account manager subsystem
+	h.staticAccountManager, err = h.newAccountManager()
+	if err != nil {
+		return nil, err
+	}
+
+	// Subscribe to the consensus set.
+	err = h.initConsensusSubscription()
+	if err != nil {
+		return nil, err
+	}
+
 	// Ensure the host is consistent by pruning any stale storage obligations.
 	if err := h.PruneStaleStorageObligations(); err != nil {
 		h.log.Println("Could not prune stale storage obligations:", err)
 		return nil, err
 	}
+
+	// Create bandwidth monitor
+	h.staticMonitor = connmonitor.NewMonitor()
 
 	// Initialize the networking. We need to hold the lock while doing so since
 	// the previous load subscribed the host to the consensus set.
@@ -313,24 +374,28 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 		h.log.Println("Could not initialize host networking:", err)
 		return nil, err
 	}
+
+	// Initialize the RPC price table.
+	h.managedUpdatePriceTable()
+
 	return h, nil
 }
 
 // New returns an initialized Host.
-func New(cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, address string, persistDir string) (*Host, error) {
-	return newHost(modules.ProdDependencies, new(modules.ProductionDependencies), cs, g, tpool, wallet, address, persistDir)
+func New(cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address string, persistDir string) (*Host, error) {
+	return newHost(modules.ProdDependencies, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir)
 }
 
 // NewCustomHost returns an initialized Host using the provided dependencies.
-func NewCustomHost(deps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, address string, persistDir string) (*Host, error) {
-	return newHost(deps, new(modules.ProductionDependencies), cs, g, tpool, wallet, address, persistDir)
+func NewCustomHost(deps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address string, persistDir string) (*Host, error) {
+	return newHost(deps, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir)
 }
 
 // NewCustomTestHost allows passing in both host dependencies and storage
 // manager dependencies. Used solely for testing purposes, to allow dependency
 // injection into the host's submodules.
-func NewCustomTestHost(deps modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, address string, persistDir string) (*Host, error) {
-	return newHost(deps, smDeps, cs, g, tpool, wallet, address, persistDir)
+func NewCustomTestHost(deps modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address string, persistDir string) (*Host, error) {
+	return newHost(deps, smDeps, cs, g, tpool, wallet, mux, address, persistDir)
 }
 
 // Close shuts down the host.
@@ -342,14 +407,25 @@ func (h *Host) Close() error {
 // set by the user (host is configured through InternalSettings), and are the
 // values that get displayed to other hosts on the network.
 func (h *Host) ExternalSettings() modules.HostExternalSettings {
-	h.mu.Lock()
-	defer h.mu.Unlock()
 	err := h.tg.Add()
 	if err != nil {
 		build.Critical("Call to ExternalSettings after close")
 	}
 	defer h.tg.Done()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	return h.externalSettings()
+}
+
+// BandwidthCounters returns the Hosts's upload and download bandwidth
+func (h *Host) BandwidthCounters() (uint64, uint64, time.Time, error) {
+	if err := h.tg.Add(); err != nil {
+		return 0, 0, time.Time{}, err
+	}
+	defer h.tg.Done()
+	readBytes, writeBytes := h.staticMonitor.Counts()
+	startTime := h.staticMonitor.StartTime()
+	return writeBytes, readBytes, startTime, nil
 }
 
 // WorkingStatus returns the working state of the host, where working is
@@ -372,13 +448,13 @@ func (h *Host) ConnectabilityStatus() modules.HostConnectabilityStatus {
 // FinancialMetrics returns information about the financial commitments,
 // rewards, and activities of the host.
 func (h *Host) FinancialMetrics() modules.HostFinancialMetrics {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
 	err := h.tg.Add()
 	if err != nil {
 		build.Critical("Call to FinancialMetrics after close")
 	}
 	defer h.tg.Done()
+	h.mu.RLock()
+	defer h.mu.RUnlock()
 	return h.financialMetrics
 }
 
@@ -392,13 +468,13 @@ func (h *Host) PublicKey() types.SiaPublicKey {
 
 // SetInternalSettings updates the host's internal HostInternalSettings object.
 func (h *Host) SetInternalSettings(settings modules.HostInternalSettings) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
 	err := h.tg.Add()
 	if err != nil {
 		return err
 	}
 	defer h.tg.Done()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	// The host should not be accepting file contracts if it does not have an
 	// unlock hash.
@@ -439,12 +515,17 @@ func (h *Host) SetInternalSettings(settings modules.HostInternalSettings) error 
 
 // InternalSettings returns the settings of a host.
 func (h *Host) InternalSettings() modules.HostInternalSettings {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
 	err := h.tg.Add()
 	if err != nil {
 		return modules.HostInternalSettings{}
 	}
 	defer h.tg.Done()
-	return h.settings
+	return h.managedInternalSettings()
+}
+
+// BlockHeight returns the host's current blockheight.
+func (h *Host) BlockHeight() types.BlockHeight {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.blockHeight
 }

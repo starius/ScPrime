@@ -3,8 +3,8 @@ package contractor
 import (
 	"os"
 
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/siatest"
 )
 
 // contractorTestDir creates a temporary testing directory for a contractor

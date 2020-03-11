@@ -1,6 +1,6 @@
 package hostdb
 
-import "gitlab.com/SiaPrime/SiaPrime/modules"
+import "gitlab.com/scpcorp/ScPrime/modules"
 
 // Alerts implements the modules.Alerter interface for the hostdb. It returns
 // all alerts of the hostdb.

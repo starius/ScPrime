@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/sync"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/sync"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 var (

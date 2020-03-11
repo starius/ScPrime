@@ -1,8 +1,8 @@
 package contractor
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // IsOffline indicates whether a contract's host should be considered offline,

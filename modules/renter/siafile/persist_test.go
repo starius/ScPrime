@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/writeaheadlog"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
+	"gitlab.com/scpcorp/writeaheadlog"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
@@ -127,7 +127,6 @@ func customTestFileAndWAL(siaFilePath, source string, rc modules.ErasureCoder, s
 	if partialsSiaFile.numChunks > 0 {
 		panic(fmt.Sprint("partialsSiaFile shouldn't have any chunks but had ", partialsSiaFile.numChunks))
 	}
-
 	/* PARTIAL TODO:
 	partialsEntry := &SiaFileSetEntry{
 		partialsSiaFile,
@@ -879,8 +878,8 @@ func TestSetCombinedChunkSingle(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Skip("skip until partial chunks are enabled")
 	t.Parallel()
+	t.Skip("skip until partial chunks are enabled")
 
 	// Create two SiaFiles with partial chunks and link them by giving the second
 	// one the same partials siafile as the first one.

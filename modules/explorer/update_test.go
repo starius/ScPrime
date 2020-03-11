@@ -3,8 +3,8 @@ package explorer
 import (
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 func (et *explorerTester) currentFacts() (facts modules.BlockFacts, exists bool) {

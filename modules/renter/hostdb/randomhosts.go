@@ -1,9 +1,9 @@
 package hostdb
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb/hosttree"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb/hosttree"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -15,15 +15,15 @@ import (
 func (hdb *HostDB) RandomHosts(n int, blacklist, addressBlacklist []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
 	hdb.mu.RLock()
 	initialScanComplete := hdb.initialScanComplete
-	ipCheckDisabled := hdb.hostTree.IPRestriction() < 1
+	ipCheckDisabled := hdb.staticHostTree.IPRestriction() < 1
 	hdb.mu.RUnlock()
 	if !initialScanComplete {
 		return []modules.HostDBEntry{}, ErrInitialScanIncomplete
 	}
 	if ipCheckDisabled {
-		return hdb.filteredTree.SelectRandom(n, blacklist, nil), nil
+		return hdb.staticFilteredTree.SelectRandom(n, blacklist, nil), nil
 	}
-	return hdb.filteredTree.SelectRandom(n, blacklist, addressBlacklist), nil
+	return hdb.staticFilteredTree.SelectRandom(n, blacklist, addressBlacklist), nil
 }
 
 // RandomHostsWithAllowance works as RandomHosts but uses a temporary hosttree
@@ -35,15 +35,17 @@ func (hdb *HostDB) RandomHostsWithAllowance(n int, blacklist, addressBlacklist [
 	filteredHosts := hdb.filteredHosts
 	filterType := hdb.filterMode
 	hdb.mu.RUnlock()
-	if !initialScanComplete {
+	if !initialScanComplete && !hdb.staticDeps.Disrupt("InitialScanComplete") {
 		return []modules.HostDBEntry{}, ErrInitialScanIncomplete
 	}
 	// Create a temporary hosttree from the given allowance.
-	ht := hosttree.New(hdb.managedCalculateHostWeightFn(allowance), hdb.deps.Resolver())
+	ht := hosttree.New(hdb.managedCalculateHostWeightFn(allowance), hdb.staticDeps.Resolver())
 
 	// Insert all known hosts.
+	hdb.mu.RLock()
+	defer hdb.mu.RUnlock()
 	var insertErrs error
-	allHosts := hdb.hostTree.All()
+	allHosts := hdb.staticHostTree.All()
 	isWhitelist := filterType == modules.HostDBActiveWhitelist
 	for _, host := range allHosts {
 		// Filter out listed hosts
