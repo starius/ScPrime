@@ -9,8 +9,8 @@ import (
 
 	"github.com/sasha-s/go-deadlock"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
 const (

@@ -12,16 +12,15 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
-	"gitlab.com/SiaPrime/SiaPrime/siatest/dependencies"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestRenterSpendingReporting checks the accuracy for the reported
@@ -289,7 +288,7 @@ func TestRenterSpendingReporting(t *testing.T) {
 	}
 
 	// Renew contracts by running out of funds
-	_, err = siatest.DrainContractsByUploading(r, tg, contractor.MinContractFundRenewalThreshold)
+	_, err = siatest.DrainContractsByUploading(r, tg)
 	if err != nil {
 		r.PrintDebugInfo(t, true, true, true)
 		t.Fatal(err)

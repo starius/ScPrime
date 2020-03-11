@@ -14,11 +14,11 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	fileConfig "gitlab.com/SiaPrime/SiaPrime/config"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/node/api/server"
-	"gitlab.com/SiaPrime/SiaPrime/profile"
+	"gitlab.com/scpcorp/ScPrime/build"
+	fileConfig "gitlab.com/scpcorp/ScPrime/config"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/node/api/server"
+	"gitlab.com/scpcorp/ScPrime/profile"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -324,7 +324,7 @@ func startDaemonCmd(cmd *cobra.Command, _ []string) {
 		if cmd.Root().Flag("profile-directory").Changed {
 			profileDir = globalConfig.Spd.ProfileDir
 		} else {
-			profileDir = filepath.Join(globalConfig.Spd.SiaDir, globalConfig.Spd.ProfileDir)
+			profileDir = filepath.Join(globalConfig.Spd.DataDir, globalConfig.Spd.ProfileDir)
 		}
 		go profile.StartContinuousProfile(profileDir, profileCPU, profileMem, profileTrace)
 	}

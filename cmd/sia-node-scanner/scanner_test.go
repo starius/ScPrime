@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
-	siaPersist "gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	siaPersist "gitlab.com/scpcorp/ScPrime/persist"
 )
 
 const numTestingGateways = 3
@@ -18,6 +18,11 @@ const testPersistFile = "testdata/persisted-node-set.json"
 
 // TestLoad checks that the testdata set is loaded with sane values.
 func TestLoad(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
 	now := time.Now()
 	data := persistData{
 		StartTime: now,
@@ -70,6 +75,11 @@ func TestLoad(t *testing.T) {
 // Spin up several gateways and connect them to each other, then check that
 // sendShareNodesRequests returns the expected results.
 func TestSendShareNodesRequests(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
 	mainGateway, err := gateway.New("localhost:0", true, build.TempDir("SiaNodeScannerTestGateway"))
 	if err != nil {
 		t.Fatal("Error making new gateway: ", err)
@@ -124,6 +134,11 @@ func TestSendShareNodesRequests(t *testing.T) {
 // persisted set are sanely updated when the node scanner restarts from an
 // existing set.
 func TestRestartScanner(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
 	testDir := build.TempDir("SiaNodeScanner-TestRestartScanner")
 	err := os.Mkdir(testDir, siaPersist.DefaultDiskPermissionsTest)
 	if err != nil {

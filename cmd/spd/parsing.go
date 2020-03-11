@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	"gitlab.com/SiaPrime/SiaPrime/node"
+	"gitlab.com/scpcorp/ScPrime/node"
 )
 
 // createNodeParams parses the provided config and creates the corresponding
@@ -45,6 +45,6 @@ func parseModules(config Config) node.NodeParams {
 	params.Bootstrap = !config.Spd.NoBootstrap
 	params.HostAddress = config.Spd.HostAddr
 	params.RPCAddress = config.Spd.RPCaddr
-	params.Dir = config.Spd.SiaDir
+	params.Dir = config.Spd.DataDir
 	return params
 }

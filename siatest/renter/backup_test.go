@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
 )

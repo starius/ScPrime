@@ -4,9 +4,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestTpoolTransactionsGet probes the API end point from returning the

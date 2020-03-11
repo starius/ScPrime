@@ -5,9 +5,9 @@ import (
 	"net/url"
 	"strconv"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/node/api"
 )
 
 // HostParam is a parameter in the host's settings that can be changed via the
@@ -52,6 +52,15 @@ const (
 	HostParamMaxReviseBatchSize = HostParam("maxrevisebatchsize")
 	// HostParamNetAddress is the announced netaddress of the host.
 	HostParamNetAddress = HostParam("netaddress")
+	// HostParamEphemeralAccountExpiry is the maximum amount of time an
+	// ephemeral account can be inactive before it expires and gets deleted.
+	HostParamEphemeralAccountExpiry = HostParam("ephemeralaccountexpiry")
+	// HostParamMaxEphemeralAccountBalance is the maximum ephemeral account
+	// balance in hastings
+	HostParamMaxEphemeralAccountBalance = HostParam("maxephemeralaccountbalance")
+	// HostParamMaxEphemeralAccountRisk is the maximum ephemeral account risk in
+	// hastings
+	HostParamMaxEphemeralAccountRisk = HostParam("maxephemeralaccountrisk")
 )
 
 // HostAnnouncePost uses the /host/announce endpoint to announce the host to
@@ -91,6 +100,12 @@ func (c *Client) HostGet() (hg api.HostGET, err error) {
 // settings to a certain value.
 func (c *Client) HostModifySettingPost(param HostParam, value interface{}) (err error) {
 	err = c.post("/host", string(param)+"="+fmt.Sprint(value), nil)
+	return
+}
+
+// HostBandwidthGet requests the /host/bandwidth api resource
+func (c *Client) HostBandwidthGet() (gbg api.GatewayBandwidthGET, err error) {
+	err = c.get("/host/bandwidth", &gbg)
 	return
 }
 

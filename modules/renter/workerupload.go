@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -184,7 +184,7 @@ func (w *worker) managedPerformUploadChunkJob() bool {
 	allowance := w.renter.hostContractor.Allowance()
 	hostSettings := e.HostSettings()
 	err = checkUploadGouging(allowance, hostSettings)
-	if err != nil {
+	if err != nil && !w.renter.deps.Disrupt("DisableUploadGouging") {
 		failureErr := errors.AddContext(err, "worker uploader is not being used because price gouging was detected")
 		w.renter.log.Debugln(failureErr)
 		w.managedUploadFailed(uc, pieceIndex, failureErr)

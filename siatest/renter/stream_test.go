@@ -10,12 +10,12 @@ import (
 
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
-	"gitlab.com/SiaPrime/SiaPrime/siatest/dependencies"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
 )
 
 // TestRenterDownloadStreamCache checks that the download stream caching is

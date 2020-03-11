@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestIntegrationExplorerGET probes the GET call to /explorer.

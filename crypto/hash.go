@@ -13,7 +13,7 @@ import (
 	"errors"
 	"hash"
 
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/encoding"
 
 	"golang.org/x/crypto/blake2b"
 )

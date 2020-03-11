@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/config"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/config"
 )
 
 var (
@@ -36,6 +36,7 @@ type Config struct {
 		APIaddr      string
 		RPCaddr      string
 		HostAddr     string
+		SiaMuxAddr   string
 		AllowAPIBind bool
 
 		Modules           string
@@ -46,7 +47,7 @@ type Config struct {
 
 		Profile    string
 		ProfileDir string
-		SiaDir     string
+		DataDir    string
 	}
 
 	MiningPoolConfig config.MiningPoolConfig
@@ -182,7 +183,7 @@ func main() {
 	root.Flags().StringVarP(&globalConfig.Spd.HostAddr, "host-addr", "", ":4282", "which port the host listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.ProfileDir, "profile-directory", "", "profiles", "location of the profiling directory")
 	root.Flags().StringVarP(&globalConfig.Spd.APIaddr, "api-addr", "", "localhost:4280", "which host:port the API server listens on")
-	root.Flags().StringVarP(&globalConfig.Spd.SiaDir, "scprime-directory", "d", "", "location of the metadata directory")
+	root.Flags().StringVarP(&globalConfig.Spd.DataDir, "scprime-directory", "d", "", "location of the metadata directory")
 	root.Flags().BoolVarP(&globalConfig.Spd.NoBootstrap, "no-bootstrap", "", false, "disable bootstrapping on this run")
 	root.Flags().StringVarP(&globalConfig.Spd.Profile, "profile", "", "", "enable profiling with flags 'cmt' for CPU, memory, trace")
 	root.Flags().StringVarP(&globalConfig.Spd.RPCaddr, "rpc-addr", "", ":4281", "which port the gateway listens on")
@@ -190,6 +191,17 @@ func main() {
 	root.Flags().BoolVarP(&globalConfig.Spd.AuthenticateAPI, "authenticate-api", "", true, "enable API password protection")
 	root.Flags().BoolVarP(&globalConfig.Spd.TempPassword, "temp-password", "", false, "enter a temporary API password during startup")
 	root.Flags().BoolVarP(&globalConfig.Spd.AllowAPIBind, "disable-api-security", "", false, "allow spd to listen on a non-localhost address (DANGEROUS)")
+
+	//root.Flags().StringVarP(&globalConfig.Siad.SiaMuxAddr, "siamux-addr", "", ":9999", "which port the SiaMux listens on")
+	globalConfig.Spd.SiaMuxAddr = ":9999" // TODO: change this when we want to expose the SiaMux to siad
+
+	// If globalConfig.Spd.DataDir is not set, use the environment variable provided.
+	if globalConfig.Spd.DataDir == "" {
+		globalConfig.Spd.DataDir = os.Getenv("SCPRIME_DATA_DIR")
+		if globalConfig.Spd.DataDir != "" {
+			fmt.Println("Using SCPRIME_DATA_DIR environment variable")
+		}
+	}
 
 	// Parse cmdline flags, overwriting both the default values and the config
 	// file values.

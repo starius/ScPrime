@@ -4,13 +4,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siadir"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/writeaheadlog"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/siadir"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
+	"gitlab.com/scpcorp/writeaheadlog"
 
 	"gitlab.com/NebulousLabs/errors"
 )

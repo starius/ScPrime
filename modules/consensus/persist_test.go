@@ -4,9 +4,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
 )
 
 // TestSaveLoad populates a blockchain, saves it, loads it, and checks

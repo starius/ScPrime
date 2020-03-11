@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 // dummy types to test encoding

@@ -1,7 +1,7 @@
 package modules
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/crypto"
 )
 
 const (
@@ -85,6 +85,10 @@ type (
 		// ReadSector will read a sector from the storage manager, returning the
 		// bytes that match the input sector root.
 		ReadSector(sectorRoot crypto.Hash) ([]byte, error)
+
+		// ReadPartialSector will read a sector from the storage manager,
+		// returning the bytes that match the input sector root.
+		ReadPartialSector(sectorRoot crypto.Hash, offset, length uint64) ([]byte, error)
 
 		// RemoveSector will remove a sector from the storage manager. The
 		// height at which the sector expires should be provided, so that the

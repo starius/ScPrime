@@ -1,6 +1,6 @@
 package renter
 
-import "gitlab.com/SiaPrime/SiaPrime/modules"
+import "gitlab.com/scpcorp/ScPrime/modules"
 
 // Alerts implements the modules.Alerter interface for the renter. It returns
 // all alerts of the renter and its submodules.

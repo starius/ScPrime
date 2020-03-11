@@ -9,9 +9,9 @@ import (
 // DefaultSiaDir returns the default data directory of siad. The values for
 // supported operating systems are:
 //
-// Linux:   $HOME/.sia
-// MacOS:   $HOME/Library/Application Support/Sia
-// Windows: %LOCALAPPDATA%\Sia
+// Linux:   $HOME/.siaprime
+// MacOS:   $HOME/Library/Application Support/SiaPrime
+// Windows: %LOCALAPPDATA%\SiaPrime
 func DefaultSiaDir() string {
 	switch runtime.GOOS {
 	case "windows":

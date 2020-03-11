@@ -3,8 +3,8 @@ package modules
 import (
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestConsensusConflict checks that the consensus conflict type is correctly

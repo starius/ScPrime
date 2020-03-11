@@ -10,11 +10,11 @@ import (
 	"bytes"
 	"strings"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"

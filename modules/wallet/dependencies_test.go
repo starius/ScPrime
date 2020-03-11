@@ -1,6 +1,6 @@
 package wallet
 
-import "gitlab.com/SiaPrime/SiaPrime/modules"
+import "gitlab.com/scpcorp/ScPrime/modules"
 
 type (
 	// dependencyAcceptTxnSetFailed is a dependency used to cause a call to

@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
 var (

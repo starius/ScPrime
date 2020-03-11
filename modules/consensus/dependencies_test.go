@@ -1,6 +1,6 @@
 package consensus
 
-import "gitlab.com/SiaPrime/SiaPrime/modules"
+import "gitlab.com/scpcorp/ScPrime/modules"
 
 type (
 	// dependencySleepAfterInitializeSubscribe is a dependency used to make the consensusSet sleep for a few seconds after calling managedInitializeSubscribe.

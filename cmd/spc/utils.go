@@ -18,12 +18,12 @@ import (
 	"github.com/spf13/cobra/doc"
 	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter"
+	"gitlab.com/scpcorp/ScPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 var (

@@ -1,6 +1,6 @@
 package gateway
 
-import "gitlab.com/SiaPrime/SiaPrime/modules"
+import "gitlab.com/scpcorp/ScPrime/modules"
 
 // Alerts implements the modules.Alerter interface for the gateway.
 func (g *Gateway) Alerts() []modules.Alert {

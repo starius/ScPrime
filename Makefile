@@ -1,10 +1,12 @@
-﻿# These variables get inserted into ./build/commit.go
+# These variables get inserted into ./build/commit.go
 BUILD_TIME=$(shell date)
 GIT_REVISION=$(shell git rev-parse --short HEAD)
-GIT_DIRTY=$(shell git diff-index --quiet HEAD -- || echo "✗-")
+GIT_DIRTY=$(shell git diff-index --quiet HEAD -- || echo "modified-")
 
 ldflags= -X gitlab.com/SiaPrime/SiaPrime/build.GitRevision=${GIT_DIRTY}${GIT_REVISION} \
 -X "gitlab.com/SiaPrime/SiaPrime/build.BuildTime=${BUILD_TIME}"
+
+GO111MODULE=on
 
 # all will build and install release binaries
 all: release
@@ -44,6 +46,7 @@ pkgs = ./build \
 	./modules/renter/siadir \
 	./modules/renter/siafile \
 	./modules/stratumminer \
+	./modules/renter/skynetblacklist \
 	./modules/transactionpool \
 	./modules/wallet \
 	./node \
@@ -73,12 +76,20 @@ pkgs = ./build \
 # when running a 'make release' command.
 release-pkgs = ./cmd/spc ./cmd/spd
 
+# lockcheckpkgs are the packages that are checked for locking violations.
+lockcheckpkgs = ./modules/renter/hostdb
+
 # run determines which tests run when running any variation of 'make test'.
 run = .
 
 # util-pkgs determine the set of packages that are built when running
 # 'make utils'
 util-pkgs = ./cmd/sia-node-scanner
+
+# dependencies list all packages needed to run make commands used to build, test
+# and lint siac/siad locally and in CI systems.
+dependencies:
+	./install-dependencies.sh
 
 # fmt calls go fmt on all packages.
 fmt:
@@ -87,31 +98,38 @@ fmt:
 # vet calls go vet on all packages.
 # NOTE: go vet requires packages to be built in order to obtain type info.
 vet:
-	GO111MODULE=on go vet $(pkgs)
-
-lint:
-	GO111MODULE=on go get golang.org/x/lint/golint
-	golint -min_confidence=1.0 -set_exit_status $(pkgs)
-#disable for now
-	#GO111MODULE=on go run ./analysis/cmd/analyze.go -- $(pkgs)
-
-lint-analysis:
-	GO111MODULE=on go run ./analysis/cmd/analyze.go -- $(pkgs)
-
-lint-all:
-	GO111MODULE=on go run ./analysis/cmd/analyze.go -- $(pkgs)
-	golangci-lint run -c .golangci.yml
+	go vet $(pkgs)
 
 # markdown-spellcheck runs codespell on all markdown files that are not
 # vendored.
 markdown-spellcheck:
 	git ls-files "*.md" :\!:"vendor/**" | xargs codespell --check-filenames
 
+# lint runs golint and custom analyzers.
+lint:
+	go get golang.org/x/lint/golint
+	golint -min_confidence=1.0 -set_exit_status $(pkgs)
+#	go run ./analysis/cmd/analyze.go -lockcheck=false -- $(pkgs)
+#	go run ./analysis/cmd/analyze.go -lockcheck -- $(lockcheckpkgs)
+
+lint-analysis:
+	go run ./analysis/cmd/analyze.go -lockcheck=false -- $(pkgs)
+	go run ./analysis/cmd/analyze.go -lockcheck -- $(lockcheckpkgs)
+
+
+# lint-all runs golangci-lint (which includes golint and other linters), the
+# custom analyzers, and also a markdown spellchecker.
+lint-all: markdown-spellcheck
+	go run ./analysis/cmd/analyze.go -lockcheck=false -- $(pkgs)
+	go run ./analysis/cmd/analyze.go -lockcheck -- $(lockcheckpkgs)
+	golangci-lint run -c .golangci.yml
+
 # spellcheck checks for misspelled words in comments or strings.
-spellcheck:
-	misspell -error .
+spellcheck: markdown-spellcheck
+	golangci-lint run -c .golangci.yml -E misspell
 
 # staticcheck runs the staticcheck tool
+# NOTE: this is not yet enabled in the CI system.
 staticcheck:
 	staticcheck $(pkgs)
 
@@ -129,9 +147,9 @@ dev-race:
 
 # release builds and installs release binaries.
 release:
-	GO111MODULE=on go install -tags='netgo' -ldflags='-s -w $(ldflags)' $(release-pkgs)
+	go install -tags='netgo' -ldflags='-s -w $(ldflags)' $(release-pkgs)
 release-race:
-	GO111MODULE=on go install -race -tags='netgo' -ldflags='-s -w $(ldflags)' $(release-pkgs)
+	go install -race -tags='netgo' -ldflags='-s -w $(ldflags)' $(release-pkgs)
 
 # clean removes all directories that get automatically created during
 # development.
@@ -139,28 +157,29 @@ clean:
 	rm -rf cover doc/whitepaper.aux doc/whitepaper.log doc/whitepaper.pdf fullcover release 
 
 test:
-	GO111MODULE=on go test -short -tags='debug testing netgo' -timeout=5s $(pkgs) -run=$(run) -count=$(count)
+	go test -short -tags='debug testing netgo' -timeout=5s $(pkgs) -run=$(run) -count=$(count)
 test-v:
-	GO111MODULE=on go test -race -v -short -tags='debug testing netgo' -timeout=15s $(pkgs) -run=$(run) -count=$(count)
+	go test -race -v -short -tags='debug testing netgo' -timeout=15s $(pkgs) -run=$(run) -count=$(count)
 test-long: clean fmt vet lint
 	@mkdir -p cover
-	GO111MODULE=on go test --coverprofile='./cover/cover.out' -v -race -failfast -tags='testing debug netgo' -timeout=2400s $(pkgs) -run=$(run) -count=$(count)
+	go test --coverprofile='./cover/cover.out' -v -race -failfast -tags='testing debug netgo' -timeout=2400s $(pkgs) -run=$(run) -count=$(count)
 test-vlong: clean fmt vet lint
 	@mkdir -p cover
-	GO111MODULE=on go test --coverprofile='./cover/cover.out' -v -race -tags='testing debug vlong netgo' -timeout=20000s $(pkgs) -run=$(run) -count=$(count)
+	go test --coverprofile='./cover/cover.out' -v -race -tags='testing debug vlong netgo' -timeout=20000s $(pkgs) -run=$(run) -count=$(count)
 test-cpu:
-	GO111MODULE=on go test -v -tags='testing debug netgo' -timeout=500s -cpuprofile cpu.prof $(pkgs) -run=$(run) -count=$(count)
+	go test -v -tags='testing debug netgo' -timeout=500s -cpuprofile cpu.prof $(pkgs) -run=$(run) -count=$(count)
 test-mem:
-	GO111MODULE=on go test -v -tags='testing debug netgo' -timeout=500s -memprofile mem.prof $(pkgs) -run=$(run) -count=$(count)
-test-pool:
-	GO111MODULE=on go test -short -parallel=1 -tags='testing debug pool' -timeout=120s ./modules/miningpool -run=$(run)
+	go test -v -tags='testing debug netgo' -timeout=500s -memprofile mem.prof $(pkgs) -run=$(run) -count=$(count)
 bench: clean fmt
-	GO111MODULE=on go test -tags='debug testing netgo' -timeout=500s -run=XXX -bench=$(run) $(pkgs) -count=$(count)
+	go test -tags='debug testing netgo' -timeout=500s -run=XXX -bench=$(run) $(pkgs) -count=$(count)
+test-pool:
+	go test -short -parallel=1 -tags='testing debug pool' -timeout=120s ./modules/miningpool -run=$(run)
+
 cover: clean
 	@mkdir -p cover
 	@for package in $(pkgs); do                                                                                                                                 \
 		mkdir -p `dirname cover/$$package`                                                                                                                      \
-		&& GO111MODULE=on go test -tags='testing debug netgo' -timeout=500s -covermode=atomic -coverprofile=cover/$$package.out ./$$package -run=$(run) || true \
+		&& go test -tags='testing debug netgo' -timeout=500s -covermode=atomic -coverprofile=cover/$$package.out ./$$package -run=$(run) || true \
 		&& go tool cover -html=cover/$$package.out -o=cover/$$package.html ;                                                                                    \
 	done
 
@@ -184,7 +203,7 @@ fullcover: clean
 	@echo "mode: atomic" >> fullcover/fullcover.out
 	@for package in $(pkgs); do                                                                                                                                                             \
 		mkdir -p `dirname fullcover/tests/$$package`                                                                                                                                        \
-		&& GO111MODULE=on go test -tags='testing debug netgo' -timeout=500s -covermode=atomic -coverprofile=fullcover/tests/$$package.out -coverpkg $(cpkg) ./$$package -run=$(run) || true \
+		&& go test -tags='testing debug netgo' -timeout=500s -covermode=atomic -coverprofile=fullcover/tests/$$package.out -coverpkg $(cpkg) ./$$package -run=$(run) || true \
 		&& go tool cover -html=fullcover/tests/$$package.out -o=fullcover/tests/$$package.html                                                                                              \
 		&& tail -n +2 fullcover/tests/$$package.out >> fullcover/fullcover.out ;                                                                                                            \
 	done
@@ -199,4 +218,3 @@ whitepaper:
 	pdflatex -output-directory=doc whitepaper.tex
 
 .PHONY: all fmt install release clean test test-v test-long cover whitepaper
-

@@ -1,4 +1,4 @@
-// +build !windows,!solaris
+// +build linux darwin
 
 package renter
 
@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/siatest"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"

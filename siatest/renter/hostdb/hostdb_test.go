@@ -10,13 +10,13 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
-	"gitlab.com/SiaPrime/SiaPrime/siatest/dependencies"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/node/api/client"
+	"gitlab.com/scpcorp/ScPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestInitialScanComplete tests if the initialScanComplete field is set
@@ -203,7 +203,7 @@ func TestPruneRedundantAddressRange(t *testing.T) {
 
 	// Disable the IPViolationCheck to avoid race conditions during testing.
 	if err := renter.RenterIPRestrictionPost(0); err != nil {
-		t.Fatal(err)
+		t.Fatal("Failed to disable IP violation check (POST IPRestriction=0)", err)
 	}
 
 	// Check that all the hosts have been scanned.
@@ -261,7 +261,7 @@ func TestPruneRedundantAddressRange(t *testing.T) {
 
 	// Enable the IPViolationCheck again to cancel the "youngest" host.
 	if err := renter.RenterIPRestrictionPost(1); err != nil {
-		t.Fatal(err)
+		t.Fatal(errors.AddContext(err, "Failed to set IPRestriction=1."))
 	}
 
 	// host4.com has the most recent change time. It should be canceled and
@@ -553,7 +553,7 @@ func TestDisableIPViolationCheck(t *testing.T) {
 
 	// Disable the ip violation check.
 	if err := renter.RenterIPRestrictionPost(0); err != nil {
-		t.Fatal("Failed to disable IP violation check", err)
+		t.Fatal("Failed to disable IP violation check (POST IPRestriction=0)", err)
 	}
 
 	// Reannounce host1 as host4 which creates a violation with host3 and

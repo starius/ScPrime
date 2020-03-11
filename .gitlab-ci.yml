@@ -9,15 +9,40 @@ stages:
  
 lint:
   stage: lint
+  before_script:
+    - mkdir -p .cache/gocache
+    - export PATH=$PATH:$CI_PROJECT_DIR/.cache/bin/
+    - export GOPATH="$CI_PROJECT_DIR/.cache"
+    - export GOCACHE=$CI_PROJECT_DIR/.cache/gocache
+    ## This is the recommended way to install golang-ci lint.
+    - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.23.8
+    - apt-get update
+    - apt-get -y install python3-pip
+    - pip3 install codespell  
+
+  cache:
+    key: lint-cache
+    paths:
+      - .cache
   script: 
-    - go get github.com/golangci/golangci-lint/cmd/golangci-lint
-    - golangci-lint run --timeout=10m --disable-all --enable=vet --enable=gofmt ./...
+    - ./bin/golangci-lint run -c .golangci.yml ./...
+    ## - make lint-analysis
+    ## - make markdown-spellcheck
     - make test
 
-legacy-tests:
+node-api-tests:
   stage: test
   except:
     - schedules
+  before_script:
+    - mkdir -p .cache/gocache
+    - export PATH=$PATH:$CI_PROJECT_DIR/.cache/bin/
+    - export GOPATH=$CI_PROJECT_DIR/.cache
+    - export GOCACHE=$CI_PROJECT_DIR/.cache/gocache    
+  cache:
+    key: legacy-tests-cache
+    paths:
+      - .cache    
   artifacts:
     name: "SiaTesting-$CI_JOB_NAME"
     paths:
@@ -63,14 +88,16 @@ siatest-renter-tests:
   before_script:
     - mkdir -p .cache/gocache
     - export PATH=$PATH:$CI_PROJECT_DIR/.cache/bin/
-    - export GOPATH="$CI_PROJECT_DIR/.cache"
+    - export GOPATH=$CI_PROJECT_DIR/.cache
+    - export GOCACHE=$CI_PROJECT_DIR/.cache/gocache    
+    - apt-get update
+    - apt-get install -y fuse    
+    
   cache:
     key: siatest-renter-tests-cache
     paths:
       - .cache
   script:
-    - apt-get update
-    - apt-get install -y fuse
     - make test-long run=. pkgs="./siatest/renterhost ./siatest/renter/hostdb ./siatest/renter/contractor ./siatest/renter"
 
 legacy-tests-nightly:

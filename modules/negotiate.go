@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/fastrand"
 	"golang.org/x/crypto/chacha20poly1305"
@@ -22,7 +22,7 @@ import (
 const (
 	// MinimumSupportedRenterHostProtocolVersion is the minimum version of Sia
 	// that supports the currently used version of the renter-host protocol.
-	MinimumSupportedRenterHostProtocolVersion = "1.4.1.0"
+	MinimumSupportedRenterHostProtocolVersion = "1.4.1"
 
 	// V1420HostOutOfStorageErrString is the string used by hosts since before
 	// version 1.4.2 to indicate that they have run out of storage.

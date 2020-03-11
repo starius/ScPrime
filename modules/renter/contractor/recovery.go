@@ -4,10 +4,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
@@ -45,7 +45,7 @@ func (c *Contractor) newRecoveryScanner(rs proto.RenterSeed) *recoveryScanner {
 // filecontracts belonging to the wallet's seed. Once done, all recoverable
 // contracts should be known to the contractor after which it will periodically
 // try to recover them.
-func (rs *recoveryScanner) threadedScan(cs consensusSet, scanStart modules.ConsensusChangeID, cancel <-chan struct{}) error {
+func (rs *recoveryScanner) threadedScan(cs modules.ConsensusSet, scanStart modules.ConsensusChangeID, cancel <-chan struct{}) error {
 	if err := rs.c.tg.Add(); err != nil {
 		return err
 	}

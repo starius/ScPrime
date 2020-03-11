@@ -6,10 +6,10 @@ import (
 	"os"
 	"sync"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -375,12 +375,6 @@ func (r *Renter) threadedFetchAndRepairChunk(chunk *unfinishedUploadChunk) {
 	// do elements in our piece usage.
 	if len(chunk.physicalChunkData) < len(chunk.pieceUsage) {
 		r.log.Critical("not enough physical pieces to match the upload settings of the file")
-		// Mark chunk as stuck
-		r.repairLog.Printf("Marking chunk %v of %s as stuck due to insufficient physical pieces", chunk.index, chunk.staticSiaPath)
-		err = chunk.fileEntry.SetStuck(chunk.index, true)
-		if err != nil {
-			r.repairLog.Printf("Error marking chunk %v of file %s as stuck: %v", chunk.index, chunk.staticSiaPath, err)
-		}
 		return
 	}
 

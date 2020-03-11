@@ -10,16 +10,16 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
-	"gitlab.com/SiaPrime/SiaPrime/modules/host"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
-	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
-	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/consensus"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/modules/host"
+	"gitlab.com/scpcorp/ScPrime/modules/miner"
+	"gitlab.com/scpcorp/ScPrime/modules/renter"
+	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
+	"gitlab.com/scpcorp/ScPrime/modules/wallet"
 )
 
 // TestHostDBHostsActiveHandler checks the behavior of the call to
@@ -249,6 +249,12 @@ func assembleHostPort(key crypto.CipherKey, hostHostname string, testdir string)
 		panic("assembleServerTester called during short tests")
 	}
 
+	// Create the siamux
+	mux, err := modules.NewSiaMux(testdir, "localhost:0")
+	if err != nil {
+		return nil, err
+	}
+
 	// Create the modules.
 	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
@@ -284,15 +290,15 @@ func assembleHostPort(key crypto.CipherKey, hostHostname string, testdir string)
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.New(cs, g, tp, w, hostHostname, filepath.Join(testdir, modules.HostDir))
+	h, err := host.New(cs, g, tp, w, mux, hostHostname, filepath.Join(testdir, modules.HostDir))
 	if err != nil {
 		return nil, err
 	}
-	r, errChan := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
+	r, errChan := renter.New(g, cs, w, tp, mux, filepath.Join(testdir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
-	srv, err := NewServer(testdir, "localhost:0", "Sia-PrimeAgent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}

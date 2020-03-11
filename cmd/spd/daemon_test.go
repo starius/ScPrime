@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 // TestUnitProcessNetAddr probes the 'processNetAddr' function.

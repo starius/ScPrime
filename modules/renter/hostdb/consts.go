@@ -3,7 +3,7 @@ package hostdb
 import (
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 const (

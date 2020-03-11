@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 // TestIpRPC tests the ip discovery RPC.

@@ -20,10 +20,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
+
+	connmonitor "gitlab.com/NebulousLabs/monitor"
 )
 
 // rpcSettingsDeprecated is a specifier for a deprecated settings request.
@@ -333,6 +335,8 @@ func (h *Host) threadedListen(closeChan chan struct{}) {
 		if err != nil {
 			return
 		}
+
+		conn = connmonitor.NewMonitoredConn(conn, h.staticMonitor)
 
 		go h.threadedHandleConn(conn)
 

@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -65,6 +65,10 @@ func alertscmd() {
 	al, err := httpClient.DaemonAlertsGet()
 	if err != nil {
 		fmt.Println("Could not get daemon alerts:", err)
+		return
+	}
+	if len(al.Alerts) == 0 {
+		fmt.Println("There are no alerts registered.")
 		return
 	}
 	if len(al.Alerts) == numCriticalAlerts {

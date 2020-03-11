@@ -20,11 +20,11 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // repairTarget is a helper type for telling the repair heap what type of
@@ -615,11 +615,20 @@ func (r *Renter) managedBuildUnfinishedChunks(entry *filesystem.FileNode, hosts 
 // managedBlockUntilSynced will block until the contractor is synced with the
 // peer-to-peer network.
 func (r *Renter) managedBlockUntilSynced() bool {
-	select {
-	case <-r.tg.StopChan():
-		return false
-	case <-r.hostContractor.Synced():
-		return true
+	for {
+		synced := r.cs.Synced()
+		if synced {
+			return true
+		}
+
+		select {
+		case <-r.tg.StopChan():
+			return false
+		case <-time.After(syncCheckInterval):
+			continue
+		case <-r.hostContractor.Synced():
+			return true
+		}
 	}
 }
 

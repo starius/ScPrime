@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 
 	bolt "go.etcd.io/bbolt"
 )

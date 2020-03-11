@@ -1,7 +1,7 @@
 package dependencies
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 // DependencyBlockScan blocks the scan progress of the hostdb until Scan is

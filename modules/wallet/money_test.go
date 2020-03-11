@@ -4,8 +4,8 @@ import (
 	"sort"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestSendSiacoins probes the SendSiacoins method of the wallet.

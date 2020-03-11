@@ -4,8 +4,8 @@ import (
 	"net"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // announcementFinder is a quick module that parses the blockchain for host

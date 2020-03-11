@@ -7,7 +7,7 @@ import (
 
 	"github.com/klauspost/reedsolomon"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 // RSCode is a Reed-Solomon encoder/decoder. It implements the
@@ -90,7 +90,7 @@ func (rs *RSCode) SupportsPartialEncoding() bool {
 
 // Type returns the erasure coders type identifier.
 func (rs *RSCode) Type() modules.ErasureCoderType {
-	return ecReedSolomon
+	return ECReedSolomon
 }
 
 // NewRSCode creates a new Reed-Solomon encoder/decoder using the supplied

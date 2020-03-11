@@ -1,4 +1,4 @@
-// +build !windows,!solaris
+// +build linux darwin
 
 package renter
 
@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/siatest"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"

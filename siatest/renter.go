@@ -10,12 +10,12 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter"
+	"gitlab.com/scpcorp/ScPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
 var (
@@ -347,13 +347,8 @@ func (tn *TestNode) UploadNewFileBlocking(filesize int, dataPieces uint64, parit
 	if err != nil {
 		return nil, nil, err
 	}
-	// Wait until upload reached the specified progress
-	if err = tn.WaitForUploadProgress(remoteFile, 1); err != nil {
-		return nil, nil, err
-	}
-	// Wait until upload reaches a certain health
-	err = tn.WaitForUploadHealth(remoteFile)
-	return localFile, remoteFile, err
+	// Wait until upload reaches the repair threshold
+	return localFile, remoteFile, tn.WaitForUploadHealth(remoteFile)
 }
 
 // Dirs returns the siapaths of all dirs of the TestNode's renter in no

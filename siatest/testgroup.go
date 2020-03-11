@@ -10,13 +10,13 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/host/contractmanager"
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/host/contractmanager"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/node/api/client"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 type (
@@ -34,6 +34,8 @@ type (
 		hosts   map[*TestNode]struct{}
 		renters map[*TestNode]struct{}
 		miners  map[*TestNode]struct{}
+
+		stopped map[*TestNode]struct{}
 
 		dir string
 	}
@@ -79,13 +81,15 @@ func NewGroup(groupDir string, nodeParams ...node.NodeParams) (*TestGroup, error
 		renters: make(map[*TestNode]struct{}),
 		miners:  make(map[*TestNode]struct{}),
 
+		stopped: make(map[*TestNode]struct{}),
+
 		dir: groupDir,
 	}
 
 	// Create node and add it to the correct groups
 	nodes := make([]*TestNode, 0, len(nodeParams))
 	for _, np := range nodeParams {
-		node, err := newCleanNode(np, false)
+		node, err := NewCleanNode(np)
 		if err != nil {
 			return nil, errors.AddContext(err, "failed to create clean node")
 		}
@@ -518,7 +522,7 @@ func (tg *TestGroup) AddNodes(nps ...node.NodeParams) ([]*TestNode, error) {
 	for _, np := range nps {
 		// Create the nodes and add them to the group.
 		randomNodeDir(tg.dir, &np)
-		node, err := NewCleanNodeAsync(np)
+		node, err := NewCleanNode(np)
 		if err != nil {
 			return mapToSlice(newNodes), build.ExtendErr("failed to create new clean node", err)
 		}
@@ -639,6 +643,13 @@ func (tg *TestGroup) Close() error {
 	errs := make([]error, len(tg.nodes))
 	i := 0
 	for n := range tg.nodes {
+		_, ok := tg.stopped[n]
+		if ok {
+			// If the node is stopped, it's been closed already. Skipping here
+			// avoids errors that occur when calling Close() twice on testnodes.
+			continue
+		}
+
 		wg.Add(1)
 		go func(i int, n *TestNode) {
 			errs[i] = n.Close()
@@ -680,6 +691,7 @@ func (tg *TestGroup) StartNode(tn *TestNode) error {
 	if err != nil {
 		return err
 	}
+	delete(tg.stopped, tn)
 	if err := fullyConnectNodes(tg.Nodes()); err != nil {
 		return err
 	}
@@ -707,6 +719,7 @@ func (tg *TestGroup) StopNode(tn *TestNode) error {
 	if _, exists := tg.nodes[tn]; !exists {
 		return errors.New("cannot stop node that's not part of the group")
 	}
+	tg.stopped[tn] = struct{}{}
 	return tn.StopNode()
 }
 

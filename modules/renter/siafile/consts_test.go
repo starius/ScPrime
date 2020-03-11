@@ -3,7 +3,7 @@ package siafile
 import (
 	"testing"
 
-	"gitlab.com/SiaPrime/writeaheadlog"
+	"gitlab.com/scpcorp/writeaheadlog"
 )
 
 // TestMarshalChunkSize checks marshaledChunkSize against the expected values.

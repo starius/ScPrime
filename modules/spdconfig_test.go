@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
 // TestSpdConfigPersistCompat confirms that the compat code for the writebps

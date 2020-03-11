@@ -16,12 +16,12 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (
@@ -833,7 +833,6 @@ func TestRenterLoadNonexistent(t *testing.T) {
 	allowanceValues.Set("expectedstorage", expectedstorage)
 	allowanceValues.Set("expectedupload", expectedupload)
 	allowanceValues.Set("expecteddownload", expecteddownload)
-	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
 	if err = st.stdPostAPI("/renter", allowanceValues); err != nil {
 		t.Fatal(err)
 	}
@@ -1015,7 +1014,6 @@ func TestRenterHandlerDelete(t *testing.T) {
 	allowanceValues.Set("expectedstorage", expectedstorage)
 	allowanceValues.Set("expectedupload", expectedupload)
 	allowanceValues.Set("expecteddownload", expecteddownload)
-	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
 	if err = st.stdPostAPI("/renter", allowanceValues); err != nil {
 		t.Fatal(err)
 	}
@@ -1436,6 +1434,12 @@ func TestAdversarialPriceRenewal(t *testing.T) {
 
 	// Set an allowance for the renter, allowing a contract to be formed.
 	allowanceValues := url.Values{}
+	allowanceValues.Set("renewwindow", testRenewWindow)
+	allowanceValues.Set("hosts", hosts)
+	allowanceValues.Set("expectedstorage", expectedstorage)
+	allowanceValues.Set("expectedupload", expectedupload)
+	allowanceValues.Set("expecteddownload", expecteddownload)
+
 	testPeriod := "10000"
 	allowanceValues.Set("funds", types.SiacoinPrecision.Mul64(10000).String())
 	allowanceValues.Set("period", testPeriod)

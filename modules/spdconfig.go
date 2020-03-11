@@ -7,7 +7,7 @@ import (
 
 	"gitlab.com/NebulousLabs/ratelimit"
 
-	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
 type (

@@ -3,7 +3,7 @@ package consensus
 import (
 	bolt "go.etcd.io/bbolt"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/crypto"
 )
 
 // dbConsensusChecksum is a convenience function to call consensusChecksum

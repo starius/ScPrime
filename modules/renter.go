@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"os"
+	"strings"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -70,6 +72,11 @@ const (
 	// permissions are supplied. Changing this value is a compatibility issue
 	// since users expect dirs to have these permissions.
 	DefaultDirPerm = 0755
+
+	// DefaultFilePerm defines the default permissions used for a new file if no
+	// permissions are supplied. Changing this value is a compatibility issue
+	// since users expect files to have these permissions.
+	DefaultFilePerm = 0644
 )
 
 // String returns the string value for the FilterMode
@@ -235,6 +242,13 @@ type Allowance struct {
 	Hosts       uint64            `json:"hosts"`
 	Period      types.BlockHeight `json:"period"`
 	RenewWindow types.BlockHeight `json:"renewwindow"`
+
+	// PaymentContractInitialFunding establishes the amount of money that the a
+	// Skynet portal will put into a brand new payment contract. If this value
+	// is set to zero, this node will not act as a Skynet portal. When this
+	// value is non-zero, this node will act as a Skynet portal, and form
+	// contracts with every reasonably priced host.
+	PaymentContractInitialFunding types.Currency `json:"paymentcontractinitialfunding"`
 
 	// ExpectedStorage is the amount of data that we expect to have in a contract.
 	ExpectedStorage uint64 `json:"expectedstorage"`
@@ -421,6 +435,7 @@ type FileInfo struct {
 	Recoverable      bool              `json:"recoverable"`
 	Redundancy       float64           `json:"redundancy"`
 	Renewing         bool              `json:"renewing"`
+	Skylinks         []string          `json:"skylinks"`
 	SiaPath          SiaPath           `json:"siapath"`
 	Stuck            bool              `json:"stuck"`
 	StuckHealth      float64           `json:"stuckhealth"`
@@ -538,7 +553,8 @@ type RenterPriceEstimation struct {
 
 // RenterSettings control the behavior of the Renter.
 type RenterSettings struct {
-	Allowance        Allowance     `json:"allowance"`
+	Allowance Allowance `json:"allowance"`
+	// TODO: remove IPViolationCheck field eventually as it is included in the IPrestriction
 	IPViolationCheck bool          `json:"ipviolationcheck"`
 	IPrestriction    int           `json:"iprestriction"`
 	MaxUploadSpeed   int64         `json:"maxuploadspeed"`
@@ -919,10 +935,36 @@ type Renter interface {
 
 	// DirList lists the directories in a siadir
 	DirList(siaPath SiaPath) ([]DirectoryInfo, error)
+
+	// CreateSkylinkFromSiafile will create a skylink from a siafile. This will
+	// result in some uploading - the base sector skyfile needs to be uploaded
+	// separately, and if there is a fanout expansion that needs to be uploaded
+	// separately as well.
+	CreateSkylinkFromSiafile(SkyfileUploadParameters, SiaPath) (Skylink, error)
+
+	// DownloadSkylink will fetch a file from the Sia network using the skylink.
+	DownloadSkylink(Skylink) (SkyfileMetadata, Streamer, error)
+
+	// UploadSkyfile will upload data to the Sia network from a reader and
+	// create a skyfile, returning the skylink that can be used to access the
+	// file.
+	//
+	// NOTE: A skyfile is a file that is tracked and repaired by the renter.  A
+	// skyfile contains more than just the file data, it also contains metadata
+	// about the file and other information which is useful in fetching the
+	// file.
+	UploadSkyfile(SkyfileUploadParameters) (Skylink, error)
+
+	// UpdateSkynetBlacklist updates the list of skylinks that are blacklisted
+	UpdateSkynetBlacklist(additions, removals []Skylink) error
+
+	// PinSkylink re-uploads the data stored at the file under that skylink with
+	// the given parameters.
+	PinSkylink(Skylink, SkyfileUploadParameters) error
 }
 
 // Streamer is the interface implemented by the Renter's streamer type which
-// allows for streaming files uploaded to the ScPrime network.
+// allows for streaming files uploaded to the Sia network.
 type Streamer interface {
 	io.ReadSeeker
 	io.Closer
@@ -956,4 +998,252 @@ func HealthPercentage(health float64) float64 {
 		healthPercent = 0
 	}
 	return healthPercent
+}
+
+// HostDB is a database of hosts that the renter can use for figuring out who
+// to upload to, and download from.
+type HostDB interface {
+	Alerter
+
+	// ActiveHosts returns the list of hosts that are actively being selected
+	// from.
+	ActiveHosts() ([]HostDBEntry, error)
+
+	// AllHosts returns the full list of hosts known to the hostdb, sorted in
+	// order of preference.
+	AllHosts() ([]HostDBEntry, error)
+
+	// CheckForIPViolations accepts a number of host public keys and returns the
+	// ones that violate the rules of the addressFilter.
+	CheckForIPViolations([]types.SiaPublicKey) ([]types.SiaPublicKey, error)
+
+	// Close closes the hostdb.
+	Close() error
+
+	// EstimateHostScore returns the estimated score breakdown of a host with the
+	// provided settings.
+	EstimateHostScore(HostDBEntry, Allowance) (HostScoreBreakdown, error)
+
+	// Filter returns the hostdb's filterMode and filteredHosts
+	Filter() (FilterMode, map[string]types.SiaPublicKey, error)
+
+	// SetFilterMode sets the renter's hostdb filter mode
+	SetFilterMode(lm FilterMode, hosts []types.SiaPublicKey) error
+
+	// Host returns the HostDBEntry for a given host.
+	Host(pk types.SiaPublicKey) (HostDBEntry, bool, error)
+
+	// IncrementSuccessfulInteractions increments the number of successful
+	// interactions with a host for a given key
+	IncrementSuccessfulInteractions(types.SiaPublicKey) error
+
+	// IncrementFailedInteractions increments the number of failed interactions with
+	// a host for a given key
+	IncrementFailedInteractions(types.SiaPublicKey) error
+
+	// initialScanComplete returns a boolean indicating if the initial scan of the
+	// hostdb is completed.
+	InitialScanComplete() (bool, error)
+
+	// IPRestriction returns the number of hosts from same IP address subnet that
+	// the renter is allowed to form contracts with. Value of zero means the
+	// IP restriction is disabled
+	IPRestriction() (int, error)
+
+	// RandomHosts returns a set of random hosts, weighted by their estimated
+	// usefulness / attractiveness to the renter. RandomHosts will not return
+	// any offline or inactive hosts.
+	RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey) ([]HostDBEntry, error)
+
+	// RandomHostsWithAllowance is the same as RandomHosts but accepts an
+	// allowance as an argument to be used instead of the allowance set in the
+	// renter.
+	RandomHostsWithAllowance(int, []types.SiaPublicKey, []types.SiaPublicKey, Allowance) ([]HostDBEntry, error)
+
+	// ScoreBreakdown returns a detailed explanation of the various properties
+	// of the host.
+	ScoreBreakdown(HostDBEntry) (HostScoreBreakdown, error)
+
+	// SetAllowance updates the allowance used by the hostdb for weighing hosts by
+	// updating the host weight function. It will completely rebuild the hosttree so
+	// it should be used with care.
+	SetAllowance(Allowance) error
+
+	// SetIPRestriction sets the number of hosts from same IP address subnet that
+	// the renter is allowed to form contracts with. Setting it to 0 disables the
+	// IP restriction
+	SetIPRestriction(numhosts int) error
+
+	// UpdateContracts rebuilds the knownContracts of the HostBD using the provided
+	// contracts.
+	UpdateContracts([]RenterContract) error
+}
+
+// SkyfileMetadata is all of the metadata that gets placed into the first 4096
+// bytes of the skyfile, and is used to set the metadata of the file when
+// writing back to disk. The data is json-encoded when it is placed into the
+// leading bytes of the skyfile, meaning that this struct can be extended
+// without breaking compatibility.
+type SkyfileMetadata struct {
+	Mode     os.FileMode     `json:"mode,omitempty"`
+	Filename string          `json:"filename,omitempty"`
+	Subfiles SkyfileSubfiles `json:"subfiles,omitempty"`
+}
+
+// SkyfileSubfiles contains the subfiles of a skyfile, indexed by their
+// filename.
+type SkyfileSubfiles map[string]SkyfileSubfileMetadata
+
+// ForPath returns a subset of the SkyfileMetadata that contains all of the
+// subfiles for the given path. The path can lead to both a directory or a file.
+// Note that this method will return the subfiles with offsets relative to the
+// given path, so if a directory is requested, the subfiles in that directory
+// will start at offset 0, relative to the path.
+func (sm SkyfileMetadata) ForPath(path string) (SkyfileMetadata, bool, uint64, uint64) {
+	metadata := SkyfileMetadata{
+		Filename: path,
+		Subfiles: make(SkyfileSubfiles),
+	}
+
+	dir := false
+
+	// Try to find an exact match
+	for _, sf := range sm.Subfiles {
+		filename := sf.Filename
+		if !strings.HasPrefix(filename, "/") {
+			filename = fmt.Sprintf("/%s", filename)
+		}
+		if filename == path {
+			metadata.Subfiles[sf.Filename] = sf
+			break
+		}
+	}
+
+	// If we have not found an exact match, look for directories.
+	// This means we can safely ensire a trailing slash.
+	if len(metadata.Subfiles) == 0 {
+		dir = true
+
+		if strings.HasSuffix(path, "/") {
+			path = fmt.Sprintf("%s/", path)
+		}
+		for _, sf := range sm.Subfiles {
+			filename := sf.Filename
+			if !strings.HasPrefix(filename, "/") {
+				filename = fmt.Sprintf("/%s", filename)
+			}
+			if strings.HasPrefix(filename, path) {
+				metadata.Subfiles[sf.Filename] = sf
+			}
+		}
+	}
+
+	offset := metadata.offset()
+	if offset > 0 {
+		for _, sf := range metadata.Subfiles {
+			sf.Offset -= offset
+			metadata.Subfiles[sf.Filename] = sf
+		}
+	}
+	return metadata, dir, offset, metadata.size()
+}
+
+// ContentType returns the Content Type of the data. We only return a
+// content-type if it has exactly one subfile. As that is the only case where we
+// can be sure of it.
+func (sm SkyfileMetadata) ContentType() string {
+	if len(sm.Subfiles) == 1 {
+		for _, sf := range sm.Subfiles {
+			return sf.ContentType
+		}
+	}
+	return ""
+}
+
+// size returns the total size, which is the sum of the length of all subfiles.
+func (sm SkyfileMetadata) size() uint64 {
+	var total uint64
+	for _, sf := range sm.Subfiles {
+		total += sf.Len
+	}
+	return total
+}
+
+// offset returns the smallest offset of the subfile with the smallest offset.
+func (sm SkyfileMetadata) offset() uint64 {
+	var min uint64 = math.MaxUint64
+	for _, sf := range sm.Subfiles {
+		if sf.Offset < min {
+			min = sf.Offset
+		}
+	}
+	return min
+}
+
+// SkyfileSubfileMetadata is all of the metadata that belongs to a subfile in a
+// skyfile. Most importantly it contains the offset at which the subfile is
+// written and its length. Its filename can potentially include a '/' character
+// as nested files and directories are allowed within a single Skyfile
+type SkyfileSubfileMetadata struct {
+	Mode        os.FileMode `json:"mode,omitempty"`
+	Filename    string      `json:"filename,omitempty"`
+	ContentType string      `json:"contenttype,omitempty"`
+	Offset      uint64      `json:"offset,omitempty"`
+	Len         uint64      `json:"len,omitempty"`
+}
+
+// SkyfileUploadParameters establishes the parameters such as the intra-root
+// erasure coding.
+type SkyfileUploadParameters struct {
+	// SiaPath defines the siapath that the skyfile is going to be uploaded to.
+	// Recommended that the skyfile is placed in /var/skynet
+	SiaPath SiaPath `json:"siapath"`
+
+	// Force determines whether the upload should overwrite an existing siafile
+	// at 'SiaPath'. If set to false, an error will be returned if there is
+	// already a file or folder at 'SiaPath'. If set to true, any existing file
+	// or folder at 'SiaPath' will be deleted and overwritten.
+	Force bool `json:"force"`
+
+	// Root determines whether the upload should treat the filepath as a path
+	// from system root, or if the path should be from /var/skynet.
+	Root bool `json:"root"`
+
+	// The base chunk is always uploaded with a 1-of-N erasure coding setting,
+	// meaning that only the redundancy needs to be configured by the user.
+	BaseChunkRedundancy uint8 `json:"basechunkredundancy"`
+
+	// This metadata will be included in the base chunk, meaning that this
+	// metadata is visible to the downloader before any of the file data is
+	// visible.
+	FileMetadata SkyfileMetadata `json:"filemetadata"`
+
+	// Reader supplies the file data for the skyfile.
+	Reader io.Reader `json:"reader"`
+}
+
+// SkyfileMultipartUploadParameters defines the parameters specific to multipart
+// uploads. See SkyfileUploadParameters for a detailed description of the
+// fields.
+type SkyfileMultipartUploadParameters struct {
+	SiaPath             SiaPath   `json:"siapath"`
+	Force               bool      `json:"force"`
+	Root                bool      `json:"root"`
+	BaseChunkRedundancy uint8     `json:"basechunkredundancy"`
+	Reader              io.Reader `json:"reader"`
+
+	// Filename indicates the filename of the skyfile.
+	Filename string `json:"filename"`
+
+	// ContentType indicates the media type of the data supplied by the reader.
+	ContentType string `json:"contenttype"`
+}
+
+// SkyfilePinParameters defines the parameters specific to pinning a skylink.
+// See SkyfileUploadParameters for a detailed description of the fields.
+type SkyfilePinParameters struct {
+	SiaPath             SiaPath `json:"siapath"`
+	Force               bool    `json:"force"`
+	Root                bool    `json:"root"`
+	BaseChunkRedundancy uint8   `json:"basechunkredundancy"`
 }

@@ -5,13 +5,13 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/SiaPrime/types/typesutil"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
+	"gitlab.com/scpcorp/ScPrime/types"
+	"gitlab.com/scpcorp/ScPrime/types/typesutil"
 
 	"gitlab.com/NebulousLabs/demotemutex"
 	"gitlab.com/NebulousLabs/errors"
@@ -69,6 +69,7 @@ type (
 		// Utilities.
 		db         *persist.BoltDatabase
 		dbTx       *bolt.Tx
+		deps       modules.Dependencies
 		log        *persist.Logger
 		mu         demotemutex.DemoteMutex
 		tg         siasync.ThreadGroup
@@ -76,8 +77,16 @@ type (
 	}
 )
 
+// Enforce that TransactionPool satisfies the modules.TransactionPool interface.
+var _ modules.TransactionPool = (*TransactionPool)(nil)
+
 // New creates a transaction pool that is ready to receive transactions.
 func New(cs modules.ConsensusSet, g modules.Gateway, persistDir string) (*TransactionPool, error) {
+	return NewCustomTPool(cs, g, persistDir, modules.ProdDependencies)
+}
+
+// NewCustomTPool creates a transaction pool with custom dependencies.
+func NewCustomTPool(cs modules.ConsensusSet, g modules.Gateway, persistDir string, deps modules.Dependencies) (*TransactionPool, error) {
 	// Check that the input modules are non-nil.
 	if cs == nil {
 		return nil, errNilCS
@@ -97,6 +106,7 @@ func New(cs modules.ConsensusSet, g modules.Gateway, persistDir string) (*Transa
 		transactionSets:     make(map[modules.TransactionSetID][]types.Transaction),
 		transactionSetDiffs: make(map[modules.TransactionSetID]*modules.ConsensusChange),
 
+		deps:       deps,
 		persistDir: persistDir,
 	}
 

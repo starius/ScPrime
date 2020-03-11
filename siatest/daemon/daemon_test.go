@@ -7,11 +7,11 @@ import (
 
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/node/api/client"
+	"gitlab.com/scpcorp/ScPrime/siatest"
 )
 
 // TestDaemonAPIPassword makes sure that the daemon rejects requests with the

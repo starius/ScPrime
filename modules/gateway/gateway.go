@@ -99,9 +99,9 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
@@ -244,7 +244,7 @@ func (g *Gateway) BandwidthCounters() (uint64, uint64, time.Time, error) {
 		return 0, 0, time.Time{}, err
 	}
 	defer g.threads.Done()
-	writeBytes, readBytes := g.m.Counts()
+	readBytes, writeBytes := g.m.Counts()
 	startTime := g.m.StartTime()
 	return writeBytes, readBytes, startTime, nil
 }

@@ -4,9 +4,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestHostPersistCompat100 tests breaking changes in the host persist struct
@@ -34,7 +34,16 @@ func TestHostPersistCompat100(t *testing.T) {
 		t.Log(filepath.Abs(source))
 		t.Fatal(err)
 	}
-	h, err := New(ht.cs, ht.gateway, ht.tpool, ht.wallet, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
+
+	// Create a new siamux to ensure it has the chance to load the appropriate
+	// set of keys
+	mux, err := modules.NewSiaMux(ht.persistDir, "localhost:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Reload the host
+	h, err := New(ht.cs, ht.gateway, ht.tpool, ht.wallet, mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
 	if err != nil {
 		t.Fatal(err)
 	}
