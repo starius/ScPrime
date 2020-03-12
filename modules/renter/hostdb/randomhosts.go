@@ -1,11 +1,11 @@
 package hostdb
 
 import (
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb/hosttree"
+	"gitlab.com/scpcorp/ScPrime/types"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb/hosttree"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // RandomHosts implements the HostDB interface's RandomHosts() method. It takes
@@ -15,7 +15,7 @@ import (
 func (hdb *HostDB) RandomHosts(n int, blacklist, addressBlacklist []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
 	hdb.mu.RLock()
 	initialScanComplete := hdb.initialScanComplete
-	ipCheckDisabled := !hdb.IPViolationsCheck()
+	ipCheckDisabled := hdb.hostTree.IPRestriction() < 1
 	hdb.mu.RUnlock()
 	if !initialScanComplete {
 		return []modules.HostDBEntry{}, ErrInitialScanIncomplete

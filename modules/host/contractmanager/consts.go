@@ -3,8 +3,15 @@ package contractmanager
 import (
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/persist"
+)
+
+// Constants related to the host's alerts.
+const (
+	// AlertMSGHostDiskTrouble indicates that one or multiple of a host's disks
+	// are encountering problems
+	AlertMSGHostDiskTrouble = "disk problem detected"
 )
 
 const (
@@ -102,7 +109,7 @@ var (
 	}).(uint64)
 
 	// MinimumSectorsPerStorageFolder defines the minimum number of sectors
-	// that a storage folder is allowed to have.
+	// that a storage folder is allowed to have. uint64(1 << 6) = 64
 	MinimumSectorsPerStorageFolder = build.Select(build.Var{
 		Dev:      uint64(1 << 6), // 16 MiB
 		Standard: uint64(1 << 6), // 256 MiB

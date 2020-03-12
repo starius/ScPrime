@@ -3,7 +3,7 @@ package client
 import (
 	"net/url"
 
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/node/api"
 )
 
 // MiningPoolGet requests the /pool endpoint's resources.

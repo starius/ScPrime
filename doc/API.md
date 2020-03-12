@@ -1,4 +1,4 @@
-Siad API
+ScPrime API
 ========
 
 SiaPrime uses semantic versioning and is backwards compatible to version v1.0.0.
@@ -1678,7 +1678,7 @@ gets the transaction associated with a specific transaction id.
 {
   "transaction": {
     "transaction": {
-      // See types.Transaction in https://gitlab.com/SiaPrime/SiaPrime/blob/master/types/transactions.go
+      // See types.Transaction in https://gitlab.com/scpcorp/ScPrime/blob/master/types/transactions.go
     },
     "transactionid":         "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "confirmationheight":    50000,
@@ -1850,3 +1850,6 @@ addresses will be reported in /wallet/unspent.
 ###### Response
 standard success or error response. See
 [#standard-responses](#standard-responses).
+
+The Sia API documentation can be found here:
+[Sia API](https://sia.tech/docs/ "Sia API")

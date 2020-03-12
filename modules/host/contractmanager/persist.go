@@ -6,10 +6,12 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/persist"
+
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
 )
 
 type (
@@ -66,7 +68,7 @@ func (cm *ContractManager) loadSettings() error {
 		return cm.initSettings()
 	} else if err != nil {
 		cm.log.Println("ERROR: unable to load the contract manager settings file:", err)
-		return build.ExtendErr("error loading the contract manager settings file", err)
+		return errors.AddContext(err, "error loading the contract manager settings file")
 	}
 
 	// Copy the saved settings into the contract manager.

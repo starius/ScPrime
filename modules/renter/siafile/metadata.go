@@ -6,14 +6,14 @@ import (
 	"path/filepath"
 	"time"
 
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
+	"gitlab.com/scpcorp/writeaheadlog"
+
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
-
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/writeaheadlog"
 )
 
 type (
@@ -166,6 +166,7 @@ type (
 		Redundancy          float64
 		Size                uint64
 		StuckHealth         float64
+		UID                 SiafileUID
 	}
 
 	// CachedHealthMetadata is a healper struct that contains the siafile health
@@ -287,8 +288,19 @@ func (sf *SiaFile) PieceSize() uint64 {
 func (sf *SiaFile) Rename(newSiaFilePath string) error {
 	sf.mu.Lock()
 	defer sf.mu.Unlock()
+	return sf.rename(newSiaFilePath)
+}
+
+// rename changes the name of the file to a new one. To guarantee that renaming
+// the file is atomic across all operating systems, we create a wal transaction
+// that moves over all the chunks one-by-one and deletes the src file.
+func (sf *SiaFile) rename(newSiaFilePath string) error {
 	if sf.deleted {
 		return errors.New("can't rename deleted siafile")
+	}
+	// Check if file exists at new location.
+	if _, err := os.Stat(newSiaFilePath); err == nil {
+		return ErrPathOverload
 	}
 	// Create path to renamed location.
 	dir, _ := filepath.Split(newSiaFilePath)

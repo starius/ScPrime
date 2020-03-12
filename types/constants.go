@@ -11,7 +11,7 @@ import (
 	"math/big"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 var (
@@ -45,7 +45,7 @@ var (
 	// that is permitted by the consensus rules.
 	BlockSizeLimit = uint64(2e6)
 	// BlocksPerHour is the number of blocks expected to be mined per hour.
-	BlocksPerHour = uint64(6)
+	BlocksPerHour = BlockHeight(6)
 	// BlocksPerDay is the number of blocks expected to be mined per day.
 	BlocksPerDay = 24 * BlocksPerHour
 	// BlocksPerWeek is the number of blocks expected to be mined per week.
@@ -105,7 +105,6 @@ var (
 	// GenesisID is used in many places. Calculating it once saves lots of
 	// redundant computation.
 	GenesisID BlockID
-
 	// GenesisAirdropAllocation is the output creating the initial coins allocated
 	// for the airdrop at network launch
 	GenesisAirdropAllocation []SiacoinOutput
@@ -195,12 +194,18 @@ var (
 	// to be done in order to mine the first block. The difficulty adjustment algorithm
 	// takes over from there.
 	RootTarget Target
-	// SiacoinPrecision is the number of base units in a siacoin. The Sia network has a very
-	// large number of base units. We call 10^24 of these a siacoin.
+	// SiacoinPrecision is the number of base units in a siacoin. This constant is used
+	// for mining rewards calculation and supported for compatibility with
+	// existing 3rd party intergations.
+	// DEPRECATED: Since February 2020 one scprimecoin equals 10^27 Hastings
+	// Use the types.ScPrimecoinPrecision constant.
 	//
 	// The base unit for Bitcoin is called a satoshi. We call 10^8 satoshis a bitcoin,
 	// even though the code itself only ever works with satoshis.
 	SiacoinPrecision = NewCurrency(new(big.Int).Exp(big.NewInt(10), big.NewInt(24), nil))
+	// ScPrimecoinPrecision is the number of base units in a scprimecoin that is used
+	// by clients (1 SCP = 10^27 H).
+	ScPrimecoinPrecision = NewCurrency(new(big.Int).Exp(big.NewInt(10), big.NewInt(27), nil))
 	// OldSiafundCount is the total number of Siafunds in existence before the SPF hardfork.
 	OldSiafundCount = NewCurrency64(10000)
 	// NewSiafundCount is the total number of Siafunds in existence after the SPF hardfork.

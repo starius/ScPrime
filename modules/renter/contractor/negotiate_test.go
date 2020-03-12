@@ -4,27 +4,26 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb"
-	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
-	modWallet "gitlab.com/SiaPrime/SiaPrime/modules/wallet" // name conflicts with type
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/consensus"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/modules/miner"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
+	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
+	modWallet "gitlab.com/scpcorp/ScPrime/modules/wallet" // name conflicts with type
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // contractorTester contains all of the modules that are used while testing the contractor.
 type contractorTester struct {
-	cs        modules.ConsensusSet
-	gateway   modules.Gateway
-	miner     modules.TestMiner
-	tpool     modules.TransactionPool
-	wallet    modules.Wallet
-	walletKey crypto.CipherKey
-	hdb       hostDB
+	cs      modules.ConsensusSet
+	gateway modules.Gateway
+	miner   modules.TestMiner
+	tpool   modules.TransactionPool
+	wallet  modules.Wallet
+	hdb     hostDB
 
 	contractor *Contractor
 }
@@ -50,8 +49,8 @@ func newContractorTester(name string) (*contractorTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -71,16 +70,16 @@ func newContractorTester(name string) (*contractorTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	hdb, err := hostdb.New(g, cs, tp, filepath.Join(testdir, modules.RenterDir))
-	if err != nil {
+	hdb, errChan := hostdb.New(g, cs, tp, filepath.Join(testdir, modules.RenterDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	m, err := miner.New(cs, tp, w, filepath.Join(testdir, modules.MinerDir))
 	if err != nil {
 		return nil, err
 	}
-	c, err := New(cs, w, tp, hdb, filepath.Join(testdir, modules.RenterDir))
-	if err != nil {
+	c, errChan := New(cs, w, tp, hdb, filepath.Join(testdir, modules.RenterDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 

@@ -6,12 +6,13 @@ import (
 	"reflect"
 	"time"
 
-	bolt "github.com/coreos/bbolt"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
+
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	bolt "go.etcd.io/bbolt"
 )
 
 var (
@@ -68,7 +69,8 @@ var (
 	keyPrimarySeedProgress    = []byte("keyPrimarySeedProgress")
 	keySiafundPool            = []byte("keySiafundPool")
 	keySpendableKeyFiles      = []byte("keySpendableKeyFiles")
-	keyUID                    = []byte("keyUID")
+	keySalt                   = []byte("keyUID")
+	keyWalletPassword         = []byte("keyWalletPassword")
 	keyWatchedAddrs           = []byte("keyWatchedAddrs")
 )
 
@@ -142,7 +144,7 @@ func dbReset(tx *bolt.Tx) error {
 
 	// reinitialize the database with default values
 	wb := tx.Bucket(bucketWallet)
-	wb.Put(keyUID, fastrand.Bytes(len(uniqueID{})))
+	wb.Put(keySalt, fastrand.Bytes(len(walletSalt{})))
 	wb.Put(keyConsensusHeight, encoding.Marshal(uint64(0)))
 	wb.Put(keyAuxiliarySeedFiles, encoding.Marshal([]seedFile{}))
 	wb.Put(keySpendableKeyFiles, encoding.Marshal([]spendableKeyFile{}))
@@ -202,10 +204,6 @@ func dbForEach(b *bolt.Bucket, fn interface{}) error {
 func dbPutSiacoinOutput(tx *bolt.Tx, id types.SiacoinOutputID, output types.SiacoinOutput) error {
 	return dbPut(tx.Bucket(bucketSiacoinOutputs), id, output)
 }
-func dbGetSiacoinOutput(tx *bolt.Tx, id types.SiacoinOutputID) (output types.SiacoinOutput, err error) {
-	err = dbGet(tx.Bucket(bucketSiacoinOutputs), id, &output)
-	return
-}
 func dbDeleteSiacoinOutput(tx *bolt.Tx, id types.SiacoinOutputID) error {
 	return dbDelete(tx.Bucket(bucketSiacoinOutputs), id)
 }
@@ -215,10 +213,6 @@ func dbForEachSiacoinOutput(tx *bolt.Tx, fn func(types.SiacoinOutputID, types.Si
 
 func dbPutSiafundOutput(tx *bolt.Tx, id types.SiafundOutputID, output types.SiafundOutput) error {
 	return dbPut(tx.Bucket(bucketSiafundOutputs), id, output)
-}
-func dbGetSiafundOutput(tx *bolt.Tx, id types.SiafundOutputID) (output types.SiafundOutput, err error) {
-	err = dbGet(tx.Bucket(bucketSiafundOutputs), id, &output)
-	return
 }
 func dbDeleteSiafundOutput(tx *bolt.Tx, id types.SiafundOutputID) error {
 	return dbDelete(tx.Bucket(bucketSiafundOutputs), id)
@@ -440,9 +434,9 @@ func dbProcessedTransactionsIterator(tx *bolt.Tx) *processedTransactionsIter {
 	}
 }
 
-// dbGetWalletUID returns the UID assigned to the wallet's primary seed.
-func dbGetWalletUID(tx *bolt.Tx) (uid uniqueID) {
-	copy(uid[:], tx.Bucket(bucketWallet).Get(keyUID))
+// dbGetWalletSalt returns the salt used by the wallet to derive encryption keys.
+func dbGetWalletSalt(tx *bolt.Tx) (uid walletSalt) {
+	copy(uid[:], tx.Bucket(bucketWallet).Get(keySalt))
 	return
 }
 

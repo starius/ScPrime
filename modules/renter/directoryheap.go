@@ -5,10 +5,10 @@ import (
 	"math"
 	"sync"
 
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // directory is a helper struct that represents a siadir in the
@@ -265,12 +265,15 @@ func (r *Renter) managedPushSubDirectories(d *directory) error {
 // pushes an unexplored directory element onto the heap
 func (r *Renter) managedPushUnexploredDirectory(siaPath modules.SiaPath) error {
 	// Grab the siadir metadata.
-	siaDir, err := r.staticDirSet.Open(siaPath)
+	siaDir, err := r.staticFileSystem.OpenSiaDir(siaPath)
 	if err != nil {
 		return err
 	}
 	defer siaDir.Close()
-	metadata := siaDir.Metadata()
+	metadata, err := siaDir.Metadata()
+	if err != nil {
+		return err
+	}
 
 	// Push unexplored directory onto heap.
 	r.directoryHeap.managedPushDirectory(siaPath, metadata.AggregateHealth, metadata.Health, false)

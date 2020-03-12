@@ -3,10 +3,12 @@ package proto
 import (
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 const (
@@ -29,10 +31,10 @@ const (
 var (
 	// The following specifiers are used for deriving different seeds from the
 	// wallet seed.
-	identifierSeedSpecifier = types.Specifier{'i', 'd', 'e', 'n', 't', 'i', 'f', 'i', 'e', 'r', 's', 'e', 'e', 'd'}
-	renterSeedSpecifier     = types.Specifier{'r', 'e', 'n', 't', 'e', 'r'}
-	secretKeySeedSpecifier  = types.Specifier{'s', 'e', 'c', 'r', 'e', 't', 'k', 'e', 'y', 's', 'e', 'e', 'd'}
-	signingKeySeedSpecifier = types.Specifier{'s', 'i', 'g', 'n', 'i', 'n', 'g', 'k', 'e', 'y', 's', 'e', 'e', 'd'}
+	identifierSeedSpecifier = types.NewSpecifier("identifierseed")
+	renterSeedSpecifier     = types.NewSpecifier("renter")
+	secretKeySeedSpecifier  = types.NewSpecifier("secretkeyseed")
+	signingKeySeedSpecifier = types.NewSpecifier("signingkeyseed")
 )
 
 var (
@@ -49,7 +51,7 @@ var (
 	defaultContractLockTimeout = build.Select(build.Var{
 		Dev:      uint64(60 * 1000),     // 1 minute
 		Standard: uint64(5 * 60 * 1000), // 5 minutes
-		Testing:  uint64(5 * 1000),      // 5 seconds
+		Testing:  uint64(25 * 1000),     // 25 seconds
 	}).(uint64)
 
 	// ephemeralSeedInterval is the amount of blocks after which we use a new
@@ -85,4 +87,10 @@ var (
 		}
 		return height
 	}()
+)
+
+var (
+	// ErrBadHostVersion indicates that the host is using an older, incompatible
+	// version of the renter-host protocol.
+	ErrBadHostVersion = errors.New("Bad host version; host does not support required protocols")
 )

@@ -1,12 +1,12 @@
 package contractor
 
 import (
-	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
+	"gitlab.com/scpcorp/ScPrime/types"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // hasFCIdentifier checks the transaction for a ContractSignedIdentifier and
@@ -19,11 +19,10 @@ func hasFCIdentifier(txn types.Transaction) (proto.ContractSignedIdentifier, cry
 		return proto.ContractSignedIdentifier{}, nil, false
 	}
 	// Verify the prefix.
-	// TODO In the future we can remove checking for PrefixNonSia.
 	var prefix types.Specifier
 	copy(prefix[:], txn.ArbitraryData[0])
-	if prefix != modules.PrefixNonSia &&
-		prefix != modules.PrefixFileContractIdentifier {
+	if prefix != modules.PrefixFileContractIdentifier &&
+		prefix != modules.PrefixNonSia {
 		return proto.ContractSignedIdentifier{}, nil, false
 	}
 	// We found an identifier.
@@ -90,6 +89,7 @@ func (c *Contractor) ProcessConsensusChange(cc modules.ConsensusChange) {
 		renterSeed = proto.DeriveRenterSeed(s)
 		defer fastrand.Read(renterSeed[:])
 	}
+
 	c.mu.Lock()
 	for _, block := range cc.RevertedBlocks {
 		if block.ID() != types.GenesisID {
@@ -109,18 +109,46 @@ func (c *Contractor) ProcessConsensusChange(cc modules.ConsensusChange) {
 			missedRecovery = true
 		}
 	}
+	c.staticWatchdog.callScanConsensusChange(cc)
+
 	// If we didn't miss the recover, we update the recentRecoverChange
 	if !missedRecovery && c.recentRecoveryChange == c.lastChange {
 		c.recentRecoveryChange = cc.ID
 	}
 
-	// If we have entered the next period, update currentPeriod
-	if c.blockHeight >= c.currentPeriod+c.allowance.Period {
+	// If the allowance is set and we have entered the next period, update
+	// currentPeriod.
+	if c.allowance.Active() && c.blockHeight >= c.currentPeriod+c.allowance.Period {
 		c.currentPeriod += c.allowance.Period
+		c.staticChurnLimiter.callResetAggregateChurn()
+
 		// COMPATv1.0.4-lts
 		// if we were storing a special metrics contract, it will be invalid
 		// after we enter the next period.
 		delete(c.oldContracts, metricsContractID)
+	}
+
+	// Check if c.synced already signals that the contractor is synced.
+	synced := false
+	select {
+	case <-c.synced:
+		synced = true
+	default:
+	}
+	// If we weren't synced but are now, we close the channel. If we were
+	// synced but aren't anymore, we need a new channel.
+	if !synced && cc.Synced {
+		close(c.synced)
+	} else if synced && !cc.Synced {
+		c.synced = make(chan struct{})
+	}
+	// Let the watchdog take any necessary actions and update its state. We do
+	// this before persisting the contractor so that the watchdog is up-to-date on
+	// reboot. Otherwise it is possible that e.g. that the watchdog thinks a
+	// storage proof was missed and marks down a host for that. Other watchdog
+	// actions are innocuous.
+	if cc.Synced {
+		c.staticWatchdog.callCheckContracts()
 	}
 
 	c.lastChange = cc.ID
@@ -129,6 +157,11 @@ func (c *Contractor) ProcessConsensusChange(cc modules.ConsensusChange) {
 		c.log.Println("Unable to save while processing a consensus change:", err)
 	}
 	c.mu.Unlock()
+
+	// Add to churnLimiter budget.
+	numBlocksAdded := len(cc.AppliedBlocks) - len(cc.RevertedBlocks)
+	c.staticChurnLimiter.callBumpChurnBudget(numBlocksAdded, c.allowance.Period)
+
 	// Perform contract maintenance if our blockchain is synced. Use a separate
 	// goroutine so that the rest of the contractor is not blocked during
 	// maintenance.

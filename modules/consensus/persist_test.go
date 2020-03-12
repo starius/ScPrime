@@ -4,9 +4,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
 )
 
 // TestSaveLoad populates a blockchain, saves it, loads it, and checks
@@ -32,8 +32,9 @@ func TestSaveLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 	d := filepath.Join(build.SiaTestingDir, modules.ConsensusDir, t.Name(), modules.ConsensusDir)
-	cst.cs, err = New(g, false, d)
-	if err != nil {
+	var errChan <-chan error
+	cst.cs, errChan = New(g, false, d)
+	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 	newHash := cst.cs.dbConsensusChecksum()

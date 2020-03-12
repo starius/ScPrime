@@ -8,10 +8,10 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb/hosttree"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb/hosttree"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (
@@ -81,16 +81,6 @@ const (
 	// This is necessary to prevent exploits where a host gets an unreasonable
 	// score by putting it's price way too low.
 	priceFloor = 0.1
-)
-
-var (
-	// requiredStorage indicates the amount of storage that the host must be
-	// offering in order to be considered a valuable/worthwhile host.
-	requiredStorage = build.Select(build.Var{
-		Standard: uint64(20e9),
-		Dev:      uint64(1e6),
-		Testing:  uint64(1e3),
-	}).(uint64)
 )
 
 // collateralAdjustments improves the host's weight according to the amount of
@@ -247,6 +237,16 @@ func (hdb *HostDB) priceAdjustments(entry modules.HostDBEntry, allowance modules
 	contractExpectedStorageTime := types.NewCurrency64(contractExpectedStorage).Mul64(uint64(allowance.Period))
 	contractExpectedUpload := types.NewCurrency64(allowance.ExpectedUpload).Mul64(uint64(allowance.Period)).MulFloat(allowance.ExpectedRedundancy).Div64(allowance.Hosts)
 
+	// Get the extra costs expected for downloads and uploads from the sector access
+	// price and base price.
+	extraCostsPerRPC := entry.BaseRPCPrice.Add(entry.SectorAccessPrice)
+
+	contractExpectedDownloadRPCs := contractExpectedDownload.Div64(modules.StreamDownloadSize)
+	extraDownloadRPCCost := contractExpectedDownloadRPCs.Mul(extraCostsPerRPC)
+
+	contractExpectedUploadRPCs := contractExpectedUpload.Div64(modules.StreamUploadSize)
+	extraUploadRPCCost := contractExpectedUploadRPCs.Mul(extraCostsPerRPC)
+
 	// Calculate the hostCollateral the renter would expect the host to put
 	// into a contract.
 	//
@@ -273,9 +273,9 @@ func (hdb *HostDB) priceAdjustments(entry modules.HostDBEntry, allowance modules
 	// that there will be on average one early renewal per contract, due to
 	// spending all of the contract's money.
 	contractPrice := entry.ContractPrice.Add(txnFees).Mul64(2)
-	downloadPrice := entry.DownloadBandwidthPrice.Mul(contractExpectedDownload)
+	downloadPrice := entry.DownloadBandwidthPrice.Mul(contractExpectedDownload).Add(extraDownloadRPCCost)
 	storagePrice := entry.StoragePrice.Mul(contractExpectedStorageTime)
-	uploadPrice := entry.UploadBandwidthPrice.Mul(contractExpectedUpload)
+	uploadPrice := entry.UploadBandwidthPrice.Mul(contractExpectedUpload).Add(extraUploadRPCCost)
 	siafundFee := contractPrice.Add(hostCollateral).Add(downloadPrice).Add(storagePrice).Add(uploadPrice).MulTax(hdb.blockHeight)
 	totalPrice := contractPrice.Add(downloadPrice).Add(storagePrice).Add(uploadPrice).Add(siafundFee)
 
@@ -323,6 +323,11 @@ func (hdb *HostDB) storageRemainingAdjustments(entry modules.HostDBEntry, allowa
 		storedData = float64(ci.StoredData)
 	}
 
+	// Divide by zero mitigation.
+	if allowance.Hosts == 0 {
+		allowance.Hosts = 1
+	}
+
 	// idealDataPerHost is the amount of data that we would have to put on each
 	// host assuming that our storage requirements were spread evenly across
 	// every single host.
@@ -357,15 +362,16 @@ func (hdb *HostDB) storageRemainingAdjustments(entry modules.HostDBEntry, allowa
 // so this has not to be altered on every new version
 func versionAdjustments(entry modules.HostDBEntry) float64 {
 	base := float64(1)
-	if build.VersionCmp(entry.Version, "1.4.2") < 0 {
+	if build.VersionCmp(entry.Version, build.Version) <= 0 {
 		base = base * 0.99999 // Safety value to make sure we update the version penalties every time we update the host.
 	}
-	// Light penalty for hosts below 1.4.1
-	if build.VersionCmp(entry.Version, "1.4.1") < 0 {
-		base = base * 0.7
+	// Penalty for hosts that are below version v1.4.1.2 because there were
+	// transaction pool updates which reduces overall network congestion.
+	if build.VersionCmp(entry.Version, "1.4.1.2") < 0 {
+		base = base * 0.75
 	}
-	// Heavy penalty for hosts below v1.4.0
-	if build.VersionCmp(entry.Version, "1.4.0") < 0 {
+	// Heavy penalty for hosts that cannot use the current renter-host protocol.
+	if build.VersionCmp(entry.Version, modules.MinimumSupportedRenterHostProtocolVersion) < 0 {
 		base = math.SmallestNonzeroFloat64
 	}
 	return base
@@ -538,7 +544,7 @@ func (hdb *HostDB) EstimateHostScore(entry modules.HostDBEntry, allowance module
 		return modules.HostScoreBreakdown{}, err
 	}
 	defer hdb.tg.Done()
-	return hdb.managedEstimatedScoreBreakdown(entry, allowance, true, true, true), nil
+	return hdb.managedEstimatedScoreBreakdown(entry, allowance, true, true, true)
 }
 
 // ScoreBreakdown provdes a detailed set of scalars and bools indicating
@@ -548,13 +554,16 @@ func (hdb *HostDB) ScoreBreakdown(entry modules.HostDBEntry) (modules.HostScoreB
 		return modules.HostScoreBreakdown{}, err
 	}
 	defer hdb.tg.Done()
-	return hdb.managedScoreBreakdown(entry, false, false, false), nil
+	return hdb.managedScoreBreakdown(entry, false, false, false)
 }
 
 // managedEstimatedScoreBreakdown computes the score breakdown of a host.
 // Certain adjustments can be ignored.
-func (hdb *HostDB) managedEstimatedScoreBreakdown(entry modules.HostDBEntry, allowance modules.Allowance, ignoreAge, ignoreDuration, ignoreUptime bool) modules.HostScoreBreakdown {
-	hosts := hdb.ActiveHosts()
+func (hdb *HostDB) managedEstimatedScoreBreakdown(entry modules.HostDBEntry, allowance modules.Allowance, ignoreAge, ignoreDuration, ignoreUptime bool) (modules.HostScoreBreakdown, error) {
+	hosts, err := hdb.ActiveHosts()
+	if err != nil {
+		return modules.HostScoreBreakdown{}, errors.AddContext(err, "error getting Active hosts:")
+	}
 	weightFunc := hdb.managedCalculateHostWeightFn(allowance)
 
 	// Compute the totalScore.
@@ -565,14 +574,16 @@ func (hdb *HostDB) managedEstimatedScoreBreakdown(entry modules.HostDBEntry, all
 		totalScore = totalScore.Add(hdb.weightFunc(host).Score())
 	}
 	// Compute the breakdown.
-
-	return weightFunc(entry).HostScoreBreakdown(totalScore, ignoreAge, ignoreDuration, ignoreUptime)
+	return weightFunc(entry).HostScoreBreakdown(totalScore, ignoreAge, ignoreDuration, ignoreUptime), nil
 }
 
 // managedScoreBreakdown computes the score breakdown of a host. Certain
 // adjustments can be ignored.
-func (hdb *HostDB) managedScoreBreakdown(entry modules.HostDBEntry, ignoreAge, ignoreDuration, ignoreUptime bool) modules.HostScoreBreakdown {
-	hosts := hdb.ActiveHosts()
+func (hdb *HostDB) managedScoreBreakdown(entry modules.HostDBEntry, ignoreAge, ignoreDuration, ignoreUptime bool) (modules.HostScoreBreakdown, error) {
+	hosts, err := hdb.ActiveHosts()
+	if err != nil {
+		return modules.HostScoreBreakdown{}, errors.AddContext(err, "error getting Active hosts:")
+	}
 
 	// Compute the totalScore.
 	hdb.mu.Lock()
@@ -582,5 +593,5 @@ func (hdb *HostDB) managedScoreBreakdown(entry modules.HostDBEntry, ignoreAge, i
 		totalScore = totalScore.Add(hdb.weightFunc(host).Score())
 	}
 	// Compute the breakdown.
-	return hdb.weightFunc(entry).HostScoreBreakdown(totalScore, ignoreAge, ignoreDuration, ignoreUptime)
+	return hdb.weightFunc(entry).HostScoreBreakdown(totalScore, ignoreAge, ignoreDuration, ignoreUptime), nil
 }

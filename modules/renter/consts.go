@@ -1,33 +1,50 @@
 package renter
 
 import (
+	"fmt"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 // Version and system parameters.
 const (
 	// persistVersion defines the Sia version that the persistence was
 	// last updated
-	persistVersion = "1.4.0"
+	persistVersion = "1.4.2"
 )
+
+const (
+	// AlertMSGSiafileLowRedundancy indicates that a file is below 75% redundancy.
+	AlertMSGSiafileLowRedundancy = "The SiaFile mentioned in the 'Cause' is below 75% redundancy"
+	// AlertSiafileLowRedundancyThreshold is the health threshold at which we start
+	// registering the LowRedundancy alert for a Siafile.
+	AlertSiafileLowRedundancyThreshold = 0.75
+)
+
+// AlertCauseSiafileLowRedundancy creates a customized "cause" for a siafile
+// with a certain path and health.
+func AlertCauseSiafileLowRedundancy(siaPath modules.SiaPath, health float64) string {
+	siaPath, _ = siaPath.Rebase(modules.UserSiaPath(), modules.RootSiaPath())
+	return fmt.Sprintf("Siafile '%v' has a health of %v", siaPath.String(), health)
+}
 
 // Default redundancy parameters.
 var (
-	// defaultDataPieces is the number of data pieces per erasure-coded chunk
-	defaultDataPieces = build.Select(build.Var{
+	// DefaultDataPieces is the number of data pieces per erasure-coded chunk
+	DefaultDataPieces = build.Select(build.Var{
 		Dev:      1,
 		Standard: 10,
 		Testing:  1,
 	}).(int)
 
-	// defaultParityPieces is the number of parity pieces per erasure-coded
+	// DefaultParityPieces is the number of parity pieces per erasure-coded
 	// chunk
-	defaultParityPieces = build.Select(build.Var{
+	DefaultParityPieces = build.Select(build.Var{
 		Dev:      1,
 		Standard: 20,
-		Testing:  8,
+		Testing:  4,
 	}).(int)
 
 	// RepairThreshold defines the threshold at which the renter decides to
@@ -47,9 +64,9 @@ var (
 	// not perfect due to GC overhead and other places where we don't count all
 	// of the memory usage accurately.
 	defaultMemory = build.Select(build.Var{
-		Dev:      uint64(1 << 28),     // 256 MiB
-		Standard: uint64(3 * 1 << 28), // 768 MiB
-		Testing:  uint64(1 << 17),     // 128 KiB - 4 KiB sector size, need to test memory exhaustion
+		Dev:      uint64(1 << 28), // 256 MiB
+		Standard: uint64(1 << 30), // 1 GiB
+		Testing:  uint64(1 << 17), // 128 KiB - 4 KiB sector size, need to test memory exhaustion
 	}).(uint64)
 
 	// initialStreamerCacheSize defines the cache size that each streamer will
@@ -110,9 +127,21 @@ const (
 
 // Constants that tune the health and repair processes.
 const (
-	// maxStuckChunksInHeap is the maximum number of stuck chunks that the
-	// repair code will add to the heap at a time
-	maxStuckChunksInHeap = 5
+	// maxRandomStuckChunksAddToHeap is the maximum number of random stuck
+	// chunks that the stuck loop will add to the uploadHeap at a time. Random
+	// stuck chunks are the stuck chunks chosen at random from the file system
+	// as opposed to stuck chunks chosen from a previously successful file
+	maxRandomStuckChunksAddToHeap = 5
+
+	// maxRandomStuckChunksInHeap is the maximum number of random stuck chunks
+	// that the stuck loop will try to keep in the uploadHeap. Random stuck
+	// chunks are the stuck chunks chosen at random from the file system as
+	// opposed to stuck chunks chosen from previously successful file
+	maxRandomStuckChunksInHeap = 10
+
+	// maxStuckChunksInHeap is the maximum number of stuck chunks that the stuck
+	// loop will try to keep in the uploadHeap
+	maxStuckChunksInHeap = 25
 )
 
 // Constants that tune the health and repair processes.
@@ -213,22 +242,6 @@ var (
 		Dev:      20 * time.Second,
 		Standard: 15 * time.Minute,
 		Testing:  3 * time.Second,
-	}).(time.Duration)
-
-	// uploadPollTimeout defines the maximum amount of time the renter will poll
-	// for an upload to complete.
-	uploadPollTimeout = build.Select(build.Var{
-		Dev:      5 * time.Minute,
-		Standard: 60 * time.Minute,
-		Testing:  10 * time.Second,
-	}).(time.Duration)
-
-	// uploadPollInterval defines the renter's polling interval when waiting for
-	// file to upload.
-	uploadPollInterval = build.Select(build.Var{
-		Dev:      5 * time.Second,
-		Standard: 5 * time.Second,
-		Testing:  1 * time.Second,
 	}).(time.Duration)
 
 	// snapshotSyncSleepDuration defines how long the renter sleeps between

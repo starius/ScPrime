@@ -3,8 +3,15 @@ package gateway
 import (
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+)
+
+// Constants related to the gateway's alerts.
+var (
+	// AlertMSGGatewayOffline indicates that the last time the gateway checked
+	// the network status it was offline.
+	AlertMSGGatewayOffline = "not connected to the internet"
 )
 
 const (
@@ -75,6 +82,14 @@ var (
 		Standard: 10 * time.Minute,
 		Dev:      20 * time.Second,
 		Testing:  500 * time.Millisecond,
+	}).(time.Duration)
+
+	// onlineCheckFrequency defines how often the gateway calls 'Online' in
+	// threadedOnlineCheck.
+	onlineCheckFrequency = build.Select(build.Var{
+		Standard: 30 * time.Second,
+		Dev:      10 * time.Second,
+		Testing:  5 * time.Second,
 	}).(time.Duration)
 
 	// peerRPCDelay defines the amount of time waited between each RPC accepted

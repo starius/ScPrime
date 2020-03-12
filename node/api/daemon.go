@@ -18,9 +18,9 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/kardianos/osext"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (
@@ -54,6 +54,12 @@ bwIDAQAB
 )
 
 type (
+	// DaemonAlertsGet contains information about currently registered alerts
+	// across all loaded modules.
+	DaemonAlertsGet struct {
+		Alerts []modules.Alert `json:"alerts"`
+	}
+
 	// DaemonVersionGet contains information about the running daemon's version.
 	DaemonVersionGet struct {
 		Version     string
@@ -78,7 +84,7 @@ type (
 	// release API endpoint. Only the fields relevant to updating are
 	// included.
 	gitlabRelease struct {
-		TagName string `json:"name"`
+		Name string `json:"name"`
 	}
 
 	// SiaConstants is a struct listing all of the constants in use.
@@ -110,7 +116,15 @@ type (
 		MaxTargetAdjustmentUp   *big.Rat `json:"maxtargetadjustmentup"`
 		MaxTargetAdjustmentDown *big.Rat `json:"maxtargetadjustmentdown"`
 
+		// SiacoinPrecision is the number of base units in a siacoin. This constant is used
+		// for mining rewards calculation and supported for compatibility with
+		// existing 3rd party intergations.
+		// DEPRECATED: Since February 2020 one scprimecoin equals 10^27 Hastings
+		// Use the types.ScPrimecoinPrecision constant.
 		SiacoinPrecision types.Currency `json:"siacoinprecision"`
+		// ScPrimecoinPrecision is the number of base units in a scprimecoin that is used
+		// by clients (1 SCP = 10^27 H).
+		ScPrimecoinPrecision types.Currency `json:"scprimecoinprecision"`
 	}
 
 	// DaemonVersion holds the version information for siad
@@ -172,8 +186,8 @@ func updateToRelease(version string) error {
 		return err
 	}
 
-	// process zip, finding siad/siac binaries and signatures
-	for _, binary := range []string{"siad", "siac"} {
+	// process zip, finding spd/spc binaries and signatures
+	for _, binary := range []string{"spd", "spc"} {
 		var binData io.ReadCloser
 		var signature []byte
 		var binaryName string // needed for TargetPath below
@@ -217,6 +231,33 @@ func updateToRelease(version string) error {
 	return nil
 }
 
+// daemonAlertsHandlerGET handles the API call that returns the alerts of all
+// loaded modules.
+func (api *API) daemonAlertsHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	alerts := make([]modules.Alert, 0, 6) // initialize slice to avoid "null" in response.
+	if api.gateway != nil {
+		alerts = append(alerts, api.gateway.Alerts()...)
+	}
+	if api.cs != nil {
+		alerts = append(alerts, api.cs.Alerts()...)
+	}
+	if api.tpool != nil {
+		alerts = append(alerts, api.tpool.Alerts()...)
+	}
+	if api.wallet != nil {
+		alerts = append(alerts, api.wallet.Alerts()...)
+	}
+	if api.renter != nil {
+		alerts = append(alerts, api.renter.Alerts()...)
+	}
+	if api.host != nil {
+		alerts = append(alerts, api.host.Alerts()...)
+	}
+	WriteJSON(w, DaemonAlertsGet{
+		Alerts: alerts,
+	})
+}
+
 // daemonUpdateHandlerGET handles the API call that checks for an update.
 func (api *API) daemonUpdateHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	release, err := fetchLatestRelease()
@@ -224,7 +265,7 @@ func (api *API) daemonUpdateHandlerGET(w http.ResponseWriter, _ *http.Request, _
 		WriteError(w, Error{Message: "Failed to fetch latest release: " + err.Error()}, http.StatusInternalServerError)
 		return
 	}
-	latestVersion := release.TagName[1:] // delete leading 'v'
+	latestVersion := release.Name[1:] // delete leading 'v'
 	WriteJSON(w, UpdateInfo{
 		Available: build.VersionCmp(latestVersion, build.Version) > 0,
 		Version:   latestVersion,
@@ -241,7 +282,7 @@ func (api *API) daemonUpdateHandlerPOST(w http.ResponseWriter, _ *http.Request, 
 		WriteError(w, Error{Message: "Failed to fetch latest release: " + err.Error()}, http.StatusInternalServerError)
 		return
 	}
-	err = updateToRelease(release.TagName)
+	err = updateToRelease(release.Name)
 	if err != nil {
 		if rerr := update.RollbackError(err); rerr != nil {
 			WriteError(w, Error{Message: "Serious error: Failed to rollback from bad update: " + rerr.Error()}, http.StatusInternalServerError)
@@ -283,7 +324,8 @@ func (api *API) daemonConstantsHandler(w http.ResponseWriter, _ *http.Request, _
 		MaxTargetAdjustmentUp:   types.MaxTargetAdjustmentUp,
 		MaxTargetAdjustmentDown: types.MaxTargetAdjustmentDown,
 
-		SiacoinPrecision: types.SiacoinPrecision,
+		SiacoinPrecision:     types.SiacoinPrecision,
+		ScPrimecoinPrecision: types.ScPrimecoinPrecision,
 	}
 
 	WriteJSON(w, sc)

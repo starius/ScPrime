@@ -7,11 +7,11 @@ import (
 
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/node/api/client"
+	"gitlab.com/scpcorp/ScPrime/siatest"
 )
 
 // TestDaemonAPIPassword makes sure that the daemon rejects requests with the
@@ -142,7 +142,7 @@ func TestGlobalRatelimitRenter(t *testing.T) {
 	}
 
 	// Set the bandwidth limit to 10 chunks per second.
-	if err := r.RenterPostRateLimit(10*chunkSize, 10*chunkSize); err != nil {
+	if err := r.RenterRateLimitPost(10*chunkSize, 10*chunkSize); err != nil {
 		t.Fatal(err)
 	}
 	// Set the daemon's limit to 1 chunk per second.
@@ -151,7 +151,7 @@ func TestGlobalRatelimitRenter(t *testing.T) {
 	}
 	// Download the file. It should take at least expectedSeconds seconds.
 	start := time.Now()
-	if _, err := r.DownloadByStream(rf); err != nil {
+	if _, _, err := r.DownloadByStream(rf); err != nil {
 		t.Fatal(err)
 	}
 	timePassed := time.Since(start)
@@ -160,7 +160,7 @@ func TestGlobalRatelimitRenter(t *testing.T) {
 			timePassed, time.Second*time.Duration(expectedSeconds))
 	}
 	// Swap the limits and make sure the limit is still in effect.
-	if err := r.RenterPostRateLimit(chunkSize, chunkSize); err != nil {
+	if err := r.RenterRateLimitPost(chunkSize, chunkSize); err != nil {
 		t.Fatal(err)
 	}
 	// Set the daemon's limit to 1 chunk per second.
@@ -169,7 +169,7 @@ func TestGlobalRatelimitRenter(t *testing.T) {
 	}
 	// Download the file. It should take at least expectedSeconds seconds.
 	start = time.Now()
-	if _, err := r.DownloadByStream(rf); err != nil {
+	if _, _, err := r.DownloadByStream(rf); err != nil {
 		t.Fatal(err)
 	}
 	timePassed = time.Since(start)

@@ -6,9 +6,12 @@ import (
 	"net/url"
 	"strconv"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/types"
+
+	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
 )
 
 // WalletAddressGet requests a new address from the /wallet/address endpoint
@@ -31,6 +34,23 @@ func (c *Client) WalletChangePasswordPost(currentPassword, newPassword string) (
 	values.Set("newpassword", newPassword)
 	values.Set("encryptionpassword", currentPassword)
 	err = c.post("/wallet/changepassword", values.Encode(), nil)
+	return
+}
+
+// WalletChangePasswordWithSeedPost uses the /wallet/changepassword endpoint to
+// change the password used to encrypt the wallet.
+func (c *Client) WalletChangePasswordWithSeedPost(seed modules.Seed, newPassword string) (err error) {
+	seedStr, err := modules.SeedToString(seed, mnemonics.DictionaryID("english"))
+	if err != nil {
+		return err
+	}
+	return c.WalletChangePasswordPost(seedStr, newPassword)
+}
+
+// WalletVerifyPasswordGet uses the /wallet/verifypassword endpoint to check
+// the wallet's password.
+func (c *Client) WalletVerifyPasswordGet(password string) (wvpg api.WalletVerifyPasswordGET, err error) {
+	err = c.get(fmt.Sprintf("/wallet/verifypassword?password=%v", password), &wvpg)
 	return
 }
 

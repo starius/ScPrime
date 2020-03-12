@@ -10,8 +10,8 @@ import (
 
 	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (
@@ -139,13 +139,6 @@ type (
 	//
 	// Transaction builders are not thread safe.
 	TransactionBuilder interface {
-		// FundSiacoinForOutputs will aggregate enough inputs to cover the
-		// total value of the outputs and the miner fee if any. A refund
-		// output will be generated if necessary. All the outputs will be
-		// added to the transaction being built along with a miner fee if
-		// one is passed. The transaction will not be signed.
-		FundSiacoinsForOutputs(outputs []types.SiacoinOutput, fee types.Currency) error
-
 		// FundSiacoins will add a siacoin input of exactly 'amount' to the
 		// transaction. A parent transaction may be needed to achieve an input
 		// with the correct value. The siacoin input will not be signed until
@@ -182,6 +175,10 @@ type (
 		// the index of the siacoin output within the transaction.
 		AddSiacoinOutput(types.SiacoinOutput) uint64
 
+		// ReplaceSiacoinOutput replaces the siacoin output in the transaction at the
+		// given index.
+		ReplaceSiacoinOutput(index uint64, output types.SiacoinOutput) error
+
 		// AddFileContract adds a file contract to the transaction, returning
 		// the index of the file contract within the transaction.
 		AddFileContract(types.FileContract) uint64
@@ -215,6 +212,17 @@ type (
 		// sign any of the inputs that were added by calling 'FundSiacoins' or
 		// 'FundSiafunds'.
 		AddTransactionSignature(types.TransactionSignature) uint64
+
+		// Copy creates a copy of the current transactionBuilder that can be used to
+		// extend the transaction in an alternate way (i.e. create a double spend
+		// transaction).
+		Copy() TransactionBuilder
+
+		// MarkWalletInputs updates internal TransactionBuilder state by inferring
+		// which inputs belong to this wallet. This allows those inputs to be
+		// signed. Returns true if and only if any inputs belonging to the wallet
+		// are found.
+		MarkWalletInputs() bool
 
 		// Sign will sign any inputs added by 'FundSiacoins' or 'FundSiafunds'
 		// and return a transaction set that contains all parents prepended to
@@ -295,9 +303,28 @@ type (
 		// derived from the master key.
 		Unlock(masterKey crypto.CipherKey) error
 
+		// UnlockAsync must be called before the wallet is usable. All wallets and
+		// wallet seeds are encrypted by default, and the wallet will not know
+		// which addresses to watch for on the blockchain until unlock has been
+		// called.
+		// UnlockAsync will return a channel as soon as the wallet is unlocked but
+		// before the wallet is caught up to consensus.
+		//
+		// All items in the wallet are encrypted using different keys which are
+		// derived from the master key.
+		UnlockAsync(masterKey crypto.CipherKey) <-chan error
+
 		// ChangeKey changes the wallet's materKey from masterKey to newKey,
 		// re-encrypting the wallet with the provided key.
 		ChangeKey(masterKey crypto.CipherKey, newKey crypto.CipherKey) error
+
+		// IsMasterKey verifies that the masterKey is the key used to encrypt
+		// the wallet.
+		IsMasterKey(masterKey crypto.CipherKey) (bool, error)
+
+		// ChangeKeyWithSeed is the same as ChangeKey but uses the primary seed
+		// instead of the current masterKey.
+		ChangeKeyWithSeed(seed Seed, newKey crypto.CipherKey) error
 
 		// Unlocked returns true if the wallet is currently unlocked, false
 		// otherwise.
@@ -377,6 +404,7 @@ type (
 	// encrypted using a user-specified password. Common addresses are all
 	// derived from a single address seed.
 	Wallet interface {
+		Alerter
 		EncryptionManager
 		KeyManager
 
@@ -488,7 +516,7 @@ type (
 
 	// WalletSettings control the behavior of the Wallet.
 	WalletSettings struct {
-		NoDefrag bool `json:"noDefrag"`
+		NoDefrag bool `json:"nodefrag"`
 	}
 )
 

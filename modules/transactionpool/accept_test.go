@@ -1,11 +1,11 @@
 package transactionpool
 
 import (
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 	"testing"
 
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // TestAcceptTransactionSet probes the AcceptTransactionSet method
@@ -162,7 +162,7 @@ func TestCheckMinerFees(t *testing.T) {
 	if minRec.Cmp(minEstimation) < 0 {
 		t.Error("transaction pool is not respecting the sane fee minimum")
 	}
-	if maxRec.Cmp(minEstimation.Mul64(3)) < 0 {
+	if maxRec.Cmp(minEstimation.Mul64(maxMultiplier)) < 0 {
 		t.Error("transaction pool is not respecting the sane fee min maximum")
 	}
 

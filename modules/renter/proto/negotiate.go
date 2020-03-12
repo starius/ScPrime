@@ -5,14 +5,14 @@ import (
 	"net"
 	"time"
 
-	"golang.org/x/crypto/chacha20poly1305"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"golang.org/x/crypto/chacha20poly1305"
 )
 
 // extendDeadline is a helper function for extending the connection timeout.
@@ -243,23 +243,6 @@ func newUploadRevision(current types.FileContractRevision, merkleRoot crypto.Has
 
 	// set new filesize and Merkle root
 	rev.NewFileSize += modules.SectorSize
-	rev.NewFileMerkleRoot = merkleRoot
-	return rev
-}
-
-// newDeleteRevision revises the current revision to cover the cost of
-// deleting a sector.
-func newDeleteRevision(current types.FileContractRevision, merkleRoot crypto.Hash) types.FileContractRevision {
-	rev := newRevision(current, types.ZeroCurrency)
-	rev.NewFileSize -= modules.SectorSize
-	rev.NewFileMerkleRoot = merkleRoot
-	return rev
-}
-
-// newModifyRevision revises the current revision to cover the cost of
-// modifying a sector.
-func newModifyRevision(current types.FileContractRevision, merkleRoot crypto.Hash, uploadCost types.Currency) types.FileContractRevision {
-	rev := newRevision(current, uploadCost)
 	rev.NewFileMerkleRoot = merkleRoot
 	return rev
 }

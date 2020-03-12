@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	bolt "go.etcd.io/bbolt"
+
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 // testInputs and testFilenames are global variables because most tests require

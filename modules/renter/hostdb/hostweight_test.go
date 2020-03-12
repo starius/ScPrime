@@ -4,25 +4,25 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 var (
 	// Set the default test allowance
 	DefaultTestAllowance = modules.Allowance{
-		Funds:       types.SiacoinPrecision.Mul64(1e5),
+		Funds:       types.ScPrimecoinPrecision.Mul64(500),
 		Hosts:       uint64(50),
-		Period:      types.BlockHeight(12096),
-		RenewWindow: types.BlockHeight(4032),
+		Period:      3 * types.BlocksPerMonth,
+		RenewWindow: types.BlocksPerMonth,
 
-		ExpectedStorage:    1e12,                                 // 1 TB
-		ExpectedUpload:     uint64(200e9) / types.BlocksPerMonth, // 200 GB per month
-		ExpectedDownload:   uint64(100e9) / types.BlocksPerMonth, // 100 GB per month
-		ExpectedRedundancy: 3.0,                                  // default is 10/30 erasure coding
+		ExpectedStorage:    1e12,                                         // 1 TB
+		ExpectedUpload:     uint64(200e9) / uint64(types.BlocksPerMonth), // 200 GB per month
+		ExpectedDownload:   uint64(100e9) / uint64(types.BlocksPerMonth), // 100 GB per month
+		ExpectedRedundancy: 3.0,                                          // default is 10/30 erasure coding
 	}
 
 	// The default entry to use when performing scoring.
@@ -30,14 +30,17 @@ var (
 		HostExternalSettings: modules.HostExternalSettings{
 			AcceptingContracts: true,
 			MaxDuration:        26e3,
-			RemainingStorage:   250e9,
+			RemainingStorage:   2e12,
 			WindowSize:         144,
+			//TODO: Adjust new values here!
+			Collateral:    types.ScPrimecoinPrecision.Mul64(50).Div(modules.BlockBytesPerMonthTerabyte),
+			MaxCollateral: types.ScPrimecoinPrecision.Mul64(25),
 
-			Collateral:    types.NewCurrency64(1e5).Mul(types.SiacoinPrecision).Div(modules.BlockBytesPerMonthTerabyte),
-			MaxCollateral: types.NewCurrency64(5e3).Mul(types.SiacoinPrecision),
+			ContractPrice: types.NewCurrency64(1).Mul(types.SiacoinPrecision), //0.001SCP
+			StoragePrice:  types.NewCurrency64(50).Mul(types.SiacoinPrecision).Div(modules.BlockBytesPerMonthTerabyte),
 
-			ContractPrice: types.NewCurrency64(5).Mul(types.SiacoinPrecision),
-			StoragePrice:  types.NewCurrency64(5e4).Mul(types.SiacoinPrecision).Div(modules.BlockBytesPerMonthTerabyte),
+			BaseRPCPrice:      types.SiacoinPrecision.Mul64(100).Div64(1e9),
+			SectorAccessPrice: types.SiacoinPrecision.Mul64(2).Div64(1e6),
 
 			Version: build.Version,
 		},
@@ -80,8 +83,8 @@ func TestHostWeightDistinctCollateral(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	weight1 := calculateWeightFromUInt64Price(300, 100)
-	weight2 := calculateWeightFromUInt64Price(300, 99)
+	weight1 := calculateWeightFromUInt64Price(300, 500)
+	weight2 := calculateWeightFromUInt64Price(300, 450)
 	if weight1.Cmp(weight2) <= 0 {
 		t.Log(weight1)
 		t.Log(weight2)
@@ -206,11 +209,11 @@ func TestHostWeightCollateralDifferences(t *testing.T) {
 	hdb := bareHostDB()
 	hdb.SetAllowance(DefaultTestAllowance)
 
-	entry := DefaultHostDBEntry
+	entry1 := DefaultHostDBEntry
 	entry2 := DefaultHostDBEntry
-	entry2.Collateral = types.NewCurrency64(500).Mul(types.SiacoinPrecision)
+	entry2.Collateral = entry1.Collateral.Sub(types.ScPrimecoinPrecision.Div(modules.BlockBytesPerMonthTerabyte))
 
-	w1 := hdb.weightFunc(entry).Score()
+	w1 := hdb.weightFunc(entry1).Score()
 	w2 := hdb.weightFunc(entry2).Score()
 	if w1.Cmp(w2) <= 0 {
 		t.Error("Larger collateral should have more weight")
@@ -514,5 +517,48 @@ func TestHostWeightConstants(t *testing.T) {
 	weight = hdb.weightFunc(entry).Score()
 	if weight.Cmp(types.NewCurrency64(1e9)) < 0 {
 		t.Error("weight is not sufficiently high for hosts")
+	}
+}
+
+// TestHostWeightExtraPriceAdjustment tests the affects of changing
+// BaseRPCPrice and SectorAccessPrice on the score.
+func TestHostWeightExtraPriceAdjustments(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	hdb := bareHostDB()
+
+	allowance := DefaultTestAllowance
+	hdb.SetAllowance(allowance)
+	entry := DefaultHostDBEntry
+	defaultScore := hdb.weightFunc(entry).Score()
+
+	// Increasing Base RPC Price should decrease the score.
+	entry.BaseRPCPrice = DefaultHostDBEntry.BaseRPCPrice.Mul64(2)
+	higherBasePrice := hdb.weightFunc(entry).Score()
+	if defaultScore.Cmp(higherBasePrice) <= 0 {
+		t.Fatal("Expected score decrease with higher base price.")
+	}
+
+	// Increasing Base RPC Price should decrease the score.
+	entry.BaseRPCPrice = DefaultHostDBEntry.BaseRPCPrice.Mul64(10)
+	highestBasePrice := hdb.weightFunc(entry).Score()
+	if higherBasePrice.Cmp(highestBasePrice) <= 0 {
+		t.Fatal("Expected score decrease with higher base price.")
+	}
+
+	// Increasing SectorAccessPrice should decrease the score.
+	entry = DefaultHostDBEntry // reset entry
+	entry.SectorAccessPrice = DefaultHostDBEntry.SectorAccessPrice.Mul64(2)
+	higherSectorPrice := hdb.weightFunc(entry).Score()
+	if defaultScore.Cmp(higherSectorPrice) <= 0 {
+		t.Fatal("Expected score decrease with higher sector access price")
+	}
+
+	// Increasing SectorAccessPrice should decrease the score.
+	entry.SectorAccessPrice = DefaultHostDBEntry.SectorAccessPrice.Mul64(10)
+	highestSectorPrice := hdb.weightFunc(entry).Score()
+	if higherSectorPrice.Cmp(highestSectorPrice) <= 0 {
+		t.Fatal("Expected score decrease with higher sector access price")
 	}
 }

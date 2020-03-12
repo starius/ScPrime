@@ -5,10 +5,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
+
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
 )
 
 // TestStorageProof checks that the host can create and submit a storage proof.
@@ -51,7 +53,7 @@ func TestStorageProof(t *testing.T) {
 	const dataSize = 777
 	data := fastrand.Bytes(dataSize)
 	root := crypto.MerkleRoot(data)
-	err = ioutil.WriteFile(filepath.Join(ht.host.persistDir, "foo"), data, 0777)
+	err = ioutil.WriteFile(filepath.Join(ht.host.persistDir, "foo"), data, persist.DefaultDiskPermissionsTest)
 	if err != nil {
 		t.Fatal(err)
 	}

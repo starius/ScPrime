@@ -7,10 +7,10 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 type (
@@ -32,6 +32,11 @@ type (
 	// the transaction has been seen on the blockhain
 	TpoolConfirmedGET struct {
 		Confirmed bool `json:"confirmed"`
+	}
+
+	// TpoolTxnsGET contains the information about the tpool's transactions
+	TpoolTxnsGET struct {
+		Transactions []types.Transaction `json:"transactions"`
 	}
 )
 
@@ -131,5 +136,14 @@ func (api *API) tpoolConfirmedGET(w http.ResponseWriter, req *http.Request, ps h
 	}
 	WriteJSON(w, TpoolConfirmedGET{
 		Confirmed: confirmed,
+	})
+}
+
+// tpoolTransactionsHandler returns the current transactions of the transaction
+// pool
+func (api *API) tpoolTransactionsHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	txns := api.tpool.Transactions()
+	WriteJSON(w, TpoolTxnsGET{
+		Transactions: txns,
 	})
 }

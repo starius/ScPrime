@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
@@ -28,7 +28,7 @@ func TestIntegrationAutoRenew(t *testing.T) {
 
 	// form a contract with the host
 	a := modules.Allowance{
-		Funds:              types.SiacoinPrecision.Mul64(100), // 100 SC
+		Funds:              types.ScPrimecoinPrecision.Mul64(100), // 100 SCP
 		Hosts:              1,
 		Period:             50,
 		RenewWindow:        10,
@@ -36,12 +36,20 @@ func TestIntegrationAutoRenew(t *testing.T) {
 		ExpectedUpload:     modules.DefaultAllowance.ExpectedUpload,
 		ExpectedDownload:   modules.DefaultAllowance.ExpectedDownload,
 		ExpectedRedundancy: modules.DefaultAllowance.ExpectedRedundancy,
+		MaxPeriodChurn:     modules.DefaultAllowance.MaxPeriodChurn,
 	}
 	err = c.SetAllowance(a)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = build.Retry(50, 100*time.Millisecond, func() error {
+	numRetries := 0
+	err = build.Retry(100, 100*time.Millisecond, func() error {
+		if numRetries%10 == 0 {
+			if _, err := m.AddBlock(); err != nil {
+				return err
+			}
+		}
+		numRetries++
 		if len(c.Contracts()) == 0 {
 			return errors.New("contracts were not formed")
 		}
@@ -104,7 +112,7 @@ func TestIntegrationRenewInvalidate(t *testing.T) {
 
 	// form a contract with the host
 	a := modules.Allowance{
-		Funds:              types.SiacoinPrecision.Mul64(100), // 100 SC
+		Funds:              types.ScPrimecoinPrecision.Mul64(100), // 100 SCP
 		Hosts:              1,
 		Period:             50,
 		RenewWindow:        10,
@@ -112,12 +120,20 @@ func TestIntegrationRenewInvalidate(t *testing.T) {
 		ExpectedUpload:     modules.DefaultAllowance.ExpectedUpload,
 		ExpectedDownload:   modules.DefaultAllowance.ExpectedDownload,
 		ExpectedRedundancy: modules.DefaultAllowance.ExpectedRedundancy,
+		MaxPeriodChurn:     modules.DefaultAllowance.MaxPeriodChurn,
 	}
 	err = c.SetAllowance(a)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = build.Retry(50, 100*time.Millisecond, func() error {
+	numRetries := 0
+	err = build.Retry(100, 100*time.Millisecond, func() error {
+		if numRetries%10 == 0 {
+			if _, err := m.AddBlock(); err != nil {
+				return err
+			}
+		}
+		numRetries++
 		if len(c.Contracts()) == 0 {
 			return errors.New("contracts were not formed")
 		}

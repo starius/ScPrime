@@ -1,10 +1,10 @@
 package transactionpool
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // updateSubscribersTransactions sends a new transaction pool update to all
@@ -27,7 +27,7 @@ func (tp *TransactionPool) updateSubscribersTransactions() {
 
 	// Clear the subscriber sets map.
 	for _, revert := range diff.RevertedTransactions {
-		delete(tp.subscriberSets, TransactionSetID(revert))
+		delete(tp.subscriberSets, modules.TransactionSetID(revert))
 	}
 
 	// Create all of the diffs for sets that have been recently created.

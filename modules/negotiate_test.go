@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestAnnouncementHandling checks that CreateAnnouncement and
@@ -32,13 +32,10 @@ func TestAnnouncementHandling(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if decPubKey.Algorithm != spk.Algorithm {
-		t.Error("decoded announcement has the wrong algorithm on the public key")
-	}
 	if decAddr != addr {
 		t.Error("decoded announcement has the wrong net address")
 	}
-	if !bytes.Equal(decPubKey.Key, spk.Key) {
+	if !decPubKey.Equals(spk) {
 		t.Error("decoded announcement has the wrong public key")
 	}
 

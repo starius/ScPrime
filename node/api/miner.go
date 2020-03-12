@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -65,6 +65,23 @@ func (api *API) minerHeaderHandlerPOST(w http.ResponseWriter, req *http.Request,
 		return
 	}
 	err = api.miner.SubmitHeader(bh)
+	if err != nil {
+		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+		return
+	}
+	WriteSuccess(w)
+}
+
+// minerBlockHandlerPOST handles the API call to submit a solved block to the
+// miner.
+func (api *API) minerBlockHandlerPOST(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	var b types.Block
+	err := encoding.NewDecoder(req.Body, encoding.DefaultAllocLimit).Decode(&b)
+	if err != nil {
+		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+		return
+	}
+	err = api.miner.SubmitBlock(b)
 	if err != nil {
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return

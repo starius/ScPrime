@@ -3,7 +3,8 @@ package daemon
 import (
 	"os"
 
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/siatest"
 )
 
 // daemonTestDir creates a temporary testing directory for daemon tests. This
@@ -11,7 +12,7 @@ import (
 // directory again.
 func daemonTestDir(testName string) string {
 	path := siatest.TestDir("daemon", testName)
-	if err := os.MkdirAll(path, 0777); err != nil {
+	if err := os.MkdirAll(path, persist.DefaultDiskPermissionsTest); err != nil {
 		panic(err)
 	}
 	return path

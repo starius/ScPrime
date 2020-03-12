@@ -1,9 +1,9 @@
-# [![SiaPrime Logo](https://siaprime.net/imagestore/SPRho_256x256.png)](http://siaprime.net) v1.4.1.2
+# [![SiaPrime Logo](https://siaprime.net/imagestore/SPRho_256x256.png)](http://siaprime.net) v1.4.2.0
 
-[![Build Status](https://gitlab.com/SiaPrime/SiaPrime/badges/master/build.svg)](https://gitlab.com/SiaPrime/SiaPrime/commits/master)
-[![Coverage Report](https://gitlab.com/SiaPrime/SiaPrime/badges/master/coverage.svg)](https://gitlab.com/SiaPrime/SiaPrime/commits/master)
-[![GoDoc](https://godoc.org/gitlab.com/SiaPrime/SiaPrime?status.svg)](https://godoc.org/gitlab.com/SiaPrime/SiaPrime)
-[![Go Report Card](https://goreportcard.com/badge/gitlab.com/SiaPrime/SiaPrime)](https://goreportcard.com/report/gitlab.com/SiaPrime/SiaPrime)
+[![Build Status](https://gitlab.com/scpcorp/ScPrime/badges/master/build.svg)](https://gitlab.com/scpcorp/ScPrime/commits/master)
+[![Coverage Report](https://gitlab.com/scpcorp/ScPrime/badges/master/coverage.svg)](https://gitlab.com/scpcorp/ScPrime/commits/master)
+[![GoDoc](https://godoc.org/gitlab.com/scpcorp/ScPrime?status.svg)](https://godoc.org/gitlab.com/scpcorp/ScPrime)
+[![Go Report Card](https://goreportcard.com/badge/gitlab.com/scpcorp/ScPrime)](https://goreportcard.com/report/gitlab.com/scpcorp/ScPrime)
 [![License MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://img.shields.io/badge/License-MIT-brightgreen.svg)
 
 SiaPrime is a decentralized cloud storage platform based on the Sia core 
@@ -52,13 +52,12 @@ SiaPrime Coins will be available on cryptocurrency exchanges. We will also be
 creating fiat to storage gateways to encourage broad adoption of the SiaPrime 
 storage model. 
 
-
 Usage
 -----
 This release comes with 2 binaries, `spd` and `spc`. `spd` is a background
 service, or "daemon," that runs the SiaPrime protocol and exposes an HTTP API on
 port 4280. `spc` is a command-line client that can be used to interact with
-`spd` in a user-friendly way. There is also a graphical client, [SiaPrime-UI](https://gitlab.com/SiaPrime/SiaPrime-UI), 
+`spd` in a user-friendly way. There is also a graphical client, [SiaPrime-UI](https://gitlab.com/scpcorp/ScPrime-UI),
 which is the preferred way of using SiaPrime for most users. For interested 
 developers, the `spd` API is documented [here](doc/API.md).
 
@@ -77,7 +76,7 @@ To build from source, [Go 1.13 or above must be installed](https://golang.org/do
 on the system. Clone the repo and run `make`:
 
 ```
-git clone https://gitlab.com/SiaPrime/SiaPrime
+git clone https://gitlab.com/scpcorp/ScPrime
 cd SiaPrime && make
 ```
 
@@ -88,3 +87,11 @@ You can also run `make test` and `make test-long` to run the short and full test
 suites, respectively. Finally, `make cover` will generate code coverage reports
 for each package; they are stored in the `cover` folder and can be viewed in
 your browser.
+
+### Running Sia on a Raspberry Pi
+
+Official binaries are not provided for the Raspberry Pi, but you can easily
+compile them yourself by installing the Go toolchain on your Raspberry Pi.
+Alternatively, you can cross-compile by running `GOOS=linux GOARCH=arm64 make`.
+Raspberry Pi compatible binaries will then be installed in
+`$GOPATH/bin/linux_arm64/`.

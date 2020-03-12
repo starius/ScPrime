@@ -1,14 +1,20 @@
 package client
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // MinerGet requests the /miner endpoint's resources.
 func (c *Client) MinerGet() (mg api.MinerGET, err error) {
 	err = c.get("/miner", &mg)
+	return
+}
+
+// MinerBlockPost uses the /miner/block endpoint to submit a solved block.
+func (c *Client) MinerBlockPost(b types.Block) (err error) {
+	err = c.post("/miner/block", string(encoding.Marshal(b)), nil)
 	return
 }
 

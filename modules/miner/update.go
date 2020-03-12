@@ -3,8 +3,8 @@ package miner
 import (
 	"sort"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // addMapElementTxns places the splitSet from a mapElement into the correct
@@ -212,12 +212,6 @@ func (m *Miner) getNewSplitSets(diff *modules.TransactionPoolDiff) []*mapElement
 		newElements = append(newElements, elem)
 	}
 	return newElements
-}
-
-// peekAtBlock checks top of the blockMapHeap, and returns the top element (but
-// does not remove it from the heap). Returns false if the heap is empty.
-func (m *Miner) peekAtBlock() (*mapElement, bool) {
-	return m.blockMapHeap.peek()
 }
 
 // peekAtOverflow checks top of the overflowMapHeap, and returns the top element

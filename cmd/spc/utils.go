@@ -1,22 +1,29 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter"
+	"gitlab.com/scpcorp/ScPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 var (
@@ -110,6 +117,22 @@ and all words appear in the ScPrime dictionary. The language may be english (def
 		Long: `Display the API password.  The API password is required for some 3rd 
 party integrations such as Duplicati`,
 		Run: wrap(utilsdisplayapipassword),
+	}
+
+	utilsBruteForceSeedCmd = &cobra.Command{
+		Use:   "bruteforce-seed",
+		Short: "attempt to brute force seed",
+		Long: `Attempts to brute force a partial Sia seed.  Accepts a 27 or 28 word
+seed and returns a valid 28 or 29 word seed`,
+		Run: wrap(utilsbruteforceseed),
+	}
+
+	utilsUploadedsizeCmd = &cobra.Command{
+		Use:   "uploadedsize [path]",
+		Short: "calculate a folder's size on Sia",
+		Long: `Calculates a given folder size on Sia and the lost space caused by 
+files are rounded up to the minimum chunks size.`,
+		Run: wrap(utilsuploadedsizecmd),
 	}
 )
 
@@ -263,4 +286,151 @@ func utilsverifyseed() {
 // displays the API Password to the user.
 func utilsdisplayapipassword() {
 	fmt.Println(httpClient.Password)
+}
+
+// utilsbruteforceseed is the handler for the command `siac utils
+// bruteforce-seed`
+// attempts to find the one word missing from a seed.
+func utilsbruteforceseed() {
+	fmt.Println("Enter partial seed: ")
+	s := bufio.NewScanner(os.Stdin)
+	s.Scan()
+	if s.Err() != nil {
+		log.Fatal("Couldn't read seed:", s.Err())
+	}
+	knownWords := strings.Fields(s.Text())
+	if len(knownWords) != 27 && len(knownWords) != 28 {
+		log.Fatalln("Expected 27 or 28 words in partial seed, got", len(knownWords))
+	}
+	allWords := make([]string, len(knownWords)+1)
+	var did mnemonics.DictionaryID = "english"
+	var checked int
+	total := len(allWords) * len(mnemonics.EnglishDictionary)
+	for i := range allWords {
+		copy(allWords[:i], knownWords[:i])
+		copy(allWords[i+1:], knownWords[i:])
+		for _, word := range mnemonics.EnglishDictionary {
+			allWords[i] = word
+			s := strings.Join(allWords, " ")
+			checksumSeedBytes, _ := mnemonics.FromString(s, did)
+			var seed modules.Seed
+			copy(seed[:], checksumSeedBytes)
+			fullChecksum := crypto.HashObject(seed)
+			if len(checksumSeedBytes) == crypto.EntropySize+modules.SeedChecksumSize && bytes.Equal(fullChecksum[:modules.SeedChecksumSize], checksumSeedBytes[crypto.EntropySize:]) {
+
+				if _, err := modules.StringToSeed(s, mnemonics.English); err == nil {
+					fmt.Printf("\nFound valid seed! The missing word was %q\n", word)
+					fmt.Println(s)
+					return
+				}
+			}
+			checked++
+			fmt.Printf("\rChecked %v/%v...", checked, total)
+		}
+	}
+	fmt.Printf("\nNo valid seed found :(\n")
+}
+
+// utilsuploadedsizecmd is the handler for the command `utils uploadedsize [path] [flags]`
+// It estimates the 'on Sia' size of the given directory
+func utilsuploadedsizecmd(path string) {
+	var fileSizes []uint64
+	if fileExists(path) {
+		fi, err := os.Stat(path)
+		if err != nil {
+			fmt.Println("Error: could not determine the file size")
+			return
+		}
+		fileSizes = append(fileSizes, uint64(fi.Size()))
+	} else {
+		err := filepath.Walk( // export all file sizes to fileSizes slice (recursive)
+			path,
+			func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if !info.IsDir() {
+					fileSizes = append(fileSizes, uint64(info.Size()))
+				}
+				return nil
+			})
+		if err != nil {
+			fmt.Println("Error walking directory:", err)
+			return
+		}
+	}
+
+	var diskSize, siaSize, lostPercent uint64
+	minFileSize := siatest.ChunkSize(uint64(renter.DefaultDataPieces), crypto.TypeDefaultRenter)
+
+	for _, size := range fileSizes { // Calc variables here
+		diskSize += size
+
+		// Round file size to 40MiB chunks
+		numChunks := uint64(size / minFileSize)
+		if size%minFileSize != 0 {
+			numChunks++
+		}
+		siaSize += numChunks * minFileSize
+	}
+
+	if diskSize != 0 {
+		lostPercent = uint64(float64(siaSize)/float64(diskSize)*100) - 100
+	}
+	fmt.Printf(`Size on
+    Disk: %v
+    Sia:  %v
+
+Lost space: %v
+    +%v%% empty space used for scaling every file up to %v
+`,
+		modules.FilesizeUnits(diskSize),
+		modules.FilesizeUnits(siaSize),
+		modules.FilesizeUnits(siaSize-diskSize),
+		lostPercent,
+		modules.FilesizeUnits(minFileSize))
+
+	if uploadedsizeUtilVerbose { // print only if -v or --verbose used
+		fmt.Printf(`
+Files: %v
+    Average: %v
+    Median: %v
+`,
+			len(fileSizes),
+			modules.FilesizeUnits(calculateAverageUint64(fileSizes)),
+			modules.FilesizeUnits(calculateMedianUint64(fileSizes)))
+	}
+}
+
+// calculateAverageUint64 calculates the average of a uint64 slice and returns the average as a uint64
+func calculateAverageUint64(input []uint64) uint64 {
+	total := uint64(0)
+	if len(input) == 0 {
+		return 0
+	}
+	for _, v := range input {
+		total += v
+	}
+	return total / uint64(len(input))
+}
+
+// calculateMedianUint64 calculates the median of a uint64 slice and returns the median as a uint64
+func calculateMedianUint64(mm []uint64) uint64 {
+	sort.Slice(mm, func(i, j int) bool { return mm[i] < mm[j] }) // sort the numbers
+
+	mNumber := len(mm) / 2
+
+	if len(mm)%2 == 0 {
+		return mm[mNumber]
+	}
+
+	return (mm[mNumber-1] + mm[mNumber]) / 2
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }

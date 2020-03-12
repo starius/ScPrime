@@ -1,15 +1,15 @@
 # Contributing to SiaPrime
 
 #### Table of Contents
-- [Contributing to SiaPrime](#Contributing-to-SiaPrime)
+- [Contributing to ScPrime](#Contributing-to-ScPrime)
 			- [Table of Contents](#Table-of-Contents)
 	- [Get started with Go](#Get-started-with-Go)
 		- [Install Go](#Install-Go)
 		- [Learn Go](#Learn-Go)
-	- [Build SiaPrime](#Build-SiaPrime)
+	- [Build ScPrime](#Build-ScPrime)
 	- [Contribute to the codebase](#Contribute-to-the-codebase)
 		- [Set up git](#Set-up-git)
-		- [Fork the SiaPrime repository](#Fork-the-SiaPrime-repository)
+		- [Fork the ScPrime repository](#Fork-the-ScPrime-repository)
 		- [Write some code](#Write-some-code)
 		- [Submit your code for review](#Submit-your-code-for-review)
 		- [More Git resources](#More-Git-resources)
@@ -25,7 +25,7 @@ To install Go on your computer, follow the
 
 You should install the latest [official Go binary][binary] for your system (if 
 not available, [install from source][source]).  If you plan to cross compile 
-SiaPrime, see [Cross Compilation with Go 1.5][cross] by Dave Cheney.  
+ScPrime, see [Cross Compilation with Go 1.5][cross] by Dave Cheney.  
 
 ### Learn Go
 
@@ -34,21 +34,21 @@ SiaPrime, see [Cross Compilation with Go 1.5][cross] by Dave Cheney.
 and use the go tool.
 * Finish with the [Effective Go][effective] guide.
 
-<a name="build-siaprime"/>
+<a name="build-ScPrime"/>
 
-## Build SiaPrime
+## Build ScPrime
 
-To build SiaPrime on your machine, enter the following on the command line:
+To build ScPrime on your machine, enter the following on the command line:
 
 ```bash
-# Download SiaPrime and its dependencies
+# Download ScPrime and its dependencies
 # Binaries will be installed in $GOPATH/bin
-$ go get -u gitlab.com/SiaPrime/SiaPrime/...
+$ go get -u gitlab.com/scpcorp/ScPrime/...
 
-# Switch to directory containing SiaPrime source code
-$ cd $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
+# Switch to directory containing ScPrime source code
+$ cd $GOPATH/src/gitlab.com/scpcorp/ScPrime
 
-# You have three SiaPrime builds to choose from.
+# You have three ScPrime builds to choose from.
 # To build the standard release binary:
 $ make release
 # Or to build the release binary with race detection and an array debugging 
@@ -85,19 +85,19 @@ $ git config --global credential.helper "cache --timeout=[seconds]"
 
 ```
 
-### Fork the SiaPrime repository
+### Fork the ScPrime repository
 
-While logged into your GitLab account, navigate to the [SiaPrime repository][siaprime] 
+While logged into your GitLab account, navigate to the [ScPrime repository][siaprime] 
 and click the 'Fork' button in the upper right hand corner.  Your account now 
 has a 'forked' copy of the original repo at 
 `https://gitlab.com/<your GitLab username>/SiaPrime`.
 
-When you installed SiaPrime using `go get`, the go tool put the SiaPrime source code in 
-$GOPATH/src/gitlab.com/SiaPrime/SiaPrime. Change to that directory and set up
+When you installed ScPrime using `go get`, the go tool put the ScPrime source code in 
+$GOPATH/src/gitlab.com/scpcorp/ScPrime. Change to that directory and set up
 your fork as a git [remote][remote]:
 
 ```bash
-$ cd $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
+$ cd $GOPATH/src/gitlab.com/scpcorp/ScPrime
 # Add your fork as a remote.  Name it whatever is convenient,
 # e.g your GitLab username
 $ git remote add <remote name> https://gitlab.com/<username>/SiaPrime.git
@@ -109,13 +109,13 @@ $ git remote add <remote name> git@gitlab.com:<username>/SiaPrime.git
 
 Right now your git local repository only has one branch (called 'master' by 
 default). If you want to make changes, add a new branch and make your changes 
-there. You should maintain master as an up-to-date copy of the SiaPrime/SiaPrime 
+there. You should maintain master as an up-to-date copy of the scpcorp/ScPrime
 repository's master branch.
 
 To create and checkout a new branch:
 ```bash
 # If you're not already in the right directory:
-$ cd $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
+$ cd $GOPATH/src/gitlab.com/scpcorp/ScPrime
 # Make sure you're on branch master
 $ git checkout master
 # Create and checkout a new branch
@@ -218,7 +218,7 @@ $ git push <fork remote> master
 
 ## Where to start
 
-If you'd like to contribute to SiaPrime but don't have any specific ideas, writing 
+If you'd like to contribute to ScPrime but don't have any specific ideas, writing 
 tests is a good way to get your feet wet.  See [doc/Running and Writing Tests for SiaPrime.md](Running%20and%20Writing%20Tests%20for%20SiaPrime.md) to get started.
 
 To learn more about how various parts of the code base work, head over to our [Resources](resources.md) page in our [doc](docs) folder.
@@ -237,19 +237,17 @@ Feel free to ask for help on the #general-dev channel on [discord][discord].
 [install-go]: https://golang.org/doc/install
 [signup]: https://github.com/join?source=header-home
 [effective]: https://golang.org/doc/effective_go.html
-[siaprime]: https://gitlab.com/SiaPrime/SiaPrime
+[siaprime]: https://gitlab.com/scpcorp/ScPrime
 [branch]: http://blog.scottlowe.org/2015/01/27/using-fork-branch-git-workflow/
-[developers.md]: https://gitlab.com/SiaPrime/SiaPrime/blob/master/doc/Developers.md
+[developers.md]: https://gitlab.com/scpcorp/ScPrime/blob/master/doc/Developers.md
 [gofmt]: https://golang.org/cmd/gofmt/
 [nutshell]: https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell
 [discord]: https://discord.gg/GkeJ58H
 [install-git]: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
-[test-doc]: https://gitlab.com/SiaPrime/SiaPrime/blob/master/doc/Testing.md
+[test-doc]: https://gitlab.com/scpcorp/ScPrime/blob/master/doc/Testing.md
 [stashing]: https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning
 [remote]: https://git-scm.com/book/en/v2/Git-Basics-Working-with-Remotes
-[sia]: https://gitlab.com/NebulousLabs/Sia
 [signup]: https://github.com/join?source=header-home
 [source]: https://golang.org/doc/install/source
 [stashing]: https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning
-[test-doc]: https://gitlab.com/NebulousLabs/Sia/blob/master/doc/Testing.md
 [tour]: https://tour.golang.org/welcome/1

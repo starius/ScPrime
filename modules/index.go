@@ -1,7 +1,7 @@
 package modules
 
 import (
-// "github.com/SiaPrime/SiaPrime/types"
+// "github.com/scpcorp/ScPrime/types"
 )
 
 const (

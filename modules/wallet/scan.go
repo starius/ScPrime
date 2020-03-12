@@ -3,10 +3,10 @@ package wallet
 import (
 	"fmt"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const scanMultiplier = 4 // how many more keys to generate after each scan iteration
@@ -160,6 +160,9 @@ func (s *seedScanner) scan(cs modules.ConsensusSet, cancel <-chan struct{}) erro
 	numKeys := numInitialKeys
 	for s.numKeys() < maxScanKeys {
 		s.generateKeys(numKeys)
+
+		// Reset scan height between scans.
+		s.scannedHeight = 0
 		if err := cs.ConsensusSetSubscribe(s, modules.ConsensusChangeBeginning, cancel); err != nil {
 			return err
 		}

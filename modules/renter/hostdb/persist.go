@@ -4,10 +4,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb/hosttree"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb/hosttree"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 var (
@@ -28,6 +28,7 @@ type hdbPersist struct {
 	AllHosts                 []modules.HostDBEntry
 	BlockHeight              types.BlockHeight
 	DisableIPViolationsCheck bool
+	IPRestriction            int
 	KnownContracts           map[string]contractInfo
 	LastChange               modules.ConsensusChangeID
 	FilteredHosts            map[string]types.SiaPublicKey
@@ -38,7 +39,8 @@ type hdbPersist struct {
 func (hdb *HostDB) persistData() (data hdbPersist) {
 	data.AllHosts = hdb.hostTree.All()
 	data.BlockHeight = hdb.blockHeight
-	data.DisableIPViolationsCheck = !hdb.IPViolationsCheck()
+	data.DisableIPViolationsCheck = hdb.hostTree.IPRestriction() < 1
+	data.IPRestriction = hdb.hostTree.IPRestriction()
 	data.KnownContracts = hdb.knownContracts
 	data.LastChange = hdb.lastChange
 	data.FilteredHosts = hdb.filteredHosts
@@ -63,7 +65,14 @@ func (hdb *HostDB) load() error {
 
 	// Set the hostdb internal values.
 	hdb.blockHeight = data.BlockHeight
-	hdb.SetIPViolationCheck(!data.DisableIPViolationsCheck)
+
+	// if IPRestriction is missing (on upgrade) set it to 0 if IPViolationCheck is disabled or
+	// to 1 if the check is enabled
+	iprestriction := data.IPRestriction
+	if iprestriction == 0 && !data.DisableIPViolationsCheck {
+		iprestriction = 1
+	}
+	hdb.SetIPRestriction(iprestriction)
 	hdb.lastChange = data.LastChange
 	hdb.knownContracts = data.KnownContracts
 	hdb.filteredHosts = data.FilteredHosts

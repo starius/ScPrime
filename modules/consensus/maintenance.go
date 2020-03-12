@@ -3,16 +3,15 @@ package consensus
 import (
 	"errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 var (
-	errMissingFileContract = errors.New("storage proof submitted for non existing file contract")
 	errOutputAlreadyMature = errors.New("delayed siacoin output is already in the matured outputs set")
 	errPayoutsAlreadyPaid  = errors.New("payouts are already in the consensus set")
 	errStorageProofTiming  = errors.New("missed proof triggered for file contract that is not expiring")

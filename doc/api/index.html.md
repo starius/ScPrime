@@ -1,69 +1,84 @@
 ---
-title: Sia API Documentation
+title: ScPrime API Documentation
 
 language_tabs: # must be one of https://git.io/vQNgJ
   - go
 
 toc_footers:
-  - <a href='https://sia.tech'>The Official Sia Website
-  - <a href='https://gitlab.com/NebulousLabs/Sia'>Sia on GitLab</a>
+  - <a href='https://scpri.me'>The Official ScPrime Website
+  - <a href='https://gitlab.com/scpcorp/ScPrime'>ScPrime on GitLab</a>
 
 search: true
 ---
 
 # Introduction
 
-## Welcome to the Sia Storage Platform API!
+## Welcome to the ScPrime Storage Platform API!
 > Example GET curl call 
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/transactions?startheight=1&endheight=250"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/transactions?startheight=1&endheight=250"
 ```
 
 > Example POST curl call with data
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "amount=123&destination=abcd" "localhost:9980/wallet/siacoins"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "amount=123&destination=abcd" "localhost:4280/wallet/siacoins"
 ```
 
 > Example POST curl call without data or authentication
 
 ```go
-curl -A "Sia-Agent" -X POST "localhost:9980/gateway/connect/123.456.789.0:9981"
+curl -A "SiaPrime-Agent" -X POST "localhost:4280/gateway/connect/123.456.789.0:4281"
 ```
 
-Sia uses semantic versioning and is backwards compatible to version v1.0.0.
+ScPrime uses semantic versioning and is backwards compatible to version v1.0.0.
 
-API calls return either JSON or no content. Success is indicated by 2xx HTTP status codes, while errors are indicated by 4xx and 5xx HTTP status codes. If an endpoint does not specify its expected status code refer to [standard responses](#Standard-Responses).
+API calls return either JSON or no content. Success is indicated by 2xx HTTP
+status codes, while errors are indicated by 4xx and 5xx HTTP status codes. If an
+endpoint does not specify its expected status code refer to [standard
+responses](#Standard-Responses).
 
-There may be functional API calls which are not documented. These are not guaranteed to be supported beyond the current release, and should not be used in production.
+There may be functional API calls which are not documented. These are not
+guaranteed to be supported beyond the current release, and should not be used in
+production.
 
 **Notes:**
 
-- Requests must set their User-Agent string to contain the substring "Sia-Agent".
-- By default, siad listens on "localhost:9980". This can be changed using the `--api-addr` flag when running siad.
-- **Do not bind or expose the API to a non-loopback address unless you are aware of the possible dangers.**
+- Requests must set their User-Agent string to contain the substring
+  "SiaPrime-Agent".
+- By default, siad listens on "localhost:4280". This can be changed using the
+  `--api-addr` flag when running siad.
+- **Do not bind or expose the API to a non-loopback address unless you are aware
+  of the possible dangers.**
 
 ## Documentation Standards
 
 The following details the documentation standards for the API endpoints.
+
  - Endpoints should follow the structure of:
     - Parameters
     - Response
  - Each endpoint should have a corresponding curl example
- - All non-standard responses should have a JSON Response example
-  with units
+ - All non-standard responses should have a JSON Response example with units
  - There should be detailed descriptions of all JSON response fields
  - There should be detailed descriptions of all query string parameters
- - Query String Parameters should be separated into **REQUIRED** and **OPTIONAL** sections
+ - Query String Parameters should be separated into **REQUIRED** and
+   **OPTIONAL** sections
  - Detailed descriptions should be structured as "**field** | units"
 
-Contributors should follow these standards when submitting updates to the API documentation.  If you find API endpoints that do not adhere to these documentation standards please let the Sia team know by submitting an issue [here](https://gitlab.com/NebulousLabs/Sia/issues)
+Contributors should follow these standards when submitting updates to the API
+documentation.  If you find API endpoints that do not adhere to these
+documentation standards please let the ScPrime team know by submitting an issue
+[here](https://gitlab.com/NebulousLabs/Sia/issues)
 
 # Standard Responses
 
 ## Success
-The standard response indicating the request was successfully processed is HTTP status code `204 No Content`. If the request was successfully processed and the server responded with JSON the HTTP status code is `200 OK`. Specific endpoints may specify other 2xx status codes on success.
+The standard response indicating the request was successfully processed is HTTP
+status code `204 No Content`. If the request was successfully processed and the
+server responded with JSON the HTTP status code is `200 OK`. Specific endpoints
+may specify other 2xx status codes on success.
 
 ## Error
 
@@ -75,26 +90,32 @@ The standard response indicating the request was successfully processed is HTTP 
 }
 ```
 
-The standard error response indicating the request failed for any reason, is a 4xx or 5xx HTTP status code with an error JSON object describing the error.
+The standard error response indicating the request failed for any reason, is a
+4xx or 5xx HTTP status code with an error JSON object describing the error.
 
 # Authentication
 > Example POST curl call with Authentication
 
 ```go
-curl -A "Sia-Agent" --user "":<apipassword> --data "amount=123&destination=abcd" "localhost:9980/wallet/siacoins"
+curl -A "SiaPrime-Agent" --user "":<apipassword> --data "amount=123&destination=abcd" "localhost:4280/wallet/siacoins"
 ```
 
-API authentication is enabled by default, using a password stored in a flat file. The location of this file is:
+API authentication is enabled by default, using a password stored in a flat
+file. The location of this file is:
 
  - Linux:   `$HOME/.sia/apipassword`
- - MacOS:   `$HOME/Library/Application Support/Sia/apipassword`
- - Windows: `%LOCALAPPDATA%\Sia\apipassword`
+ - MacOS:   `$HOME/Library/Application Support/ScPrime/apipassword`
+ - Windows: `%LOCALAPPDATA%\ScPrime\apipassword`
 
 
 Note that the file contains a trailing newline, which must be trimmed before
 use.
 
-Authentication is HTTP Basic Authentication as described in [RFC 2617](https://tools.ietf.org/html/rfc2617), however, the username is the empty string. The flag does not enforce authentication on all API endpoints. Only endpoints that expose sensitive information or modify state require authentication.
+Authentication is HTTP Basic Authentication as described in [RFC
+2617](https://tools.ietf.org/html/rfc2617), however, the username is the empty
+string. The flag does not enforce authentication on all API endpoints. Only
+endpoints that expose sensitive information or modify state require
+authentication.
 
 For example, if the API password is "foobar" the request header should include
 
@@ -104,23 +125,34 @@ And for a curl call the following would be included
 
 `--user "":<apipassword>`
 
-Authentication can be disabled by passing the `--authenticate-api=false` flag to siad. You can change the password by modifying the password file, setting the `SIA_API_PASSWORD` environment variable, or passing the `--temp-password` flag to siad.
+Authentication can be disabled by passing the `--authenticate-api=false` flag to
+siad. You can change the password by modifying the password file, setting the
+`SIA_API_PASSWORD` environment variable, or passing the `--temp-password` flag
+to siad.
 
 # Units
 
-Unless otherwise noted, all parameters should be identified in their smallest possible unit. For example, size should always be specified in bytes and Siacoins should always be specified in hastings. JSON values returned by the API will also use the smallest possible unit, unless otherwise noted.
+Unless otherwise noted, all parameters should be identified in their smallest
+possible unit. For example, size should always be specified in bytes and
+ScPrimecoins should always be specified in hastings. JSON values returned by the API
+will also use the smallest possible unit, unless otherwise noted.
 
-If a number is returned as a string in JSON, it should be treated as an arbitrary-precision number (bignum), and it should be parsed with your language's corresponding bignum library. Currency values are the most common example where this is necessary.
+If a number is returned as a string in JSON, it should be treated as an
+arbitrary-precision number (bignum), and it should be parsed with your
+language's corresponding bignum library. Currency values are the most common
+example where this is necessary.
 
 # Consensus
 
-The consensus set manages everything related to consensus and keeps the blockchain in sync with the rest of the network. The consensus set's API endpoint returns information about the state of the blockchain.
+The consensus set manages everything related to consensus and keeps the
+blockchain in sync with the rest of the network. The consensus set's API
+endpoint returns information about the state of the blockchain.
 
 ## /consensus [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/consensus"
+curl -A "SiaPrime-Agent" "localhost:4280/consensus"
 ```
 
 Returns information about the consensus set, such as the current block height.
@@ -147,8 +179,8 @@ Also returns the set of constants in use in the consensus code.
   "siafundcount":           "10000",    // siafund
   "siafundportion":         "39/1000",  // fraction
 
-  "initialcoinbase": 300000, // Siacoins (see note in Daemon.md)
-  "minimumcoinbase": 30000,  // Siacoins (see note in Daemon.md)
+  "initialcoinbase": 300000, // ScPrimecoins (see note in Daemon.md)
+  "minimumcoinbase": 30000,  // ScPrimecoins (see note in Daemon.md)
 
   "roottarget": [0,0,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // hash
   "rootdepth":  [255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255],  // hash
@@ -156,83 +188,93 @@ Also returns the set of constants in use in the consensus code.
   "siacoinprecision": "1000000000000000000000000" // hastings per siacoin
 }
 ```
-**synced** | boolean
-True if the consensus set is synced with the network, e.g. it has downloaded the entire blockchain.  
+**synced** | boolean  
+True if the consensus set is synced with the network, e.g. it has downloaded the
+entire blockchain.  
 
-**height** | blockheight
+**height** | blockheight  
 Number of blocks preceding the current block.  
 
-**currentblock** | hash
+**currentblock** | hash  
 Hash of the current block.  
 
-**target** | hash
-An immediate child block of this block must have a hash less than this target for it to be valid.  
+**target** | hash  
+An immediate child block of this block must have a hash less than this target
+for it to be valid.  
 
-**difficulty** | arbitrary-precision integer
+**difficulty** | arbitrary-precision integer  
 The difficulty of the current block target.  
 
-**blockfrequency** | blocks / second
+**blockfrequency** | blocks / second  
 Target for how frequently new blocks should be mined.  
 
-**blocksizelimit** | bytes
-Maximum size, in bytes, of a block. Blocks larger than this will be rejected by peers.  
+**blocksizelimit** | bytes  
+Maximum size, in bytes, of a block. Blocks larger than this will be rejected by
+peers.  
 
-**extremefuturethreshold** | seconds
-Farthest a block's timestamp can be in the future before the block is rejected outright.  
+**extremefuturethreshold** | seconds  
+Farthest a block's timestamp can be in the future before the block is rejected
+outright.  
 
-**futurethreshold** | seconds
-How far in the future a block can be without being rejected. A block further into the future will not be accepted immediately, but the daemon will attempt to accept the block as soon as it is valid.  
+**futurethreshold** | seconds  
+How far in the future a block can be without being rejected. A block further
+into the future will not be accepted immediately, but the daemon will attempt to
+accept the block as soon as it is valid.  
 
-**genesistimestamp** | unix timestamp
+**genesistimestamp** | unix timestamp  
 Timestamp of the genesis block.  
 
-**maturitydelay** | number of blocks
+**maturitydelay** | number of blocks  
 Number of children a block must have before it is considered "mature."  
 
-**mediantimestampwindow** | number of blocks
+**mediantimestampwindow** | number of blocks  
 Duration of the window used to adjust the difficulty.  
 
-**siafundcount** | siafunds
+**siafundcount** | siafunds  
 Total number of siafunds.  
 
-**siafundportion** | fraction
+**siafundportion** | fraction  
 Fraction of each file contract payout given to siafund holders.  
 
-**initialcoinbase** | siacoin
-Number of coins given to the miner of the first block. Note that elsewhere in the API currency is typically returned in hastings and as a bignum. This is not the case here.  
+**initialcoinbase** | siacoin  
+Number of coins given to the miner of the first block. Note that elsewhere in
+the API currency is typically returned in hastings and as a bignum. This is not
+the case here.  
 
-**minimumcoinbase** | siacoin
-Minimum number of coins paid out to the miner of a block (the coinbase decreases with each block). Note that elsewhere in the API currency is typically returned in hastings and as a bignum. This is not the case here.  
+**minimumcoinbase** | siacoin  
+Minimum number of coins paid out to the miner of a block (the coinbase decreases
+with each block). Note that elsewhere in the API currency is typically returned
+in hastings and as a bignum. This is not the case here.  
 
-**roottarget** | hash
+**roottarget** | hash  
 Initial target.  
 
-**rootdepth** | hash
+**rootdepth** | hash  
 Initial depth.  
 
-**siacoinprecision** | hastings per siacoin
+**siacoinprecision** | hastings per siacoin  
 Number of Hastings in one Siacoin.  
 
 ## /consensus/blocks [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/consensus/blocks?height=20032"
+curl -A "SiaPrime-Agent" "localhost:4280/consensus/blocks?height=20032"
 ```
 ```go
-curl -A "Sia-Agent" "localhost:9980/consensus/blocks?id=00000000000033b9eb57fa63a51adeea857e70f6415ebbfe5df2a01f0d0477f4"
+curl -A "SiaPrime-Agent" "localhost:4280/consensus/blocks?id=00000000000033b9eb57fa63a51adeea857e70f6415ebbfe5df2a01f0d0477f4"
 ```
 
 Returns the block for a given id or height.
 
 ### Query String Parameters
-#### REQUIRED
+### REQUIRED
 One of the following parameters must be specified.
 
-**id** | blockID
+**id** | blockID  
 BlockID of the requested block.  
 
-**height** | blockheight
+**height** | blockheight  
 BlockHeight of the requested block.  
 
 ### JSON Response
@@ -240,27 +282,25 @@ BlockHeight of the requested block.
 
 ```go
 {
-    "height": 20032, 
-    "id": "00000000000033b9eb57fa63a51adeea857e70f6415ebbfe5df2a01f0d0477f4", 
-    "minerpayouts": [
+    "height": 20032, // block height
+    "id": "00000000000033b9eb57fa63a51adeea857e70f6415ebbfe5df2a01f0d0477f4", // hash
+    "minerpayouts": [ // []SiacoinOutput
         {
             "unlockhash": "c199cd180e19ef7597bcf4beecdd4f211e121d085e24432959c42bdf9030e32b9583e1c2727c",
             "value": "279978000000000000000000000000"
         }
     ],
-    "nonce": [4,12,219,7,0,0,0,0],
-    "parentid": "0000000000009615e8db750eb1226aa5e629bfa7badbfe0b79607ec8b918a44c",
-    "timestamp": 1444516982,
-    "transactions": [
-	{
-	    // ...
-	}
+    "nonce": [4,12,219,7,0,0,0,0], // [8]byte
+    "parentid": "0000000000009615e8db750eb1226aa5e629bfa7badbfe0b79607ec8b918a44c", // hash
+    "difficulty": "440908097469850", // arbitrary-precision integer
+    "timestamp": 1444516982, // timestamp
+    "transactions": [ // []ConsensusBlocksGetTxn
         {
-            "arbitrarydata": [],
-            "filecontractrevisions": [],
-            "filecontracts": [],
-            "minerfees": [],
-            "siacoininputs": [
+            "arbitrarydata": [],          // [][]byte
+            "filecontractrevisions": [],  // []FileContractRevision
+            "filecontracts": [],          // []ConsensusBlocksGetFileContract
+            "minerfees": [],              // []Currency
+            "siacoininputs": [            // []SiacoinInput
                 {
                     "parentid": "24cbeb9df7eb2d81d0025168fc94bd179909d834f49576e65b51feceaf957a64",
                     "unlockconditions": {
@@ -275,7 +315,7 @@ BlockHeight of the requested block.
                     }
                 }
             ],
-            "siacoinoutputs": [
+            "siacoinoutputs": [ // []SiacoinOutput
                 {
                     "unlockhash": "d54f500f6c1774d518538dbe87114fe6f7e6c76b5bc8373a890b12ce4b8909a336106a4cd6db",
                     "value": "1010000000000000000000000000"
@@ -285,10 +325,10 @@ BlockHeight of the requested block.
                     "value": "5780000000000000000000000000"
                 }
             ],
-            "siafundinputs": [],
-            "siafundoutputs": [],
-            "storageproofs": [],
-            "transactionsignatures": [
+            "siafundinputs": [],          // []SiafundInput
+            "siafundoutputs": [],         // []SiafundOutput
+            "storageproofs": [],          // []StorageProof
+            "transactionsignatures": [    // []TransactionSignature
                 {
                     "coveredfields": {
                         "arbitrarydata": [],
@@ -311,39 +351,102 @@ BlockHeight of the requested block.
             ]
         },
         {
-	    // ...
+          // ...
         }
     ]
 }
 ```
+**height** | block height  
+Height of the block
+
+**id** | hash  
+ID of the block
+
+**minerpayouts** |  SiacoinOutput  
+Siacoin output that holds the amount of siacoins spent on the miner payout
+
+**nonce** | bytes  
+Block nonce
+
+**parentid** | hash  
+ID of the previous block
+
+**difficulty** | arbitrary-precision integer  
+Historic difficulty at height of the block
+
+**timestamp** | timestamp  
+Block timestamp
+
+**transactions** | ConsensusBlocksGetTxn  
+Transactions contained within the block
 
 ## /consensus/validate/transactionset [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" --data "[JSON-encoded-txnset]" "localhost:9980/validate/transactionset"
+curl -A "SiaPrime-Agent" --data "[JSON-encoded-txnset]" "localhost:4280/validate/transactionset"
 ```
 
 validates a set of transactions using the current utxo set.
 
 ### Request Body Bytes
 
-Since transactions may be large, the transaction set is supplied in the POST body, encoded in JSON format.
+Since transactions may be large, the transaction set is supplied in the POST
+body, encoded in JSON format.
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 # Daemon
 
-The daemon is responsible for starting and stopping the modules which make up the rest of Sia.
+The daemon is responsible for starting and stopping the modules which make up
+the rest of Sia.
 
-<<<<<<< HEAD
+## /daemon/alerts [GET]
+> curl example  
+
+```go
+curl -A "SiaPrime-Agent" "localhost:4280/daemon/alerts"
+```
+
+Returns the alerts of the Sia instance.
+
+### JSON Response
+> JSON Response Example
+ 
+```go
+{
+  "alerts": [
+    {
+      "cause": "wallet is locked",
+      "msg": "user's contracts need to be renewed but a locked wallet prevents renewal",
+      "module": "contractor",
+      "severity": "warning",
+    }
+  ],
+}
+```
+**cause** | string  
+Cause is the cause for the information contained in msg if known.
+
+**msg** | string  
+Msg contains information about an issue.
+
+**module** | string  
+Module is the module which caused the alert.
+
+**severity** | string  
+Severity is either "warning", "error" or "critical" where "error" might be a
+lack of internet access and "critical" would be a lack of funds and contracts
+that are about to expire due to that.
+
 ## /daemon/constants [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/daemon/constants"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/constants"
 ```
 
 Returns the some of the constants that the Sia daemon uses. 
@@ -391,25 +494,45 @@ Returns the some of the constants that the Sia daemon uses.
 }
 ```
 **blockfrequency** | blockheight  
-BlockFrequency is the desired number of seconds that should elapse, on average, between successive Blocks.
+BlockFrequency is the desired number of seconds that should elapse, on average,
+between successive Blocks.
 
 **blocksizelimit** | uint64  
-BlockSizeLimit is the maximum size of a binary-encoded Block that is permitted by the consensus rules.
+BlockSizeLimit is the maximum size of a binary-encoded Block that is permitted
+by the consensus rules.
 
 **extremefuturethreshold** | timestamp  
-ExtremeFutureThreshold is a temporal limit beyond which Blocks are discarded by the consensus rules. When incoming Blocks are processed, their Timestamp is allowed to exceed the processor's current time by a small amount. But if the Timestamp is further into the future than ExtremeFutureThreshold, the Block is immediately discarded.
+ExtremeFutureThreshold is a temporal limit beyond which Blocks are discarded by
+the consensus rules. When incoming Blocks are processed, their Timestamp is
+allowed to exceed the processor's current time by a small amount. But if the
+Timestamp is further into the future than ExtremeFutureThreshold, the Block is
+immediately discarded.
 
 **futurethreshold** | timestamp  
-FutureThreshold is a temporal limit beyond which Blocks are discarded by the consensus rules. When incoming Blocks are processed, their Timestamp is allowed to exceed the processor's current time by no more than FutureThreshold. If the excess duration is larger than FutureThreshold, but smaller than ExtremeFutureThreshold, the Block may be held in memory until the Block's Timestamp exceeds the current time by less than FutureThreshold.
+FutureThreshold is a temporal limit beyond which Blocks are discarded by the
+consensus rules. When incoming Blocks are processed, their Timestamp is allowed
+to exceed the processor's current time by no more than FutureThreshold. If the
+excess duration is larger than FutureThreshold, but smaller than
+ExtremeFutureThreshold, the Block may be held in memory until the Block's
+Timestamp exceeds the current time by less than FutureThreshold.
 
 **genesistimestamp** | timestamp  
 GenesisBlock is the first block of the block chain
 
 **maturitydelay** | blockheight  
-MaturityDelay specifies the number of blocks that a maturity-required output is required to be on hold before it can be spent on the blockchain. Outputs are maturity-required if they are highly likely to be altered or invalidated in the event of a small reorg. One example is the block reward, as a small reorg may invalidate the block reward. Another example is a siafund payout, as a tiny reorg may change the value of the payout, and thus invalidate any transactions spending the payout. File contract payouts also are subject to a maturity delay.
+MaturityDelay specifies the number of blocks that a maturity-required output is
+required to be on hold before it can be spent on the blockchain. Outputs are
+maturity-required if they are highly likely to be altered or invalidated in the
+event of a small reorg. One example is the block reward, as a small reorg may
+invalidate the block reward. Another example is a siafund payout, as a tiny
+reorg may change the value of the payout, and thus invalidate any transactions
+spending the payout. File contract payouts also are subject to a maturity delay.
 
 **mediantimestampwindow** | uint64  
-MedianTimestampWindow tells us how many blocks to look back when calculating the median timestamp over the previous n blocks. The timestamp of a block is not allowed to be less than or equal to the median timestamp of the previous n blocks, where for Sia this number is typically 11.
+MedianTimestampWindow tells us how many blocks to look back when calculating the
+median timestamp over the previous n blocks. The timestamp of a block is not
+allowed to be less than or equal to the median timestamp of the previous n
+blocks, where for Sia this number is typically 11.
 
 **siafundcount** | currency  
 SiafundCount is the total number of Siafunds in existence.
@@ -418,37 +541,51 @@ SiafundCount is the total number of Siafunds in existence.
 SiafundPortion is the percentage of siacoins that is taxed from FileContracts.
 
 **targetwindow** | blockheight  
-TargetWindow is the number of blocks to look backwards when determining how much time has passed vs. how many blocks have been created. It's only used in the old, broken difficulty adjustment algorithm.
+TargetWindow is the number of blocks to look backwards when determining how much
+time has passed vs. how many blocks have been created. It's only used in the
+old, broken difficulty adjustment algorithm.
 
 **initialcoinbase** | uint64  
 InitialCoinbase is the coinbase reward of the Genesis block.
 
 **minimumcoinbase** | uint64  
-MinimumCoinbase is the minimum coinbase reward for a block. The coinbase decreases in each block after the Genesis block, but it will not decrease past MinimumCoinbase.
+MinimumCoinbase is the minimum coinbase reward for a block. The coinbase
+decreases in each block after the Genesis block, but it will not decrease past
+MinimumCoinbase.
 
 **roottarget** | target  
-RootTarget is the target for the genesis block - basically how much work needs to be done in order to mine the first block. The difficulty adjustment algorithm takes over from there.
+RootTarget is the target for the genesis block - basically how much work needs
+to be done in order to mine the first block. The difficulty adjustment algorithm
+takes over from there.
 
 **rootdepth** | target  
-RootDepth is the cumulative target of all blocks. The root depth is essentially the maximum possible target, there have been no blocks yet, so there is no cumulated difficulty yet.
+RootDepth is the cumulative target of all blocks. The root depth is essentially
+the maximum possible target, there have been no blocks yet, so there is no
+cumulated difficulty yet.
 
 **defaultallowance** | allowance  
-DefaultAllowance is the set of default allowance settings that will be used when allowances are not set or not fully set
+DefaultAllowance is the set of default allowance settings that will be used when
+allowances are not set or not fully set
 
 **maxtargetadjustmentup** | big.Rat  
-MaxTargetAdjustmentUp restrict how much the block difficulty is allowed to change in a single step, which is important to limit the effect of difficulty raising and lowering attacks.
+MaxTargetAdjustmentUp restrict how much the block difficulty is allowed to
+change in a single step, which is important to limit the effect of difficulty
+raising and lowering attacks.
 
 **maxtargetadjustmentdown** | big.Rat  
-MaxTargetAdjustmentDown restrict how much the block difficulty is allowed to change in a single step, which is important to limit the effect of difficulty raising and lowering attacks.
+MaxTargetAdjustmentDown restrict how much the block difficulty is allowed to
+change in a single step, which is important to limit the effect of difficulty
+raising and lowering attacks.
 
 **siacoinprecision** | currency  
-SiacoinPrecision is the number of base units in a siacoin. The Sia network has a very large number of base units. We call 10^24 of these a siacoin.
+SiacoinPrecision is the number of base units in a siacoin. The Sia network has a
+very large number of base units. We call 10^24 of these a siacoin.
 
 ## /daemon/settings [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/daemon/settings"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/settings"
 ```
 Returns the settings for the daemon
 
@@ -463,22 +600,24 @@ Returns the settings for the daemon
 ```
 
 **maxdownloadspeed** | bytes per second  
-Is the maximum download speed that the daemon can reach. 0 means there is no limit set.
+Is the maximum download speed that the daemon can reach. 0 means there is no
+limit set.
 
 **maxuploadspeed** | bytes per second  
-Is the maximum upload speed that the daemon can reach. 0 means there is no limit set.
+Is the maximum upload speed that the daemon can reach. 0 means there is no limit
+set.
 
 ## /daemon/settings [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "maxdownloadspeed=1000000&maxuploadspeed=20000" "localhost:9980/daemon/settings"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "maxdownloadspeed=1000000&maxuploadspeed=20000" "localhost:4280/daemon/settings"
 ```
 
 Modify settings that control the daemon's behavior.
 
 ### Query String Parameters
-#### OPTIONAL
+### OPTIONAL
 **maxdownloadspeed** | bytes per second  
 Max download speed permitted in bytes per second  
 
@@ -486,28 +625,27 @@ Max download speed permitted in bytes per second
 Max upload speed permitted in bytes per second  
 
 ### Response
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
-=======
->>>>>>> siaprime/master
 ## /daemon/stop [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/daemon/stop"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/stop"
 ```
 
 Cleanly shuts down the daemon. This may take a few seconds.
 
 ### Response
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
-<<<<<<< HEAD
 ## /daemon/update [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/daemon/update"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/update"
 ```
 Returns the the status of any updates available for the daemon
 
@@ -531,20 +669,19 @@ Version is the version of the latest release.
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/daemon/update"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/update"
 ```
 Updates the daemon to the latest available version release.
 
 ### Response
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
-=======
->>>>>>> siaprime/master
 ## /daemon/version [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/daemon/version"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/version"
 ```
 
 Returns the version of the Sia daemon currently running. 
@@ -557,18 +694,22 @@ Returns the version of the Sia daemon currently running.
 "version": "1.3.7" // string
 }
 ```
-**version** | string
+**version** | string  
 This is the version number that is visible to its peers on the network.
 
 # Gateway
 
-The gateway maintains a peer to peer connection to the network and provides a method for calling RPCs on connected peers. The gateway's API endpoints expose methods for viewing the connected peers, manually connecting to peers, and manually disconnecting from peers. The gateway may connect or disconnect from peers on its own.
+The gateway maintains a peer to peer connection to the network and provides a
+method for calling RPCs on connected peers. The gateway's API endpoints expose
+methods for viewing the connected peers, manually connecting to peers, and
+manually disconnecting from peers. The gateway may connect or disconnect from
+peers on its own.
 
 ## /gateway [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/gateway"
+curl -A "SiaPrime-Agent" "localhost:4280/gateway"
 ```
 
 returns information about the gateway, including the list of connected peers.
@@ -578,58 +719,65 @@ returns information about the gateway, including the list of connected peers.
  
 ```go
 {
-    "netaddress":"333.333.333.333:9981",  // string
+    "netaddress":"333.333.333.333:4281",  // string
     "peers":[
         {
-<<<<<<< HEAD
             "inbound":    false,                   // boolean
-=======
-            "inbound":    alse,                    // boolean
->>>>>>> siaprime/master
             "local":      false,                   // boolean
-            "netaddress": "222.222.222.222:9981",  // string
+            "netaddress": "222.222.222.222:4281",  // string
             "version":    "1.0.0",                 // string
         },
     ],
+    "online":           true,  // boolean
     "maxdownloadspeed": 1234,  // bytes per second
     "maxuploadspeed":   1234,  // bytes per second
 }
 ```
-**netaddress** | string
-netaddress is the network address of the gateway as seen by the rest of the network. The address consists of the external IP address and the port Sia is listening on. It represents a `modules.NetAddress`.  
+**netaddress** | string  
+netaddress is the network address of the gateway as seen by the rest of the
+network. The address consists of the external IP address and the port Sia is
+listening on. It represents a `modules.NetAddress`.  
 
-**peers** | array
-peers is an array of peers the gateway is connected to. It represents an array of `modules.Peer`s.  
+**peers** | array  
+peers is an array of peers the gateway is connected to. It represents an array
+of `modules.Peer`s.  
         
-**inbound** | boolean
-inbound is true when the peer initiated the connection. This field is exposed as outbound peers are generally trusted more than inbound peers, as inbound peers are easily manipulated by an adversary.  
+**inbound** | boolean  
+inbound is true when the peer initiated the connection. This field is exposed as
+outbound peers are generally trusted more than inbound peers, as inbound peers
+are easily manipulated by an adversary.  
 
-**local** | boolean
-local is true if the peer's IP address belongs to a local address range such as 192.168.x.x or 127.x.x.x  
+**local** | boolean  
+local is true if the peer's IP address belongs to a local address range such as
+192.168.x.x or 127.x.x.x  
 
-**netaddress** | string
+**netaddress** | string  
 netaddress is the address of the peer. It represents a `modules.NetAddress`.  
-        
-**version** | string
+
+**version** | string  
 version is the version number of the peer.  
 
-**maxdownloadspeed** | bytes per second
+**online** | boolean  
+online is true if the gateway is connected to at least one peer that isn't
+local.
+
+**maxdownloadspeed** | bytes per second   
 Max download speed permitted in bytes per second
 
-**maxuploadspeed** | bytes per second
+**maxuploadspeed** | bytes per second   
 Max upload speed permitted in bytes per second
 
 ## /gateway [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "maxdownloadspeed=1000000&maxuploadspeed=20000" "localhost:9980/gateway"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "maxdownloadspeed=1000000&maxuploadspeed=20000" "localhost:4280/gateway"
 ```
 
 Modify settings that control the gateway's behavior.
 
 ### Query String Parameters
-#### OPTIONAL
+### OPTIONAL
 **maxdownloadspeed** | bytes per second  
 Max download speed permitted in bytes per second  
 
@@ -638,57 +786,156 @@ Max upload speed permitted in bytes per second
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
+
+## /gateway/bandwidth [GET]
+> curl example
+```go
+curl -A "SiaPrime-Agent" "localhost:4280/gateway/bandwidth"
+```
+
+returns the total upload and download bandwidth usage for the gateway
+
+### JSON Response
+```go
+{
+  "download":  12345                                  // bytes
+  "upload":    12345                                  // bytes
+  "starttime": "2018-09-23T08:00:00.000000000+04:00", // Unix timestamp
+}
+```
+
+**download** | bytes  
+the total number of bytes that have been downloaded by the gateway since the
+starttime.
+
+**upload** | bytes  
+the total number of bytes that have been uploaded by the gateway since the
+starttime.
+
+**starttime** | Unix timestamp  
+the time at which the gateway started monitoring the bandwidth, since the
+bandwidth is not currently persisted this will be startup timestamp.
 
 ## /gateway/connect/:*netaddress* [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -X POST "localhost:9980/gateway/connect/123.456.789.0:9981"
+curl -A "SiaPrime-Agent" -X POST "localhost:4280/gateway/connect/123.456.789.0:4281"
 ```
 
-connects the gateway to a peer. The peer is added to the node list if it is not already present. The node list is the list of all nodes the gateway knows about, but is not necessarily connected to.  
+connects the gateway to a peer. The peer is added to the node list if it is not
+already present. The node list is the list of all nodes the gateway knows about,
+but is not necessarily connected to.  
 
 ### Path Parameters
-#### REQUIRED
-netaddress is the address of the peer to connect to. It should be a reachable ip address and port number, of the form `IP:port`. IPV6 addresses must be enclosed in square brackets.  
+### REQUIRED
+netaddress is the address of the peer to connect to. It should be a reachable ip
+address and port number, of the form `IP:port`. IPV6 addresses must be enclosed
+in square brackets.  
 
-**netaddress** | string
+**netaddress** | string  
 Example IPV4 address: 123.456.789.0:123  
 Example IPV6 address: [123::456]:789  
 
 ### Response
-standard success or error response. See [standard responses](#Standard-Responses).
+standard success or error response. See [standard
+responses](#Standard-Responses).
 
 ## /gateway/disconnect/:*netaddress* [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/gateway/disconnect/123.456.789.0:9981"
+curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/gateway/disconnect/123.456.789.0:4281"
 ```
 
-disconnects the gateway from a peer. The peer remains in the node list. Disconnecting from a peer does not prevent the gateway from automatically connecting to the peer in the future.
+disconnects the gateway from a peer. The peer remains in the node list.
+Disconnecting from a peer does not prevent the gateway from automatically
+connecting to the peer in the future.
 
 ### Path Parameters
-#### REQUIRED
-netaddress is the address of the peer to connect to. It should be a reachable ip address and port number, of the form `IP:port`. IPV6 addresses must be enclosed in square brackets.  
+### REQUIRED
+netaddress is the address of the peer to connect to. It should be a reachable ip
+address and port number, of the form `IP:port`. IPV6 addresses must be enclosed
+in square brackets.  
 
-**netaddress** | string
+**netaddress** | string  
 Example IPV4 address: 123.456.789.0:123  
 Example IPV6 address: [123::456]:789  
 
 ### Response
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
+
+## /gateway/blacklist [GET]
+> curl example  
+
+```go
+curl -A "SiaPrime-Agent" "localhost:4280/gateway/blacklist"
+```
+
+fetches the list of blacklisted addresses.
+
+### JSON Response
+> JSON Response Example
+```go
+{
+"blacklist":
+[
+"123.123.123.123",  // string
+"123.123.123.123",  // string
+"123.123.123.123",  // string
+],
+}
+```
+**blacklist** | string  
+blacklist is a list of blacklisted address
+
+## /gateway/blacklist [POST]
+> curl example  
+
+```go
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data '{"action":"append","addresses":["123.123.123.123","123.123.123.123","123.123.123.123"]}' "localhost:4280/gateway/blacklist"
+```
+```go
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data '{"action":"set","addresses":[]}' "localhost:4280/gateway/blacklist"
+```
+
+performs actions on the Gateway's blacklist. There are three `actions` that can
+be performed. `append` and `remove` are used for appending or removing addresses
+from the Gateway's blacklist. `set` is used to define all the addresses in the
+blacklist. If a list of addresses is provided with `set`, that list of addresses
+will become the Gateway's blacklist, replacing any blacklist that was currently
+in place. To clear the Gateway's blacklist, submit an empty list with `set`.
+
+### Path Parameters
+### REQUIRED
+**action** | string  
+this is the action to be performed on the blacklist. Allowed inputs are
+`append`, `remove`, and `set`.
+
+**addresses** | string  
+this is a comma separated list of addresses that are to be appended to or
+removed from the blacklist. If the action is `append` or `remove` this field is
+required.
+
+### Response
+standard success or error response. See [standard
+responses](#standard-responses).
 
 # Host
 
-The host provides storage from local disks to the network. The host negotiates file contracts with remote renters to earn money for storing other users' files. The host's endpoints expose methods for viewing and modifying host settings, announcing to the network, and managing how files are stored on disk.
+The host provides storage from local disks to the network. The host negotiates
+file contracts with remote renters to earn money for storing other users' files.
+The host's endpoints expose methods for viewing and modifying host settings,
+announcing to the network, and managing how files are stored on disk.
 
 ## /host [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/host"
+curl -A "SiaPrime-Agent" "localhost:4280/host"
 ```
 
 fetches status information about the host.
@@ -748,7 +995,6 @@ fetches status information about the host.
     "maxrevisebatchsize":   17825792,             // bytes
     "netaddress":           "123.456.789.0:9982", // string
     "windowsize":           144,                  // blocks
-<<<<<<< HEAD
     
     "collateral":       "57870370370",                     // hastings / byte / block
     "collateralbudget": "2000000000000000000000000000000", // hastings
@@ -758,15 +1004,6 @@ fetches status information about the host.
     "mincontractprice":          "30000000000000000000000000", // hastings
     "mindownloadbandwidthprice": "250000000000000",            // hastings / byte
     "minsectoraccessprice":      "123",                        //hastings
-=======
-
-    "collateral":       "57870370370",                     // hastings / byte / block
-    "collateralbudget": "2000000000000000000000000000000", // hastings
-    "maxcollateral":    "100000000000000000000000000000",  // hastings
-
-    "mincontractprice":          "30000000000000000000000000", // hastings
-    "mindownloadbandwidthprice": "250000000000000",            // hastings / byte
->>>>>>> siaprime/master
     "minstorageprice":           "231481481481",               // hastings / byte / block
     "minuploadbandwidthprice":   "100000000000000"             // hastings / byte
   },
@@ -783,49 +1020,77 @@ fetches status information about the host.
 
   "connectabilitystatus": "checking", // string
   "workingstatus":        "checking"  // string
+  "publickey": {
+    "algorithm": "ed25519", // string
+    "key":       "RW50cm9weSBpc24ndCB3aGF0IGl0IHVzZWQgdG8gYmU=" // string
+  },
 }
 ```
-#### externalsettings  
+**externalsettings**    
 The settings that get displayed to untrusted nodes querying the host's status.  
   
 **acceptingcontracts** | boolean  
 Whether or not the host is accepting new contracts.  
 
 **maxdownloadbatchsize** | bytes  
-The maximum size of a single download request from a renter. Each download request has multiple round trips of communication that exchange money. Larger batch sizes mean fewer round trips, but more financial risk for the host - the renter can get a free batch when downloading by refusing to provide a signature.  
+The maximum size of a single download request from a renter. Each download
+request has multiple round trips of communication that exchange money. Larger
+batch sizes mean fewer round trips, but more financial risk for the host - the
+renter can get a free batch when downloading by refusing to provide a signature.
+
 
 **maxduration** | blocks  
-The maximum duration that a host will allow for a file contract. The host commits to keeping files for the full duration under the threat of facing a large penalty for losing or dropping data before the duration is complete. The storage proof window of an incoming file contract must end before the current height + maxduration.  
+The maximum duration that a host will allow for a file contract. The host
+commits to keeping files for the full duration under the threat of facing a
+large penalty for losing or dropping data before the duration is complete. The
+storage proof window of an incoming file contract must end before the current
+height + maxduration.  
 
 **maxrevisebatchsize** | bytes  
-The maximum size of a single batch of file contract revisions. The renter can perform DoS attacks on the host by uploading a batch of data then refusing to provide a signature to pay for the data. The host can reduce this exposure by limiting the batch size. Larger batch sizes allow for higher throughput as there is significant communication overhead associated with performing a batch upload.  
+The maximum size of a single batch of file contract revisions. The renter can
+perform DoS attacks on the host by uploading a batch of data then refusing to
+provide a signature to pay for the data. The host can reduce this exposure by
+limiting the batch size. Larger batch sizes allow for higher throughput as there
+is significant communication overhead associated with performing a batch upload.
 
-**netaddress** | string
-The IP address or hostname (including port) that the host should be contacted at.  
+
+**netaddress** | string  
+The IP address or hostname (including port) that the host should be contacted
+at.  
 
 **remainingstorage** | bytes  
-The amount of unused storage capacity on the host in bytes. It should be noted that the host can lie.  
+The amount of unused storage capacity on the host in bytes. It should be noted
+that the host can lie.  
 
 **sectorsize** | bytes  
-The smallest amount of data in bytes that can be uploaded or downloaded when performing calls to the host.  
+The smallest amount of data in bytes that can be uploaded or downloaded when
+performing calls to the host.  
 
 **totalstorage** | bytes  
-The total amount of storage capacity on the host. It should be noted that the host can lie.  
+The total amount of storage capacity on the host. It should be noted that the
+host can lie.  
 
-**unlockhash** | hash
-The unlock hash is the address at which the host can be paid when forming file contracts.  
+**unlockhash** | hash  
+The unlock hash is the address at which the host can be paid when forming file
+contracts.  
 
 **windowsize** | blocks  
-The storage proof window is the number of blocks that the host has to get a storage proof onto the blockchain. The window size is the minimum size of window that the host will accept in a file contract.  
+The storage proof window is the number of blocks that the host has to get a
+storage proof onto the blockchain. The window size is the minimum size of window
+that the host will accept in a file contract.  
 
 **collateral** | hastings / byte / block  
-The maximum amount of money that the host will put up as collateral for storage that is contracted by the renter.  
+The maximum amount of money that the host will put up as collateral for storage
+that is contracted by the renter.  
 
 **maxcollateral** | hastings  
-The maximum amount of collateral that the host will put into a single file contract.  
+The maximum amount of collateral that the host will put into a single file
+contract.  
 
 **contractprice** | hastings  
-The price that a renter has to pay to create a contract with the host. The payment is intended to cover transaction fees for the file contract revision and the storage proof that the host will be submitting to the blockchain.  
+The price that a renter has to pay to create a contract with the host. The
+payment is intended to cover transaction fees for the file contract revision and
+the storage proof that the host will be submitting to the blockchain.  
 
 **downloadbandwidthprice** | hastings / byte  
 The price that a renter has to pay when downloading data from the host.  
@@ -836,88 +1101,133 @@ The price that a renter has to pay to store files with the host.
 **uploadbandwidthprice** | hastings / byte  
 The price that a renter has to pay when uploading data to the host.  
 
-**revisionnumber** | int 
-The revision number indicates to the renter what iteration of settings the host is currently at. Settings are generally signed. If the renter has multiple conflicting copies of settings from the host, the renter can expect the one with the higher revision number to be more recent.  
+**revisionnumber** | int  
+The revision number indicates to the renter what iteration of settings the host
+is currently at. Settings are generally signed. If the renter has multiple
+conflicting copies of settings from the host, the renter can expect the one with
+the higher revision number to be more recent.  
 
-**version** | string
-The version of external settings being used. This field helps coordinate updates while preserving compatibility with older nodes.  
+**version** | string  
+The version of external settings being used. This field helps coordinate updates
+while preserving compatibility with older nodes.  
 
-#### financialmetrics  
+**financialmetrics**    
 The financial status of the host.  
   
-**contractcount** | int
+**contractcount** | int  
 Number of open file contracts.  
 
 **contractcompensation** | hastings  
-The amount of money that renters have given to the host to pay for file contracts. The host is required to submit a file contract revision and a storage proof for every file contract that gets created, and the renter pays for the miner fees on  these objects.  
+The amount of money that renters have given to the host to pay for file
+contracts. The host is required to submit a file contract revision and a storage
+proof for every file contract that gets created, and the renter pays for the
+miner fees on  these objects.  
 
 **potentialcontractcompensation** | hastings  
-The amount of money that renters have given to the host to pay for file contracts which have not been confirmed yet. The potential compensation becomes compensation after the storage proof is submitted.  
+The amount of money that renters have given to the host to pay for file
+contracts which have not been confirmed yet. The potential compensation becomes
+compensation after the storage proof is submitted.  
 
 **lockedstoragecollateral** | hastings  
-The amount of storage collateral which the host has tied up in file contracts. The host has to commit collateral to a file contract even if there is no storage, but the locked collateral will be returned even if the host does not submit a storage proof - the collateral is not at risk, it is merely set aside so that it can be put at risk later.  
+The amount of storage collateral which the host has tied up in file contracts.
+The host has to commit collateral to a file contract even if there is no
+storage, but the locked collateral will be returned even if the host does not
+submit a storage proof - the collateral is not at risk, it is merely set aside
+so that it can be put at risk later.  
 
 **lostrevenue** | hastings  
-The amount of revenue, including storage revenue and bandwidth revenue, that has been lost due to failed file contracts and failed storage proofs.  
+The amount of revenue, including storage revenue and bandwidth revenue, that has
+been lost due to failed file contracts and failed storage proofs.  
 
 **loststoragecollateral** | hastings  
-The amount of collateral that was put up to protect data which has been lost due to failed file contracts and missed storage proofs.  
+The amount of collateral that was put up to protect data which has been lost due
+to failed file contracts and missed storage proofs.  
 
 **potentialstoragerevenue** | hastings  
-The amount of revenue that the host stands to earn if all storage proofs are submitted corectly and in time.  
+The amount of revenue that the host stands to earn if all storage proofs are
+submitted correctly and in time.
 
 **riskedstoragecollateral** | hastings  
-The amount of money that the host has risked on file contracts. If the host starts missing storage proofs, the host can forfeit up to this many coins. In the event of a missed storage proof, locked storage collateral gets returned, but risked storage collateral does not get returned.  
+The amount of money that the host has risked on file contracts. If the host
+starts missing storage proofs, the host can forfeit up to this many coins. In
+the event of a missed storage proof, locked storage collateral gets returned,
+but risked storage collateral does not get returned.  
 
 **storagerevenue** | hastings  
-The amount of money that the host has earned from storing data. This money has been locked down by successful storage proofs.  
+The amount of money that the host has earned from storing data. This money has
+been locked down by successful storage proofs.  
 
 **transactionfeeexpenses** | hastings  
-The amount of money that the host has spent on transaction fees when submitting host announcements, file contract revisions, and storage proofs.  
+The amount of money that the host has spent on transaction fees when submitting
+host announcements, file contract revisions, and storage proofs.  
 
 **downloadbandwidthrevenue** | hastings  
-The amount of money that the host has made from renters downloading their files. This money has been locked in by successsful storage proofs.  
+The amount of money that the host has made from renters downloading their files.
+This money has been locked in by successsful storage proofs.  
 
 **potentialdownloadbandwidthrevenue** | hastings  
-The amount of money that the host stands to make from renters that downloaded their files. The host will only realize this revenue if the host successfully submits storage proofs for the related file contracts.  
+The amount of money that the host stands to make from renters that downloaded
+their files. The host will only realize this revenue if the host successfully
+submits storage proofs for the related file contracts.  
 
 **potentialuploadbandwidthrevenue** | hastings  
-The amount of money that the host stands to make from renters that uploaded files. The host will only realize this revenue if the host successfully submits storage proofs for the related file contracts.  
+The amount of money that the host stands to make from renters that uploaded
+files. The host will only realize this revenue if the host successfully submits
+storage proofs for the related file contracts.  
 
 **uploadbandwidthrevenue** | hastings  
-The amount of money that the host has made from renters uploading their files. This money has been locked in by successful storage proofs.  
+The amount of money that the host has made from renters uploading their files.
+This money has been locked in by successful storage proofs.  
 
-#### internalsettings  
-The settings of the host. Most interactions between the user and the host occur by changing the internal settings.  
+**internalsettings**    
+The settings of the host. Most interactions between the user and the host occur
+by changing the internal settings.  
 
 **acceptingcontracts** | boolean  
-When set to true, the host will accept new file contracts if the terms are reasonable. When set to false, the host will not accept new file contracts at all.  
+When set to true, the host will accept new file contracts if the terms are
+reasonable. When set to false, the host will not accept new file contracts at
+all.  
 
 **maxdownloadbatchsize** | bytes  
-The maximum size of a single download request from a renter. Each download request has multiple round trips of communication that exchange money. Larger batch sizes mean fewer round trips, but more financial risk for the host - the renter can get a free batch when downloading by refusing to provide a signature.  
+The maximum size of a single download request from a renter. Each download
+request has multiple round trips of communication that exchange money. Larger
+batch sizes mean fewer round trips, but more financial risk for the host - the
+renter can get a free batch when downloading by refusing to provide a signature.
+
 
 **maxduration** | blocks  
-The maximum duration of a file contract that the host will accept. The storage proof window must end before the current height + maxduration.  
+The maximum duration of a file contract that the host will accept. The storage
+proof window must end before the current height + maxduration.  
 
 **maxrevisebatchsize** | bytes  
-The maximum size of a single batch of file contract revisions. The renter can perform DoS attacks on the host by uploading a batch of data then refusing to provide a signature to pay for the data. The host can reduce this exposure by limiting the batch size. Larger batch sizes allow for higher throughput as there is significant communication overhead associated with performing a batch upload.  
+The maximum size of a single batch of file contract revisions. The renter can
+perform DoS attacks on the host by uploading a batch of data then refusing to
+provide a signature to pay for the data. The host can reduce this exposure by
+limiting the batch size. Larger batch sizes allow for higher throughput as there
+is significant communication overhead associated with performing a batch upload.
 
-**netaddress** | string
-The IP address or hostname (including port) that the host should be contacted at. If left blank, the host will automatically figure out its ip address and use that. If given, the host will use the address given.  
+
+**netaddress** | string  
+The IP address or hostname (including port) that the host should be contacted
+at. If left blank, the host will automatically figure out its ip address and use
+that. If given, the host will use the address given.  
 
 **windowsize** | blocks  
-The storage proof window is the number of blocks that the host has to get a storage proof onto the blockchain. The window size is the minimum size of window that the host will accept in a file contract.  
+The storage proof window is the number of blocks that the host has to get a
+storage proof onto the blockchain. The window size is the minimum size of window
+that the host will accept in a file contract.  
 
 **collateral** | hastings / byte / block  
-The maximum amount of money that the host will put up as collateral per byte per block of storage that is contracted by the renter.  
+The maximum amount of money that the host will put up as collateral per byte per
+block of storage that is contracted by the renter.  
 
 **collateralbudget** | hastings  
-The total amount of money that the host will allocate to collateral across all file contracts.  
+The total amount of money that the host will allocate to collateral across all
+file contracts.  
 
 **maxcollateral** | hastings  
-The maximum amount of collateral that the host will put into a
-<<<<<<< HEAD
-single file contract.
+The maximum amount of collateral that the host will put into a single file
+contract.
 
 **minbaserpcprice** | hastings  
 The minimum price that the host will demand from a renter for interacting with
@@ -925,16 +1235,18 @@ the host. This is charged for every interaction a renter has with a host to pay
 for resources consumed during the interaction. It is added to the
 `mindownloadbandwidthprice` and `minuploadbandwidthprice` when uploading or
 downloading files from the host.
-=======
-single file contract.  
->>>>>>> siaprime/master
 
 **mincontractprice** | hastings  
-The minimum price that the host will demand from a renter when forming a contract. Typically this price is to cover transaction fees on the file contract revision and storage proof, but can also be used if the host has a low amount of collateral. The price is a minimum because the host may automatically adjust the price upwards in times of high demand.  
+The minimum price that the host will demand from a renter when forming a
+contract. Typically this price is to cover transaction fees on the file contract
+revision and storage proof, but can also be used if the host has a low amount of
+collateral. The price is a minimum because the host may automatically adjust the
+price upwards in times of high demand.  
 
 **mindownloadbandwidthprice** | hastings / byte  
-<<<<<<< HEAD
-The minimum price that the host will demand from a renter when the renter is downloading data. If the host is saturated, the host may increase the price from the minimum.
+The minimum price that the host will demand from a renter when the renter is
+downloading data. If the host is saturated, the host may increase the price from
+the minimum.
 
 **minsectoraccessprice** | hastings  
 The minimum price that the host will demand from a renter for accessing a sector
@@ -943,85 +1255,118 @@ regardless of how much the renter intends to download this is charged to pay for
 the physical disk resources the host uses. It is multiplied by the number of
 sectors read then added to the `mindownloadbandwidthprice` when downloading a
 file.
-=======
-The minimum price that the host will demand from a renter when the renter is downloading data. If the host is saturated, the host may increase the price from the minimum.  
->>>>>>> siaprime/master
 
 **minstorageprice** | hastings / byte / block  
-The minimum price that the host will demand when storing data for extended periods of time. If the host is low on space, the price of storage may be set higher than the minimum.  
+The minimum price that the host will demand when storing data for extended
+periods of time. If the host is low on space, the price of storage may be set
+higher than the minimum.  
 
 **minuploadbandwidthprice** | hastings / byte  
-The minimum price that the host will demand from a renter when the renter is uploading data. If the host is saturated, the host may increase the price from the minimum.  
+The minimum price that the host will demand from a renter when the renter is
+uploading data. If the host is saturated, the host may increase the price from
+the minimum.  
 
-#### networkmetrics  
-Information about the network, specifically various ways in which renters have contacted the host.  
+**networkmetrics**    
+Information about the network, specifically various ways in which renters have
+contacted the host.  
 
-**downloadcalls** | int 
-The number of times that a renter has attempted to download something from the host.  
+**downloadcalls** | int  
+The number of times that a renter has attempted to download something from the
+host.  
 
-**errorcalls** | int
-The number of calls that have resulted in errors. A small number of errors are expected, but a large number of errors indicate either buggy software or malicious network activity. Usually buggy software.  
+**errorcalls** | int  
+The number of calls that have resulted in errors. A small number of errors are
+expected, but a large number of errors indicate either buggy software or
+malicious network activity. Usually buggy software.  
 
 **formcontractcalls** | int  
 The number of times that a renter has tried to form a contract with the host.  
 
-**renewcalls** | int
+**renewcalls** | int  
 The number of times that a renter has tried to renew a contract with the host.  
 
-**revisecalls** | int
-The number of times that the renter has tried to revise a contract with the host.  
+**revisecalls** | int  
+The number of times that the renter has tried to revise a contract with the
+host.  
 
-**settingscalls** | int
-The number of times that a renter has queried the host for the host's settings. The settings include the price of bandwidth, which is a price that can adjust every few minutes. This value is usually very high compared to the others.  
+**settingscalls** | int  
+The number of times that a renter has queried the host for the host's settings.
+The settings include the price of bandwidth, which is a price that can adjust
+every few minutes. This value is usually very high compared to the others.  
 
-**unrecognizedcalls** | int
-The number of times that a renter has attempted to use an unrecognized call. Larger numbers typically indicate buggy software.  
+**unrecognizedcalls** | int  
+The number of times that a renter has attempted to use an unrecognized call.
+Larger numbers typically indicate buggy software.  
 
-**connectabilitystatus** | string
-connectabilitystatus is one of "checking", "connectable", or "not connectable", and indicates if the host can connect to itself on its configured NetAddress.  
+**connectabilitystatus** | string  
+connectabilitystatus is one of "checking", "connectable", or "not connectable",
+and indicates if the host can connect to itself on its configured NetAddress.  
 
-**workingstatus** | string
-workingstatus is one of "checking", "working", or "not working" and indicates if the host is being actively used by renters.  
+**workingstatus** | string  
+workingstatus is one of "checking", "working", or "not working" and indicates if
+the host is being actively used by renters.  
+
+**publickey** | SiaPublicKey  
+Public key used to identify the host.  
 
 ## /host [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/host?acceptingcontracts=true&maxduration=12096&windowsize=1008"
+curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host?acceptingcontracts=true&maxduration=12096&windowsize=1008"
 ```
 
-Configures hosting parameters. All parameters are optional; unspecified parameters will be left unchanged.
+Configures hosting parameters. All parameters are optional; unspecified
+parameters will be left unchanged.
 
 ### Query String Parameters
-#### OPTIONAL
-**acceptingcontracts** | boolean
-When set to true, the host will accept new file contracts if the terms are reasonable. When set to false, the host will not accept new file contracts at all.  
+### OPTIONAL
+**acceptingcontracts** | boolean  
+When set to true, the host will accept new file contracts if the terms are
+reasonable. When set to false, the host will not accept new file contracts at
+all.  
 
-**maxdownloadbatchsize** | bytes
-The maximum size of a single download request from a renter. Each download request has multiple round trips of communication that exchange money. Larger batch sizes mean fewer round trips, but more financial risk for the host - the renter can get a free batch when downloading by refusing to provide a signature.  
+**maxdownloadbatchsize** | bytes  
+The maximum size of a single download request from a renter. Each download
+request has multiple round trips of communication that exchange money. Larger
+batch sizes mean fewer round trips, but more financial risk for the host - the
+renter can get a free batch when downloading by refusing to provide a signature.
 
-**maxduration** | blocks
-The maximum duration of a file contract that the host will accept. The storage proof window must end before the current height + maxduration.  
 
-**maxrevisebatchsize** | bytes
-The maximum size of a single batch of file contract revisions. The renter can perform DoS attacks on the host by uploading a batch of data then refusing to provide a signature to pay for the data. The host can reduce this exposure by limiting the batch size. Larger batch sizes allow for higher throughput as there is significant communication overhead associated with performing a batch upload.  
+**maxduration** | blocks  
+The maximum duration of a file contract that the host will accept. The storage
+proof window must end before the current height + maxduration.  
+
+**maxrevisebatchsize** | bytes  
+The maximum size of a single batch of file contract revisions. The renter can
+perform DoS attacks on the host by uploading a batch of data then refusing to
+provide a signature to pay for the data. The host can reduce this exposure by
+limiting the batch size. Larger batch sizes allow for higher throughput as there
+is significant communication overhead associated with performing a batch upload.
+
 
 **netaddress** | string  
-The IP address or hostname (including port) that the host should be contacted at. If left blank, the host will automatically figure out its ip address and use that. If given, the host will use the address given.  
+The IP address or hostname (including port) that the host should be contacted
+at. If left blank, the host will automatically figure out its ip address and use
+that. If given, the host will use the address given.  
 
-**windowsize** | blocks
-// The storage proof window is the number of blocks that the host has to get a storage proof onto the blockchain. The window size is the minimum size of window that the host will accept in a file contract.
+**windowsize** | blocks  
+// The storage proof window is the number of blocks that the host has to get a
+storage proof onto the blockchain. The window size is the minimum size of window
+that the host will accept in a file contract.
 
-**collateral** | hastings / byte / block
-The maximum amount of money that the host will put up as collateral per byte per block of storage that is contracted by the renter.  
+**collateral** | hastings / byte / block  
+The maximum amount of money that the host will put up as collateral per byte per
+block of storage that is contracted by the renter.  
 
-**collateralbudget** | hastings
-The total amount of money that the host will allocate to collateral across all file contracts.  
+**collateralbudget** | hastings  
+The total amount of money that the host will allocate to collateral across all
+file contracts.  
 
-**maxcollateral** | hastings
-The maximum amount of collateral that the host will put into a single file contract.  
+**maxcollateral** | hastings  
+The maximum amount of collateral that the host will put into a single file
+contract.  
 
-<<<<<<< HEAD
 **minbaserpcprice** | hastings  
 The minimum price that the host will demand from a renter for interacting with
 the host. This is charged for every interaction a renter has with a host to pay
@@ -1029,8 +1374,12 @@ for resources consumed during the interaction. It is added to the
 `mindownloadbandwidthprice` and `minuploadbandwidthprice` when uploading or
 downloading files from the host.
 
-**mincontractprice** | hastings
-The minimum price that the host will demand from a renter when forming a contract. Typically this price is to cover transaction fees on the file contract revision and storage proof, but can also be used if the host has a low amount of collateral. The price is a minimum because the host may automatically adjust the price upwards in times of high demand.  
+**mincontractprice** | hastings  
+The minimum price that the host will demand from a renter when forming a
+contract. Typically this price is to cover transaction fees on the file contract
+revision and storage proof, but can also be used if the host has a low amount of
+collateral. The price is a minimum because the host may automatically adjust the
+price upwards in times of high demand.  
 
 **minsectoraccessprice** | hastings  
 The minimum price that the host will demand from a renter for accessing a sector
@@ -1040,53 +1389,67 @@ the physical disk resources the host uses. It is multiplied by the number of
 sectors read then added to the `mindownloadbandwidthprice` when downloading a
 file.
 
-=======
-**mincontractprice** | hastings
-The minimum price that the host will demand from a renter when forming a contract. Typically this price is to cover transaction fees on the file contract revision and storage proof, but can also be used if the host has a low amount of collateral. The price is a minimum because the host may automatically adjust the price upwards in times of high demand.  
+**mindownloadbandwidthprice** | hastings / byte  
+The minimum price that the host will demand from a renter when the renter is
+downloading data. If the host is saturated, the host may increase the price from
+the minimum.  
 
->>>>>>> siaprime/master
-**mindownloadbandwidthprice** | hastings / byte
-The minimum price that the host will demand from a renter when the renter is downloading data. If the host is saturated, the host may increase the price from the minimum.  
+**minstorageprice** | hastings / byte / block  
+The minimum price that the host will demand when storing data for extended
+periods of time. If the host is low on space, the price of storage may be set
+higher than the minimum.  
 
-**minstorageprice** | hastings / byte / block
-The minimum price that the host will demand when storing data for extended periods of time. If the host is low on space, the price of storage may be set higher than the minimum.  
-
-**minuploadbandwidthprice** | hastings / byte
-The minimum price that the host will demand from a renter when the renter is uploading data. If the host is saturated, the host may increase the price from the minimum.  
+**minuploadbandwidthprice** | hastings / byte  
+The minimum price that the host will demand from a renter when the renter is
+uploading data. If the host is saturated, the host may increase the price from
+the minimum.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /host/announce [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/host/announce"
+curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host/announce"
+```
+> curl example with a custom netaddress
+
+```go
+curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host/announce?netaddress=siahost.example.net"
 ```
 
-Announce the host to the network as a source of storage. Generally only needs to be called once.
+Announce the host to the network as a source of storage. Generally only needs to
+be called once.
 
-Note that even after the host has been announced, it will not accept new contracts unless configured to do so. To configure the host to accept contracts, see [/host](## /host [POST]).
+Note that even after the host has been announced, it will not accept new
+contracts unless configured to do so. To configure the host to accept contracts,
+see [/host](## /host [POST]).
 
 ### Query String Parameters
-#### OPTIONAL
+### OPTIONAL
 **netaddress string** | string  
-The address to be announced. If no address is provided, the automatically discovered address will be used instead.  
+The address to be announced. If no address is provided, the automatically
+discovered address will be used instead.  
 
 ### Response
 
-standard success or error response. See [standard responses](#Standard-Responses).
+standard success or error response. See [standard
+responses](#Standard-Responses).
 
 ## /host/contracts [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/host/contracts"
+curl -A "SiaPrime-Agent" "localhost:4280/host/contracts"
 ```
 
 
-Get contract information from the host database. This call will return all storage obligations on the host. Its up to the caller to filter the contracts based on their needs.
+Get contract information from the host database. This call will return all
+storage obligations on the host. Its up to the caller to filter the contracts
+based on their needs.
 
 ### JSON Response
 > JSON Response Example
@@ -1095,95 +1458,108 @@ Get contract information from the host database. This call will return all stora
 {
   "contracts": [
     {
-      "contractcost":			        "1234",		          // hastings
-      "datasize":			            500000,		          // bytes
-      "lockedcollateral":		      "1234",		          // hastings
+      "contractcost":             "1234",             // hastings
+      "datasize":                 500000,             // bytes
+      "lockedcollateral":         "1234",             // hastings
       "obligationid": "fff48010dcbbd6ba7ffd41bc4b25a3634ee58bbf688d2f06b7d5a0c837304e13", // hash
-      "potentialdownloadrevenue":	"1234",             // hastings
-      "potentialstoragerevenue":	"1234",             // hastings
-      "potentialuploadrevenue":		"1234",             // hastings
-      "riskedcollateral":		      "1234",             // hastings
-      "sectorrootscount":		      2,                  // int
-      "transactionfeesadded":		  "1234",		          // hastings
-      "expirationheight":		      123456,		          // blocks
-      "negotiationheight":		    123456,		          // blocks
-      "proofdeadline":			      123456,	  	        // blocks
-      "obligationstatus":		      "obligationFailed", // string
-      "originconfirmed":		      true,               // boolean
-      "proofconfirmed":			      true,               // boolean
-      "proofconstructed":		      true,               // boolean
-      "revisionconfirmed":		    false,              // boolean
-      "revisionconstructed":		  false,              // boolean
+      "potentialdownloadrevenue": "1234",             // hastings
+      "potentialstoragerevenue":  "1234",             // hastings
+      "potentialuploadrevenue":   "1234",             // hastings
+      "riskedcollateral":         "1234",             // hastings
+      "sectorrootscount":         2,                  // int
+      "transactionfeesadded":     "1234",             // hastings
+      "expirationheight":         123456,             // blocks
+      "negotiationheight":        123456,             // blocks
+      "proofdeadline":            123456,             // blocks
+      "obligationstatus":         "obligationFailed", // string
+      "originconfirmed":          true,               // boolean
+      "proofconfirmed":           true,               // boolean
+      "proofconstructed":         true,               // boolean
+      "revisionconfirmed":        false,              // boolean
+      "revisionconstructed":      false,              // boolean
     }
   ]
 }
 ```
-**contractcost** | hastings
+**contractcost** | hastings  
 Amount in hastings to cover the transaction fees for this storage obligation.
 
-**datasize** | bytes
+**datasize** | bytes  
 Size of the data that is protected by the contract.
 
-**lockedcollateral** | hastings
+**lockedcollateral** | hastings  
 Amount that is locked as collateral for this storage obligation.
 
-**obligationid** | hash
-Id of the storageobligation, which is defined by the file contract id of the file contract that governs the storage obligation.
+**obligationid** | hash  
+Id of the storageobligation, which is defined by the file contract id of the
+file contract that governs the storage obligation.
 
-**potentialdownloadrevenue** | hastings
-Potential revenue for downloaded data that the host will reveive upon successful completion of the obligation.
+**potentialdownloadrevenue** | hastings  
+Potential revenue for downloaded data that the host will receive upon successful
+completion of the obligation.
 
-**potentialstoragerevenue** | hastings
-Potential revenue for storage of data that the host will reveive upon successful completion of the obligation.
+**potentialstoragerevenue** | hastings  
+Potential revenue for storage of data that the host will receive upon successful
+completion of the obligation.
 
-**potentialuploadrevenue** | hastings
-Potential revenue for uploaded data that the host will reveive upon successful completion of the obligation.
+**potentialuploadrevenue** | hastings  
+Potential revenue for uploaded data that the host will receive upon successful
+completion of the obligation.
 
-**riskedcollateral** | hastings
-Amount that the host might lose if the submission of the storage proof is not successful.
+**riskedcollateral** | hastings  
+Amount that the host might lose if the submission of the storage proof is not
+successful.
 
-**sectorrootscount** | int
+**sectorrootscount** | int  
 Number of sector roots.
 
-**transactionfeesadded** | hastings
+**transactionfeesadded** | hastings  
 Amount for transaction fees that the host added to the storage obligation.
 
-**expirationheight** | blockheight
+**expirationheight** | blockheight  
 Expiration height is the height at which the storage obligation expires.
 
-**negotiationheight** | blockheight
-Negotion height is the height at which the storage obligation was negotiated.
+**negotiationheight** | blockheight  
+Negotiation height is the height at which the storage obligation was negotiated.
 
-**proofdeadline** | blockheight
+**proofdeadline** | blockheight  
 The proof deadline is the height by which the storage proof must be submitted.
 
-**obligationstatus** | string
+**obligationstatus** | string  
 Status of the storage obligation. There are 4 different statuses:
- - `obligationFailed`:	the storage obligation failed, potential revenues and risked collateral are lost
- - `obligationRejected`:	the storage obligation was never started, no revenues gained or lost
- - `obligationSucceeded`:	the storage obligation was completed, revenues were gained
- - `obligationUnresolved`: 	the storage obligation has an uninitialized value. When the **proofdeadline** is in the past this might be a stale obligation.
+ - `obligationFailed`:  the storage obligation failed, potential revenues and
+   risked collateral are lost
+ - `obligationRejected`:  the storage obligation was never started, no revenues
+   gained or lost
+ - `obligationSucceeded`: the storage obligation was completed, revenues were
+   gained
+ - `obligationUnresolved`:  the storage obligation has an uninitialized value.
+   When the **proofdeadline** is in the past this might be a stale obligation.
 
-**originconfirmed** | hash
-Origin confirmed indicates whether the file contract was seen on the blockchain for this storage obligation.
+**originconfirmed** | hash  
+Origin confirmed indicates whether the file contract was seen on the blockchain
+for this storage obligation.
 
-**proofconfirmed** | boolean
-Proof confirmed indicates whether there was a storage proof seen on the blockchain for this storage obligation.
+**proofconfirmed** | boolean  
+Proof confirmed indicates whether there was a storage proof seen on the
+blockchain for this storage obligation.
 
-**proofconstructed** | boolean
+**proofconstructed** | boolean  
 The host has constructed a storage proof
 
-**revisionconfirmed** | boolean
-Revision confirmed indicates whether there was a file contract revision seen on the blockchain for this storage obligation.
+**revisionconfirmed** | boolean  
+Revision confirmed indicates whether there was a file contract revision seen on
+the blockchain for this storage obligation.
 
-**revisionconstructed** | boolean
-Revision constructed indicates whether there was a file contract revision constructed for this storage obligation.
+**revisionconstructed** | boolean  
+Revision constructed indicates whether there was a file contract revision
+constructed for this storage obligation.
 
 ## /host/storage [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/host/storage"
+curl -A "SiaPrime-Agent" "localhost:4280/host/storage"
 ```
 
 Gets a list of folders tracked by the host's storage manager.
@@ -1207,17 +1583,22 @@ Gets a list of folders tracked by the host's storage manager.
   ]
 }
 ```
-**path** | string
+**path** | string  
 Absolute path to the storage folder on the local filesystem.  
 
-**capacity** | bytes
-Maximum capacity of the storage folder in bytes. The host will not store more than this many bytes in the folder. This capacity is not checked against the drive's remaining capacity. Therefore, you must manually ensure the disk has sufficient capacity for the folder at all times. Otherwise you risk losing renter's data and failing storage proofs.  
+**capacity** | bytes  
+Maximum capacity of the storage folder in bytes. The host will not store more
+than this many bytes in the folder. This capacity is not checked against the
+drive's remaining capacity. Therefore, you must manually ensure the disk has
+sufficient capacity for the folder at all times. Otherwise you risk losing
+renter's data and failing storage proofs.  
 
-**capacityremaining** | bytes   
+**capacityremaining** | bytes  
 Unused capacity of the storage folder in bytes.  
 
 **failedreads, failedwrites** | int  
-Number of failed disk read & write operations. A large number of failed reads or writes indicates a problem with the filesystem or drive's hardware.  
+Number of failed disk read & write operations. A large number of failed reads or
+writes indicates a problem with the filesystem or drive's hardware.  
 
 **successfulreads, successfulwrites** | int  
 Number of successful read & write operations.  
@@ -1226,95 +1607,126 @@ Number of successful read & write operations.
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "path=foo/bar&size=1000000000000" "localhost:9980/host/storage/add"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "path=foo/bar&size=1000000000000" "localhost:4280/host/storage/folders/add"
 ```
 
-adds a storage folder to the manager. The manager may not check that there is enough space available on-disk to support as much storage as requested
+adds a storage folder to the manager. The manager may not check that there is
+enough space available on-disk to support as much storage as requested
+
+### Storage Folder Limits
+A host can only have 65536 storage folders in total which have to be between 256
+MiB and 16 PiB in size
 
 ### Query String Parameters
-#### REQUIRED
+### REQUIRED
 **path** | string  
 Local path on disk to the storage folder to add.  
 
 **size** | bytes  
-Initial capacity of the storage folder. This value isn't validated so it is possible to set the capacity of the storage folder greater than the capacity of the disk. Do not do this.  
+Initial capacity of the storage folder. This value isn't validated so it is
+possible to set the capacity of the storage folder greater than the capacity of
+the disk. Do not do this.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /host/storage/folders/remove [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "path=foo/bar&force=false" "localhost:9980/host/storage/remove"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "path=foo/bar&force=false" "localhost:4280/host/storage/folders/remove"
 ```
 
-Remove a storage folder from the manager. All sotrage on the folder will be moved to other stoarge folders, meaning that no data will be lost. If the manager is unable to save data, an error will be returned and the operation will be stopped.
+Remove a storage folder from the manager. All storage on the folder will be
+moved to other stoarge folders, meaning that no data will be lost. If the
+manager is unable to save data, an error will be returned and the operation will
+be stopped.
 
 ### Query String Parameters
-#### REQUIRED
+### REQUIRED
 **path** | string  
 Local path on disk to the storage folder to removed.  
 
-#### OPTIONAL
+### OPTIONAL
 **force** | boolean  
-If `force` is true, the storage folder will be removed even if the data in the storage folder cannot be moved to other storage folders, typically because they don't have sufficient capacity. If `force` is true and the data cannot be moved, data will be lost.  
+If `force` is true, the storage folder will be removed even if the data in the
+storage folder cannot be moved to other storage folders, typically because they
+don't have sufficient capacity. If `force` is true and the data cannot be moved,
+data will be lost.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /host/storage/folders/resize [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "path=foo/bar&newsize=1000000000000" "localhost:9980/host/storage/resize"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "path=foo/bar&newsize=1000000000000" "localhost:4280/host/storage/folders/resize"
 ```
 
-Grows or shrinks a storage file in the manager. The manager may not check that there is enough space on-disk to support growing the storasge folder, but should gracefully handle running out of space unexpectedly. When shrinking a storage folder, any data in the folder that neeeds to be moved will be placed into other storage folders, meaning that no data will be lost. If the manager is unable to migrate the data, an error will be returned and the operation will be stopped.
+Grows or shrinks a storage file in the manager. The manager may not check that
+there is enough space on-disk to support growing the storasge folder, but should
+gracefully handle running out of space unexpectedly. When shrinking a storage
+folder, any data in the folder that needs to be moved will be placed into other
+storage folders, meaning that no data will be lost. If the manager is unable to
+migrate the data, an error will be returned and the operation will be stopped.
+
+### Storage Folder Limits
+See [/host/storage/folders/add](#host-storage-folders-add-post)
 
 ### Query String Parameters
-#### REQUIRED
+### REQUIRED
 **path** | string  
 Local path on disk to the storage folder to resize.  
 
 **newsize** | bytes  
-Desired new size of the storage folder. This will be the new capacity of the storage folder.  
+Desired new size of the storage folder. This will be the new capacity of the
+storage folder.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /host/storage/sectors/delete/:*merkleroot* [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/host/storage/sectors/delete/[merkleroot]"
+curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host/storage/sectors/delete/[merkleroot]"
 ```
 
-Deletes a sector, meaning that the manager will be unable to upload that sector and be unable to provide a storage proof on that sector. This endpoint is for removing the data entirely, and will remove instances of the sector appearing at all heights. The primary purpose is to comply with legal requests to remove data.
+Deletes a sector, meaning that the manager will be unable to upload that sector
+and be unable to provide a storage proof on that sector. This endpoint is for
+removing the data entirely, and will remove instances of the sector appearing at
+all heights. The primary purpose is to comply with legal requests to remove
+data.
 
 ### Path Parameters
-#### REQUIRED
-**merkleroot** | merkleroot
+### REQUIRED
+**merkleroot** | merkleroot  
 Merkleroot of the sector to delete.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /host/estimatescore [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/host/estimatescore"
+curl -A "SiaPrime-Agent" "localhost:4280/host/estimatescore"
 ```
 
-Returns the estimated HostDB score of the host using its current settings, combined with the provided settings.
+Returns the estimated HostDB score of the host using its current settings,
+combined with the provided settings.
 
 ### Query String Parameters
-#### OPTIONAL
+### OPTIONAL
 See [host internal settings](#internalsettings)
  - acceptingcontracts   
  - maxdownloadbatchsize 
@@ -1335,25 +1747,28 @@ See [host internal settings](#internalsettings)
 
 ```go
 {
-	"estimatedscore": "123456786786786786786786786742133",  // big int
-	"conversionrate": 95  // float64
+  "estimatedscore": "123456786786786786786786786742133",  // big int
+  "conversionrate": 95  // float64
 }
 ```
-**estimatedscore** | big int
-estimatedscore is the estimated HostDB score of the host given the settings passed to estimatescore.  
+**estimatedscore** | big int  
+estimatedscore is the estimated HostDB score of the host given the settings
+passed to estimatescore.  
   
-**conversionrate** | float64
-conversionrate is the likelihood given the settings passed to estimatescore that the host will be selected by renters forming contracts.  
+**conversionrate** | float64  
+conversionrate is the likelihood given the settings passed to estimatescore that
+the host will be selected by renters forming contracts.  
 
 # Host DB
 
-The hostdb maintains a database of all hosts known to the network. The database identifies hosts by their public key and keeps track of metrics such as price.
+The hostdb maintains a database of all hosts known to the network. The database
+identifies hosts by their public key and keeps track of metrics such as price.
 
 ## /hostdb [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/hostdb"
+curl -A "SiaPrime-Agent" "localhost:4280/hostdb"
 ```
 
 Shows some general information about the state of the hostdb.
@@ -1366,22 +1781,24 @@ Shows some general information about the state of the hostdb.
     "initialscancomplete": false  // boolean
 }
 ```
-**initialscancomplete** | boolean
+**initialscancomplete** | boolean  
 indicates if all known hosts have been scanned at least once.
 
 ## /hostdb/active [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/hostdb/active"
+curl -A "SiaPrime-Agent" "localhost:4280/hostdb/active"
 ```
 
 lists all of the active hosts known to the renter, sorted by preference.
 
 ### Query String Parameters
-#### OPTIONAL
+### OPTIONAL
 **numhosts** | int  
-Number of hosts to return. The actual number of hosts returned may be less if there are insufficient active hosts. Optional, the default is all active hosts.  
+Number of hosts to return. The actual number of hosts returned may be less if
+there are insufficient active hosts. Optional, the default is all active hosts.
+
 
 ### JSON Response
 > JSON Response Example
@@ -1446,47 +1863,62 @@ Number of hosts to return. The actual number of hosts returned may be less if th
 }
 ```
 
-#### hosts
+**hosts**  
 **acceptingcontracts** | boolean  
 true if the host is accepting new contracts.  
 
 **maxdownloadbatchsize** | bytes  
-Maximum number of bytes that the host will allow to be requested by a single download request.  
+Maximum number of bytes that the host will allow to be requested by a single
+download request.  
 
 **maxduration** | blocks  
-Maximum duration in blocks that a host will allow for a file contract. The host commits to keeping files for the full duration under the threat of facing a large penalty for losing or dropping data before the duration is complete. The storage proof window of an incoming file contract must end before the current height + maxduration.  
+Maximum duration in blocks that a host will allow for a file contract. The host
+commits to keeping files for the full duration under the threat of facing a
+large penalty for losing or dropping data before the duration is complete. The
+storage proof window of an incoming file contract must end before the current
+height + maxduration.  
 
 There is a block approximately every 10 minutes. e.g. 1 day = 144 blocks  
 
 **maxrevisebatchsize** | bytes  
-Maximum size in bytes of a single batch of file contract revisions. Larger batch sizes allow for higher throughput as there is significant communication overhead associated with performing a batch upload.  
+Maximum size in bytes of a single batch of file contract revisions. Larger batch
+sizes allow for higher throughput as there is significant communication overhead
+associated with performing a batch upload.  
 
-**netaddress** | sting
-Remote address of the host. It can be an IPv4, IPv6, or hostname, along with the port. IPv6 addresses are enclosed in square brackets.  
+**netaddress** | sting  
+Remote address of the host. It can be an IPv4, IPv6, or hostname, along with the
+port. IPv6 addresses are enclosed in square brackets.  
 
 **remainingstorage** | bytes  
 Unused storage capacity the host claims it has.  
 
 **sectorsize** | bytes  
-Smallest amount of data in bytes that can be uploaded or downloaded to or from the host.  
+Smallest amount of data in bytes that can be uploaded or downloaded to or from
+the host.  
 
 **totalstorage** | bytes  
 Total amount of storage capacity the host claims it has.  
 
-**unlockhash** | hash
+**unlockhash** | hash  
 Address at which the host can be paid when forming file contracts.  
 
 **windowsize** | blocks  
-A storage proof window is the number of blocks that the host has to get a storage proof onto the blockchain. The window size is the minimum size of window that the host will accept in a file contract.  
+A storage proof window is the number of blocks that the host has to get a
+storage proof onto the blockchain. The window size is the minimum size of window
+that the host will accept in a file contract.  
 
 **collateral** | hastings / byte / block  
-The maximum amount of money that the host will put up as collateral for storage that is contracted by the renter.  
+The maximum amount of money that the host will put up as collateral for storage
+that is contracted by the renter.  
 
 **maxcollateral** | hastings  
-The maximum amount of collateral that the host will put into a single file contract.  
+The maximum amount of collateral that the host will put into a single file
+contract.  
 
 **contractprice** | hastings  
-The price that a renter has to pay to create a contract with the host. The payment is intended to cover transaction fees for the file contract revision and the storage proof that the host will be submitting to the blockchain.  
+The price that a renter has to pay to create a contract with the host. The
+payment is intended to cover transaction fees for the file contract revision and
+the storage proof that the host will be submitting to the blockchain.  
 
 **downloadbandwidthprice** | hastings / byte  
 The price that a renter has to pay when downloading data from the host.  
@@ -1497,96 +1929,109 @@ The price that a renter has to pay to store files with the host.
 **uploadbandwidthprice** | hastings / byte  
 The price that a renter has to pay when uploading data to the host.  
 
-**revisionnumber** | int
-The revision number indicates to the renter what iteration of settings the host is currently at. Settings are generally signed. If the renter has multiple conflicting copies of settings from the host, the renter can expect the one with the higher revision number to be more recent.  
+**revisionnumber** | int  
+The revision number indicates to the renter what iteration of settings the host
+is currently at. Settings are generally signed. If the renter has multiple
+conflicting copies of settings from the host, the renter can expect the one with
+the higher revision number to be more recent.  
 
-**version** | string
+**version** | string  
 The version of the host.  
 
 **firstseen** | blocks  
 Firstseen is the last block height at which this host was announced.  
 
-**historicdowntime** | nanoseconds
+**historicdowntime** | nanoseconds  
 Total amount of time the host has been offline.  
 
 **historicuptime** | nanoseconds  
 Total amount of time the host has been online.  
 
-**scanhistory** 
-Measurements that have been taken on the host. The most recent measurements are kept in full detail.  
+**scanhistory** Measurements that have been taken on the host. The most recent
+measurements are kept in full detail.  
 
-**historicfailedinteractions** | int
+**historicfailedinteractions** | int  
 Number of historic failed interactions with the host.  
 
-**historicsuccessfulinteractions** | int 
-Number of historic successful interactions with the host.  
+**historicsuccessfulinteractions** | int Number of historic successful
+interactions with the host.  
 
 **recentfailedinteractions** | int  
 Number of recent failed interactions with the host.  
 
-**recentsuccessfulinteractions** | int
+**recentsuccessfulinteractions** | int  
 Number of recent successful interactions with the host.  
 
 **lasthistoricupdate** | blocks  
-The last time that the interactions within scanhistory have been compressed into the historic ones.  
+The last time that the interactions within scanhistory have been compressed into
+the historic ones.  
 
 **ipnets**  
-List of IP subnet masks used by the host. For IPv4 the /24 and for IPv6 the /54 subnet mask is used. A host can have either one IPv4 or one IPv6 subnet or one of each. E.g. these lists are valid: [ "IPv4" ], [ "IPv6" ] or [ "IPv4", "IPv6" ]. The following lists are invalid: [ "IPv4", "IPv4" ], [ "IPv4", "IPv6", "IPv6" ]. Hosts with an invalid list are ignored.  
+List of IP subnet masks used by the host. For IPv4 the /24 and for IPv6 the /54
+subnet mask is used. A host can have either one IPv4 or one IPv6 subnet or one
+of each. E.g. these lists are valid: [ "IPv4" ], [ "IPv6" ] or [ "IPv4", "IPv6"
+]. The following lists are invalid: [ "IPv4", "IPv4" ], [ "IPv4", "IPv6", "IPv6"
+]. Hosts with an invalid list are ignored.  
 
 **lastipnetchange** | date  
-The last time the list of IP subnet masks was updated. When equal subnet masks are found for different hosts, the host that occupies the subnet mask for a longer time is preferred.  
+The last time the list of IP subnet masks was updated. When equal subnet masks
+are found for different hosts, the host that occupies the subnet mask for a
+longer time is preferred.  
 
-**publickey** 
+**publickey** | SiaPublicKey  
 Public key used to identify and verify hosts.  
-        
-**algorithm** | string
+
+**algorithm** | string  
 Algorithm used for signing and verification. Typically "ed25519".  
 
-**key** | hash
+**key** | hash  
 Key used to verify signed host messages.  
 
-**publickeystring** | string 
-The string representation of the full public key, used when calling /hostdb/hosts.  
+**publickeystring** | string  
+The string representation of the full public key, used when calling
+/hostdb/hosts.  
 
-**filtered** | boolean
+**filtered** | boolean  
 Indicates if the host is currently being filtered from the HostDB
 
 ## /hostdb/all [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/hostdb/all"
+curl -A "SiaPrime-Agent" "localhost:4280/hostdb/all"
 ```
 
-Lists all of the hosts known to the renter. Hosts are not guaranteed to be in any particular order, and the order may change in subsequent calls.
+Lists all of the hosts known to the renter. Hosts are not guaranteed to be in
+any particular order, and the order may change in subsequent calls.
 
 ### JSON Response 
-<<<<<<< HEAD
 Response is the same as [`/hostdb/active`](#hosts)
-=======
-Repsonse is the same as [`/hostdb/active`](#hosts)
->>>>>>> siaprime/master
 
 ## /hostdb/hosts/:*pubkey* [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/hostdb/hosts/ed25519:8a95848bc71e9689e2f753c82c35dc47a1d62867f77c0113ebb6fa5b51723215"
+curl -A "SiaPrime-Agent" "localhost:4280/hostdb/hosts/ed25519:8a95848bc71e9689e2f753c82c35dc47a1d62867f77c0113ebb6fa5b51723215"
 ```
 
-fetches detailed information about a particular host, including metrics regarding the score of the host within the database. It should be noted that each renter uses different metrics for selecting hosts, and that a good score on in one hostdb does not mean that the host will be successful on the network overall.
+fetches detailed information about a particular host, including metrics
+regarding the score of the host within the database. It should be noted that
+each renter uses different metrics for selecting hosts, and that a good score on
+in one hostdb does not mean that the host will be successful on the network
+overall.
 
 ### Path Parameters
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/hostdb/hosts/<pubkey>"
+curl -A "SiaPrime-Agent" "localhost:4280/hostdb/hosts/<pubkey>"
 ```
-#### REQUIRED
+### REQUIRED
 **pubkey**  
 The public key of the host. Each public key identifies a single host.  
 
-Example Pubkey: ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef  
+Example Pubkey:
+ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef  
 
 ### JSON Response 
 > JSON Response Example
@@ -1602,10 +2047,7 @@ Example Pubkey: ed25519:1234567890abcdef1234567890abcdef1234567890abcdef12345678
     "ageadjustment":              0.1234,   // float64
     "burnadjustment":             0.1234,   // float64
     "collateraladjustment":       23.456,   // float64
-<<<<<<< HEAD
-	"durationadjustment":         1,        // float64
-=======
->>>>>>> siaprime/master
+  "durationadjustment":         1,        // float64
     "interactionadjustment":      0.1234,   // float64
     "priceadjustment":            0.1234,   // float64
     "storageremainingadjustment": 0.1234,   // float64
@@ -1614,53 +2056,78 @@ Example Pubkey: ed25519:1234567890abcdef1234567890abcdef1234567890abcdef12345678
   }
 }
 ```
-Response is the same as [`/hostdb/active`](#hosts) with the additional of the **scorebreakdown**
+Response is the same as [`/hostdb/active`](#hosts) with the additional of the
+**scorebreakdown**
 
 **scorebreakdown**  
-A set of scores as determined by the renter. Generally, the host's final score is all of the values multiplied together. Modified renters may have additional criteria that they use to judge a host, or may ignore certin criteia. In general, these fields should only be used as a loose guide for the score of a host, as every renter sees the world differently and uses different metrics to evaluate hosts.  
+A set of scores as determined by the renter. Generally, the host's final score
+is all of the values multiplied together. Modified renters may have additional
+criteria that they use to judge a host, or may ignore certin criteia. In
+general, these fields should only be used as a loose guide for the score of a
+host, as every renter sees the world differently and uses different metrics to
+evaluate hosts.  
 
-**score** | big int
-The overall score for the host. Scores are entriely relative, and are consistent only within the current hostdb. Between different machines, different configurations, and different versions the absolute scores for a given host can be off by many orders of magnitude. When displaying to a human, some form of normalization with respect to the other hosts (for example, divide all scores by the median score of the hosts) is recommended.  
+**score** | big int  
+The overall score for the host. Scores are entriely relative, and are consistent
+only within the current hostdb. Between different machines, different
+configurations, and different versions the absolute scores for a given host can
+be off by many orders of magnitude. When displaying to a human, some form of
+normalization with respect to the other hosts (for example, divide all scores by
+the median score of the hosts) is recommended.  
 
-**conversionrate** | float64 
-conversionrate is the likelihood that the host will be selected by renters forming contracts.  
+**conversionrate** | float64  
+conversionrate is the likelihood that the host will be selected by renters
+forming contracts.  
 
-**ageadjustment** | float64 
-The multiplier that gets applied to the host based on how long it has been a host. Older hosts typically have a lower penalty.  
+**ageadjustment** | float64  
+The multiplier that gets applied to the host based on how long it has been a
+host. Older hosts typically have a lower penalty.  
 
-**burnadjustment** | float64 
-The multiplier that gets applied to the host based on how much proof-of-burn the host has performed. More burn causes a linear increase in score.  
+**burnadjustment** | float64  
+The multiplier that gets applied to the host based on how much proof-of-burn the
+host has performed. More burn causes a linear increase in score.  
 
-**collateraladjustment** | float64 
-The multiplier that gets applied to a host based on how much collateral the host is offering. More collateral is typically better, though above a point it can be detrimental.  
+**collateraladjustment** | float64  
+The multiplier that gets applied to a host based on how much collateral the host
+is offering. More collateral is typically better, though above a point it can be
+detrimental.  
 
-<<<<<<< HEAD
-**durationadjustment** | float64
-The multiplier that gets applied to a host based on the max duration it accepts for file contracts. Typically '1' for hosts with an acceptable max duration, and '0' for hosts that have a max duration which is not long enough.
+**durationadjustment** | float64  
+The multiplier that gets applied to a host based on the max duration it accepts
+for file contracts. Typically '1' for hosts with an acceptable max duration, and
+'0' for hosts that have a max duration which is not long enough.
 
-=======
->>>>>>> siaprime/master
-**interactionadjustment** | float64 
-The multipler that gets applied to a host based on previous interactions with the host. A high ratio of successful interactions will improve this hosts score, and a high ratio of failed interactions will hurt this hosts score. This adjustment helps account for hosts that are on unstable connections, don't keep their wallets unlocked, ran out of funds, etc.  
+**interactionadjustment** | float64  
+The multipler that gets applied to a host based on previous interactions with
+the host. A high ratio of successful interactions will improve this hosts score,
+and a high ratio of failed interactions will hurt this hosts score. This
+adjustment helps account for hosts that are on unstable connections, don't keep
+their wallets unlocked, ran out of funds, etc.  
 
-**pricesmultiplier** | float64 
-The multiplier that gets applied to a host based on the host's price. Lower prices are almost always better. Below a certain, very low price, there is no advantage.  
+**pricesmultiplier** | float64  
+The multiplier that gets applied to a host based on the host's price. Lower
+prices are almost always better. Below a certain, very low price, there is no
+advantage.  
 
-**storageremainingadjustment** | float64 
-The multiplier that gets applied to a host based on how much storage is remaining for the host. More storage remaining is better, to a point.  
+**storageremainingadjustment** | float64  
+The multiplier that gets applied to a host based on how much storage is
+remaining for the host. More storage remaining is better, to a point.  
 
-**uptimeadjustment** | float64 
-The multiplier that gets applied to a host based on the uptime percentage of the host. The penalty increases extremely quickly as uptime drops below 90%.  
+**uptimeadjustment** | float64  
+The multiplier that gets applied to a host based on the uptime percentage of the
+host. The penalty increases extremely quickly as uptime drops below 90%.  
 
-**versionadjustment** | float64 
-The multiplier that gets applied to a host based on the version of Sia that they are running. Versions get penalties if there are known bugs, scaling limitations, performance limitations, etc. Generally, the most recent version is always the one with the highest score.  
+**versionadjustment** | float64  
+The multiplier that gets applied to a host based on the version of Sia that they
+are running. Versions get penalties if there are known bugs, scaling
+limitations, performance limitations, etc. Generally, the most recent version is
+always the one with the highest score.  
 
-<<<<<<< HEAD
 ## /hostdb/filtermode [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" --user "":<apipassword> "localhost:9980/hostdb/filtermode"
+curl -A "SiaPrime-Agent" --user "":<apipassword> "localhost:4280/hostdb/filtermode"
 ```  
 Returns the current filter mode of the hostDB and any filtered hosts.
 
@@ -1680,53 +2147,63 @@ Returns the current filter mode of the hostDB and any filtered hosts.
 **filtermode** | string  
 Can be either whitelist, blacklist, or disable.  
 
-**hosts** | array of strings
+**hosts** | array of strings  
 Comma separated pubkeys.  
 
-=======
->>>>>>> siaprime/master
 ## /hostdb/filtermode [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" --user "":<apipassword> --data '{"filtermode" : "whitelist","hosts" : ["ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"]}' "localhost:9980/hostdb/filtermode"
+curl -A "SiaPrime-Agent" --user "":<apipassword> --data '{"filtermode" : "whitelist","hosts" : ["ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"]}' "localhost:4280/hostdb/filtermode"
 ```  
 ```go
-curl -A "Sia-Agent" --user "":<apipassword> --data '{"filtermode" : "disable"}' "localhost:9980/hostdb/filtermode"
+curl -A "SiaPrime-Agent" --user "":<apipassword> --data '{"filtermode" : "disable"}' "localhost:4280/hostdb/filtermode"
 ```
-<<<<<<< HEAD
-Lets you enable and disable a filter mode for the hostdb. Currently the two modes supported are `blacklist` mode and `whitelist` mode. In `blacklist` mode, any hosts you identify as being on the `blacklist` will not be used to form contracts. In `whitelist` mode, only the hosts identified as being on the `whitelist` will be used to form contracts. In both modes, hosts that you are blacklisted will be filtered from your hostdb. To enable either mode, set `filtermode` to the desired mode and submit a list of host pubkeys as the corresponding `blacklist` or `whitelist`. To disable either list, the `host` field can be left blank (e.g. empty slice) and the `filtermode` should be set to `disable`.  
-=======
-Lets you enable and disable a filter mode for the hostdb. Currenlty the two modes supported are `blacklist` mode and `whitelist` mode. In `blacklist` mode, any hosts you identify as being on the `blacklist` will not be used to form contracts. In `whitelist` mode, only the hosts identified as being on the `whitelist` will be used to form contracts. In both modes, hosts that you are blacklisted will be filtered from your hostdb. To enable either mode, set `filtermode` to the desired mode and submit a list of host pubkeys as the corresponding `blacklist` or `whitelist`. To disable either list, the `host` field can be left blank (e.g. empty slice) and the `filtermode` should be set to `disable`.  
->>>>>>> siaprime/master
+Lets you enable and disable a filter mode for the hostdb. Currently the two
+modes supported are `blacklist` mode and `whitelist` mode. In `blacklist` mode,
+any hosts you identify as being on the `blacklist` will not be used to form
+contracts. In `whitelist` mode, only the hosts identified as being on the
+`whitelist` will be used to form contracts. In both modes, hosts that you are
+blacklisted will be filtered from your hostdb. To enable either mode, set
+`filtermode` to the desired mode and submit a list of host pubkeys as the
+corresponding `blacklist` or `whitelist`. To disable either list, the `host`
+field can be left blank (e.g. empty slice) and the `filtermode` should be set to
+`disable`.  
 
-**NOTE:** Enabling and disabling a filter mode can result in changes with your current contracts with can result in an increase in contract fee spending. For example, if `blacklist` mode is enabled, any hosts that you currently have contracts with that are also on the provide list of `hosts` will have their contracts replaced with non-blacklisted hosts. When `whitelist` mode is enabled, contracts will be replaced until there are only contracts with whitelisted hosts. Even disabling a filter mode can result in a change in contracts if there are better scoring hosts in your hostdb that were previously being filtered out.  
+**NOTE:** Enabling and disabling a filter mode can result in changes with your
+current contracts with can result in an increase in contract fee spending. For
+example, if `blacklist` mode is enabled, any hosts that you currently have
+contracts with that are also on the provide list of `hosts` will have their
+contracts replaced with non-blacklisted hosts. When `whitelist` mode is enabled,
+contracts will be replaced until there are only contracts with whitelisted
+hosts. Even disabling a filter mode can result in a change in contracts if there
+are better scoring hosts in your hostdb that were previously being filtered out.
+
 
 ### Query String Parameters
-#### REQUIRED
+### REQUIRED
 **filtermode** | string  
 Can be either whitelist, blacklist, or disable.  
 
-<<<<<<< HEAD
 **hosts** | array of string  
-=======
-**hosts** | array of string
->>>>>>> siaprime/master
 Comma separated pubkeys.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 # Miner
 
-The miner provides endpoints for getting headers for work and submitting solved headers to the network. The miner also provides endpoints for controlling a basic CPU mining implementation.
+The miner provides endpoints for getting headers for work and submitting solved
+headers to the network. The miner also provides endpoints for controlling a
+basic CPU mining implementation.
 
 ## /miner [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/miner"
+curl -A "SiaPrime-Agent" "localhost:4280/miner"
 ```
 returns the status of the miner.
 
@@ -1741,60 +2218,97 @@ returns the status of the miner.
   "staleblocksmined": 0,      // int
 }
 ```
-**blocksmined** | int
+**blocksmined** | int  
 Number of mined blocks. This value is remembered after restarting.  
 
-**cpuhashrate** | hashes / second
+**cpuhashrate** | hashes / second  
 How fast the cpu is hashing, in hashes per second.  
 
-**cpumining** | boolean
+**cpumining** | boolean  
 true if the cpu miner is active.  
 
 **staleblocksmined** | int  
-Number of mined blocks that are stale, indicating that they are not included in the current longest chain, likely because some other block at the same height had its chain extended first.  
+Number of mined blocks that are stale, indicating that they are not included in
+the current longest chain, likely because some other block at the same height
+had its chain extended first.  
 
 
 ## /miner/start [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/miner/start"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/miner/start"
 ```
 
-Starts a single threaded CPU miner. Does nothing if the CPU miner is already running.
+Starts a single threaded CPU miner. Does nothing if the CPU miner is already
+running.
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /miner/stop [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/miner/stop"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/miner/stop"
 ```
 
 stops the cpu miner. Does nothing if the cpu miner is not running.
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
+
+## /miner/block [POST]
+> curl example  
+
+```
+curl -A "SiaPrime-Agent" -data "<byte-encoded-block>" -u "":<apipassword> "localhost:4280/miner/block"
+```
+
+Submits a solved block and broadcasts it.
+
+### Byte Request
+
+For efficiency the block is submitted in a raw byte encoding using the Sia
+encoding.
+
+### Response
+
+standard success or error response. See [standard
+responses](#standard-responses).
+
 
 ## /miner/header [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/miner/header"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/miner/header"
 ```
 
 provides a block header that is ready to be grinded on for work.
 
 ### Byte Response
-For efficiency the header for work is returned as a raw byte encoding of the header, rather than encoded to JSON.
+For efficiency the header for work is returned as a raw byte encoding of the
+header, rather than encoded to JSON.
 
-Blocks are mined by repeatedly changing the nonce of the header, hashing the header's bytes, and comparing the resulting hash to the target. The block with that nonce is valid if the hash is less than the target. If none of the 2^64 possible nonces result in a header with a hash less than the target, call /miner/header [GET] again to get a new block header with a different merkle root. The above process can then be repeated for the new block header.  
+Blocks are mined by repeatedly changing the nonce of the header, hashing the
+header's bytes, and comparing the resulting hash to the target. The block with
+that nonce is valid if the hash is less than the target. If none of the 2^64
+possible nonces result in a header with a hash less than the target, call
+/miner/header [GET] again to get a new block header with a different merkle
+root. The above process can then be repeated for the new block header.  
 
-The other fields can generally be ignored. The parent block ID field is the hash of the parent block's header. Modifying this field will result in an orphan block. The timestamp is the time at which the block was mined and is set by the Sia Daemon. Modifying this field can result in invalid block. The merkle root is the merkle root of a merkle tree consisting of the timestamp, the miner outputs (one leaf per payout), and the transactions (one leaf per transaction). Modifying this field will result in an invalid block.
+The other fields can generally be ignored. The parent block ID field is the hash
+of the parent block's header. Modifying this field will result in an orphan
+block. The timestamp is the time at which the block was mined and is set by the
+Sia Daemon. Modifying this field can result in invalid block. The merkle root is
+the merkle root of a merkle tree consisting of the timestamp, the miner outputs
+(one leaf per payout), and the transactions (one leaf per transaction).
+Modifying this field will result in an invalid block.
 
 Field | Byte range within response | Byte range within header
 -------------- | -------------- | --------------
@@ -1809,19 +2323,33 @@ merkle root | [80-112) | [48-80)
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -data "<byte-encoded-header>" -u "":<apipassword> "localhost:9980/miner"
+curl -A "SiaPrime-Agent" -data "<byte-encoded-header>" -u "":<apipassword> "localhost:4280/miner"
 ```
 
 submits a header that has passed the POW.
 
-### Byte Response
-For efficiency headers are submitted as raw byte encodings of the header in the body of the request, rather than as a query string parameter or path parameter. The request body should contain only the 80 bytes of the encoded header. The encoding is the same encoding used in `/miner/header [GET]` endpoint.
+### Byte Request
+For efficiency headers are submitted as raw byte encodings of the header in the
+body of the request, rather than as a query string parameter or path parameter.
+The request body should contain only the 80 bytes of the encoded header. The
+encoding is the same encoding used in `/miner/header [GET]` endpoint.
 
-Blocks are mined by repeatedly changing the nonce of the header, hashing the header's bytes, and comparing the resulting hash to the target. The block with that nonce is valid if the hash is less than the target. If none of the 2^64 possible nonces result in a header with a hash less than the target, call /miner/header [GET] again to get a new block header with a different merkle root. The above process can then be repeated for the new block header.  
+Blocks are mined by repeatedly changing the nonce of the header, hashing the
+header's bytes, and comparing the resulting hash to the target. The block with
+that nonce is valid if the hash is less than the target. If none of the 2^64
+possible nonces result in a header with a hash less than the target, call
+/miner/header [GET] again to get a new block header with a different merkle
+root. The above process can then be repeated for the new block header.  
 
-The other fields can generally be ignored. The parent block ID field is the hash of the parent block's header. Modifying this field will result in an orphan block. The timestamp is the time at which the block was mined and is set by the Sia Daemon. Modifying this field can result in invalid block. The merkle root is the merkle root of a merkle tree consisting of the timestamp, the miner outputs (one leaf per payout), and the transactions (one leaf per transaction). Modifying this field will result in an invalid block.
+The other fields can generally be ignored. The parent block ID field is the hash
+of the parent block's header. Modifying this field will result in an orphan
+block. The timestamp is the time at which the block was mined and is set by the
+Sia Daemon. Modifying this field can result in invalid block. The merkle root is
+the merkle root of a merkle tree consisting of the timestamp, the miner outputs
+(one leaf per payout), and the transactions (one leaf per transaction).
+Modifying this field will result in an invalid block.
 
-Field | Byte range within response | Byte range within header
+Field | Byte range within request | Byte range within header
 -------------- | -------------- | --------------
 target | [0-32)
 header | [32-112)
@@ -1832,13 +2360,15 @@ merkle root | [80-112) | [48-80)
 
 # Renter
 
-The renter manages the user's files on the network. The renter's API endpoints expose methods for managing files on the network and managing the renter's allocated funds.
+The renter manages the user's files on the network. The renter's API endpoints
+expose methods for managing files on the network and managing the renter's
+allocated funds.
 
 ## /renter [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/renter"
+curl -A "SiaPrime-Agent" "localhost:4280/renter"
 ```
 
 Returns the current settings along with metrics on the renter's spending.
@@ -1850,7 +2380,6 @@ Returns the current settings along with metrics on the renter's spending.
 {
   "settings": {
     "allowance": {
-<<<<<<< HEAD
       "funds":              "1234",         // hastings
       "hosts":              24,             // int
       "period":             6048,           // blocks
@@ -1859,12 +2388,6 @@ Returns the current settings along with metrics on the renter's spending.
       "expectedupload":     2,              // uint64
       "expecteddownload":   1,              // uint64
       "expectedredundancy": 3               // uint64
-=======
-      "funds":       "1234",  // hastings
-      "hosts":       24,      // int
-      "period":      6048,    // blocks
-      "renewwindow": 3024     // blocks
->>>>>>> siaprime/master
     },
     "maxuploadspeed":     1234, // BPS
     "maxdownloadspeed":   1234, // BPS
@@ -1879,17 +2402,22 @@ Returns the current settings along with metrics on the renter's spending.
     "uploadspending":   "5678", // hastings
     "unspent":          "1234"  // hastings
   },
-  "currentperiod": 200  // blockheight
+  "currentperiod":  6000  // blockheight
+  "nextperiod":    12248  // blockheight
+  "uploadsstatus": {
+    "pause":        false,       // boolean
+    "pauseendtime": 1234567890,  // Unix timestamp
+  }
 }
 ```
-#### settings  
+**settings**    
 Settings that control the behavior of the renter.  
 
-#### allowance 
-Allowance dictates how much the renter is allowed to spend in a given period. Note that funds are spent on both storage and bandwidth.  
+**allowance**   
+Allowance dictates how much the renter is allowed to spend in a given period.
+Note that funds are spent on both storage and bandwidth.  
 
 **funds** | hastings  
-<<<<<<< HEAD
 Funds determines the number of siacoins that the renter will spend when forming
 contracts with hosts. The renter will not allocate more than this amount of
 siacoins into the set of contracts each billing period. If the renter spends all
@@ -1898,7 +2426,7 @@ either until the user increase the allowance funds, or until a new billing
 period is reached. If there are not enough funds to repair all files, then files
 may be at risk of getting lost.
 
-**hosts** | int
+**hosts** | int  
 Hosts sets the number of hosts that will be used to form the allowance. Sia
 gains most of its resiliancy from having a large number of hosts. More hosts
 will mean both more robustness and higher speeds when using the network, however
@@ -1943,7 +2471,8 @@ uptime and age.
 
 Even when the user has a large allowance and a low amount of expected storage,
 siad will try to optimize for saving money; siad tries to meet the users storage
-and bandwidth needs while spending significantly less than the overall allowance.
+and bandwidth needs while spending significantly less than the overall
+allowance.
 
 **expectedupload** | bytes  
 Expected upload tells siad how much uploading the user expects to do each month.
@@ -1965,7 +2494,7 @@ for downloads, it will not impact the total cost to the user very much.
 The user should not consider download bandwidth used during repairs, siad will
 consider repair bandwidth separately.
 
-**expectedredundancy** | bytes    
+**expectedredundancy** | bytes  
 Expected redundancy is used in conjunction with expected storage to determine
 the total amount of raw storage that will be stored on hosts. If the expected
 storage is 1 TB and the expected redundancy is 3, then the renter will calculate
@@ -1976,36 +2505,29 @@ manually choosing redundancy settings for their file. If different files are
 being given different redundancy settings, then the average of all the
 redundancies should be used as the value for expected redundancy, weighted by
 how large the files are.
-=======
-Amount of money allocated for contracts. Funds are spent on both storage and bandwidth.  
-
-**hosts** | int
-Number of hosts that contracts will be formed with.  
-
-**period** | blocks  
-Duration of contracts formed, in number of blocks.  
-
-**renewwindow** | blocks  
-If the current blockheight + the renew window >= the height the contract is scheduled to end, the contract is renewed automatically. Is always nonzero.  
->>>>>>> siaprime/master
 
 **maxuploadspeed** | bytes per second  
-MaxUploadSpeed by default is unlimited but can be set by the user to manage bandwidth.  
+MaxUploadSpeed by default is unlimited but can be set by the user to manage
+bandwidth.  
 
 **maxdownloadspeed** | bytes per second  
-MaxDownloadSpeed by default is unlimited but can be set by the user to manage bandwidth.  
+MaxDownloadSpeed by default is unlimited but can be set by the user to manage
+bandwidth.  
 
-**streamcachesize** | int
-The StreamCacheSize is the number of data chunks that will be cached during streaming.  
+**streamcachesize** | int  
+The StreamCacheSize is the number of data chunks that will be cached during
+streaming.  
 
-#### financialmetrics  
-Metrics about how much the Renter has spent on storage, uploads, and downloads.  
+**financialmetrics**    
+Metrics about how much the Renter has spent on storage, uploads, and downloads.
+
 
 **contractfees** | hastings  
 Amount of money spent on contract fees, transaction fees and siafund fees.  
 
 **contractspending** | hastings, (deprecated, now totalallocated)  
-How much money, in hastings, the Renter has spent on file contracts, including fees.  
+How much money, in hastings, the Renter has spent on file contracts, including
+fees.  
 
 **downloadspending** | hastings  
 Amount of money spent on downloads.  
@@ -2014,7 +2536,8 @@ Amount of money spent on downloads.
 Amount of money spend on storage.  
 
 **totalallocated** | hastings  
-Total amount of money that the renter has put into contracts. Includes spent money and also money that will be returned to the renter.  
+Total amount of money that the renter has put into contracts. Includes spent
+money and also money that will be returned to the renter.  
 
 **uploadspending** | hastings  
 Amount of money spent on uploads.  
@@ -2022,121 +2545,139 @@ Amount of money spent on uploads.
 **unspent** | hastings  
 Amount of money in the allowance that has not been spent.  
 
-**currentperiod** | blockheight
+**currentperiod** | blockheight  
 Height at which the current allowance period began.  
+
+**nextperiod** | blockheight  
+Height at which the next allowance period began.  
+
+**uploadsstatus**  
+Information about the renter's uploads.  
+
+**paused** | boolean  
+Indicates whether or not the uploads and repairs are paused.  
+
+**pauseendtime** | unix timestamp  
+The time at which the pause will end.  
 
 ## /renter [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "period=12096&renewwindow=4032&funds=1000&hosts=50" "localhost:9980/renter"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "period=12096&renewwindow=4032&funds=1000&hosts=50" "localhost:4280/renter"
 ```
 
 Modify settings that control the renter's behavior.
 
-<<<<<<< HEAD
 ### Query String Parameters
-=======
-### Query Response Parameters
->>>>>>> siaprime/master
-#### OPTIONAL
+### REQUIRED
+When setting the allowance the Funds and Period are required. Since these are
+the two required fields, the allowance can be canceled by submitting the zero
+values for these fields.
+
+### OPTIONAL
 Any of the renter settings can be set, see fields [here](#settings)
 
 **checkforipviolation** | boolean  
-Enables or disables the check for hosts using the same ip subnets within the hostdb. It's turned on by default and causes Sia to not form contracts with hosts from the same subnet and if such contracts already exist, it will deactivate the contract which has occupied that subnet for the shorter time.  
+Enables or disables the check for hosts using the same ip subnets within the
+hostdb. It's turned on by default and causes Sia to not form contracts with
+hosts from the same subnet and if such contracts already exist, it will
+deactivate the contract which has occupied that subnet for the shorter time.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
+
+## /renter/allowance/cancel [POST]
+> curl example  
+
+```go
+curl -A "SiaPrime-Agent" -u "":<apipassword>  "localhost:4280/renter/allowance/cancel"
+```
+
+Cancel the Renter's allowance.
+
+### Response
+
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /renter/contract/cancel [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "id=bd7ef21b13fb85eda933a9ff2874ec50a1ffb4299e98210bf0dd343ae1632f80" "localhost:9980/renter/contract/cancel"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "id=bd7ef21b13fb85eda933a9ff2874ec50a1ffb4299e98210bf0dd343ae1632f80" "localhost:4280/renter/contract/cancel"
 ```
 
 cancels a specific contract of the Renter.
 
 ### Query String Parameters
-#### REQUIRED
-**id** | hash
+### REQUIRED
+**id** | hash  
 ID of the file contract
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /renter/backup [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "destination=/home/backups/01-01-1968.backup" "localhost:9980/renter/backup"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "destination=/home/backups/01-01-1968.backup" "localhost:4280/renter/backup"
 ```
 
 Creates a backup of all siafiles in the renter at the specified path.
 
-<<<<<<< HEAD
 ### Query String Parameters
-=======
-### Query Response Parameters
->>>>>>> siaprime/master
-#### REQUIRED
-**destination** | string
-The path on disk where the backup will be created. Needs to be an absolute
-path.
+### REQUIRED
+**destination** | string  
+The path on disk where the backup will be created. Needs to be an absolute path.
 
-<<<<<<< HEAD
-#### OPTIONAL
-**remote** | boolean
+### OPTIONAL
+**remote** | boolean  
 flag indicating if the backup should be stored on hosts. If true,
 **destination** is interpreted as the backup's name, not its path.
 
-=======
->>>>>>> siaprime/master
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /renter/recoverbackup [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "source=/home/backups/01-01-1968.backup" "localhost:9980/renter/recoverbackup"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "source=/home/backups/01-01-1968.backup" "localhost:4280/renter/recoverbackup"
 ```
 
 Recovers an existing backup from the specified path by adding all the siafiles
 contained within it to the renter. Should a siafile for a certain path already
 exist, a number will be added as a suffix. e.g. 'myfile_1.sia'
 
-<<<<<<< HEAD
 ### Query String Parameters
-=======
-### Query Response Parameters
->>>>>>> siaprime/master
-#### REQUIRED
-**source** | string
+### REQUIRED
+**source** | string  
 The path on disk where the backup will be recovered from. Needs to be an
 absolute path.
 
-<<<<<<< HEAD
-#### OPTIONAL
-**remote** | boolean
+### OPTIONAL
+**remote** | boolean  
 flag indicating if the backup is stored on hosts. If true, **source** is
 interpreted as the backup's name, not its path.
 
-=======
->>>>>>> siaprime/master
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
-<<<<<<< HEAD
 ## /renter/uploadedbackups [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/uploadedbackups"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploadedbackups"
 ```
 
 Lists the backups that have been uploaded to hosts.
@@ -2157,65 +2698,63 @@ Lists the backups that have been uploaded to hosts.
 **name** | string  
 The name of the backup.
 
-**UID** | string
+**UID** | string  
 A unique identifier for the backup.
 
-**creationdate** | string
+**creationdate** | string  
 Unix timestamp of when the backup was created.
 
-**size** 
-Size in bytes of the backup.
+**size** Size in bytes of the backup.
 
-=======
->>>>>>> siaprime/master
 ## /renter/contracts [GET]
 > curl example  
 
 ```go
-<<<<<<< HEAD
-curl -A "Sia-Agent" "localhost:9980/renter/contracts?disabled=true&expired=true&recoverable=false"
+curl -A "SiaPrime-Agent" "localhost:4280/renter/contracts?disabled=true&expired=true&recoverable=false"
 ```
 
-Returns the renter's contracts. Active, passive, and refreshed contracts are returned by default.
-Active contracts are contracts that the Renter is currently using to store, upload, and download data.
-Passive contracts are contracts that are no longer GoodForUpload but are GoodForRenew. This means the data will continue to be available to be downloaded from.
-Refreshed contracts are contracts that ran out of funds and needed to be renewed so more money could be added to the contract with the host. The data reported in these contracts is duplicate data and should not be included in any accounting.
-Disabled contracts are contracts that are in the current period that are not being used for uploading as they were replaced instead of renewed.
-Expired contracts are contracts not in the current period, where no more data is being stored and excess funds have been released to the renter.
-Expired Refreshed contracts are contracts that were refreshed at some point in a previous period. The data reported in these contracts is duplicate data and should not be included in any accounting.
-Recoverable contracts are contracts which the contractor is currently trying to recover and which haven't expired yet.
+Returns the renter's contracts. Active, passive, and refreshed contracts are
+returned by default. Active contracts are contracts that the Renter is currently
+using to store, upload, and download data. Passive contracts are contracts that
+are no longer GoodForUpload but are GoodForRenew. This means the data will
+continue to be available to be downloaded from. Refreshed contracts are
+contracts that ran out of funds and needed to be renewed so more money could be
+added to the contract with the host. The data reported in these contracts is
+duplicate data and should not be included in any accounting. Disabled contracts
+are contracts that are in the current period and have not yet expired that are
+not being used for uploading as they were replaced instead of renewed. Expired
+contracts are contracts with an `EndHeight` in the past, where no more data is
+being stored and excess funds have been released to the renter. Expired
+Refreshed contracts are contracts that were refreshed at some point in a
+previous period. The data reported in these contracts is duplicate data and
+should not be included in any accounting. Recoverable contracts are contracts
+which the contractor is currently trying to recover and which haven't expired
+yet.
 
-| Type              | GoodForUpload | GoodForRenew | In Current Period | Data Counted Elsewhere Already|
-| ----------------- | :-----------: | :----------: | :---------------: | :---------------------------: |
-| Active            | Yes           | Yes          | Yes               | No                            |
-| Passive           | No            | Yes          | Yes               | No                            |
-| Refreshed         | No            | No           | Yes               | Yes                           |
-| Disabled          | No            | No           | Yes               | No                            |
-| Expired           | No            | No           | No                | No                            |
-| Expired Refreshed | No            | No           | No                | Yes                           |
+| Type              | GoodForUpload | GoodForRenew | Endheight in the Future | Data Counted Elsewhere Already|
+| ----------------- | :-----------: | :----------: | :---------------------: | :---------------------------: |
+| Active            | Yes           | Yes          | Yes                     | No                            |
+| Passive           | No            | Yes          | Yes                     | No                            |
+| Refreshed         | No            | No           | Yes                     | Yes                           |
+| Disabled          | No            | No           | Yes                     | No                            |
+| Expired           | No            | No           | No                      | No                            |
+| Expired Refreshed | No            | No           | No                      | Yes                           |
 
-**NOTE:** No spending is double counted anywhere in the contracts, only the data is double counted in the refreshed contracts. For spending totals in the current period, all spending in active, passive, refreshed, and disabled contracts should be counted. For data totals, the data in active and passive contracts is the total uploaded while the data in disabled contracts is wasted uploaded data.
+**NOTE:** No spending is double counted anywhere in the contracts, only the data
+is double counted in the refreshed contracts. For spending totals in the current
+period, all spending in active, passive, refreshed, and disabled contracts
+should be counted. For data totals, the data in active and passive contracts is
+the total uploaded while the data in disabled contracts is wasted uploaded data.
 
 ### Query String Parameters
-#### OPTIONAL
-**disabled** | boolean
+### OPTIONAL
+**disabled** | boolean  
 flag indicating if disabled contracts should be returned.
-=======
-curl -A "Sia-Agent" "localhost:9980/renter/contracts?inactive=true&expired=true&recoverable=false"
-```
 
-Returns the renter's contracts.  Active contracts are contracts that the Renter is currently using to store, upload, and download data, and are returned by default. Inactive contracts are contracts that are in the current period but are marked as not good for renew, these contracts have the potential to become active again but currently are not storing data.  Expired contracts are contracts not in the current period, where not more data is being stored and excess funds have been released to the renter. Recoverable contracts are contracts which the contractor is currently trying to recover and which haven't expired yet. 
-
-### Query String Parameters
-#### OPTIONAL
-**inactive** | boolean
-flag indicating if inactive contracts should be returned.
->>>>>>> siaprime/master
-
-**expired** | boolean
+**expired** | boolean  
 flag indicating if expired contracts should be returned.
 
-**recoverable** | boolean
+**recoverable** | boolean  
 flag indicating if recoverable contracts should be returned.
 
 ### JSON Response
@@ -2244,18 +2783,14 @@ flag indicating if recoverable contracts should be returned.
       "uploadspending":   "1234"            // hastings
       "goodforupload":    true,             // boolean
       "goodforrenew":     false,            // boolean
+      "badcontract":      false,            // boolean
     }
   ],
-<<<<<<< HEAD
   "passivecontracts": [],
   "refreshedcontracts": [],
   "disabledcontracts": [],
   "expiredcontracts": [],
   "expiredrefreshedcontracts": [],
-=======
-  "inactivecontracts": [],
-  "expiredcontracts": [],
->>>>>>> siaprime/master
   "recoverablecontracts": [],
 }
 ```
@@ -2268,32 +2803,33 @@ Block height that the file contract ends on.
 **fees** | hastings  
 Fees paid in order to form the file contract.  
 
-**hostpublickey** 
+**hostpublickey** | SiaPublicKey  
 Public key of the host that the file contract is formed with.  
        
-**hostversion** | string
+**hostversion** | string  
 The version of the host. 
 
-**algorithm** | string
+**algorithm** | string  
 Algorithm used for signing and verification. Typically "ed25519".  
 
-**key** | hash
+**key** | hash  
 Key used to verify signed host messages.  
 
-**id** | hash
+**id** | hash  
 ID of the file contract.  
 
-**lasttransaction** | transaction 
+**lasttransaction** | transaction  
 A signed transaction containing the most recent contract revision.  
 
-**netaddress** | string
+**netaddress** | string  
 Address of the host the file contract was formed with.  
 
 **renterfunds** | hastings  
 Remaining funds left for the renter to spend on uploads & downloads.  
 
 **size** | bytes  
-Size of the file contract, which is typically equal to the number of bytes that have been uploaded to the host.
+Size of the file contract, which is typically equal to the number of bytes that
+have been uploaded to the host.
 
 **startheight** | block height  
 Block height that the file contract began on.  
@@ -2302,7 +2838,8 @@ Block height that the file contract began on.
 Amount of contract funds that have been spent on storage.  
 
 **totalcost** | hastings  
-Total cost to the wallet of forming the file contract. This includes both the fees and the funds allocated in the contract.  
+Total cost to the wallet of forming the file contract. This includes both the
+fees and the funds allocated in the contract.  
 
 **uploadspending** | hastings  
 Amount of contract funds that have been spent on uploads.  
@@ -2313,6 +2850,114 @@ Signals if contract is good for uploading data.
 **goodforrenew** | boolean  
 Signals if contract is good for a renewal.  
 
+**badcontract** | boolean  
+Signals whether a contract has been marked as bad. A contract will be marked as
+bad if the contract does not make it onto the blockchain or otherwise gets
+double spent. A contract can also be marked as bad if the host is refusing to
+acknowldege that the contract exists.
+
+## /renter/contractstatus [GET]
+> curl example
+
+```go
+curl -A "SiaPrime-Agent" "localhost:4280/renter/contractstatus?id=<filecontractid>"
+```
+
+### Query String Parameters
+**id** | hash
+ID of the file contract
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+  "archived":                  true, // boolean
+  "formationsweepheight":      1234, // block height
+  "contractfound":             true, // boolean
+  "latestrevisionfound",       55,   // uint64
+  "storageprooffoundatheight": 0,    // block height
+  "doublespendheight":         0,    // block height
+  "windowstart":               5000, // block height
+  "windowend":                 5555, // block height
+}
+```
+**archived** | boolean  
+Indicates whether or not this contract has been archived by the watchdog. This
+is done when a file contract's inputs are double-spent or if the storage proof
+window has already elapsed.
+
+**formationsweepheight** | block height  
+The block height at which the renter's watchdog will try to sweep inputs from
+the formation transaction set if it hasn't been confirmed on chain yet.
+
+**contractfound** | boolean  
+Indicates whether or not the renter watchdog found the formation transaction set
+on chain.
+
+**latestrevisionfound** | uint64  
+The highest revision number found by the watchdog for this contract on chain.
+
+**storageprooffoundatheight** | block height  
+The height at which the watchdog found a storage proof for this contract on
+chain.
+
+**doublespendheight** | block height  
+The height at which a double-spend for this transactions formation transaction
+was found on chain.
+
+**windowstart** | block height  
+The height at which the storage proof window for this contract starts.
+
+**windowend** | block height  
+The height at which the storage proof window for this contract ends.
+
+
+## /renter/contractorchurnstatus [GET]
+> curl example
+
+```go
+curl -A "SiaPrime-Agent" "localhost:4280/renter/contractorchurnstatus"
+```
+
+Returns the churn status for the renter's contractor.
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+  "aggregatecurrentperiodchurn": 500000,   // uint64
+  "maxperiodchurn":              50000000, // uint64
+}
+```
+
+**aggregatecurrentperiodchurn** | uint64  
+Aggregate size of files stored in file contracts that were churned (i.e. not
+marked for renewal) in the current period.
+
+
+**maxperiodchurn** | uint64  
+Maximum allowed aggregate churn per period.
+
+## /renter/setmaxperiodchurn [POST]
+> curl example
+
+```go
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/setmaxperiodchurn?newmax=123456789"
+```
+
+sets the new max churn per period.
+
+### Query String Parameters
+**newmax** | uint64  
+New maximum churn per period.
+
+### Response
+
+standard success or error response. See [standard responses](#standard-responses).
+
+
 ## /renter/dir/*siapath [GET]
 > curl example  
 
@@ -2320,18 +2965,18 @@ Signals if contract is good for a renewal.
 will return the root siadir information.  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/renter/dir/"
+curl -A "SiaPrime-Agent" "localhost:4280/renter/dir/"
 ```  
 ```go
-curl -A "Sia-Agent" "localhost:9980/renter/dir/mydir"
+curl -A "SiaPrime-Agent" "localhost:4280/renter/dir/mydir"
 ```
 
 retrieves the contents of a directory on the sia network
 
 ### Path Parameters
-#### REQUIRED
-**siapath** | string
-Path to the directory on the sia netork  
+### REQUIRED
+**siapath** | string  
+Path to the directory on the sia network  
 
 ### JSON Response
 > JSON Response Example
@@ -2358,87 +3003,173 @@ Path to the directory on the sia netork
   "files": []
 }
 ```
-**directories**
-An array of sia directories
+**directories** An array of sia directories
 
-**aggregatenumfiles** | uint64
+**aggregatenumfiles** | uint64  
 the total number of files in the sub directory tree
 
-**aggregatenumstuckchunks** | uint64
+**aggregatenumstuckchunks** | uint64  
 the total number of stuck chunks in the sub directory tree
 
-**aggregatenumsize** | uint64
+**aggregatesize** | uint64  
+the total size in bytes of files in the sub directory tree
 
-**health** | float64
-This is the worst health of any of the files or subdirectories. Health is the percent of parity pieces missing.
+**health** | float64  
+This is the worst health of any of the files or subdirectories. Health is the
+percent of parity pieces missing.
  - health = 0 is full redundancy
  - health <= 1 is recoverable
  - health > 1 needs to be repaired from disk
 
-**lasthealthchecktime** | timestamp
-The oldest time that the health of the directory or any of its files or sub directories' health was checked.
+**lasthealthchecktime** | timestamp  
+The oldest time that the health of the directory or any of its files or sub
+directories' health was checked.
 
-**maxhealth** | float64
+**maxhealth** | float64  
 This is the worst health when comparing stuck health vs health
 
-**minredundancy** | float64
+**minredundancy** | float64  
 the lowest redundancy of any file or directory in the sub directory tree
 
-**mostrecentmodtime** | timestamp
+**mostrecentmodtime** | timestamp  
 the most recent mod time of any file or directory in the sub directory tree
 
-**numfiles** | uint64
+**numfiles** | uint64  
 the number of files in the directory
 
-**numsubdirs** | uint64
+**numsubdirs** | uint64  
 the number of directories in the directory
 
-**siapath** | string
+**siapath** | string  
 The path to the directory on the sia network
 
-**files**
-Same response as [files](#files)
+**files** Same response as [files](#files)
 
 ## /renter/dir/*siapath [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "action=delete" "localhost:9980/renter/dir/mydir"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "action=delete" "localhost:4280/renter/dir/mydir"
 ```
 
 performs various functions on the renter's directories
 
 ### Path Parameters
-#### REQUIRED
-**siapath** | string
-Location where the directory will reside in the renter on the network. The path must be non-empty, may not include any path traversal strings ("./", "../"), and may not begin with a forward-slash character.  
+### REQUIRED
+**siapath** | string  
+Location where the directory will reside in the renter on the network. The path
+must be non-empty, may not include any path traversal strings ("./", "../"), and
+may not begin with a forward-slash character.  
 
 ### Query String Parameters
-#### REQUIRED
-**action** | string
-<<<<<<< HEAD
+### REQUIRED
+**action** | string  
 Action can be either `create`, `delete` or `rename`.
  - `create` will create an empty directory on the sia network
- - `delete` will remove a directory and its contents from the sia network
+ - `delete` will remove a directory and its contents from the sia network. Will
+   return an error if the target is a file.
  - `rename` will rename a directory on the sia network
 
- **newsiapath** | string
+ **newsiapath** | string  
  The new siapath of the renamed folder. Only required for the `rename` action.
-=======
-Action can be either `create` or `delete`.
- - `create` will create an empty directory on the sia network
- - `delete` will remove a directory and its contents from the sia network
->>>>>>> siaprime/master
+
+ ### OPTIONAL
+ **mode** | uint32  
+ The mode can be specified in addition to the `create` action to create the
+ directory with specific permissions. If not specified, the default
+ permissions 0755 will be used.
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
+
+## /renter/downloadinfo/*uid [GET]
+> curl example  
+
+```go
+curl -A "SiaPrime-Agent" "localhost:4280/renter/downloadinfo/9d8dd0d5b306f5bb412230bd12b590ae"
+```
+
+Lists a file in the download history by UID.
+
+### Path Parameters
+### REQUIRED
+**uid** | string  
+UID returned by the /renter/download/*siapath* endpoint. It is set in the http
+header's 'ID' field.
+
+### JSON Response
+> JSON Response Example
+ 
+```go
+{
+  "destination":     "/home/users/alice/bar.txt", // string
+  "destinationtype": "file",                      // string
+  "length":          8192,                        // bytes
+  "offset":          2000,                        // bytes
+  "siapath":         "foo/bar.txt",               // string
+
+  "completed":           true,                    // boolean
+  "endtime":             "2009-11-10T23:10:00Z",  // RFC 3339 time
+  "error":               "",                      // string
+  "received":            8192,                    // bytes
+  "starttime":           "2009-11-10T23:00:00Z",  // RFC 3339 time
+  "totaldatatransferred": 10031                    // bytes
+}
+```
+**destination** | string  
+Local path that the file will be downloaded to.  
+
+**destinationtype** | string  
+What type of destination was used. Can be "file", indicating a download to disk,
+can be "buffer", indicating a download to memory, and can be "http stream",
+indicating that the download was streamed through the http API.  
+
+**length** | bytes  
+Length of the download. If the download was a partial download, this will
+indicate the length of the partial download, and not the length of the full
+file.  
+
+**offset** | bytes  
+Offset within the file of the download. For full file downloads, the offset will
+be '0'. For partial downloads, the offset may be anywhere within the file.
+offset+length will never exceed the full file size.  
+
+**siapath** | string  
+Siapath given to the file when it was uploaded.  
+
+**completed** | boolean  
+Whether or not the download has completed. Will be false initially, and set to
+true immediately as the download has been fully written out to the file, to the
+http stream, or to the in-memory buffer. Completed will also be set to true if
+there is an error that causes the download to fail.  
+
+**endtime** | date, RFC 3339 time  
+Time at which the download completed. Will be zero if the download has not yet
+completed.  
+
+**error** | string  
+Error encountered while downloading. If there was no error (yet), it will be the
+empty string.  
+
+**received** | bytes  
+Number of bytes downloaded thus far. Will only be updated as segments of the
+file complete fully. This typically has a resolution of tens of megabytes.  
+
+**starttime** | date, RFC 3339 time  
+Time at which the download was initiated.
+
+**totaldatatransferred** | bytes
+The total amount of data transferred when downloading the file. This will
+eventually include data transferred during contract + payment negotiation, as
+well as data from failed piece downloads.  
 
 ## /renter/downloads [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/renter/downloads"
+curl -A "SiaPrime-Agent" "localhost:4280/renter/downloads"
 ```
 
 Lists all files in the download queue.
@@ -2466,75 +3197,97 @@ Lists all files in the download queue.
   ]
 }
 ```
-**destination** | string
+**destination** | string  
 Local path that the file will be downloaded to.  
 
-**destinationtype** | string
-What type of destination was used. Can be "file", indicating a download to disk, can be "buffer", indicating a download to memory, and can be "http stream", indicating that the download was streamed through the http API.  
+**destinationtype** | string  
+What type of destination was used. Can be "file", indicating a download to disk,
+can be "buffer", indicating a download to memory, and can be "http stream",
+indicating that the download was streamed through the http API.  
 
 **length** | bytes  
-Length of the download. If the download was a partial download, this will indicate the length of the partial download, and not the length of the full file.  
+Length of the download. If the download was a partial download, this will
+indicate the length of the partial download, and not the length of the full
+file.  
 
-**offset** | bytes
-Offset within the file of the download. For full file downloads, the offset will be '0'. For partial downloads, the offset may be anywhere within the file. offset+length will never exceed the full file size.  
+**offset** | bytes  
+Offset within the file of the download. For full file downloads, the offset will
+be '0'. For partial downloads, the offset may be anywhere within the file.
+offset+length will never exceed the full file size.  
 
-**siapath** | string
+**siapath** | string  
 Siapath given to the file when it was uploaded.  
 
-**completed** | oolean  
-Whether or not the download has completed. Will be false initially, and set to true immediately as the download has been fully written out to the file, to the http stream, or to the in-memory buffer. Completed will also be set to true if there is an error that causes the download to fail.  
+**completed** | boolean  
+Whether or not the download has completed. Will be false initially, and set to
+true immediately as the download has been fully written out to the file, to the
+http stream, or to the in-memory buffer. Completed will also be set to true if
+there is an error that causes the download to fail.  
 
 **endtime** | date, RFC 3339 time  
-Time at which the download completed. Will be zero if the download has not yet completed.  
+Time at which the download completed. Will be zero if the download has not yet
+completed.  
 
-**error** | string
-Error encountered while downloading. If there was no error (yet), it will be the empty string.  
+**error** | string  
+Error encountered while downloading. If there was no error (yet), it will be the
+empty string.  
 
 **received** | bytes  
-Number of bytes downloaded thus far. Will only be updated as segments of the file complete fully. This typically has a resolution of tens of megabytes.  
+Number of bytes downloaded thus far. Will only be updated as segments of the
+file complete fully. This typically has a resolution of tens of megabytes.  
 
 **starttime** | date, RFC 3339 time  
 Time at which the download was initiated.
 
-**totaldatatransfered** | bytes
-<<<<<<< HEAD
-The total amount of data transferred when downloading the file. This will eventually include data transferred during contract + payment negotiation, as well as data from failed piece downloads.  
-=======
-The total amount of data transfered when downloading the file. This will eventually include data transferred during contract + payment negotiation, as well as data from failed piece downloads.  
->>>>>>> siaprime/master
+**totaldatatransfered** | bytes  
+The total amount of data transferred when downloading the file. This will
+eventually include data transferred during contract + payment negotiation, as
+well as data from failed piece downloads.  
 
 ## /renter/downloads/clear [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/renter/downloads/clear?before=1551398400&after=1552176000"
+curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/downloads/clear?before=1551398400&after=1552176000"
 ```
 
-Clears the download history of the renter for a range of unix time stamps.  Both parameters are optional, if no parameters are provided, the entire download history will be cleared.  To clear a single download, provide the timestamp for the download as both parameters.  Providing only the before parameter will clear all downloads older than the timestamp. Conversely, providing only the after parameter will clear all downloads newer than the timestamp.
+Clears the download history of the renter for a range of unix time stamps.  Both
+parameters are optional, if no parameters are provided, the entire download
+history will be cleared.  To clear a single download, provide the timestamp for
+the download as both parameters.  Providing only the before parameter will clear
+all downloads older than the timestamp. Conversely, providing only the after
+parameter will clear all downloads newer than the timestamp.
 
 ### Query String Parameters
-#### OPTIONAL
+### OPTIONAL
 **before** | unix timestamp  
 unix timestamp found in the download history
 
-**after** | unix timestamp   
+**after** | unix timestamp  
 unix timestamp found in the download history
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /renter/prices [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/renter/prices"
+curl -A "SiaPrime-Agent" "localhost:4280/renter/prices"
 ```
 
-Lists the estimated prices of performing various storage and data operations. An allowance can be submitted to provide a more personalized estimate. If no allowance is submitted then the current set allowance will be used, if there is no allowance set then sane defaults will be used. Submitting an allowance is optional, but when submitting an allowance all the components of the allowance are required. The allowance used to create the estimate is returned with the estimate.
+Lists the estimated prices of performing various storage and data operations. An
+allowance can be submitted to provide a more personalized estimate. If no
+allowance is submitted then the current set allowance will be used, if there is
+no allowance set then sane defaults will be used. Submitting an allowance is
+optional, but when submitting an allowance all the components of the allowance
+are required. The allowance used to create the estimate is returned with the
+estimate.
 
 ### Query String Parameters
-##### REQUIRED or OPTIONAL
+### REQUIRED or OPTIONAL
 Allowance settings, see the fields [here](#allowance)
 
 ### JSON Response
@@ -2556,34 +3309,34 @@ Allowance settings, see the fields [here](#allowance)
 The estimated cost of downloading one terabyte of data from the network.  
 
 **formcontracts** | hastings  
-The estimated cost of forming a set of contracts on the network. This cost also applies to the estimated cost of renewing the renter's set of contracts.  
+The estimated cost of forming a set of contracts on the network. This cost also
+applies to the estimated cost of renewing the renter's set of contracts.  
 
 **storageterabytemonth** | hastings  
-The estimated cost of storing one terabyte of data on the network for a month, including accounting for redundancy.  
+The estimated cost of storing one terabyte of data on the network for a month,
+including accounting for redundancy.  
 
 **uploadterabyte** | hastings  
-The estimated cost of uploading one terabyte of data to the network, including accounting for redundancy.  
+The estimated cost of uploading one terabyte of data to the network, including
+accounting for redundancy.  
 
-The allowance settings used for the estimation are also returned, see the fields [here](#allowance)
+The allowance settings used for the estimation are also returned, see the fields
+[here](#allowance)
 
 ## /renter/files [GET]
 > curl example  
 
 ```go
-<<<<<<< HEAD
-curl -A "Sia-Agent" "localhost:9980/renter/files?cached=false"
+curl -A "SiaPrime-Agent" "localhost:4280/renter/files?cached=false"
 ```
 
 ### Query String Parameters
-#### OPTIONAL
-**cached** | boolean
-determines whether cached values should be returned or if the latest values should be computed. Cached values speed the endpoint up significantly. The default value is 'false'.
+### OPTIONAL
+**cached** | boolean  
+determines whether cached values should be returned or if the latest values
+should be computed. Cached values speed the endpoint up significantly. The
+default value is 'false'.
 
-=======
-curl -A "Sia-Agent" "localhost:9980/renter/files"
-```
-
->>>>>>> siaprime/master
 lists the status of all files.
 
 ### JSON Response
@@ -2619,86 +3372,103 @@ lists the status of all files.
   ]
 }
 ```
-#### files
+**files**  
 
-**accesstime** | timestamp
+**accesstime** | timestamp  
 indicates the last time the siafile was accessed
 
 **available** | boolean  
-true if the file is available for download. Files may be available before they are completely uploaded.  
+true if the file is available for download. A file is available to download once
+it has reached at least 1x redundancy. Files may be available before they have
+reached 100% upload progress as upload progress includes the full expected
+redundancy of the file.  
 
-**changetime** | timestamp
+**changetime** | timestamp  
 indicates the last time the siafile metadata was updated
 
-**ciphertype** | string
+**ciphertype** | string  
 indicates the encryption used for the siafile
 
-**createtime** | timestamp
+**createtime** | timestamp  
 indicates when the siafile was created
 
-**expiration** | block height
+**expiration** | block height  
 Block height at which the file ceases availability.  
 
 **filesize** | bytes  
 Size of the file in bytes.  
 
-**health** | float64 
-health is an indication of the amount of redundancy missing where 0 is full redundancy and >1 means the file is not available. The health of the siafile is the health of the worst unstuck chunk.
+**health** | float64 health is an indication of the amount of redundancy missing
+where 0 is full redundancy and >1 means the file is not available. The health of
+the siafile is the health of the worst unstuck chunk.
 
-**localpath** | string
+**localpath** | string  
 Path to the local file on disk.  
 
-**maxhealth** | float64
-the maxhealth is either the health or the stuckhealth of the siafile, whichever is worst
+**maxhealth** | float64  
+the maxhealth is either the health or the stuckhealth of the siafile, whichever
+is worst
 
-**maxhealthpercent** | float64
-maxhealthpercent is the maxhealth converted to be out of 100% to be more easily understood
+**maxhealthpercent** | float64  
+maxhealthpercent is the maxhealth converted to be out of 100% to be more easily
+understood
 
-**modtime** | timestamp
+**modtime** | timestamp  
 indicates the last time the siafile contents where modified
 
-**numstuckchunks** | uint64
-indicates the number of stuck chunks in a file. A chunk is stuck if it cannot reach full redundancy
+**numstuckchunks** | uint64  
+indicates the number of stuck chunks in a file. A chunk is stuck if it cannot
+reach full redundancy
 
-**ondisk** | boolean
+**ondisk** | boolean  
 indicates if the source file is found on disk
 
-**recoverable** | boolean
-indicates if the siafile is recoverable
+**recoverable** | boolean  
+indicates if the siafile is recoverable. A file is recoverable if it has at
+least 1x redundancy or if `siad` knows the location of a local copy of the file.
 
-**redundancy** | float64
-Average redundancy of the file on the network. Redundancy is calculated by dividing the amount of data uploaded in the file's open contracts by the size of the file. Redundancy does not necessarily correspond to availability. Specifically, a redundancy >= 1 does not indicate the file is available as there could be a chunk of the file with 0 redundancy.  
+**redundancy** | float64  
+When a file is uploaded, it is first broken into a series of chunks. Each chunk
+goes on a different set of hosts, and therefore different chunks of the file can
+have different redundancies. The redundancy of a file as reported from the API
+will be equal to the lowest redundancy of any of  the file's chunks.
 
 **renewing** | boolean  
 true if the file's contracts will be automatically renewed by the renter.  
 
-**siapath** | string
+**siapath** | string  
 Path to the file in the renter on the network.  
 
-**stuck** | bool
-a file is stuck if there are any stuck chunks in the file, which means the file cannot reach full redundancy
+**stuck** | bool  
+a file is stuck if there are any stuck chunks in the file, which means the file
+cannot reach full redundancy
 
-**stuckhealth** | float64
+**stuckhealth** | float64  
 stuckhealth is the worst health of any of the stuck chunks.
 
 **uploadedbytes** | bytes  
-Total number of bytes successfully uploaded via current file contracts. This number includes padding and rendundancy, so a file with a size of 8192 bytes might be padded to 40 MiB and, with a redundancy of 5, encoded to 200 MiB for upload.  
+Total number of bytes successfully uploaded via current file contracts. This
+number includes padding and rendundancy, so a file with a size of 8192 bytes
+might be padded to 40 MiB and, with a redundancy of 5, encoded to 200 MiB for
+upload.  
 
 **uploadprogress** | percent  
-Percentage of the file uploaded, including redundancy. Uploading has completed when uploadprogress is 100. Files may be available for download before upload progress is 100.  
+Percentage of the file uploaded, including redundancy. Uploading has completed
+when uploadprogress is 100. Files may be available for download before upload
+progress is 100.  
 
 ## /renter/file/*siapath* [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/renter/file/myfile"
+curl -A "SiaPrime-Agent" "localhost:4280/renter/file/myfile"
 ```
 
 Lists the status of specified file.
 
 ### Path Parameters
-#### REQUIRED
-**siapath** | string
+### REQUIRED
+**siapath** | string  
 Path to the file in the renter on the network.
 
 ### JSON Response
@@ -2708,135 +3478,248 @@ Same response as [files](#files)
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "trackingpath=/home/myfile" "localhost:9980/renter/file/myfile"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "trackingpath=/home/myfile" "localhost:4280/renter/file/myfile"
 ```
 
 endpoint for changing file metadata.
 
 ### Path Parameters
-#### REQUIRED
-**siapath** | string
-SiaPath of the file on the network. The path must be non-empty, may not include any path traversal strings ("./", "../"), and may not begin with a forward-slash character.
+### REQUIRED
+**siapath** | string  
+SiaPath of the file on the network. The path must be non-empty, may not include
+any path traversal strings ("./", "../"), and may not begin with a forward-slash
+character.
 
 ### Query String Parameters
-#### OPTIONAL
-**trackingpath** | string
-If provided, this parameter changes the tracking path of a file to the  specified path. Useful if moving the file to a different location on disk.
+### OPTIONAL
+**trackingpath** | string  
+If provided, this parameter changes the tracking path of a file to the
+specified path. Useful if moving the file to a different location on disk.
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /renter/delete/*siapath* [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/renter/delete/myfile"
+curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/delete/myfile"
 ```
 
-deletes a renter file entry. Does not delete any downloads or original files, only the entry in the renter.
+deletes a renter file entry. Does not delete any downloads or original files,
+only the entry in the renter. Will return an error if the target is a folder.
 
 ### Path Parameters
-#### REQUIRED
-**siapath** | string
+### REQUIRED
+**siapath** | string  
 Path to the file in the renter on the network.
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /renter/download/*siapath* [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/download/myfile?httpresp=true"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/download/myfile?httpresp=true"
 ```
 
-downloads a file to the local filesystem. The call will block until the file has been downloaded.
+downloads a file to the local filesystem. The call will block until the file has
+been downloaded.
 
 ### Path Parameters
-#### REQUIRED
-**siapath** | string
+### REQUIRED
+**siapath** | string  
 Path to the file in the renter on the network.
 
 ### Query String Parameters
-#### REQUIRED (Either one or the other)
-**destination** | string
+### REQUIRED (Either one or the other)
+**destination** | string  
 Location on disk that the file will be downloaded to.  
 
-**httpresp** | boolean
+**httpresp** | boolean  
 If httresp is true, the data will be written to the http response.
 
-#### OPTIONAL
-**async** | boolean
-<<<<<<< HEAD
+### OPTIONAL
+**async** | boolean  
 If async is true, the http request will be non blocking. Can't be used with
-httpresp. An async download will also set the 'ID' field in the http response
-header to a unique identifier for the async download which can be used to
-cancel the download with the /renter/download/cancel endpoint.
-=======
-If async is true, the http request will be non blocking. Can't be used with:  
->>>>>>> siaprime/master
+httpresp.
 
-**length** | bytes
+**disablelocalfetch** | boolean  
+If disablelocalfetch is true, downloads won't be served from disk even if the
+file is available locally.
+
+**length** | bytes  
 Length of the requested data. Has to be <= filesize-offset.  
 
-**offset** | bytes
+**offset** | bytes  
 Offset relative to the file start from where the download starts.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+Unlike most responses, this response modifies the http response header. The
+download will set the 'ID' field in the http response header to a unique
+identifier which can be used to cancel an async download with the
+/renter/download/cancel endpoint and retrieve a download's info from the
+download history using the /renter/downloadinfo endpoint. Apart from that the
+response is a standard success or error response. See [standard
+responses](#standard-responses).
 
-<<<<<<< HEAD
 ## /renter/download/cancel [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/download/cancel?id=<downloadid>"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/download/cancel?id=<downloadid>"
 ```
 
 cancels the download with the given id.
 
 ### Query String Parameters
-**id** | string
-ID returned by the /renter/download/*siapath* endpoint when setting
-async=true. It is set in the http header's 'ID' field.
+**id** | string  
+ID returned by the /renter/download/*siapath* endpoint. It is set in the http
+header's 'ID' field.
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
-=======
->>>>>>> siaprime/master
 ## /renter/downloadsync/*siapath* [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/downloadasync/myfile?destination=/home/myfile"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/downloadasync/myfile?destination=/home/myfile"
 ```
 
 downloads a file to the local filesystem. The call will return immediately.
 
 ### Path Parameters
-#### REQUIRED
-**siapath** | string
+### REQUIRED
+**siapath** | string  
 Path to the file in the renter on the network.
 
 ### Query String Parameters
-#### REQUIRED
-**destination** | string
+### REQUIRED
+**destination** | string  
 Location on disk that the file will be downloaded to.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
+
+## /renter/fuse [GET]
+> curl example  
+
+```bash
+curl -A "SiaPrime-Agent" "localhost:4280/renter/fuse"
+```
+
+Lists the set of folders that have been mounted to the user's filesystem and
+which mountpoints have been used for each mount.
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+  "mountpoints": [ // []modules.MountInfo
+    {
+      "mountpoint": "/home/user/siavideos", // string
+      "siapath": "/videos",                 // modules.SiaPath
+
+      "mountoptions": { // []modules.MountOptions
+          "allowother": false, // bool
+          "readonly": true,    // bool
+        },
+    },
+  ]
+}
+```
+**mountpoint** | string  
+The system path that is being used to mount the fuse folder.
+
+**siapath** | string  
+The siapath that has been mounted to the mountpoint.
+
+## /renter/fuse/mount [POST]
+> curl example  
+
+```go
+curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/fuse/mount?readonly=true"
+```
+
+Mounts a Sia directory to the local filesystem using FUSE.
+
+### Query String Parameters
+### REQUIRED
+**mount** | string  
+Location on disk to use as the mountpoint.
+
+**readonly** | bool  
+Whether the directory should be mounted as ReadOnly. Currently, readonly is a
+required parameter and must be set to true.
+
+### OPTIONAL
+**siapath** | string  
+Which path should be mounted to the filesystem. If left blank, the user's home
+directory will be used.
+
+**allowother** | boolean  
+By default, only the system user that mounted the fuse directory will be allowed
+to interact with the directory. Often, applications like Plex run as their own
+user, and therefore by default are banned from viewing or otherwise interacting
+with the mounted folder. Setting 'allowother' to true will allow other users to
+see and interact with the mounted folder.
+
+On Linux, if 'allowother' is set to true, /etc/fuse.conf needs to be modified so
+that 'user_allow_other' is set. Typically this involves uncommenting a single
+line of code, see the example below of an /etc/fuse.conf file that has
+'use_allow_other' enabled.
+
+```bash
+# /etc/fuse.conf - Configuration file for Filesystem in Userspace (FUSE)
+
+# Set the maximum number of FUSE mounts allowed to non-root users.
+# The default is 1000.
+#mount_max = 1000
+
+# Allow non-root users to specify the allow_other or allow_root mount options.
+user_allow_other
+```
+
+### Response
+
+standard success or error response. See [standard
+responses](#standard-responses).
+
+
+## /renter/fuse/unmount [POST]
+> curl example  
+
+```go
+curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/fuse/unmount?mount=/home/user/videos"
+```
+
+### Query String Parameters
+### REQUIRED
+**mount** | string  
+Mountpoint that was used when mounting the fuse directory.
+
+### Response
+
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /renter/recoveryscan [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/renter/recoveryscan"
+curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/recoveryscan"
 ```
 
 starts a rescan of the whole blockchain to find recoverable contracts. The
@@ -2845,13 +3728,14 @@ until they are recovered or expired.
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /renter/recoveryscan [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/renter/recoveryscan"
+curl -A "SiaPrime-Agent" "localhost:4280/renter/recoveryscan"
 ```
 
 Returns some information about a potentially ongoing recovery scan.
@@ -2865,10 +3749,10 @@ Returns some information about a potentially ongoing recovery scan.
   "scannedheight" : 1000 // uint64
 }
 ```
-**scaninprogress** | boolean
+**scaninprogress** | boolean  
 indicates if a scan for recoverable contracts is currently in progress.
 
-**scannedheight** | uint64
+**scannedheight** | uint64  
 indicates the progress of a currently ongoing scan in terms of number of blocks
 that have already been scanned.
 
@@ -2876,22 +3760,23 @@ that have already been scanned.
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "newsiapath=myfile2" "localhost:9980/renter/rename/myfile"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "newsiapath=myfile2" "localhost:4280/renter/rename/myfile"
 ```
 
 ### Path Parameters
-#### REQUIRED
-**siapath** | string
+### REQUIRED
+**siapath** | string  
 Path to the file in the renter on the network.
 
 ### Query String Parameters
-#### REQUIRED
-**newsiapath** | string 
+### REQUIRED
+**newsiapath** | string  
 New location of the file in the renter on the network.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /renter/stream/*siapath* [GET]
 > curl example  
@@ -2899,129 +3784,242 @@ standard success or error response. See [standard responses](#standard-responses
 > Stream the whole file.  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/renter/stream/myfile"
+curl -A "SiaPrime-Agent" "localhost:4280/renter/stream/myfile"
 ```  
-> The file can be streamed partially by using standard partial http requests which means setting the "Range" field in the http header.  
+> The file can be streamed partially by using standard partial http requests
+> which means setting the "Range" field in the http header.  
 
 ```go
-curl -A "Sia-Agent" -H "Range: bytes=0-1023" "localhost:9980/renter/stream/myfile"
+curl -A "SiaPrime-Agent" -H "Range: bytes=0-1023" "localhost:4280/renter/stream/myfile"
 ```
 
-downloads a file using http streaming. This call blocks until the data is received. The streaming endpoint also uses caching internally to prevent siad from re-downloading the same chunk multiple times when only parts of a file are requested at once. This might lead to a substantial increase in ram usage and therefore it is not recommended to stream multiple files in parallel at the moment. This restriction will be removed together with the caching once partial downloads are supported in the future. If you want to stream multiple files you should increase the size of the Renter's `streamcachesize` to at least 2x the number of files you are steaming.
+downloads a file using http streaming. This call blocks until the data is
+received. The streaming endpoint also uses caching internally to prevent siad
+from re-downloading the same chunk multiple times when only parts of a file are
+requested at once. This might lead to a substantial increase in ram usage and
+therefore it is not recommended to stream multiple files in parallel at the
+moment. This restriction will be removed together with the caching once partial
+downloads are supported in the future. If you want to stream multiple files you
+should increase the size of the Renter's `streamcachesize` to at least 2x the
+number of files you are steaming.
 
 ### Path Parameters
-#### REQUIRED
-**siapath** | string
+### REQUIRED
+**siapath** | string  
 Path to the file in the renter on the network.
+
+### OPTIONAL
+**disablelocalfetch** | boolean  
+If disablelocalfetch is true, downloads won't be served from disk even if the
+file is available locally.
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /renter/upload/*siapath* [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "source=/home/myfile" "localhost:9980/renter/upload/myfile"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "source=/home/myfile" "localhost:4280/renter/upload/myfile"
 ```
 
 uploads a file to the network from the local filesystem.
 
 ### Path Parameters
-#### REQUIRED
-**siapath** | string
-Location where the file will reside in the renter on the network. The path must be non-empty, may not include any path traversal strings ("./", "../"), and may not begin with a forward-slash character.  
+### REQUIRED
+**siapath** | string  
+Location where the file will reside in the renter on the network. The path must
+be non-empty, may not include any path traversal strings ("./", "../"), and may
+not begin with a forward-slash character.  
 
 ### Query String Parameters
-#### REQUIRED
-**source** | string
+### REQUIRED
+**source** | string  
 Location on disk of the file being uploaded.  
 
-#### OPTIONAL
+### OPTIONAL
 **datapieces** | int  
 The number of data pieces to use when erasure coding the file.  
 
 **paritypieces** | int  
-The number of parity pieces to use when erasure coding the file. Total redundancy of the file is (datapieces+paritypieces)/datapieces.  
+The number of parity pieces to use when erasure coding the file. Total
+redundancy of the file is (datapieces+paritypieces)/datapieces.  
 
-<<<<<<< HEAD
-**force** | boolean
+**force** | boolean  
 Delete potential existing file at siapath.
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /renter/uploadstream/*siapath* [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/uploadstream/myfile?datapieces=10&paritypieces=20" --data-binary @myfile.dat
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploadstream/myfile?datapieces=10&paritypieces=20" --data-binary @myfile.dat
+
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploadstream/myfile?repair=true" --data-binary @myfile.dat
 ```
 
-uploads a file to the network using a stream.
+uploads a file to the network using a stream. If the upload stream POST call
+fails or quits before the file is fully uploaded, the file can be repaired by a
+subsequent call to the upload stream endpoint using the `repair` flag.
 
 ### Path Parameters
-#### REQUIRED
-**siapath** | string
-Location where the file will reside in the renter on the network. The path must be non-empty, may not include any path traversal strings ("./", "../"), and may not begin with a forward-slash character.  
+### REQUIRED
+**siapath** | string  
+Location where the file will reside in the renter on the network. The path must
+be non-empty, may not include any path traversal strings ("./", "../"), and may
+not begin with a forward-slash character.  
 
 ### Query String Parameters
-#### OPTIONAL
+### OPTIONAL
 **datapieces** | int  
 The number of data pieces to use when erasure coding the file.  
 
 **paritypieces** | int  
-The number of parity pieces to use when erasure coding the file. Total redundancy of the file is (datapieces+paritypieces)/datapieces.  
+The number of parity pieces to use when erasure coding the file. Total
+redundancy of the file is (datapieces+paritypieces)/datapieces.  
 
-**force**
+**force** | boolean  
 Delete potential existing file at siapath.
 
-**repair**
-Repair existing file from stream. Can't be specified together with datapieces, paritypieces and force.
+**repair** | boolean  
+Repair existing file from stream. Can't be specified together with datapieces,
+paritypieces and force.
 
-=======
->>>>>>> siaprime/master
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
-<<<<<<< HEAD
-## /renter/validate/*siapath* [POST]
+## /renter/uploadready [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/renter/validatesiapath/isthis-aval_idsiapath"
+curl -A "SiaPrime-Agent" "localhost:4280/renter/uploadready?datapieces=10&paritypieces=20"
 ```
 
-validates whether or not the provided siapaht is a valid siapath. SiaPaths cannot contain traversal strings or be empty. Valid characters are:
+Returns the whether or not the renter is ready for upload.
+
+### Path Parameters
+### OPTIONAL
+datapieces and paritypieces are both optional, however if one is supplied then
+the other needs to be supplied. If neither are supplied then the default values
+for the erasure coding will be used 
+
+**datapieces** | int  
+The number of data pieces to use when erasure coding the file.  
+
+**paritypieces** | int  
+The number of parity pieces to use when erasure coding the file.   
+
+### JSON Response
+> JSON Response Example
+```go
+{
+"ready":false,            // bool
+"contractsneeded":30,     // int
+"numactivecontracts":20,  // int
+"datapieces":10,          // int
+"paritypieces":20         // int 
+}
+```
+**ready** | boolean  
+ready indicates if the renter is ready to fully upload a file based on the
+erasure coding.  
+
+**contractsneeded** | int  
+contractsneeded is how many contracts are needed to fully upload a file.  
+
+**numactivecontracts** | int  
+numactivecontracts is the number of active contracts the renter has.
+
+**datapieces** | int  
+The number of data pieces to use when erasure coding the file.  
+
+**paritypieces** | int  
+The number of parity pieces to use when erasure coding the file.
+
+## /renter/uploads/pause [POST]
+> curl example  
+
+```go
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "duration=10m" "localhost:4280/renter/uploads/pause"
+```
+
+This endpoint will pause any future uploads or repairs for the duration
+requested. Any in progress chunks will finish. This can be used to free up
+the workers to exclusively focus on downloads. Since this will pause file
+repairs it is advised to not pause for too long. If no duration is supplied
+then the default duration of 600 seconds will be used. If the uploads are
+already paused, additional calls to pause the uploads will result in the
+duration of the pause to be reset to the duration supplied as opposed to
+pausing for an additional length of time.
+
+### Path Parameters
+#### OPTIONAL 
+**duration** | string  
+duration is how long the repairs and uploads will be paused in seconds. If no
+duration is supplied the default pause duration will be used.
+
+### Response
+standard success or error response. See [standard
+responses](#standard-responses).
+
+## /renter/uploads/resume [POST]
+> curl example  
+
+```go
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploads/resume"
+```
+
+This endpoint will resume uploads and repairs.
+
+### Response
+standard success or error response. See [standard
+responses](#standard-responses).
+
+## /renter/validatesiapath/*siapath* [POST]
+> curl example  
+
+```go
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/validatesiapath/isthis-aval_idsiapath"
+```
+
+validates whether or not the provided siapaht is a valid siapath. SiaPaths
+cannot contain traversal strings or be empty. Valid characters are:
 
 $, &, `, :, ;, #, %, @, <, >, =, ?, [, ], {, }, ^, |, ~, -, +, _, comma, ', "
 
 ### Path Parameters
-#### REQUIRED
+### REQUIRED
 **siapath** | string  
 siapath to test.
 
 ### Response
-standard success or error response, a successful response means a valid siapath. See [standard responses](#standard-responses).
+standard success or error response, a successful response means a valid siapath.
+See [standard responses](#standard-responses).
 
-=======
->>>>>>> siaprime/master
 # Transaction Pool
 
 ## /tpool/confirmed/:id [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/tpool/confirmed/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/tpool/confirmed/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
 ```
 
-returns whether the requested transaction has been seen on the blockchain. Note, however, that the block containing the transaction may later be invalidated by a reorg.
+returns whether the requested transaction has been seen on the blockchain. Note,
+however, that the block containing the transaction may later be invalidated by a
+reorg.
 
 ### Path Parameters
-#### REQUIRED
-**id** | hash
+### REQUIRED
+**id** | hash  
 id of the transaction being queried
 
 ### JSON Response
@@ -3032,14 +4030,14 @@ id of the transaction being queried
   "confirmed": true // boolean
 }
 ```
-**confirmed** | boolean
+**confirmed** | boolean  
 indicates if a transaction is confirmed on the blockchain
 
 ## /tpool/fee [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/tpool/fee"
+curl -A "SiaPrime-Agent" "localhost:4280/tpool/fee"
 ```
 
 returns the minimum and maximum estimated fees expected by the transaction pool.
@@ -3053,24 +4051,25 @@ returns the minimum and maximum estimated fees expected by the transaction pool.
   "maximum": "5678"  // hastings / byte
 }
 ```
-**minimum** | hastings / byte
+**minimum** | hastings / byte  
 the minimum estimated fee
 
-**maximum** | hastings / byte
+**maximum** | hastings / byte  
 the maximum estimated fee
 
 ## /tpool/raw/:id [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/tpool/raw/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
+curl -A "SiaPrime-Agent" "localhost:4280/tpool/raw/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
 ```
 
-returns the ID for the requested transaction and its raw encoded parents and transaction data.
+returns the ID for the requested transaction and its raw encoded parents and
+transaction data.
 
 ### Path Parameters
-#### REQUIRED
-**id** | hash 
+### REQUIRED
+**id** | hash  
 id of the transaction being queried
 
 ### JSON Response
@@ -3078,12 +4077,12 @@ id of the transaction being queried
  
 ```go
 {
-	// id of the transaction
-	"id": "124302d30a219d52f368ecd94bae1bfb922a3e45b6c32dd7fb5891b863808788",
+  // id of the transaction
+  "id": "124302d30a219d52f368ecd94bae1bfb922a3e45b6c32dd7fb5891b863808788",
 
-	// raw, base64 encoded transaction data
-	"transaction": "AQAAAAAAAADBM1ca/FyURfizmSukoUQ2S0GwXMit1iNSeYgrnhXOPAAAAAAAAAAAAQAAAAAAAABlZDI1NTE5AAAAAAAAAAAAIAAAAAAAAACdfzoaJ1MBY7L0fwm7O+BoQlFkkbcab5YtULa6B9aecgEAAAAAAAAAAQAAAAAAAAAMAAAAAAAAAAM7Ljyf0IA86AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAACgAAAAAAAACe0ZTbGbI4wAAAAAAAAAAAAAABAAAAAAAAAMEzVxr8XJRF+LOZK6ShRDZLQbBcyK3WI1J5iCueFc48AAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAA+z4P1wc98IqKxykTSJxiVT+BVbWezIBnIBO1gRRlLq2x/A+jIc6G7/BA5YNJRbdnqPHrzsZvkCv4TKYd/XzwBA==",
-	"parents": "AQAAAAAAAAABAAAAAAAAAJYYmFUdXXfLQ2p6EpF+tcqM9M4Pw5SLSFHdYwjMDFCjAAAAAAAAAAABAAAAAAAAAGVkMjU1MTkAAAAAAAAAAAAgAAAAAAAAAAHONvdzzjHfHBx6psAN8Z1rEVgqKPZ+K6Bsqp3FbrfjAQAAAAAAAAACAAAAAAAAAAwAAAAAAAAAAzvNDjSrme8gwAAA4w8ODnW8DxbOV/JribivvTtjJ4iHVOug0SXJc31BdSINAAAAAAAAAAPGHY4699vggx5AAAC2qBhm5vwPaBsmwAVPho/1Pd8ecce/+BGv4UimnEPzPQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAACWGJhVHV13y0NqehKRfrXKjPTOD8OUi0hR3WMIzAxQowAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAABnt64wN1qxym/CfiMgOx5fg/imVIEhY+4IiiM7gwvSx8qtqKniOx50ekrGv8B+gTKDXpmm2iJibWTI9QLZHWAY=",
+  // raw, base64 encoded transaction data
+  "transaction": "AQAAAAAAAADBM1ca/FyURfizmSukoUQ2S0GwXMit1iNSeYgrnhXOPAAAAAAAAAAAAQAAAAAAAABlZDI1NTE5AAAAAAAAAAAAIAAAAAAAAACdfzoaJ1MBY7L0fwm7O+BoQlFkkbcab5YtULa6B9aecgEAAAAAAAAAAQAAAAAAAAAMAAAAAAAAAAM7Ljyf0IA86AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAACgAAAAAAAACe0ZTbGbI4wAAAAAAAAAAAAAABAAAAAAAAAMEzVxr8XJRF+LOZK6ShRDZLQbBcyK3WI1J5iCueFc48AAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAA+z4P1wc98IqKxykTSJxiVT+BVbWezIBnIBO1gRRlLq2x/A+jIc6G7/BA5YNJRbdnqPHrzsZvkCv4TKYd/XzwBA==",
+  "parents": "AQAAAAAAAAABAAAAAAAAAJYYmFUdXXfLQ2p6EpF+tcqM9M4Pw5SLSFHdYwjMDFCjAAAAAAAAAAABAAAAAAAAAGVkMjU1MTkAAAAAAAAAAAAgAAAAAAAAAAHONvdzzjHfHBx6psAN8Z1rEVgqKPZ+K6Bsqp3FbrfjAQAAAAAAAAACAAAAAAAAAAwAAAAAAAAAAzvNDjSrme8gwAAA4w8ODnW8DxbOV/JribivvTtjJ4iHVOug0SXJc31BdSINAAAAAAAAAAPGHY4699vggx5AAAC2qBhm5vwPaBsmwAVPho/1Pd8ecce/+BGv4UimnEPzPQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAACWGJhVHV13y0NqehKRfrXKjPTOD8OUi0hR3WMIzAxQowAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAABnt64wN1qxym/CfiMgOx5fg/imVIEhY+4IiiM7gwvSx8qtqKniOx50ekrGv8B+gTKDXpmm2iJibWTI9QLZHWAY=",
 }
 ```
 **id** | string  
@@ -3096,45 +4095,94 @@ raw, base64 encoded transaction data
 > curl example  
 
 ```go
-curl -A "Sia-Agent" --data "<raw-encoded-tset>" "localhost:9980/tpool/raw"
+curl -A "SiaPrime-Agent" --data "<raw-encoded-tset>" "localhost:4280/tpool/raw"
 ```
 
-submits a raw transaction to the transaction pool, broadcasting it to the transaction pool's peers.  
+submits a raw transaction to the transaction pool, broadcasting it to the
+transaction pool's peers.  
 
 ### Query String Parameters
-#### REQUIRED
-**parents** | string 
+### REQUIRED
+**parents** | string  
 JSON- or base64-encoded transaction parents
 
-**transaction** | string
+**transaction** | string  
 JSON- or base64-encoded transaction
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
-## /tpool/confirmed/:id [GET]
+## /tpool/transactions [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/tpool/confirmed/9028cc285ad755b81c0cfead3710c1344044175e59cdc4ca097374fe188c9acf"
+curl -A "SiaPrime-Agent" "localhost:4280/tpool/transactions"
 ```
 
-### Query String Parameters
-#### REQUIRED
-**id** | hash
-id of the transaction being queried
+returns the transactions of the transaction pool.
 
 ### JSON Response
 > JSON Response Example
-
+ 
 ```go
 {
-  "confirmed": true,
+  "transactions": [     
+    {
+      "siacoininputs":  [ // []SiacoinInput
+        {
+          "parentid": "b44db5d70f50b5c81b81d049fbdf9af27b4468f877d26c23a04c1093a7c4b541",
+          "unlockconditions": {
+            "publickeys": [
+               {
+                "algorithm": "ed25519",
+                "key": "EKjiRsUyMOLER+8u3uXxemOEKMxRc2TxCh0QkcSCVHY="
+               }
+              ],
+            "signaturesrequired": 1,
+            "timelock": 0
+          }
+        },
+      ]      
+      "siacoinoutputs": []        // []SiacoinOutput        
+      "filecontracts":  []        // []FileContract
+      "filecontractrevisions": [] // []FileContractRevision 
+      "storageproofs":  []        // []StorageProof         
+      "siafundinputs":  []        // []SiafundInput
+      "siafundoutputs": []        // []SiafundOutput      
+      "minerfees": [              // []Currency   
+        "61440000000000000000000"
+      ],          
+      "arbitrarydata": [          // [][]byte
+        "RkNJZGVudGlmaWVyAAAAACYzhrmGh2OL2Y9eBn5UYIFxCi4HKFvtR43pEgaBpkDqEa3LrQlWGyk+a0tBXi4nkIIaISIfTJMZs3sBgi0PFl4NyGOgqYppVQGaYnPuaRZKONJWE2jYZUu/iY3xLvpYIciu5JVlRIStwfGepaPWW4jLe4tf3AabKINgFk6p52m6"
+      ],
+      "transactionsignatures": [ // []TransactionSignature
+                    {
+                        "coveredfields": {
+                            "arbitrarydata": [],
+                            "filecontractrevisions": [],
+                            "filecontracts": [],
+                            "minerfees": [],
+                            "siacoininputs": [],
+                            "siacoinoutputs": [],
+                            "siafundinputs": [],
+                            "siafundoutputs": [],
+                            "storageproofs": [],
+                            "transactionsignatures": [],
+                            "wholetransaction": true
+                        },
+                        "parentid": "b44db5d70f50b5c81b81d049fbdf9af27b4468f877d26c23a04c1093a7c4b541",
+                        "publickeyindex": 0,
+                        "signature": "QAVQSrcTv2xBHjWiTuuxVgWtUYECEZNbud41u7wgFIGcsKuBnbtT2yaH/GMw00/aMCpZ70qqBpQwQ/akAn/pAA==",
+                        "timelock": 0
+                    },
+    }
+  ]
 }
 ```
-**confirmed** | boolean
-boolean that indicates if transaction was confirmed
+See [/wallet/transaction/:id](#wallettransactionid-get) for description of
+transaction fields.
 
 # Wallet
 
@@ -3142,10 +4190,11 @@ boolean that indicates if transaction was confirmed
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/wallet"
+curl -A "SiaPrime-Agent" "localhost:4280/wallet"
 ```
 
-Returns basic information about the wallet, such as whether the wallet is locked or unlocked.
+Returns basic information about the wallet, such as whether the wallet is locked
+or unlocked.
 
 ### JSON Response
 > JSON Response Example
@@ -3167,43 +4216,67 @@ Returns basic information about the wallet, such as whether the wallet is locked
 }
 ```
 **encrypted** | boolean  
-Indicates whether the wallet has been encrypted or not. If the wallet has not been encrypted, then no data has been generated at all, and the first time the wallet is unlocked, the password given will be used as the password for encrypting all of the data. 'encrypted' will only be set to false if the wallet has never been unlocked before (the unlocked wallet is still encryped - but the encryption key is in memory).  
+Indicates whether the wallet has been encrypted or not. If the wallet has not
+been encrypted, then no data has been generated at all, and the first time the
+wallet is unlocked, the password given will be used as the password for
+encrypting all of the data. 'encrypted' will only be set to false if the wallet
+has never been unlocked before (the unlocked wallet is still encryped - but the
+encryption key is in memory).  
 
 **unlocked** | boolean  
-Indicates whether the wallet is currently locked or unlocked. Some calls become unavailable when the wallet is locked.  
+Indicates whether the wallet is currently locked or unlocked. Some calls become
+unavailable when the wallet is locked.  
 
 **rescanning** | boolean  
-Indicates whether the wallet is currently rescanning the blockchain. This will be true for the duration of calls to /unlock, /seeds, /init/seed, and /sweep/seed.  
+Indicates whether the wallet is currently rescanning the blockchain. This will
+be true for the duration of calls to /unlock, /seeds, /init/seed, and
+/sweep/seed.  
 
 **confirmedsiacoinbalance** | hastings, big int  
-Number of siacoins, in hastings, available to the wallet as of the most recent block in the blockchain.  
+Number of siacoins, in hastings, available to the wallet as of the most recent
+block in the blockchain.  
 
 **unconfirmedoutgoingsiacoins** | hastings, big int  
-Number of siacoins, in hastings, that are leaving the wallet according to the set of unconfirmed transactions. Often this number appears inflated, because outputs are frequently larger than the number of coins being sent, and there is a refund. These coins are counted as outgoing, and the refund is counted as incoming. The difference in balance can be calculated using 'unconfirmedincomingsiacoins' - 'unconfirmedoutgoingsiacoins'  
+Number of siacoins, in hastings, that are leaving the wallet according to the
+set of unconfirmed transactions. Often this number appears inflated, because
+outputs are frequently larger than the number of coins being sent, and there is
+a refund. These coins are counted as outgoing, and the refund is counted as
+incoming. The difference in balance can be calculated using
+'unconfirmedincomingsiacoins' - 'unconfirmedoutgoingsiacoins'  
 
 **unconfirmedincomingsiacoins** | hastings, big int  
-Number of siacoins, in hastings, are entering the wallet according to the set of unconfirmed transactions. This number is often inflated by outgoing siacoins, because outputs are frequently larger than the amount being sent. The refund will be included in the unconfirmed incoming siacoins balance.  
+Number of siacoins, in hastings, are entering the wallet according to the set of
+unconfirmed transactions. This number is often inflated by outgoing siacoins,
+because outputs are frequently larger than the amount being sent. The refund
+will be included in the unconfirmed incoming siacoins balance.  
 
 **siafundbalance** | big int  
-Number of siafunds available to the wallet as of the most recent block in the blockchain.  
+Number of siafunds available to the wallet as of the most recent block in the
+blockchain.  
 
 **siacoinclaimbalance** | hastings, big int  
-Number of siacoins, in hastings, that can be claimed from the siafunds as of the most recent block. Because the claim balance increases every time a file contract is created, it is possible that the balance will increase before any claim transaction is confirmed.  
+Number of siacoins, in hastings, that can be claimed from the siafunds as of the
+most recent block. Because the claim balance increases every time a file
+contract is created, it is possible that the balance will increase before any
+claim transaction is confirmed.  
 
 **dustthreshold** | hastings / byte, big int  
-Number of siacoins, in hastings per byte, below which a transaction output cannot be used because the wallet considers it a dust output.  
+Number of siacoins, in hastings per byte, below which a transaction output
+cannot be used because the wallet considers it a dust output.  
 
 ## /wallet/033x [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "source=/home/legacy-wallet&encryptionpassword=mypassword" "localhost:9980/wallet/033x"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "source=/home/legacy-wallet&encryptionpassword=mypassword" "localhost:4280/wallet/033x"
 ```
 
-Loads a v0.3.3.x wallet into the current wallet, harvesting all of the secret keys. All spendable addresses in the loaded wallet will become spendable from the current wallet.
+Loads a v0.3.3.x wallet into the current wallet, harvesting all of the secret
+keys. All spendable addresses in the loaded wallet will become spendable from
+the current wallet.
 
 ### Query String Parameters
-#### REQUIRED
+### REQUIRED
 **source**  
 Path on disk to the v0.3.3.x wallet to be loaded.  
 
@@ -3212,16 +4285,18 @@ Encryption key of the wallet.
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /wallet/address [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/address"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/address"
 ```
 
-Gets a new address from the wallet generated by the primary seed. An error will be returned if the wallet is locked.
+Gets a new address from the wallet generated by the primary seed. An error will
+be returned if the wallet is locked.
 
 ### JSON Response
 > JSON Response Example
@@ -3231,38 +4306,42 @@ Gets a new address from the wallet generated by the primary seed. An error will 
   "address": "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab"
 }
 ```
-**address** | hash
-Wallet address that can receive siacoins or siafunds. Addresses are 76 character long hex strings.  
+**address** | hash  
+Wallet address that can receive siacoins or siafunds. Addresses are 76 character
+long hex strings.  
 
 ## /wallet/addresses [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/wallet/addresses"
+curl -A "SiaPrime-Agent" "localhost:4280/wallet/addresses"
 ```
 
-Fetches the list of addresses from the wallet. If the wallet has not been created or unlocked, no addresses will be returned. After the wallet is unlocked, this call will continue to return its addresses even after the wallet is locked again.
+Fetches the list of addresses from the wallet. If the wallet has not been
+created or unlocked, no addresses will be returned. After the wallet is
+unlocked, this call will continue to return its addresses even after the wallet
+is locked again.
 
 ### JSON Response
 > JSON Response Example
  
 ```go
 {
-  "addresses": [
+  "addresses": [ // []hash
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab",
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
   ]
 }
 ```
-**addresses**  
+**addresses** | hashes  
 Array of wallet addresses owned by the wallet.  
 
 ## /wallet/seedaddrs [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/wallet/seedaddrs"
+curl -A "SiaPrime-Agent" "localhost:4280/wallet/seedaddrs"
 ```
 
 Fetches addresses generated by the wallet in reverse order. The last address
@@ -3271,7 +4350,7 @@ addresses which weren't generated using the wallet's seed can't be retrieved
 with this endpoint.
 
 ### Query String Parameters
-#### OPTIONAL
+### OPTIONAL
 **count**  
 Number of addresses that should be returned. If count is not specified or if
 count is bigger than the number of addresses generated by the wallet, all
@@ -3282,74 +4361,87 @@ addresses will be returned.
 
 ```go
 {
-  "addresses": [
+  "addresses": [ // []hash
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab",
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
   ]
 }
 ```
-**addresses**  
+**addresses** | hashes  
 Array of wallet addresses previously generated by the wallet.
 
 ## /wallet/backup [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/backup?destination=/home/wallet-settings.backup"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/backup?destination=/home/wallet-settings.backup"
 ```
 
-Creates a backup of the wallet settings file. Though this can easily be done manually, the settings file is often in an unknown or difficult to find location. The /wallet/backup call can spare users the trouble of needing to find their wallet file.
+Creates a backup of the wallet settings file. Though this can easily be done
+manually, the settings file is often in an unknown or difficult to find
+location. The /wallet/backup call can spare users the trouble of needing to find
+their wallet file.
 
 ### Query String Parameters
-#### REQUIRED
+### REQUIRED
 **destination**  
 Path to the location on disk where the backup file will be saved.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /wallet/changepassword [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/wallet/changepassword?encryptionpassword=<currentpassword>&newpassword=<newpassword>"
+curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/wallet/changepassword?encryptionpassword=<currentpassword>&newpassword=<newpassword>"
 ```
 
 Changes the wallet's encryption key.  
 
 ### Query String Parameters
-#### REQUIRED
-**encryptionpassword** | string
-encryptionpassword is the wallet's current encryption password.  
+### REQUIRED
+**encryptionpassword** | string  
+encryptionpassword is the wallet's current encryption password or primary seed.
 
-**newpassword** | string
+
+**newpassword** | string  
 newpassword is the new password for the wallet.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /wallet/init [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "encryptionpassword=<password>&force=false" "localhost:9980/wallet/init"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "encryptionpassword=<password>&force=false" "localhost:4280/wallet/init"
 ```
 
-Initializes the wallet. After the wallet has been initialized once, it does not need to be initialized again, and future calls to /wallet/init will return an error. The encryption password is provided by the api call. If the password is blank, then the password will be set to the same as the seed.
+Initializes the wallet. After the wallet has been initialized once, it does not
+need to be initialized again, and future calls to /wallet/init will return an
+error. The encryption password is provided by the api call. If the password is
+blank, then the password will be set to the same as the seed.
 
 ### Query String Parameters
-#### OPTIONAL WALLET PARAMETERS
-**encryptionpassword** | string
-Password that will be used to encrypt the wallet. All subsequent calls should use this password. If left blank, the seed that gets returned will also be the encryption password.  
+### OPTIONAL WALLET PARAMETERS
+**encryptionpassword** | string  
+Password that will be used to encrypt the wallet. All subsequent calls should
+use this password. If left blank, the seed that gets returned will also be the
+encryption password.  
 
 **dictionary** | string  
-Name of the dictionary that should be used when encoding the seed. 'english' is the most common choice when picking a dictionary.  
+Name of the dictionary that should be used when encoding the seed. 'english' is
+the most common choice when picking a dictionary.  
 
 **force** | boolean  
-When set to true /wallet/init will Reset the wallet if one exists instead of returning an error. This allows API callers to reinitialize a new wallet.
+When set to true /wallet/init will Reset the wallet if one exists instead of
+returning an error. This allows API callers to reinitialize a new wallet.
 
 ### JSON Response
 > JSON Response Example
@@ -3366,56 +4458,71 @@ Wallet seed used to generate addresses that the wallet is able to spend.
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "seed=<seed>&encryptionpassword=<password>&force=false" "localhost:9980/wallet/init/seed"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "seed=<seed>&encryptionpassword=<password>&force=false" "localhost:4280/wallet/init/seed"
 ```
 
-Initializes the wallet using a preexisting seed. After the wallet has been initialized once, it does not need to be initialized again, and future calls to /wallet/init/seed will return an error. The encryption password is provided by the api call. If the password is blank, then the password will be set to the same as the seed. Note that loading a preexisting seed requires scanning the blockchain to determine how many keys have been generated from the seed. For this reason, /wallet/init/seed can only be called if the blockchain is synced.
+Initializes the wallet using a preexisting seed. After the wallet has been
+initialized once, it does not need to be initialized again, and future calls to
+/wallet/init/seed will return an error. The encryption password is provided by
+the api call. If the password is blank, then the password will be set to the
+same as the seed. Note that loading a preexisting seed requires scanning the
+blockchain to determine how many keys have been generated from the seed. For
+this reason, /wallet/init/seed can only be called if the blockchain is synced.
 
 ### Query String Parameters
-#### REQUIRED WALLET PARAMETERS
-**seed** | string
-Dictionary-encoded phrase that corresponds to the seed being used to initialize the wallet.  
+### REQUIRED WALLET PARAMETERS
+**seed** | string  
+Dictionary-encoded phrase that corresponds to the seed being used to initialize
+the wallet.  
 
-#### OPTIONAL
+### OPTIONAL
 [Optional Wallet Parameters](#optional-wallet-parameters)
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /wallet/seed [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "seed=<seed>" "localhost:9980/wallet/seed"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "seed=<seed>" "localhost:4280/wallet/seed"
 ```
 
-Gives the wallet a seed to track when looking for incoming transactions. The wallet will be able to spend outputs related to addresses created by the seed. The seed is added as an auxiliary seed, and does not replace the primary seed. Only the primary seed will be used for generating new addresses.
+Gives the wallet a seed to track when looking for incoming transactions. The
+wallet will be able to spend outputs related to addresses created by the seed.
+The seed is added as an auxiliary seed, and does not replace the primary seed.
+Only the primary seed will be used for generating new addresses.
 
 ### Query String Parameters
-#### REQUIRED
+### REQUIRED
 [Required Wallet Parameters](#required-wallet-parameters)
 
-#### OPTIONAL | string
+### OPTIONAL | string
 [Optional Wallet Parameters](#optional-wallet-parameters)
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /wallet/seeds [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/seeds"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/seeds"
 ```
 
-Returns the list of seeds in use by the wallet. The primary seed is the only seed that gets used to generate new addresses. This call is unavailable when the wallet is locked.
+Returns the list of seeds in use by the wallet. The primary seed is the only
+seed that gets used to generate new addresses. This call is unavailable when the
+wallet is locked.
 
 ### Query String Parameters
-#### REQUIRED
-**dictionary** | string 
-Name of the dictionary that should be used when encoding the seed. 'english' is the most common choice when picking a dictionary.  
+### REQUIRED
+**dictionary** | string  
+Name of the dictionary that should be used when encoding the seed. 'english' is
+the most common choice when picking a dictionary.  
 
 ### JSON Response
 > JSON Response Example
@@ -3434,26 +4541,34 @@ Name of the dictionary that should be used when encoding the seed. 'english' is 
 Seed that is actively being used to generate new addresses for the wallet.  
 
 **addressesremaining**  
-Number of addresses that remain in the primary seed until exhaustion has been reached. Once exhaustion has been reached, new addresses will continue to be generated but they will be more difficult to recover in the event of a lost wallet file or encryption password.  
+Number of addresses that remain in the primary seed until exhaustion has been
+reached. Once exhaustion has been reached, new addresses will continue to be
+generated but they will be more difficult to recover in the event of a lost
+wallet file or encryption password.  
 
 **allseeds**  
-Array of all seeds that the wallet references when scanning the blockchain for outputs. The wallet is able to spend any output generated by any of the seeds, however only the primary seed is being used to generate new addresses.  
+Array of all seeds that the wallet references when scanning the blockchain for
+outputs. The wallet is able to spend any output generated by any of the seeds,
+however only the primary seed is being used to generate new addresses.  
 
 ## /wallet/siacoins [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "amount=1000&destination=c134a8372bd250688b36867e6522a37bdc391a344ede72c2a79206ca1c34c84399d9ebf17773" "localhost:9980/wallet/siacoins"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "amount=1000&destination=c134a8372bd250688b36867e6522a37bdc391a344ede72c2a79206ca1c34c84399d9ebf17773" "localhost:4280/wallet/siacoins"
 ```
 
-Sends siacoins to an address or set of addresses. The outputs are arbitrarily selected from addresses in the wallet. If 'outputs' is supplied, 'amount' and 'destination' must be empty.  
+Sends siacoins to an address or set of addresses. The outputs are arbitrarily
+selected from addresses in the wallet. If 'outputs' is supplied, 'amount' and
+'destination' must be empty.  
 
 ### Query String Parameters
-#### REQUIRED
+### REQUIRED
 Amount and Destination or Outputs are required
 
 **amount** | hastings  
-Number of hastings being sent. A hasting is the smallest unit in Sia. There are 10^24 hastings in a siacoin.
+Number of hastings being sent. A hasting is the smallest unit in Sia. There are
+10^24 hastings in a siacoin.
 
 **destination** | address  
 Address that is receiving the coins.  
@@ -3461,13 +4576,65 @@ Address that is receiving the coins.
 **OR**
 
 **outputs**  
-JSON array of outputs. The structure of each output is: {"unlockhash": "<destination>", "value": "<amount>"}  
+JSON array of outputs. The structure of each output is: {"unlockhash":
+"<destination>", "value": "<amount>"}  
 
 ### JSON Response
 > JSON Response Example
 
 ```go
 {
+  "transactions": [     
+    {
+      "siacoininputs":  [ // []SiacoinInput
+        {
+          "parentid": "b44db5d70f50b5c81b81d049fbdf9af27b4468f877d26c23a04c1093a7c4b541",
+          "unlockconditions": {
+            "publickeys": [
+               {
+                "algorithm": "ed25519",
+                "key": "EKjiRsUyMOLER+8u3uXxemOEKMxRc2TxCh0QkcSCVHY="
+               }
+              ],
+            "signaturesrequired": 1,
+            "timelock": 0
+          }
+        },
+      ]      
+      "siacoinoutputs": []        // []SiacoinOutput        
+      "filecontracts":  []        // []FileContract
+      "filecontractrevisions": [] // []FileContractRevision 
+      "storageproofs":  []        // []StorageProof         
+      "siafundinputs":  []        // []SiafundInput
+      "siafundoutputs": []        // []SiafundOutput      
+      "minerfees": [              // []Currency   
+        "61440000000000000000000"
+      ],          
+      "arbitrarydata": [          // [][]byte
+        "RkNJZGVudGlmaWVyAAAAACYzhrmGh2OL2Y9eBn5UYIFxCi4HKFvtR43pEgaBpkDqEa3LrQlWGyk+a0tBXi4nkIIaISIfTJMZs3sBgi0PFl4NyGOgqYppVQGaYnPuaRZKONJWE2jYZUu/iY3xLvpYIciu5JVlRIStwfGepaPWW4jLe4tf3AabKINgFk6p52m6"
+      ],
+      "transactionsignatures": [ // []TransactionSignature
+                    {
+                        "coveredfields": {
+                            "arbitrarydata": [],
+                            "filecontractrevisions": [],
+                            "filecontracts": [],
+                            "minerfees": [],
+                            "siacoininputs": [],
+                            "siacoinoutputs": [],
+                            "siafundinputs": [],
+                            "siafundoutputs": [],
+                            "storageproofs": [],
+                            "transactionsignatures": [],
+                            "wholetransaction": true
+                        },
+                        "parentid": "b44db5d70f50b5c81b81d049fbdf9af27b4468f877d26c23a04c1093a7c4b541",
+                        "publickeyindex": 0,
+                        "signature": "QAVQSrcTv2xBHjWiTuuxVgWtUYECEZNbud41u7wgFIGcsKuBnbtT2yaH/GMw00/aMCpZ70qqBpQwQ/akAn/pAA==",
+                        "timelock": 0
+                    },
+    }
+  ]
   "transactionids": [
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -3475,20 +4642,30 @@ JSON array of outputs. The structure of each output is: {"unlockhash": "<destina
   ]
 }
 ```
+**transactions** Array of transactions that were created when sending the coins.
+The last transaction contains the output headed to the 'destination'.
+Transaction IDs are 64 character long hex strings.
+
 **transactionids**  
-Array of IDs of the transactions that were created when sending the coins. The last transaction contains the output headed to the 'destination'. Transaction IDs are 64 character long hex strings.  
+Array of IDs of the transactions that were created when sending the coins.
 
 ## /wallet/siafunds [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "amount=10&destination=c134a8372bd250688b36867e6522a37bdc391a344ede72c2a79206ca1c34c84399d9ebf17773" "localhost:9980/wallet/siafunds"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "amount=10&destination=c134a8372bd250688b36867e6522a37bdc391a344ede72c2a79206ca1c34c84399d9ebf17773" "localhost:4280/wallet/siafunds"
 ```
 
-Sends siafunds to an address. The outputs are arbitrarily selected from addresses in the wallet. Any siacoins available in the siafunds being sent (as well as the siacoins available in any siafunds that end up in a refund address) will become available to the wallet as siacoins after 144 confirmations. To access all of the siacoins in the siacoin claim balance, send all of the siafunds to an address in your control (this will give you all the siacoins, while still letting you control the siafunds).
+Sends siafunds to an address. The outputs are arbitrarily selected from
+addresses in the wallet. Any siacoins available in the siafunds being sent (as
+well as the siacoins available in any siafunds that end up in a refund address)
+will become available to the wallet as siacoins after 144 confirmations. To
+access all of the siacoins in the siacoin claim balance, send all of the
+siafunds to an address in your control (this will give you all the siacoins,
+while still letting you control the siafunds).
 
 ### Query String Parameters
-#### REQUIRED
+### REQUIRED
 **amount** | siafunds  
 Number of siafunds being sent.  
 
@@ -3500,6 +4677,57 @@ Address that is receiving the funds.
  
 ```go
 {
+  "transactions": [     
+    {
+      "siacoininputs":  [ // []SiacoinInput
+        {
+          "parentid": "b44db5d70f50b5c81b81d049fbdf9af27b4468f877d26c23a04c1093a7c4b541",
+          "unlockconditions": {
+            "publickeys": [
+               {
+                "algorithm": "ed25519",
+                "key": "EKjiRsUyMOLER+8u3uXxemOEKMxRc2TxCh0QkcSCVHY="
+               }
+              ],
+            "signaturesrequired": 1,
+            "timelock": 0
+          }
+        },
+      ]      
+      "siacoinoutputs": []        // []SiacoinOutput        
+      "filecontracts":  []        // []FileContract
+      "filecontractrevisions": [] // []FileContractRevision 
+      "storageproofs":  []        // []StorageProof         
+      "siafundinputs":  []        // []SiafundInput
+      "siafundoutputs": []        // []SiafundOutput      
+      "minerfees": [              // []Currency   
+        "61440000000000000000000"
+      ],          
+      "arbitrarydata": [          // [][]byte
+        "RkNJZGVudGlmaWVyAAAAACYzhrmGh2OL2Y9eBn5UYIFxCi4HKFvtR43pEgaBpkDqEa3LrQlWGyk+a0tBXi4nkIIaISIfTJMZs3sBgi0PFl4NyGOgqYppVQGaYnPuaRZKONJWE2jYZUu/iY3xLvpYIciu5JVlRIStwfGepaPWW4jLe4tf3AabKINgFk6p52m6"
+      ],
+      "transactionsignatures": [ // []TransactionSignature
+                    {
+                        "coveredfields": {
+                            "arbitrarydata": [],
+                            "filecontractrevisions": [],
+                            "filecontracts": [],
+                            "minerfees": [],
+                            "siacoininputs": [],
+                            "siacoinoutputs": [],
+                            "siafundinputs": [],
+                            "siafundoutputs": [],
+                            "storageproofs": [],
+                            "transactionsignatures": [],
+                            "wholetransaction": true
+                        },
+                        "parentid": "b44db5d70f50b5c81b81d049fbdf9af27b4468f877d26c23a04c1093a7c4b541",
+                        "publickeyindex": 0,
+                        "signature": "QAVQSrcTv2xBHjWiTuuxVgWtUYECEZNbud41u7wgFIGcsKuBnbtT2yaH/GMw00/aMCpZ70qqBpQwQ/akAn/pAA==",
+                        "timelock": 0
+                    },
+    }
+  ]
   "transactionids": [
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -3508,37 +4736,51 @@ Address that is receiving the funds.
 }
 ```
 **transactionids**  
-Array of IDs of the transactions that were created when sending the coins. The last transaction contains the output headed to the 'destination'. Transaction IDs are 64 character long hex strings.  
+Array of transactions that were created when sending the funds. The last
+transaction contains the output headed to the 'destination'. Transaction IDs are
+64 character long hex strings.  
+
+**transactionids**  
+Array of IDs of the transactions that were created when sending the coins.
 
 ## /wallet/siagkey [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "encryptionpassword=<password>&keyfiles=/file1,/home/file2" "localhost:9980/wallet/siagkey"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "encryptionpassword=<password>&keyfiles=/file1,/home/file2" "localhost:4280/wallet/siagkey"
 ```
 
-Loads a key into the wallet that was generated by siag. Most siafunds are currently in addresses created by siag.
+Loads a key into the wallet that was generated by siag. Most siafunds are
+currently in addresses created by siag.
 
 ### Query String Parameters
-#### REQUIRED
+### REQUIRED
 **encryptionpassword**  
 Key that is used to encrypt the siag key when it is imported to the wallet.  
 
 **keyfiles**  
-List of filepaths that point to the keyfiles that make up the siag key. There should be at least one keyfile per required signature. The filenames need to be commna separated (no spaces), which means filepaths that contain a comma are not allowed.  
+List of filepaths that point to the keyfiles that make up the siag key. There
+should be at least one keyfile per required signature. The filenames need to be
+comma separated (no spaces), which means filepaths that contain a comma are not
+allowed.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /wallet/sign [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:9980/wallet/sign"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:4280/wallet/sign"
 ```
 
-Signs a transaction. The wallet will attempt to sign each input specified. The transaction's TransactionSignatures should be complete except for the Signature field. If `tosign` is provided, the wallet will attempt to fill in signatures for each TransactionSignature specified. If `tosign` is not provided, the wallet will add signatures for every TransactionSignature that it has keys for.
+Signs a transaction. The wallet will attempt to sign each input specified. The
+transaction's TransactionSignatures should be complete except for the Signature
+field. If `tosign` is provided, the wallet will attempt to fill in signatures
+for each TransactionSignature specified. If `tosign` is not provided, the wallet
+will add signatures for every TransactionSignature that it has keys for.
 
 ### Request Body
 > Request Body Example
@@ -3628,30 +4870,34 @@ Signs a transaction. The wallet will attempt to sign each input specified. The t
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "seed=<seed>" "localhost:9980/wallet/sweep/seed"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "seed=<seed>" "localhost:4280/wallet/sweep/seed"
 ```
 
-Scans the blockchain for outputs belonging to a seed and send them to an address owned by the wallet.
+Scans the blockchain for outputs belonging to a seed and send them to an address
+owned by the wallet.
 
 ### Query String Parameters
-#### REQUIRED
-**seed** | string
-Dictionary-encoded phrase that corresponds to the seed being added to the wallet.  
+### REQUIRED
+**seed** | string  
+Dictionary-encoded phrase that corresponds to the seed being added to the
+wallet.  
 
-#### OPTIONAL
+### OPTIONAL
 **dictionary** | string  
-Name of the dictionary that should be used when decoding the seed. 'english' is the most common choice when picking a dictionary.  
+Name of the dictionary that should be used when decoding the seed. 'english' is
+the most common choice when picking a dictionary.  
 
 ### JSON Response
  > JSON  Response Example
 ```go
 {
-  "coins": "123456", // hastings, big int
-  "funds": "1",      // siafunds, big int
+"coins": "123456", // hastings, big int
+"funds": "1",      // siafunds, big int
 }
 ```
 **coins** | hastings, big int  
-Number of siacoins, in hastings, transferred to the wallet as a result of the sweep.  
+Number of siacoins, in hastings, transferred to the wallet as a result of the
+sweep.  
 
 **funds** | siafunds, big int  
 Number of siafunds transferred to the wallet as a result of the sweep.  
@@ -3660,27 +4906,31 @@ Number of siafunds transferred to the wallet as a result of the sweep.
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> -X POST "localhost:9980/wallet/lock"
+curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/wallet/lock"
 ```
 
-Locks the wallet, wiping all secret keys. After being locked, the keys are encrypted. Queries for the seed, to send siafunds, and related queries become unavailable. Queries concerning transaction history and balance are still available.
+Locks the wallet, wiping all secret keys. After being locked, the keys are
+encrypted. Queries for the seed, to send siafunds, and related queries become
+unavailable. Queries concerning transaction history and balance are still
+available.
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /wallet/transaction/:*id* [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/wallet/transaction/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
+curl -A "SiaPrime-Agent" "localhost:4280/wallet/transaction/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
 ```
 
 Gets the transaction associated with a specific transaction id.
 
 ### Path Parameters
-#### REQUIRED
-**id** | hash
+### REQUIRED
+**id** | hash  
 ID of the transaction being requested.  
 
 ### JSON Response
@@ -3718,18 +4968,23 @@ ID of the transaction being requested.
 }
 ```
 **transaction**  
-Raw transaction. The rest of the fields in the resposne are determined from this raw transaction. It is left undocumented here as the processed transaction (the rest of the fields in this object) are usually what is desired.  
+Raw transaction. The rest of the fields in the resposne are determined from this
+raw transaction. It is left undocumented here as the processed transaction (the
+rest of the fields in this object) are usually what is desired.  
 
-See types.Transaction in https://gitlab.com/NebulousLabs/Sia/blob/master/types/transactions.go  
+See types.Transaction in
+https://gitlab.com/NebulousLabs/Sia/blob/master/types/transactions.go  
 
 **transactionid**  
 ID of the transaction from which the wallet transaction was derived.  
 
 **confirmationheight**  
-Block height at which the transaction was confirmed. If the transaction is unconfirmed the height will be the max value of an unsigned 64-bit integer.  
+Block height at which the transaction was confirmed. If the transaction is
+unconfirmed the height will be the max value of an unsigned 64-bit integer.  
 
 **confirmationtimestamp**  
-Time, in unix time, at which a transaction was confirmed. If the transaction is unconfirmed the timestamp will be the max value of an unsigned 64-bit integer.  
+Time, in unix time, at which a transaction was confirmed. If the transaction is
+unconfirmed the timestamp will be the max value of an unsigned 64-bit integer.  
 
 **inputs**  
 Array of processed inputs detailing the inputs to the transaction.  
@@ -3738,38 +4993,52 @@ Array of processed inputs detailing the inputs to the transaction.
 The id of the output being spent.  
 
 **fundtype**  
-Type of fund represented by the input. Possible values are 'siacoin input' and 'siafund input'.  
+Type of fund represented by the input. Possible values are 'siacoin input' and
+'siafund input'.  
 
 **walletaddress** | Boolean  
 true if the address is owned by the wallet.  
 
 **relatedaddress**  
-Address that is affected. For inputs (outgoing money), the related address is usually not important because the wallet arbitrarily selects which addresses will fund a transaction.  
+Address that is affected. For inputs (outgoing money), the related address is
+usually not important because the wallet arbitrarily selects which addresses
+will fund a transaction.  
 
 **value** | hastings or siafunds, depending on fundtype, big int  
 Amount of funds that have been moved in the input.  
 
 **outputs**  
-Array of processed outputs detailing the outputs of the transaction. Outputs related to file contracts are excluded.  
+Array of processed outputs detailing the outputs of the transaction. Outputs
+related to file contracts are excluded.  
 
 **id**  
 The id of the output that was created.  
 
 **fundtype**  
-Type of fund is represented by the output. Possible values are 'siacoin output', 'siafund output', 'claim output', and 'miner payout'. Siacoin outputs and claim outputs both relate to siacoins.  
+Type of fund is represented by the output. Possible values are 'siacoin output',
+'siafund output', 'claim output', and 'miner payout'. Siacoin outputs and claim
+outputs both relate to siacoins.  
 
 Siafund outputs relate to siafunds.  
 
-Miner payouts point to siacoins that have been spent on a miner payout. Because the destination of the miner payout is determined by the block and not the transaction, the data 'maturityheight', 'walletaddress', and 'relatedaddress' areleft blank.  
+Miner payouts point to siacoins that have been spent on a miner payout. Because
+the destination of the miner payout is determined by the block and not the
+transaction, the data 'maturityheight', 'walletaddress', and 'relatedaddress'
+areleft blank.  
 
 **maturityheight**  
-Block height the output becomes available to be spent. Siacoin outputs and siafund outputs mature immediately - their maturity height will always be the confirmation height of the transaction. Claim outputs cannot be spent until they have had 144 confirmations, thus the maturity height of a claim output will always be 144 larger than the confirmation height of the transaction.  
+Block height the output becomes available to be spent. Siacoin outputs and
+siafund outputs mature immediately - their maturity height will always be the
+confirmation height of the transaction. Claim outputs cannot be spent until they
+have had 144 confirmations, thus the maturity height of a claim output will
+always be 144 larger than the confirmation height of the transaction.  
 
 **walletaddress** | boolean  
 true if the address is owned by the wallet.  
 
 **relatedaddress**  
-Address that is affected. For outputs (incoming money), the related address field can be used to determine who has sent money to the wallet.  
+Address that is affected. For outputs (incoming money), the related address
+field can be used to determine who has sent money to the wallet.  
 
 **value** | hastings or siafunds, depending on fundtype, big int  
 Amount of funds that have been moved in the output.  
@@ -3778,18 +5047,20 @@ Amount of funds that have been moved in the output.
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/wallet/transactions"
+curl -A "SiaPrime-Agent" "localhost:4280/wallet/transactions"
 ```
 
 Returns a list of transactions related to the wallet in chronological order.
 
 ### Query String Parameters
-#### REQUIRED
+### REQUIRED
 **startheight** | block height  
-// Height of the block where transaction history should begin.
+Height of the block where transaction history should begin.
 
 **endheight** | block height  
-Height of of the block where the transaction history should end. If 'endheight' is greater than the current height, or if it is '-1', all transactions up to and including the most recent block will be provided.
+Height of of the block where the transaction history should end. If 'endheight'
+is greater than the current height, or if it is '-1', all transactions up to and
+including the most recent block will be provided.
 
 ### JSON Response
 > JSON Response Example
@@ -3809,7 +5080,8 @@ Height of of the block where the transaction history should end. If 'endheight' 
 }
 ```
 **confirmedtransactions**  
-All of the confirmed transactions appearing between height 'startheight' and height 'endheight' (inclusive).  
+All of the confirmed transactions appearing between height 'startheight' and
+height 'endheight' (inclusive).  
 
 See the documentation for '/wallet/transaction/:id' for more information.  
 
@@ -3822,14 +5094,14 @@ See the documentation for '/wallet/transaction/:id' for more information.
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/wallet/transactions/abf1ba4ad65820ce2bd5d63466b8555d0ec9bfe5f5fa920b4fef6ad98f443e2809e5ae619b74"
+curl -A "SiaPrime-Agent" "localhost:4280/wallet/transactions/abf1ba4ad65820ce2bd5d63466b8555d0ec9bfe5f5fa920b4fef6ad98f443e2809e5ae619b74"
 ```
 
 Returns all of the transactions related to a specific address.
 
 ### Path Parameters
-#### REQUIRED
-**addr** | hash
+### REQUIRED
+**addr** | hash  
 Unlock hash (i.e. wallet address) whose transactions are being requested.  
 
 ### JSON Response
@@ -3853,32 +5125,35 @@ See the documentation for '/wallet/transaction/:id' for more information.
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "encryptionpassword=<password>" "localhost:9980/wallet/unlock"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "encryptionpassword=<password>" "localhost:4280/wallet/unlock"
 ```
 
-Unlocks the wallet. The wallet is capable of knowing whether the correct password was provided.
+Unlocks the wallet. The wallet is capable of knowing whether the correct
+password was provided.
 
 ### Query String Parameters
-#### REQUIRED
+### REQUIRED
 **encryptionpassword** | string  
-Password that gets used to decrypt the file. Most frequently, the encryption password is the same as the primary wallet seed.  
+Password that gets used to decrypt the file. Most frequently, the encryption
+password is the same as the primary wallet seed.  
 
 ### Response
 
-standard success or error response. See [standard responses](#standard-responses).
+standard success or error response. See [standard
+responses](#standard-responses).
 
 ## /wallet/unlockconditions/:addr [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/unlockconditions/2d6c6d705c80f17448d458e47c3fb1a02a24e018a82d702cda35262085a3167d98cc7a2ba339"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/unlockconditions/2d6c6d705c80f17448d458e47c3fb1a02a24e018a82d702cda35262085a3167d98cc7a2ba339"
 ```
 
 Returns the unlock conditions of :addr, if they are known to the wallet.
 
 ### Path Parameters
-#### REQUIRED
-**addr** | hash
+### REQUIRED
+**addr** | hash  
 Unlock hash (i.e. wallet address) whose transactions are being requested.  
 
 ### JSON Response
@@ -3902,14 +5177,14 @@ The minimum blockheight required.
 **signaturesrequired**  
 The number of signatures required.  
 
-**publickeys**  
+**publickeys** | SiaPublicKey  
 The set of keys whose signatures count towards signaturesrequired.  
 
 ## /wallet/unspent [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/unspent"
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/unspent"
 ```
 
 Returns a list of outputs that the wallet can spend.
@@ -3941,13 +5216,15 @@ The id of the output.
 Type of output, either 'siacoin output' or 'siafund output'.  
 
 **confirmationheight**  
-Height of block in which the output appeared. To calculate the number of confirmations, subtract this number from the current block height.  
+Height of block in which the output appeared. To calculate the number of
+confirmations, subtract this number from the current block height.  
 
 **unlockhash**  
 Hash of the output's unlock conditions, commonly known as the "address".  
 
 **value** | big int  
-Amount of funds in the output; hastings for siacoin outputs, and siafunds for siafund outputs.  
+Amount of funds in the output; hastings for siacoin outputs, and siafunds for
+siafund outputs.  
 
 **iswatchonly** | Boolean  
 Whether the output comes from a watched address or from the wallet's seed.  
@@ -3956,14 +5233,15 @@ Whether the output comes from a watched address or from the wallet's seed.
 > curl example  
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/wallet/verify/address/75d9a7351022681ba3539d7e0c5699d143ab5a7747604998cace1299ab6c04c5ea2aa2e87aac"
+curl -A "SiaPrime-Agent" "localhost:4280/wallet/verify/address/75d9a7351022681ba3539d7e0c5699d143ab5a7747604998cace1299ab6c04c5ea2aa2e87aac"
 ```
 
-Takes the address specified by :addr and returns a JSON response indicating if the address is valid.
+Takes the address specified by :addr and returns a JSON response indicating if
+the address is valid.
 
 ### Path Parameters
-#### REQUIRED
-**addr** | hash
+### REQUIRED
+**addr** | hash  
 Unlock hash (i.e. wallet address) whose transactions are being requested.  
 
 ### JSON Response
@@ -3971,68 +5249,95 @@ Unlock hash (i.e. wallet address) whose transactions are being requested.
 
 ```go
 {
-	"valid": true
+  "valid": true
 }
 ```
 **valid**  
 valid indicates if the address supplied to :addr is a valid UnlockHash.  
 
-## /wallet/watch [GET]
+## /wallet/verifypassword [GET]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/wallet/watch"
+curl -A "SiaPrime-Agent" "localhost:4280/wallet/verifypassword?password=<password>"
 ```
 
-Returns the set of addresses that the wallet is watching. This set only includes addresses that were explicitly requested to be watched; addresses that were generated automatically by the wallet, or by /wallet/address, are not included.
+Takes a password and verifies if it is the password used to encrypt the wallet.
+
+### Path Parameters
+#### REQUIRED
+**password** | string  
+Password being checked.  
 
 ### JSON Response
 > JSON Response Example
 
 ```go
 {
-  "addresses": [
+  "valid": true,
+}
+```
+**valid** | boolean  
+valid indicates if the password supplied is the password used to encrypt the
+wallet.  
+
+## /wallet/watch [GET]
+> curl example  
+
+```go
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/watch"
+```
+
+Returns the set of addresses that the wallet is watching. This set only includes
+addresses that were explicitly requested to be watched; addresses that were
+generated automatically by the wallet, or by /wallet/address, are not included.
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+  "addresses": [ // []hash
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "abcdef0123456789abcdef0123456789abcd1234567890ef0123456789abcdef"
   ]
 }
 ```
-**addresses**  
+**addresses** | hashes  
 The addresses currently watched by the wallet.  
 
 ## /wallet/watch [POST]
 > curl example  
 
 ```go
-curl -A "Sia-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:9980/wallet/watch"
+curl -A "SiaPrime-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:4280/wallet/watch"
 ```
+
+Update the set of addresses for the wallet to watch.
 
 ### Request Body
 > Request Body Example
 
 ```go
 {
-  // The addresses to add or remove from the current set.
-  "addresses": [
+  "addresses": [    // []hash
     "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "abcdef0123456789abcdef0123456789abcd1234567890ef0123456789abcdef"
   ],
-
-  // If true, remove the addresses instead of adding them.
-  "remove": false,
-
-  // If true, the wallet will not rescan the blockchain. Only set this flag if
-  // the addresses have never appeared in the blockchain.
-  "unused": true,
+  "remove": false,  // boolean
+  "unused": true,   // boolean
 ```
+
+**addresses** | hashes  
+The addresses to add or remove from the current set.
+
+**remove** | boolean  
+If true, remove the addresses instead of adding them.
+
+**unused** | boolean  
+If true, the wallet will not rescan the blockchain. Only set this flag if the
+addresses have never appeared in the blockchain.
 
 ### Response
 
 standard success or error response. See [standard responses](#standard-responses).
-
-# Version
-<<<<<<< HEAD
-<a href='https://sia.tech/docs/v140'>**v140**
-=======
-<a href='https://sia.tech/docs/v140'>**v140**
->>>>>>> siaprime/master

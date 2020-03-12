@@ -8,18 +8,17 @@ import (
 
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 var (
-	errDoSBlock        = errors.New("block is known to be invalid")
-	errInconsistentSet = errors.New("consensus set is not in a consistent state")
-	errNoBlockMap      = errors.New("block map is not in database")
-	errNonLinearChain  = errors.New("block set is not a contiguous chain")
-	errOrphan          = errors.New("block has no known parent")
+	errDoSBlock       = errors.New("block is known to be invalid")
+	errNoBlockMap     = errors.New("block map is not in database")
+	errNonLinearChain = errors.New("block set is not a contiguous chain")
+	errOrphan         = errors.New("block has no known parent")
 )
 
 // managedBroadcastBlock will broadcast a block to the consensus set's peers.
@@ -259,7 +258,10 @@ func (cs *ConsensusSet) managedAcceptBlocks(blocks []types.Block) (blockchainExt
 	setErr := cs.db.Update(func(tx *bolt.Tx) error {
 		for i := 0; i < len(blocks); i++ {
 			// Start by checking the header of the block.
+			startTime := time.Now()
 			parent, err := cs.validateHeaderAndBlock(boltTxWrapper{tx}, blocks[i], blockIDs[i])
+			cs.log.Debugf("validateHeaderAndBlock time: %v", time.Since(startTime).Round(time.Millisecond))
+
 			if err == modules.ErrBlockKnown {
 				// Skip over known blocks.
 				continue
@@ -273,7 +275,10 @@ func (cs *ConsensusSet) managedAcceptBlocks(blocks []types.Block) (blockchainExt
 			}
 
 			// Try adding the block to consensus.
+			addBlockTreeStartTime := time.Now()
 			changeEntry, err := cs.addBlockToTree(tx, blocks[i], parent)
+			cs.log.Debugf("Total validation time: %v", time.Since(startTime).Round(time.Millisecond))
+			cs.log.Debugf("addBlockToTreeTime time: %v", time.Since(addBlockTreeStartTime).Round(time.Millisecond))
 			if err == nil {
 				changes = append(changes, changeEntry)
 				chainExtended = true
@@ -289,6 +294,7 @@ func (cs *ConsensusSet) managedAcceptBlocks(blocks []types.Block) (blockchainExt
 				err = nil
 			}
 			if err != nil {
+				cs.log.Debugln("addBlockToTree error: ", err)
 				return err
 			}
 			// Sanity check - we should never apply fewer blocks than we revert.

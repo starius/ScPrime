@@ -10,18 +10,19 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
-	"gitlab.com/SiaPrime/SiaPrime/modules/host"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb"
-	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
-	modWallet "gitlab.com/SiaPrime/SiaPrime/modules/wallet"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/consensus"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/modules/host"
+	"gitlab.com/scpcorp/ScPrime/modules/miner"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
+	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
+	modWallet "gitlab.com/scpcorp/ScPrime/modules/wallet"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // newTestingWallet is a helper function that creates a ready-to-use wallet
@@ -70,7 +71,7 @@ func newTestingHost(testdir string, cs modules.ConsensusSet, tp modules.Transact
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.New(cs, g, tp, w, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := host.NewCustomHost(modules.ProdDependencies, cs, g, tp, w, "localhost:0", filepath.Join(testdir, modules.HostDir))
 	if err != nil {
 		return nil, err
 	}
@@ -105,15 +106,16 @@ func newTestingContractor(testdir string, g modules.Gateway, cs modules.Consensu
 	if err != nil {
 		return nil, err
 	}
-	hdb, err := hostdb.New(g, cs, tp, filepath.Join(testdir, "hostdb"))
-	if err != nil {
+	hdb, errChan := hostdb.New(g, cs, tp, filepath.Join(testdir, "hostdb"))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
-	return New(cs, w, tp, hdb, filepath.Join(testdir, "contractor"))
+	contractor, errChan := New(cs, w, tp, hdb, filepath.Join(testdir, "contractor"))
+	return contractor, <-errChan
 }
 
-// newTestingTrio creates a Host, Contractor, and TestMiner that can be used
-// for testing host/renter interactions.
+// newTestingTrio creates a Host, Contractor, and TestMiner that can be
+// used for testing host/renter interactions.
 func newTestingTrio(name string) (modules.Host, *Contractor, modules.TestMiner, error) {
 	testdir := build.TempDir("contractor", name)
 
@@ -122,8 +124,8 @@ func newTestingTrio(name string) (modules.Host, *Contractor, modules.TestMiner, 
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		return nil, nil, nil, err
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -177,11 +179,25 @@ func newTestingTrio(name string) (modules.Host, *Contractor, modules.TestMiner, 
 	}
 
 	// wait for hostdb to scan host
-	for i := 0; i < 50 && len(c.hdb.ActiveHosts()) == 0; i++ {
-		time.Sleep(time.Millisecond * 100)
-	}
-	if len(c.hdb.ActiveHosts()) == 0 {
-		return nil, nil, nil, errors.New("host did not make it into the contractor hostdb in time")
+	err = build.Retry(100, 100*time.Millisecond, func() error {
+		activeHosts, err := c.hdb.ActiveHosts()
+		if err != nil {
+			return err
+		}
+		if len(activeHosts) == 0 {
+			return errors.New("no active hosts")
+		}
+		complete, scanCheckErr := c.hdb.InitialScanComplete()
+		if scanCheckErr != nil {
+			return scanCheckErr
+		}
+		if !complete {
+			return errors.New("initial scan not complete")
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	return h, c, m, nil
@@ -207,7 +223,10 @@ func TestIntegrationFormContract(t *testing.T) {
 	defer c.maintenanceLock.Unlock()
 
 	// get the host's entry from the db
-	hostEntry, ok := c.hdb.Host(h.PublicKey())
+	hostEntry, ok, err := c.hdb.Host(h.PublicKey())
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !ok {
 		t.Fatal("no entry for host in db")
 	}
@@ -240,7 +259,10 @@ func TestFormContractSmallAllowance(t *testing.T) {
 	defer c.Close()
 
 	// get the host's entry from the db
-	hostEntry, ok := c.hdb.Host(h.PublicKey())
+	hostEntry, ok, err := c.hdb.Host(h.PublicKey())
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !ok {
 		t.Fatal("no entry for host in db")
 	}
@@ -283,7 +305,10 @@ func TestIntegrationReviseContract(t *testing.T) {
 	defer c.maintenanceLock.Unlock()
 
 	// get the host's entry from the db
-	hostEntry, ok := c.hdb.Host(h.PublicKey())
+	hostEntry, ok, err := c.hdb.Host(h.PublicKey())
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !ok {
 		t.Fatal("no entry for host in db")
 	}
@@ -332,7 +357,10 @@ func TestIntegrationUploadDownload(t *testing.T) {
 	defer c.Close()
 
 	// get the host's entry from the db
-	hostEntry, ok := c.hdb.Host(h.PublicKey())
+	hostEntry, ok, err := c.hdb.Host(h.PublicKey())
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !ok {
 		t.Fatal("no entry for host in db")
 	}
@@ -390,7 +418,7 @@ func TestIntegrationRenew(t *testing.T) {
 	}
 	t.Parallel()
 	// create testing trio
-	h, c, _, err := newTestingTrio(t.Name())
+	h, c, m, err := newTestingTrio(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -401,12 +429,20 @@ func TestIntegrationRenew(t *testing.T) {
 	if err := c.SetAllowance(modules.DefaultAllowance); err != nil {
 		t.Fatal(err)
 	}
-	if err := build.Retry(10, time.Second, func() error {
+	numRetries := 0
+	err = build.Retry(100, 100*time.Millisecond, func() error {
+		if numRetries%10 == 0 {
+			if _, err := m.AddBlock(); err != nil {
+				return err
+			}
+		}
+		numRetries++
 		if len(c.Contracts()) == 0 {
 			return errors.New("no contracts were formed")
 		}
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
 	// get the contract
@@ -429,7 +465,7 @@ func TestIntegrationRenew(t *testing.T) {
 	}
 
 	// renew the contract
-	err = c.managedUpdateContractUtility(contract.ID, modules.ContractUtility{GoodForRenew: true})
+	err = c.managedAcquireAndUpdateContractUtility(contract.ID, modules.ContractUtility{GoodForRenew: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -466,7 +502,7 @@ func TestIntegrationRenew(t *testing.T) {
 	}
 
 	// renew to a lower height
-	err = c.managedUpdateContractUtility(contract.ID, modules.ContractUtility{GoodForRenew: true})
+	err = c.managedAcquireAndUpdateContractUtility(contract.ID, modules.ContractUtility{GoodForRenew: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -506,7 +542,7 @@ func TestIntegrationDownloaderCaching(t *testing.T) {
 	}
 	t.Parallel()
 	// create testing trio
-	h, c, _, err := newTestingTrio(t.Name())
+	h, c, m, err := newTestingTrio(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -518,6 +554,10 @@ func TestIntegrationDownloaderCaching(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := build.Retry(10, time.Second, func() error {
+		_, err := m.AddBlock()
+		if err != nil {
+			return err
+		}
 		if len(c.Contracts()) == 0 {
 			return errors.New("no contracts were formed")
 		}
@@ -602,18 +642,26 @@ func TestIntegrationEditorCaching(t *testing.T) {
 	}
 	t.Parallel()
 	// create testing trio
-	h, c, _, err := newTestingTrio(t.Name())
+	h, c, m, err := newTestingTrio(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer h.Close()
 	defer c.Close()
+	defer m.Close()
 
 	// set an allowance and wait for a contract to be formed.
 	if err := c.SetAllowance(modules.DefaultAllowance); err != nil {
 		t.Fatal(err)
 	}
-	if err := build.Retry(10, time.Second, func() error {
+	numRetries := 0
+	if err := build.Retry(2000, 100*time.Millisecond, func() error {
+		if numRetries%10 == 0 {
+			if _, err := m.AddBlock(); err != nil {
+				return err
+			}
+		}
+		numRetries++
 		if len(c.Contracts()) == 0 {
 			return errors.New("no contracts were formed")
 		}
@@ -691,7 +739,7 @@ func TestIntegrationEditorCaching(t *testing.T) {
 
 // TestContractPresenceLeak tests that a renter can not tell from the response
 // of the host to RPCs if the host has the contract if the renter doesn't
-// own this contract. See https://gitlab.com/SiaPrime/SiaPrime/issues/2327.
+// own this contract. See https://gitlab.com/scpcorp/ScPrime/issues/2327.
 func TestContractPresenceLeak(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -706,7 +754,10 @@ func TestContractPresenceLeak(t *testing.T) {
 	defer c.Close()
 
 	// get the host's entry from the db
-	hostEntry, ok := c.hdb.Host(h.PublicKey())
+	hostEntry, ok, err := c.hdb.Host(h.PublicKey())
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !ok {
 		t.Fatal("no entry for host in db")
 	}

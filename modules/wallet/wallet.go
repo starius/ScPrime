@@ -9,17 +9,17 @@ import (
 	"sort"
 	"sync"
 
-	bolt "github.com/coreos/bbolt"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/threadgroup"
+	bolt "go.etcd.io/bbolt"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (
@@ -27,7 +27,7 @@ const (
 	// before spending an output that has been spent in the past. If the
 	// transaction spending the output has not made it to the transaction pool
 	// after the limit, the assumption is that it never will.
-	RespendTimeout = 40
+	RespendTimeout = 100
 )
 
 var (
@@ -295,4 +295,14 @@ func (w *Wallet) SetSettings(s modules.WalletSettings) error {
 	w.defragDisabled = s.NoDefrag
 	w.mu.Unlock()
 	return nil
+}
+
+// managedCanSpendUnlockHash returns true if and only if the the wallet has keys to spend from
+// outputs with the given unlockHash.
+func (w *Wallet) managedCanSpendUnlockHash(unlockHash types.UnlockHash) bool {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+
+	_, isSpendable := w.keys[unlockHash]
+	return isSpendable
 }

@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	"gitlab.com/SiaPrime/SiaPrime/node"
+	"gitlab.com/scpcorp/ScPrime/node"
 )
 
 // createNodeParams parses the provided config and creates the corresponding

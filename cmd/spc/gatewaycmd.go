@@ -3,11 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 var (
@@ -23,6 +24,52 @@ var (
 		Short: "Perform gateway actions",
 		Long:  "View and manage the gateway's connected peers.",
 		Run:   wrap(gatewaycmd),
+	}
+
+	gatewayBlacklistCmd = &cobra.Command{
+		Use:   "blacklist",
+		Short: "View and manage the gateway's blacklisted peers",
+		Long:  "Display and manage the peers currently on the gateway blacklist.",
+		Run:   wrap(gatewayblacklistcmd),
+	}
+
+	gatewayBlacklistAppendCmd = &cobra.Command{
+		Use:   "append [ip] [ip] [ip] [ip]...",
+		Short: "Adds new ip address(es) to the gateway blacklist.",
+		Long: `Adds new ip address(es) to the gateway blacklist.
+Accepts a list of ip addresses or domain names as individual inputs.
+
+For example: siac gateway blacklist append 123.123.123.123 111.222.111.222 mysiahost.duckdns.org`,
+		Run: gatewayblacklistappendcmd,
+	}
+
+	gatewayBlacklistClearCmd = &cobra.Command{
+		Use:   "clear",
+		Short: "Clear the blacklisted peers list",
+		Long: `Clear the blacklisted peers list.
+	
+	For example: siac gateway blacklist clear`,
+		Run: gatewayblacklistclearcmd,
+	}
+
+	gatewayBlacklistRemoveCmd = &cobra.Command{
+		Use:   "remove [ip] [ip] [ip] [ip]...",
+		Short: "Remove ip address(es) from the gateway blacklist.",
+		Long: `Remove ip address(es) from the gateway blacklist.
+Accepts a list of ip addresses or domain names as individual inputs.
+
+For example: siac gateway blacklist remove 123.123.123.123 111.222.111.222 mysiahost.duckdns.org`,
+		Run: gatewayblacklistremovecmd,
+	}
+
+	gatewayBlacklistSetCmd = &cobra.Command{
+		Use:   "set [ip] [ip] [ip] [ip]...",
+		Short: "Set the gateway's blacklist",
+		Long: `Set the gateway's blacklist.
+Accepts a list of ip addresses or domain names as individual inputs.
+
+For example: siac gateway blacklist set 123.123.123.123 111.222.111.222 mysiahost.duckdns.org`,
+		Run: gatewayblacklistsetcmd,
 	}
 
 	gatewayConnectCmd = &cobra.Command{
@@ -49,8 +96,11 @@ var (
 	gatewayRatelimitCmd = &cobra.Command{
 		Use:   "ratelimit [maxdownloadspeed] [maxuploadspeed]",
 		Short: "set maxdownloadspeed and maxuploadspeed",
-		Long: `Set the maxdownloadspeed and maxuploadspeed in bytes-per-second
-(B/s).  Set them to 0 for no limit.`,
+		Long: `Set the maxdownloadspeed and maxuploadspeed in 
+Bytes per second: B/s, KB/s, MB/s, GB/s, TB/s
+or
+Bits per second: Bps, Kbps, Mbps, Gbps, Tbps
+Set them to 0 for no limit.`,
 		Run: wrap(gatewayratelimitcmd),
 	}
 )
@@ -98,6 +148,79 @@ func gatewaycmd() {
 	fmt.Println("Max upload speed:", info.MaxUploadSpeed)
 }
 
+// gatewayblacklistcmd is the handler for the command `siac gateway blacklist`
+// Prints the ip addresses on the gateway blacklist
+func gatewayblacklistcmd() {
+	gbg, err := httpClient.GatewayBlacklistGet()
+	if err != nil {
+		die("Could not get gateway blacklist", err)
+	}
+	fmt.Println(len(gbg.Blacklist), "ip addresses currently on the gateway blacklist")
+	for _, ip := range gbg.Blacklist {
+		fmt.Println(ip)
+	}
+
+}
+
+// gatewayblacklistappendcmd is the handler for the command
+// `siac gateway blacklist append`
+// Adds one or more new ip addresses to the gateway's blacklist
+func gatewayblacklistappendcmd(cmd *cobra.Command, addresses []string) {
+	if len(addresses) == 0 {
+		fmt.Println("No IP addresses submitted to append")
+		cmd.UsageFunc()(cmd)
+		os.Exit(exitCodeUsage)
+	}
+	err := httpClient.GatewayAppendBlacklistPost(addresses)
+	if err != nil {
+		die("Could not append the ip addresses(es) to the gateway blacklist", err)
+	}
+	fmt.Println(addresses, "successfully added to the gateway blacklist")
+}
+
+// gatewayblacklistclearcmd is the handler for the command
+// `siac gateway blacklist clear`
+// Clears the gateway blacklist
+func gatewayblacklistclearcmd(cmd *cobra.Command, addresses []string) {
+	err := httpClient.GatewaySetBlacklistPost(addresses)
+	if err != nil {
+		die("Could not clear the gateway blacklist", err)
+	}
+	fmt.Println("successfully cleared the gateway blacklist")
+}
+
+// gatewayblacklistremovecmd is the handler for the command
+// `siac gateway blacklist remove`
+// Removes one or more ip addresses from the gateway's blacklist
+func gatewayblacklistremovecmd(cmd *cobra.Command, addresses []string) {
+	if len(addresses) == 0 {
+		fmt.Println("No IP addresses submitted to remove")
+		cmd.UsageFunc()(cmd)
+		os.Exit(exitCodeUsage)
+	}
+	err := httpClient.GatewayRemoveBlacklistPost(addresses)
+	if err != nil {
+		die("Could not remove the ip address(es) from the gateway blacklist", err)
+	}
+	fmt.Println(addresses, "was successfully removed from the gateway blacklist")
+}
+
+// gatewayblacklistsetcmd is the handler for the command
+// `siac gateway blacklist set`
+// Sets the gateway blacklist to the ip addresses passed in
+func gatewayblacklistsetcmd(cmd *cobra.Command, addresses []string) {
+	if len(addresses) == 0 {
+		fmt.Println("No IP addresses submitted")
+		cmd.UsageFunc()(cmd)
+		os.Exit(exitCodeUsage)
+	}
+	err := httpClient.GatewaySetBlacklistPost(addresses)
+	if err != nil {
+		die("Could not set the gateway blacklist", err)
+	}
+	fmt.Println(addresses, "was successfully set as the gateway blacklist")
+}
+
 // gatewaylistcmd is the handler for the command `siac gateway list`.
 // Prints a list of all peers.
 func gatewaylistcmd() {
@@ -122,13 +245,13 @@ func gatewaylistcmd() {
 // sets the maximum upload & download bandwidth the gateway module is permitted
 // to use.
 func gatewayratelimitcmd(downloadSpeedStr, uploadSpeedStr string) {
-	downloadSpeedInt, err := strconv.ParseInt(downloadSpeedStr, 10, 64)
+	downloadSpeedInt, err := parseRatelimit(downloadSpeedStr)
 	if err != nil {
-		die("Could not parse downloadspeed")
+		die(errors.AddContext(err, "unable to parse download speed"))
 	}
-	uploadSpeedInt, err := strconv.ParseInt(uploadSpeedStr, 10, 64)
+	uploadSpeedInt, err := parseRatelimit(uploadSpeedStr)
 	if err != nil {
-		die("Could not parse uploadspeed")
+		die(errors.AddContext(err, "unable to parse upload speed"))
 	}
 
 	err = httpClient.GatewayRateLimitPost(downloadSpeedInt, uploadSpeedInt)

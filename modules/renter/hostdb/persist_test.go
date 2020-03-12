@@ -1,12 +1,16 @@
 package hostdb
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
+	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 )
 
@@ -71,7 +75,7 @@ func TestSaveLoad(t *testing.T) {
 	// Save, close, and reload.
 	hdbt.hdb.mu.Lock()
 	hdbt.hdb.lastChange = modules.ConsensusChangeID{1, 2, 3}
-	hdbt.hdb.SetIPViolationCheck(false)
+	hdbt.hdb.SetIPRestriction(0)
 	stashedLC := hdbt.hdb.lastChange
 	hdbt.hdb.filteredHosts = filteredHosts
 	hdbt.hdb.filterMode = filterMode
@@ -84,21 +88,29 @@ func TestSaveLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	hdbt.hdb, err = NewCustomHostDB(hdbt.gateway, hdbt.cs, hdbt.tpool, filepath.Join(hdbt.persistDir, modules.RenterDir), &quitAfterLoadDeps{})
-	if err != nil {
+	var errChan <-chan error
+	hdbt.hdb, errChan = NewCustomHostDB(hdbt.gateway, hdbt.cs, hdbt.tpool, filepath.Join(hdbt.persistDir, modules.RenterDir), &quitAfterLoadDeps{})
+	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 
 	// Last change and disableIPViolationCheck should have been reloaded.
-	hdbt.hdb.mu.Lock()
-	lastChange := hdbt.hdb.lastChange
-	disableIPViolationCheck := !hdbt.hdb.IPViolationsCheck()
-	hdbt.hdb.mu.Unlock()
-	if lastChange != stashedLC {
-		t.Error("wrong consensus change ID was loaded:", hdbt.hdb.lastChange)
-	}
-	if disableIPViolationCheck != true {
-		t.Error("disableIPViolationCheck should've been true but was false")
+	err = build.Retry(100, 100*time.Millisecond, func() error {
+		hdbt.hdb.mu.Lock()
+		lastChange := hdbt.hdb.lastChange
+		iprestrict, _ := hdbt.hdb.IPRestriction()
+		subnetViolationCheck := iprestrict > 0
+		hdbt.hdb.mu.Unlock()
+		if lastChange != stashedLC {
+			return fmt.Errorf("wrong consensus change ID was loaded: %v", hdbt.hdb.lastChange)
+		}
+		if subnetViolationCheck != false {
+			return errors.New("IPViolationsCheck() should've returned false but was true")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Error(err)
 	}
 
 	// Check that AllHosts was loaded.

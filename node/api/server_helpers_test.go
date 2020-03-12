@@ -16,22 +16,22 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/threadgroup"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/config"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
-	"gitlab.com/SiaPrime/SiaPrime/modules/explorer"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
-	"gitlab.com/SiaPrime/SiaPrime/modules/host"
-	"gitlab.com/SiaPrime/SiaPrime/modules/index"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miningpool"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
-	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
-	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/config"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/consensus"
+	"gitlab.com/scpcorp/ScPrime/modules/explorer"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/modules/host"
+	"gitlab.com/scpcorp/ScPrime/modules/index"
+	"gitlab.com/scpcorp/ScPrime/modules/miner"
+	"gitlab.com/scpcorp/ScPrime/modules/miningpool"
+	"gitlab.com/scpcorp/ScPrime/modules/renter"
+	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
+	"gitlab.com/scpcorp/ScPrime/modules/wallet"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // A Server is a collection of siad modules that can be communicated with over
@@ -114,7 +114,7 @@ func NewServer(dir string, APIaddr string, requiredUserAgent string, requiredPas
 	}
 
 	// Load the config file.
-	cfg, err := modules.NewConfig(filepath.Join(dir, "siad.config"))
+	cfg, err := modules.NewConfig(filepath.Join(dir, modules.ConfigName))
 	if err != nil {
 		return nil, errors.AddContext(err, "failed to load siad config")
 	}
@@ -163,8 +163,8 @@ func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, 
 	if err != nil {
 		return nil, err
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -197,12 +197,11 @@ func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, 
 	if err != nil {
 		return nil, err
 	}
-	r, err := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
-	if err != nil {
+	r, errChan := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
-
 	if err != nil {
 		return nil, err
 	}
@@ -248,8 +247,8 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 	if err != nil {
 		return nil, err
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -282,11 +281,10 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 	if err != nil {
 		return nil, err
 	}
-	r, err := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
-	if err != nil {
+	r, errChan := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
-
 	var mp *pool.Pool
 	var idx *index.Index
 	if withPool {
@@ -300,7 +298,6 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 		}
 	}
 	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", requiredPassword, cs, nil, g, h, m, r, tp, w, mp, nil, idx)
-
 	if err != nil {
 		return nil, err
 	}
@@ -346,8 +343,8 @@ func assembleExplorerServerTester(testdir string) (*serverTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	e, err := explorer.New(cs, filepath.Join(testdir, modules.ExplorerDir))
@@ -443,7 +440,6 @@ func createAuthenticatedServerTester(name string, password string, withPool bool
 
 	key := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
 	st, err := assembleAuthenticatedServerTester(password, key, testdir, withPool)
-
 	if err != nil {
 		return nil, err
 	}
@@ -512,20 +508,6 @@ func (st *serverTester) reloadedServerTester() (*serverTester, error) {
 	return copyST, nil
 }
 
-// netAddress returns the NetAddress of the caller.
-func (st *serverTester) netAddress() modules.NetAddress {
-	return st.server.api.gateway.Address()
-}
-
-// coinAddress returns a coin address that the caller is able to spend from.
-func (st *serverTester) coinAddress() string {
-	var addr struct {
-		Address string
-	}
-	st.getAPI("/wallet/address", &addr)
-	return addr.Address
-}
-
 // acceptContracts instructs the host to begin accepting contracts.
 func (st *serverTester) acceptContracts() error {
 	settingsValues := url.Values{}
@@ -537,7 +519,7 @@ func (st *serverTester) acceptContracts() error {
 func (st *serverTester) setHostStorage() error {
 	values := url.Values{}
 	values.Set("path", st.dir)
-	values.Set("size", "1048576")
+	values.Set("size", "2097152") //2MiB
 	return st.stdPostAPI("/host/storage/folders/add", values)
 }
 

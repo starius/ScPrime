@@ -1,12 +1,11 @@
 package host
 
 import (
-	"bytes"
 	"net"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // announcementFinder is a quick module that parses the blockchain for host
@@ -90,7 +89,7 @@ func TestHostAnnounce(t *testing.T) {
 	if af.netAddresses[0] != ht.host.autoAddress {
 		t.Error("announcement has wrong address")
 	}
-	if !bytes.Equal(af.publicKeys[0].Key, ht.host.publicKey.Key) {
+	if !af.publicKeys[0].Equals(ht.host.publicKey) {
 		t.Error("announcement has wrong host key")
 	}
 }
@@ -133,7 +132,7 @@ func TestHostAnnounceAddress(t *testing.T) {
 	if af.netAddresses[0] != addr {
 		t.Error("announcement has wrong address")
 	}
-	if !bytes.Equal(af.publicKeys[0].Key, ht.host.publicKey.Key) {
+	if !af.publicKeys[0].Equals(ht.host.publicKey) {
 		t.Error("announcement has wrong host key")
 	}
 }

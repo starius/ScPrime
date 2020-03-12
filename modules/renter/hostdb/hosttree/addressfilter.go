@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 const (
@@ -16,19 +16,26 @@ const (
 	IPv6FilterRange = 54
 )
 
+// netEntry is used to collect information about hosts matching the Filter by
+// IP address subnet
+type netEntry struct {
+	used int
+}
+
 // Filter filters host addresses which belong to the same subnet to
 // avoid selecting hosts from the same region.
 type Filter struct {
-	filter   map[string]struct{}
-	resolver modules.Resolver
+	filter        map[string]netEntry
+	resolver      modules.Resolver
+	iprestriction int
 }
 
 // NewFilter creates a new addressFilter object.
-func NewFilter(resolver modules.Resolver) *Filter {
+func NewFilter(resolver modules.Resolver, allowedhosts int) *Filter {
 	return &Filter{
-		filter:   make(map[string]struct{}),
-		resolver: resolver,
-	}
+		filter:        make(map[string]netEntry),
+		resolver:      resolver,
+		iprestriction: allowedhosts}
 }
 
 // Add adds a host to the filter. This will resolve the hostname into one
@@ -58,7 +65,13 @@ func (af *Filter) Add(host modules.NetAddress) {
 			continue
 		}
 		// Add the subnet to the map.
-		af.filter[ipnet.String()] = struct{}{}
+		// if already in filter increase the used counter
+		if filterEntry, exists := af.filter[ipnet.String()]; exists {
+			usedcount := filterEntry.used + 1
+			af.filter[ipnet.String()] = netEntry{used: usedcount}
+		} else {
+			af.filter[ipnet.String()] = netEntry{used: 1}
+		}
 	}
 }
 
@@ -98,8 +111,8 @@ func (af *Filter) Filtered(host modules.NetAddress) bool {
 			continue
 		}
 		// Check if the subnet is in the map. If it is, we filter the host.
-		if _, exists := af.filter[ipnet.String()]; exists {
-			return true
+		if filterEntry, exists := af.filter[ipnet.String()]; exists {
+			return filterEntry.used >= af.iprestriction
 		}
 	}
 	return false
@@ -107,5 +120,5 @@ func (af *Filter) Filtered(host modules.NetAddress) bool {
 
 // Reset clears the filter's contents.
 func (af *Filter) Reset() {
-	af.filter = make(map[string]struct{})
+	af.filter = make(map[string]netEntry)
 }

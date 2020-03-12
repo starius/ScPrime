@@ -5,14 +5,15 @@ import (
 	"testing"
 
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
-	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/consensus"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/modules/miner"
+	"gitlab.com/scpcorp/ScPrime/modules/wallet"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // A tpoolTester is used during testing to initialize a transaction pool and
@@ -37,8 +38,8 @@ func blankTpoolTester(name string) (*tpoolTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		return nil, err
 	}
 	tp, err := New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
@@ -84,13 +85,31 @@ func createTpoolTester(name string) (*tpoolTester, error) {
 		return nil, err
 	}
 
+	// This prevents incorrect signature verification related
+	// failures in the tpool when it is not caught up, but receives
+	// post-ASICHardFork signatures.
+	minHeight := types.MaturityDelay
+	// This adjustment is removed because of ASICHardforkHeight is never happening in ScPrime
+	//if minHeight < types.ASICHardforkHeight {
+	//	minHeight = types.ASICHardforkHeight
+	//}
+
 	// Mine blocks until there is money in the wallet.
-	for i := types.BlockHeight(0); i <= types.MaturityDelay; i++ {
+	for i := types.BlockHeight(0); i <= minHeight; i++ {
 		b, _ := tpt.miner.FindBlock()
 		err = tpt.cs.AcceptBlock(b)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// Don't return until the tpool has synced with the consensus set with the
+	// blocks just mined.
+	var syncedToCS bool
+	for !syncedToCS {
+		tpt.tpool.mu.Lock()
+		syncedToCS = tpt.tpool.blockHeight >= minHeight
+		tpt.tpool.mu.Unlock()
 	}
 
 	return tpt, nil
@@ -123,8 +142,8 @@ func TestIntegrationNewNilInputs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cs, err := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err != nil {
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 	tpDir := filepath.Join(testdir, modules.TransactionPoolDir)

@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (
@@ -73,30 +73,4 @@ func (m *Miner) load() error {
 // saveSync saves the miner persistence to disk, and then syncs to disk.
 func (m *Miner) saveSync() error {
 	return persist.SaveJSON(settingsMetadata, m.persist, filepath.Join(m.persistDir, settingsFile))
-}
-
-// threadedSaveLoop periodically saves the miner persist.
-func (m *Miner) threadedSaveLoop() {
-	for {
-		select {
-		case <-m.tg.StopChan():
-			return
-		case <-time.After(saveLoopPeriod):
-		}
-
-		func() {
-			err := m.tg.Add()
-			if err != nil {
-				return
-			}
-			defer m.tg.Done()
-
-			m.mu.Lock()
-			err = m.saveSync()
-			m.mu.Unlock()
-			if err != nil {
-				m.log.Println("ERROR: Unable to save miner persist:", err)
-			}
-		}()
-	}
 }

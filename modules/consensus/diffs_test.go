@@ -3,9 +3,10 @@ package consensus
 import (
 	"testing"
 
-	bolt "github.com/coreos/bbolt"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
+
+	bolt "go.etcd.io/bbolt"
 )
 
 // TestCommitDelayedSiacoinOutputDiffBadMaturity commits a delayed siacoin

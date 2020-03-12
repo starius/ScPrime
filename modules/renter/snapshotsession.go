@@ -10,14 +10,14 @@ import (
 	"bytes"
 	"strings"
 
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
+
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
-
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
 )
 
 // managedDownloadSnapshotTable will fetch the snapshot table from the host.
@@ -55,10 +55,7 @@ func (r *Renter) managedDownloadSnapshotTable(session contractor.Session) ([]sna
 		// equivalent to having no entry table at all. This is not an error; it
 		// just means that when we upload a snapshot, we'll have to create a new
 		// table.
-		//
-		// TODO: Should return an error that decryption failed / there appears
-		// to be corruption.
-		return nil, nil
+		return nil, errors.AddContext(err, "error decrypting bytes")
 	}
 
 	var entryTable []snapshotEntry
@@ -76,7 +73,7 @@ func (r *Renter) callFetchHostBackups(session contractor.Session) ([]modules.Upl
 		return nil, errors.AddContext(err, "unable to download snapshot table")
 	}
 
-	// Format the reponse and return the response to the requester.
+	// Format the response and return the response to the requester.
 	uploadedBackups := make([]modules.UploadedBackup, len(entryTable))
 	for i, e := range entryTable {
 		uploadedBackups[i] = modules.UploadedBackup{

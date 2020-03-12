@@ -9,13 +9,13 @@ import (
 	"path/filepath"
 	"sync"
 
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (
@@ -115,13 +115,13 @@ type (
 func (h *Host) loadCompatV100(p *persistence) error {
 	var compatPersistence struct {
 		FinancialMetrics struct {
-			PotentialStorageRevenue types.Currency `json:"potentialerevenue"`
+			PotentialStorageRevenue types.Currency `json:"potentialerevenue,siamismatch"`
 		}
 		Settings struct {
-			MinContractPrice          types.Currency `json:"contractprice"`
-			MinDownloadBandwidthPrice types.Currency `json:"minimumdownloadbandwidthprice"`
-			MinStoragePrice           types.Currency `json:"storageprice"`
-			MinUploadBandwidthPrice   types.Currency `json:"minimumuploadbandwidthprice"`
+			MinContractPrice          types.Currency `json:"contractprice,siamismatch"`
+			MinDownloadBandwidthPrice types.Currency `json:"minimumdownloadbandwidthprice,siamismatch"`
+			MinStoragePrice           types.Currency `json:"storageprice,siamismatch"`
+			MinUploadBandwidthPrice   types.Currency `json:"minimumuploadbandwidthprice,siamismatch"`
 		}
 	}
 	err := h.dependencies.LoadFile(v112PersistMetadata, &compatPersistence, filepath.Join(h.persistDir, settingsFile))

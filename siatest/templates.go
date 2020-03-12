@@ -1,6 +1,6 @@
 package siatest
 
-import "gitlab.com/SiaPrime/SiaPrime/node"
+import "gitlab.com/scpcorp/ScPrime/node"
 
 var (
 	// MinerTemplate is a template for a Sia node that has a functioning

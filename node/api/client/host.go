@@ -5,9 +5,9 @@ import (
 	"net/url"
 	"strconv"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/node/api"
 )
 
 // HostParam is a parameter in the host's settings that can be changed via the
@@ -106,9 +106,10 @@ func (c *Client) HostStorageFoldersAddPost(path string, size uint64) (err error)
 
 // HostStorageFoldersRemovePost uses the /host/storage/folders/remove api
 // endpoint to remove a storage folder from a host.
-func (c *Client) HostStorageFoldersRemovePost(path string) (err error) {
+func (c *Client) HostStorageFoldersRemovePost(path string, force bool) (err error) {
 	values := url.Values{}
 	values.Set("path", path)
+	values.Set("force", strconv.FormatBool(force))
 	err = c.post("/host/storage/folders/remove", values.Encode(), nil)
 	return
 }

@@ -9,9 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/persist"
+
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
 )
 
 // ProdDependencies act as a global instance of the production dependencies to
@@ -123,9 +124,8 @@ type (
 	// ProductionDependencies are the dependencies used in a Release or Debug
 	// production build.
 	ProductionDependencies struct {
-		shouldInit bool
-		openFiles  map[string]int
-		mu         sync.Mutex
+		openFiles map[string]int
+		mu        sync.Mutex
 	}
 
 	// ProductionFile is the implementation of the File interface that is used

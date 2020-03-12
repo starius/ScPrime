@@ -9,12 +9,13 @@ import (
 	"strconv"
 	"strings"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"github.com/julienschmidt/httprouter"
 	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
+	"gitlab.com/NebulousLabs/errors"
 )
 
 type (
@@ -56,12 +57,14 @@ type (
 	// WalletSiacoinsPOST contains the transaction sent in the POST call to
 	// /wallet/siacoins.
 	WalletSiacoinsPOST struct {
+		Transactions   []types.Transaction   `json:"transactions"`
 		TransactionIDs []types.TransactionID `json:"transactionids"`
 	}
 
 	// WalletSiafundsPOST contains the transaction sent in the POST call to
 	// /wallet/siafunds.
 	WalletSiafundsPOST struct {
+		Transactions   []types.Transaction   `json:"transactions"`
 		TransactionIDs []types.TransactionID `json:"transactionids"`
 	}
 
@@ -135,6 +138,13 @@ type (
 		Valid bool `json:"valid"`
 	}
 
+	// WalletVerifyPasswordGET contains a bool indicating if the password passed
+	// to /wallet/verifypassword is the password being used to encrypt the
+	// wallet.
+	WalletVerifyPasswordGET struct {
+		Valid bool `json:"valid"`
+	}
+
 	// WalletWatchPOST contains the set of addresses to add or remove from the
 	// watch set.
 	WalletWatchPOST struct {
@@ -152,7 +162,7 @@ type (
 
 // encryptionKeys enumerates the possible encryption keys that can be derived
 // from an input string.
-func encryptionKeys(seedStr string) (validKeys []crypto.CipherKey) {
+func encryptionKeys(seedStr string) (validKeys []crypto.CipherKey, seeds []modules.Seed) {
 	dicts := []mnemonics.DictionaryID{"english", "german", "japanese"}
 	for _, dict := range dicts {
 		seed, err := modules.StringToSeed(seedStr, dict)
@@ -160,9 +170,10 @@ func encryptionKeys(seedStr string) (validKeys []crypto.CipherKey) {
 			continue
 		}
 		validKeys = append(validKeys, crypto.NewWalletKey(crypto.HashObject(seed)))
+		seeds = append(seeds, seed)
 	}
 	validKeys = append(validKeys, crypto.NewWalletKey(crypto.HashObject(seedStr)))
-	return validKeys
+	return
 }
 
 // walletHander handles API calls to /wallet.
@@ -227,7 +238,7 @@ func (api *API) wallet033xHandler(w http.ResponseWriter, req *http.Request, _ ht
 		WriteError(w, Error{"error when calling /wallet/033x: source must be an absolute path"}, http.StatusBadRequest)
 		return
 	}
-	potentialKeys := encryptionKeys(req.FormValue("encryptionpassword"))
+	potentialKeys, _ := encryptionKeys(req.FormValue("encryptionpassword"))
 	for _, key := range potentialKeys {
 		err := api.wallet.Load033xWallet(key, source)
 		if err == nil {
@@ -375,7 +386,7 @@ func (api *API) walletInitSeedHandler(w http.ResponseWriter, req *http.Request, 
 
 // walletSeedHandler handles API calls to /wallet/seed.
 func (api *API) walletSeedHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	// Get the seed using the ditionary + phrase
+	// Get the seed using the dictionary + phrase
 	dictID := mnemonics.DictionaryID(req.FormValue("dictionary"))
 	if dictID == "" {
 		dictID = "english"
@@ -386,7 +397,7 @@ func (api *API) walletSeedHandler(w http.ResponseWriter, req *http.Request, _ ht
 		return
 	}
 
-	potentialKeys := encryptionKeys(req.FormValue("encryptionpassword"))
+	potentialKeys, _ := encryptionKeys(req.FormValue("encryptionpassword"))
 	for _, key := range potentialKeys {
 		err := api.wallet.LoadSeed(key, seed)
 		if err == nil {
@@ -405,7 +416,7 @@ func (api *API) walletSeedHandler(w http.ResponseWriter, req *http.Request, _ ht
 func (api *API) walletSiagkeyHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	// Fetch the list of keyfiles from the post body.
 	keyfiles := strings.Split(req.FormValue("keyfiles"), ",")
-	potentialKeys := encryptionKeys(req.FormValue("encryptionpassword"))
+	potentialKeys, _ := encryptionKeys(req.FormValue("encryptionpassword"))
 
 	for _, keypath := range keyfiles {
 		// Check that all key paths are absolute paths.
@@ -429,7 +440,7 @@ func (api *API) walletSiagkeyHandler(w http.ResponseWriter, req *http.Request, _
 	WriteError(w, Error{"error when calling /wallet/siagkey: " + modules.ErrBadEncryptionKey.Error()}, http.StatusBadRequest)
 }
 
-// walletLockHanlder handles API calls to /wallet/lock.
+// walletLockHandler handles API calls to /wallet/lock.
 func (api *API) walletLockHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	err := api.wallet.Lock()
 	if err != nil {
@@ -527,6 +538,7 @@ func (api *API) walletSiacoinsHandler(w http.ResponseWriter, req *http.Request, 
 		txids = append(txids, txn.ID())
 	}
 	WriteJSON(w, WalletSiacoinsPOST{
+		Transactions:   txns,
 		TransactionIDs: txids,
 	})
 }
@@ -554,13 +566,14 @@ func (api *API) walletSiafundsHandler(w http.ResponseWriter, req *http.Request, 
 		txids = append(txids, txn.ID())
 	}
 	WriteJSON(w, WalletSiafundsPOST{
+		Transactions:   txns,
 		TransactionIDs: txids,
 	})
 }
 
 // walletSweepSeedHandler handles API calls to /wallet/sweep/seed.
 func (api *API) walletSweepSeedHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	// Get the seed using the ditionary + phrase
+	// Get the seed using the dictionary + phrase
 	dictID := mnemonics.DictionaryID(req.FormValue("dictionary"))
 	if dictID == "" {
 		dictID = "english"
@@ -703,19 +716,22 @@ func (api *API) walletTransactionsAddrHandler(w http.ResponseWriter, req *http.R
 
 // walletUnlockHandler handles API calls to /wallet/unlock.
 func (api *API) walletUnlockHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	potentialKeys := encryptionKeys(req.FormValue("encryptionpassword"))
+	potentialKeys, _ := encryptionKeys(req.FormValue("encryptionpassword"))
+	var err error
 	for _, key := range potentialKeys {
-		err := api.wallet.Unlock(key)
-		if err == nil {
+		errChan := api.wallet.UnlockAsync(key)
+		var unlockErr error
+		select {
+		case unlockErr = <-errChan:
+		default:
+		}
+		if unlockErr == nil {
 			WriteSuccess(w)
 			return
 		}
-		if err != modules.ErrBadEncryptionKey {
-			WriteError(w, Error{"error when calling /wallet/unlock: " + err.Error()}, http.StatusBadRequest)
-			return
-		}
+		err = errors.Compose(err, unlockErr)
 	}
-	WriteError(w, Error{"error when calling /wallet/unlock: " + modules.ErrBadEncryptionKey.Error()}, http.StatusBadRequest)
+	WriteError(w, Error{"error when calling /wallet/unlock: " + err.Error()}, http.StatusBadRequest)
 }
 
 // walletChangePasswordHandler handles API calls to /wallet/changepassword
@@ -728,19 +744,40 @@ func (api *API) walletChangePasswordHandler(w http.ResponseWriter, req *http.Req
 	}
 	newKey = crypto.NewWalletKey(crypto.HashObject(newPassword))
 
-	originalKeys := encryptionKeys(req.FormValue("encryptionpassword"))
+	originalKeys, seeds := encryptionKeys(req.FormValue("encryptionpassword"))
+	var err error
 	for _, key := range originalKeys {
-		err := api.wallet.ChangeKey(key, newKey)
-		if err == nil {
+		keyErr := api.wallet.ChangeKey(key, newKey)
+		if keyErr == nil {
 			WriteSuccess(w)
 			return
 		}
-		if err != modules.ErrBadEncryptionKey {
-			WriteError(w, Error{"error when calling /wallet/changepassword: " + err.Error()}, http.StatusBadRequest)
+		err = errors.Compose(err, keyErr)
+	}
+	for _, seed := range seeds {
+		seedErr := api.wallet.ChangeKeyWithSeed(seed, newKey)
+		if seedErr == nil {
+			WriteSuccess(w)
 			return
 		}
+		err = errors.Compose(err, seedErr)
 	}
-	WriteError(w, Error{"error when calling /wallet/changepassword: " + modules.ErrBadEncryptionKey.Error()}, http.StatusBadRequest)
+	WriteError(w, Error{"error when calling /wallet/changepassword: " + err.Error()}, http.StatusBadRequest)
+	return
+}
+
+// walletVerifyPasswordHandler handles API calls to /wallet/verifypassword
+func (api *API) walletVerifyPasswordHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	password := req.FormValue("password")
+	key := crypto.NewWalletKey(crypto.HashObject(password))
+	valid, err := api.wallet.IsMasterKey(key)
+	if err != nil {
+		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+		return
+	}
+	WriteJSON(w, WalletVerifyPasswordGET{
+		Valid: valid,
+	})
 }
 
 // walletVerifyAddressHandler handles API calls to /wallet/verify/address/:addr.

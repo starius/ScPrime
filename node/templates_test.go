@@ -2,8 +2,9 @@ package node
 
 import (
 	"testing"
+	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 // TestNew is a basic smoke test for New that uses all of the templates to
@@ -15,8 +16,8 @@ func TestNew(t *testing.T) {
 
 	// Test AllModulesTemplate.
 	dir := build.TempDir("node", t.Name()+"-AllModulesTemplate")
-	n, err := New(AllModules(dir))
-	if err != nil {
+	n, errChan := New(AllModules(dir), time.Now())
+	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 	if n.Gateway == nil {
@@ -44,15 +45,15 @@ func TestNew(t *testing.T) {
 	if n.Miner == nil {
 		t.Error("miner not set correctly")
 	}
-	err = n.Close()
+	err := n.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Test WalletTemplate.
 	dir = build.TempDir("node", t.Name()+"-WalletTemplate")
-	n, err = New(Wallet(dir))
-	if err != nil {
+	n, errChan = New(Wallet(dir), time.Now())
+	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 	if n.Gateway == nil {

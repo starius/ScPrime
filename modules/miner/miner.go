@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 var (
@@ -216,7 +216,9 @@ func New(cs modules.ConsensusSet, tpool modules.TransactionPool, w modules.Walle
 	})
 
 	// Save after synchronizing with consensus
+	m.mu.Lock()
 	err = m.saveSync()
+	m.mu.Unlock()
 	if err != nil {
 		return nil, errors.New("miner could not save during startup: " + err.Error())
 	}

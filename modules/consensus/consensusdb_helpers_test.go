@@ -4,9 +4,10 @@ package consensus
 // compatibility with the test suite.
 
 import (
-	bolt "github.com/coreos/bbolt"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	bolt "go.etcd.io/bbolt"
+
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // dbBlockHeight is a convenience function allowing blockHeight to be called

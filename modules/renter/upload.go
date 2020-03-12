@@ -12,13 +12,13 @@ import (
 	"fmt"
 	"os"
 
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siadir"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
+	"gitlab.com/NebulousLabs/errors"
 )
 
 var (
@@ -52,14 +52,15 @@ func (r *Renter) Upload(up modules.FileUploadParams) error {
 
 	// Delete existing file if overwrite flag is set. Ignore ErrUnknownPath.
 	if up.Force {
-		if err := r.DeleteFile(up.SiaPath); err != nil && err != siafile.ErrUnknownPath {
+		err := r.DeleteFile(up.SiaPath)
+		if err != nil && !errors.Contains(err, filesystem.ErrNotExist) {
 			return errors.AddContext(err, "unable to delete existing file")
 		}
 	}
 
 	// Fill in any missing upload params with sensible defaults.
 	if up.ErasureCode == nil {
-		up.ErasureCode, _ = siafile.NewRSSubCode(defaultDataPieces, defaultParityPieces, crypto.SegmentSize)
+		up.ErasureCode, _ = siafile.NewRSSubCode(DefaultDataPieces, DefaultParityPieces, crypto.SegmentSize)
 	}
 
 	// Check that we have contracts to upload to. We need at least data +
@@ -78,20 +79,16 @@ func (r *Renter) Upload(up modules.FileUploadParams) error {
 	if err != nil {
 		return err
 	}
-	// Try to create the directory. If ErrPathOverload is returned it already exists.
-	siaDirEntry, err := r.staticDirSet.NewSiaDir(dirSiaPath)
-	if err != siadir.ErrPathOverload && err != nil {
-		return errors.AddContext(err, "unable to create sia directory for new file")
-	} else if err == nil {
-		siaDirEntry.Close()
-	}
 
 	// Create the Siafile and add to renter
-	entry, err := r.staticFileSet.NewSiaFile(up, crypto.GenerateSiaKey(crypto.TypeDefaultRenter), uint64(sourceInfo.Size()), sourceInfo.Mode())
+	err = r.staticFileSystem.NewSiaFile(up.SiaPath, up.Source, up.ErasureCode, crypto.GenerateSiaKey(crypto.TypeDefaultRenter), uint64(sourceInfo.Size()), sourceInfo.Mode(), up.DisablePartialChunk)
 	if err != nil {
 		return errors.AddContext(err, "could not create a new sia file")
 	}
-	defer entry.Close()
+	entry, err := r.staticFileSystem.OpenSiaFile(up.SiaPath)
+	if err != nil {
+		return errors.AddContext(err, "could not open the new sia file")
+	}
 
 	// No need to upload zero-byte files.
 	if sourceInfo.Size() == 0 {
@@ -100,17 +97,17 @@ func (r *Renter) Upload(up modules.FileUploadParams) error {
 
 	// Bubble the health of the SiaFile directory to ensure the health is
 	// updated with the new file
-	go r.threadedBubbleMetadata(dirSiaPath)
+	go r.callThreadedBubbleMetadata(dirSiaPath)
 
 	// Create nil maps for offline and goodForRenew to pass in to
-	// managedBuildAndPushChunks. These maps are used to determine the health of
+	// callBuildAndPushChunks. These maps are used to determine the health of
 	// the file and its chunks. Nil maps will result in the file and its chunks
 	// having the worst possible health which is accurate since the file hasn't
 	// been uploaded yet
 	nilMap := make(map[string]bool)
 	// Send the upload to the repair loop.
 	hosts := r.managedRefreshHostsAndWorkers()
-	r.managedBuildAndPushChunks([]*siafile.SiaFileSetEntry{entry}, hosts, targetUnstuckChunks, nilMap, nilMap)
+	r.callBuildAndPushChunks([]*filesystem.FileNode{entry}, hosts, targetUnstuckChunks, nilMap, nilMap)
 	select {
 	case r.uploadHeap.newUploads <- struct{}{}:
 	default:

@@ -6,14 +6,14 @@ import (
 	"path/filepath"
 	"sync"
 
-	"gitlab.com/NebulousLabs/ratelimit"
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/writeaheadlog"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
+	"gitlab.com/scpcorp/writeaheadlog"
 
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/ratelimit"
 )
 
 // A ContractSet provides safe concurrent access to a set of contracts. Its
@@ -190,6 +190,7 @@ func NewContractSet(dir string, deps modules.Dependencies) (*ContractSet, error)
 
 	// Load the WAL. Any recovered updates will be applied after loading
 	// contracts.
+	//
 	// COMPATv1.3.1RC2 Rename old wals to have the 'wal' extension if new file
 	// doesn't exist.
 	if err := v131RC2RenameWAL(dir); err != nil {

@@ -7,7 +7,7 @@ import (
 
 	"github.com/klauspost/reedsolomon"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 // RSCode is a Reed-Solomon encoder/decoder. It implements the

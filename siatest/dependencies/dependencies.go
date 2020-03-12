@@ -4,21 +4,30 @@ import (
 	"net"
 	"sync"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 type (
-	// DependencyBlockScan blocks the scan progress of the hostdb until Scan is
-	// called on the dependency.
-	DependencyBlockScan struct {
+	// DependencyLowFundsFormationFail will cause contract formation to fail due to
+	// low funds in the allowance.
+	DependencyLowFundsFormationFail struct {
 		modules.ProductionDependencies
-		closed bool
-		c      chan struct{}
+	}
+	// DependencyLowFundsRenewalFail will cause contract renewal to fail due to low
+	// funds in the allowance.
+	DependencyLowFundsRenewalFail struct {
+		modules.ProductionDependencies
 	}
 
-	// DependencyDisableCloseUploadEntry prevents SiaFileEntries in the upload code
-	// from being closed.
-	DependencyDisableCloseUploadEntry struct {
+	// DependencyLowFundsRefreshFail will cause contract renewal to fail due to low
+	// funds in the allowance.
+	DependencyLowFundsRefreshFail struct {
+		modules.ProductionDependencies
+	}
+
+	// DependencyDisableAsyncStartup prevents the async part of a module's creation
+	// from being executed.
+	DependencyDisableAsyncStartup struct {
 		modules.ProductionDependencies
 	}
 
@@ -36,14 +45,6 @@ type (
 
 	// DependencyDisableRenewal prevents contracts from being renewed.
 	DependencyDisableRenewal struct {
-		modules.ProductionDependencies
-	}
-
-	// DependencyDisableRepairAndHealthLoops prevents the background loops for
-	// repairs and updating directory metadata from running. This includes
-	// threadedUploadAndRepair, threadedStuckLoop, and
-	// threadedUpdateRenterHealth
-	DependencyDisableRepairAndHealthLoops struct {
 		modules.ProductionDependencies
 	}
 
@@ -142,6 +143,26 @@ func newDependencyInterruptAfterNCalls(str string, n int) *DependencyInterruptAf
 	}
 }
 
+// Disrupt returns true if the correct string is provided.
+func (d *DependencyDisableAsyncStartup) Disrupt(s string) bool {
+	return s == "BlockAsyncStartup"
+}
+
+// Disrupt causes contract formation to fail due to low allowance funds.
+func (d *DependencyLowFundsFormationFail) Disrupt(s string) bool {
+	return s == "LowFundsFormation"
+}
+
+// Disrupt causes contract renewal to fail due to low allowance funds.
+func (d *DependencyLowFundsRenewalFail) Disrupt(s string) bool {
+	return s == "LowFundsRenewal"
+}
+
+// Disrupt causes contract renewal to fail due to low allowance funds.
+func (d *DependencyLowFundsRefreshFail) Disrupt(s string) bool {
+	return s == "LowFundsRefresh"
+}
+
 // Disrupt returns true if the correct string is provided and if the flag was
 // set to true by calling fail on the dependency beforehand. After simulating a
 // crash the flag will be set to false and fail has to be called again for
@@ -187,27 +208,10 @@ func (d *DependencyInterruptOnceOnKeyword) Disable() {
 	d.mu.Unlock()
 }
 
-// Disrupt will block the scan progress of the hostdb. The scan can be started
-// by calling Scan on the dependency.
-func (d *DependencyBlockScan) Disrupt(s string) bool {
-	if d.c == nil {
-		d.c = make(chan struct{})
-	}
-	if s == "BlockScan" {
-		<-d.c
-	}
-	return false
-}
-
 // Disrupt prevents contracts from being recovered in
 // threadedContractMaintenance.
 func (d *DependencyDisableContractRecovery) Disrupt(s string) bool {
 	return s == "DisableContractRecovery"
-}
-
-// Disrupt prevents SiafileEntries in the upload code from being closed.
-func (d *DependencyDisableCloseUploadEntry) Disrupt(s string) bool {
-	return s == "disableCloseUploadEntry"
 }
 
 // Disrupt will prevent the fields scanInProgress and atomicRecoveryScanHeight
@@ -222,23 +226,9 @@ func (d *DependencyDisableRenewal) Disrupt(s string) bool {
 	return s == "disableRenew"
 }
 
-// Disrupt will prevent the repair and health loops from running
-func (d *DependencyDisableRepairAndHealthLoops) Disrupt(s string) bool {
-	return s == "DisableRepairAndHealthLoops"
-}
-
 // Disrupt returns true if the correct string is provided.
 func (d *DependencyPostponeWritePiecesRecovery) Disrupt(s string) bool {
 	return s == "PostponeWritePiecesRecovery"
-}
-
-// Scan resumes the blocked scan.
-func (d *DependencyBlockScan) Scan() {
-	if d.closed {
-		return
-	}
-	close(d.c)
-	d.closed = true
 }
 
 type (

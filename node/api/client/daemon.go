@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/node/api"
 )
 
 // DaemonGlobalRateLimitPost uses the /daemon/settings endpoint to change the
@@ -18,7 +18,13 @@ func (c *Client) DaemonGlobalRateLimitPost(downloadSpeed, uploadSpeed int64) (er
 	return
 }
 
-// DaemonVersionGet requests the /daemon/version resource
+// DaemonAlertsGet requests the /daemon/alerts resource.
+func (c *Client) DaemonAlertsGet() (dag api.DaemonAlertsGet, err error) {
+	err = c.get("/daemon/alerts", &dag)
+	return
+}
+
+// DaemonVersionGet requests the /daemon/version resource.
 func (c *Client) DaemonVersionGet() (dvg api.DaemonVersionGet, err error) {
 	err = c.get("/daemon/version", &dvg)
 	return

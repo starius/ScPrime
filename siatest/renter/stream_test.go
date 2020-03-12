@@ -4,16 +4,18 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
 )
 
 // TestRenterDownloadStreamCache checks that the download stream caching is
@@ -51,7 +53,7 @@ func TestRenterDownloadStreamCache(t *testing.T) {
 	}
 
 	// Download that file using a download stream.
-	downloadedData, err := renter.DownloadByStream(remoteFile)
+	_, downloadedData, err := renter.DownloadByStream(remoteFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,6 +180,7 @@ func TestRenterStream(t *testing.T) {
 		{"TestStreamLargeFile", testStreamLargeFile},
 		{"TestStreamRepair", testStreamRepair},
 		{"TestUploadStreaming", testUploadStreaming},
+		{"TestUploadStreamingWithBadDeps", testUploadStreamingWithBadDeps},
 	}
 
 	// Run tests
@@ -223,7 +226,7 @@ func testStreamRepair(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// Set fileSize and redundancy for upload
-	fileSize := int(5 * modules.SectorSize)
+	fileSize := int(5*modules.SectorSize) + siatest.Fuzz()
 	dataPieces := uint64(1)
 	parityPieces := uint64(len(tg.Hosts())) - dataPieces
 
@@ -257,10 +260,19 @@ func testStreamRepair(t *testing.T, tg *siatest.TestGroup) {
 			t.Fatal("Failed to create a new host", err)
 		}
 	}
-	// Use the streaming endpoint to repair the file. It should always reach 100%.
+	// Read the contents of the file from disk.
 	b, err := ioutil.ReadFile(localFile.Path())
 	if err != nil {
 		t.Fatal(err)
+	}
+	// Prepare fake, corrupt contents as well.
+	corruptB := fastrand.Bytes(len(b))
+	// Try repairing the file with the corrupt data. This should fail.
+	if err := r.RenterUploadStreamRepairPost(bytes.NewReader(corruptB), remoteFile.SiaPath()); err == nil {
+		t.Fatal(err)
+	}
+	if err := r.WaitForDecreasingRedundancy(remoteFile, 0); err != nil {
+		t.Fatal("Redundancy isn't staying at 0", err)
 	}
 	if err := r.RenterUploadStreamRepairPost(bytes.NewReader(b), remoteFile.SiaPath()); err != nil {
 		t.Fatal(err)
@@ -269,7 +281,7 @@ func testStreamRepair(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal("File wasn't repaired", err)
 	}
 	// We should be able to download
-	if _, err := r.DownloadByStream(remoteFile); err != nil {
+	if _, _, err := r.DownloadByStream(remoteFile); err != nil {
 		t.Fatal("Failed to download file", err)
 	}
 	// Repair the file again to make sure we don't get stuck on chunks that are
@@ -321,7 +333,7 @@ func testUploadStreaming(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 	// Download the file again.
-	downloadedData, err := r.RenterDownloadHTTPResponseGet(siaPath, 0, uint64(len(data)))
+	_, downloadedData, err := r.RenterDownloadHTTPResponseGet(siaPath, 0, uint64(len(data)), true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -330,5 +342,36 @@ func testUploadStreaming(t *testing.T, tg *siatest.TestGroup) {
 		t.Log("originalData:", data)
 		t.Log("downloadedData:", downloadedData)
 		t.Fatal("Downloaded data doesn't match uploaded data")
+	}
+}
+
+// testUploadStreamingWithBadDeps uploads random data using the upload streaming
+// API, depending on a disrupt to cause a failure. This is a regression test
+// that would have caused a production build panic.
+func testUploadStreamingWithBadDeps(t *testing.T, tg *siatest.TestGroup) {
+	// Create a custom renter with a dependency and remove it after the test is
+	// done.
+	renterParams := node.Renter(filepath.Join(renterTestDir(t.Name()), "renter"))
+	renterParams.RenterDeps = &dependencies.DependencyFailUploadStreamFromReader{}
+	nodes, err := tg.AddNodes(renterParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+	renter := nodes[0]
+	defer tg.RemoveNode(renter)
+
+	// Create some random data to write.
+	fileSize := fastrand.Intn(2*int(modules.SectorSize)) + siatest.Fuzz() + 2 // between 1 and 2*SectorSize + 3 bytes
+	data := fastrand.Bytes(fileSize)
+	d := bytes.NewReader(data)
+
+	// Upload the data.
+	siaPath, err := modules.NewSiaPath("/foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = renter.RenterUploadStreamPost(d, siaPath, 1, uint64(len(tg.Hosts())-1), false)
+	if err == nil {
+		t.Fatal("dependency injection should have caused the upload to fail")
 	}
 }

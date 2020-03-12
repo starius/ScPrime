@@ -19,12 +19,12 @@ import (
 	"github.com/sasha-s/go-deadlock"
 
 	"gitlab.com/NebulousLabs/threadgroup"
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/config"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/config"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	// blank to load the sql driver for mysql
 	_ "github.com/go-sql-driver/mysql"
@@ -90,7 +90,7 @@ var (
 	}).(time.Duration)
 )
 
-// splitSet defines a transaction set that can be added componenet-wise to a
+// splitSet defines a transaction set that can be added component-wise to a
 // block. It's split because it doesn't necessarily represent the full set
 // prpovided by the transaction pool. Splits can be sorted so that the largest
 // and most valuable sets can be selected when picking transactions.

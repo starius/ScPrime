@@ -1,8 +1,10 @@
 package contractor
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // contractEndHeight returns the height at which the Contractor's contracts
@@ -15,7 +17,7 @@ func (c *Contractor) contractEndHeight() types.BlockHeight {
 // false and locking the utilities. The contract can still be used for
 // downloads after this but it won't be used for uploads or renewals.
 func (c *Contractor) managedCancelContract(cid types.FileContractID) error {
-	return c.managedUpdateContractUtility(cid, modules.ContractUtility{
+	return c.managedAcquireAndUpdateContractUtility(cid, modules.ContractUtility{
 		GoodForRenew:  false,
 		GoodForUpload: false,
 		Locked:        true,
@@ -80,15 +82,35 @@ func (c *Contractor) ContractUtility(pk types.SiaPublicKey) (modules.ContractUti
 	return c.managedContractUtility(id)
 }
 
+// MarkContractBad will mark a specific contract as bad.
+func (c *Contractor) MarkContractBad(id types.FileContractID) error {
+	if err := c.tg.Add(); err != nil {
+		return err
+	}
+	defer c.tg.Done()
+
+	sc, exists := c.staticContracts.Acquire(id)
+	if !exists {
+		return errors.New("contract not found")
+	}
+	u := sc.Utility()
+	u.GoodForUpload = false
+	u.GoodForRenew = false
+	u.BadContract = true
+	err := c.callUpdateUtility(sc, u, false)
+	c.staticContracts.Return(sc)
+	return errors.AddContext(err, "unable to mark contract as bad")
+}
+
 // OldContracts returns the contracts formed by the contractor that have
 // expired
 func (c *Contractor) OldContracts() []modules.RenterContract {
 	c.mu.Lock()
+	defer c.mu.Unlock()
 	contracts := make([]modules.RenterContract, 0, len(c.oldContracts))
 	for _, c := range c.oldContracts {
 		contracts = append(contracts, c)
 	}
-	c.mu.Unlock()
 	return contracts
 }
 
@@ -98,10 +120,10 @@ func (c *Contractor) OldContracts() []modules.RenterContract {
 // isn't available for recovery or something went wrong.
 func (c *Contractor) RecoverableContracts() []modules.RecoverableContract {
 	c.mu.Lock()
+	defer c.mu.Unlock()
 	contracts := make([]modules.RecoverableContract, 0, len(c.recoverableContracts))
 	for _, c := range c.recoverableContracts {
 		contracts = append(contracts, c)
 	}
-	c.mu.Unlock()
 	return contracts
 }

@@ -4,9 +4,11 @@
 package modules
 
 import (
+	"fmt"
+	"math"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 var (
@@ -25,4 +27,24 @@ func init() {
 	} else if build.Release == "testing" {
 		SafeMutexDelay = 30 * time.Second
 	}
+}
+
+// PeekErr checks if a chan error has an error waiting to be returned. If it has
+// it will return that error. Otherwise it returns 'nil'.
+func PeekErr(errChan <-chan error) (err error) {
+	select {
+	case err = <-errChan:
+	default:
+	}
+	return
+}
+
+// FilesizeUnits returns a string that displays a filesize in human-readable units.
+func FilesizeUnits(size uint64) string {
+	if size == 0 {
+		return "0  B"
+	}
+	sizes := []string{" B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
+	i := int(math.Log10(float64(size)) / 3)
+	return fmt.Sprintf("%.*f %s", i, float64(size)/math.Pow10(3*i), sizes[i])
 }

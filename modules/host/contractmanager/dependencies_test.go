@@ -7,9 +7,10 @@ import (
 	"sync"
 	"testing"
 
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
 )
 
 // TestParallelFileAccess using a single file handle + ReadAt and WriteAt to

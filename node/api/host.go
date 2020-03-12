@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -39,6 +39,7 @@ type (
 		NetworkMetrics       modules.HostNetworkMetrics       `json:"networkmetrics"`
 		ConnectabilityStatus modules.HostConnectabilityStatus `json:"connectabilitystatus"`
 		WorkingStatus        modules.HostWorkingStatus        `json:"workingstatus"`
+		PublicKey            types.SiaPublicKey               `json:"publickey"`
 	}
 
 	// HostEstimateScoreGET contains the information that is returned from a
@@ -85,6 +86,7 @@ func (api *API) hostHandlerGET(w http.ResponseWriter, req *http.Request, _ httpr
 	nm := api.host.NetworkMetrics()
 	cs := api.host.ConnectabilityStatus()
 	ws := api.host.WorkingStatus()
+	pk := api.host.PublicKey()
 	hg := HostGET{
 		ExternalSettings:     es,
 		FinancialMetrics:     fm,
@@ -92,6 +94,7 @@ func (api *API) hostHandlerGET(w http.ResponseWriter, req *http.Request, _ httpr
 		NetworkMetrics:       nm,
 		ConnectabilityStatus: cs,
 		WorkingStatus:        ws,
+		PublicKey:            pk,
 	}
 	WriteJSON(w, hg)
 }

@@ -1,13 +1,41 @@
 package contractor
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
+)
+
+// Constants related to the contractor's alerts.
+var (
+	// AlertMSGWalletLockedDuringMaintenance indicates that forming/renewing a
+	// contract during contract maintenance isn't possible due to a locked wallet.
+	AlertMSGWalletLockedDuringMaintenance = "contractor is attempting to renew/form contracts, however the wallet is locked"
+
+	// AlertMSGAllowanceLowFunds indicates that forming/renewing a contract during
+	// contract maintenance isn't possible due to the allowance being low on
+	// funds.
+	AlertMSGAllowanceLowFunds = "At least one contract formation/renewal failed due to the allowance being low on funds"
 )
 
 // Constants related to contract formation parameters.
 var (
+	// ContractFeeFundingMulFactor is the multiplying factor for contract fees
+	// to determine the funding for a new contract
+	ContractFeeFundingMulFactor = uint64(10)
+
+	// MaxInitialContractFundingDivFactor is the dividing factor for determining
+	// the maximum amount of funds to put into a new contract
+	MaxInitialContractFundingDivFactor = uint64(3)
+
+	// MaxInitialContractFundingMulFactor is the multiplying factor for
+	// determining the maximum amount of funds to put into a new contract
+	MaxInitialContractFundingMulFactor = uint64(2)
+
+	// MinInitialContractFundingDivFactor is the dividing factor for determining
+	// the minimum amount of funds to put into a new contract
+	MinInitialContractFundingDivFactor = uint64(20)
+
 	// consecutiveRenewalsBeforeReplacement is the number of times a contract
 	// attempt to be renewed before it is marked as !goodForRenew.
 	consecutiveRenewalsBeforeReplacement = build.Select(build.Var{
@@ -63,18 +91,18 @@ var (
 // Constants related to the safety values for when the contractor is forming
 // contracts.
 var (
-	maxCollateral   = types.SiacoinPrecision.Mul64(60e3) // 60 KS
+	maxCollateral   = types.SiacoinPrecision.Mul64(60e3) // 60 SCP
 	maxStoragePrice = build.Select(build.Var{
 		Dev:      types.SiacoinPrecision.Mul64(1e6).Div(modules.BlockBytesPerMonthTerabyte),   // 1 order of magnitude greater
 		Standard: types.SiacoinPrecision.Mul64(100e3).Div(modules.BlockBytesPerMonthTerabyte), // 100KS / TB / Month
 		Testing:  types.SiacoinPrecision.Mul64(1e7).Div(modules.BlockBytesPerMonthTerabyte),   // 2 orders of magnitude greater
 	}).(types.Currency)
 	maxUploadPrice = build.Select(build.Var{
-		Dev:      maxStoragePrice.Mul64(30 * 4320),  // 1 order of magnitude greater
-		Standard: maxStoragePrice.Mul64(3 * 4320),   // 3 months of storage
-		Testing:  maxStoragePrice.Mul64(300 * 4320), // 2 orders of magnitude greater
+		Dev:      maxStoragePrice.Mul64(30 * uint64(types.BlocksPerMonth)),  // 1 order of magnitude greater
+		Standard: maxStoragePrice.Mul64(3 * uint64(types.BlocksPerMonth)),   // 3 months of storage
+		Testing:  maxStoragePrice.Mul64(300 * uint64(types.BlocksPerMonth)), // 2 orders of magnitude greater
 	}).(types.Currency)
-	maxDownloadPrice = maxStoragePrice.Mul64(3 * 4320)
+	maxDownloadPrice = maxStoragePrice.Mul64(3 * uint64(types.BlocksPerMonth))
 
 	// scoreLeewayGoodForRenew defines the factor by which a host can miss the
 	// goal score for a set of hosts and still be GoodForRenew. To determine the

@@ -3,7 +3,7 @@ package modules
 import (
 	"io"
 
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (
@@ -19,6 +19,9 @@ type BlockManager interface {
 	// resubmitted to the miner. HeaderForWork() will remember the block that
 	// corresponds to the header for 50 calls.
 	HeaderForWork() (types.BlockHeader, types.Target, error)
+
+	// SubmitBlock accepts a solved block.
+	SubmitBlock(types.Block) error
 
 	// SubmitHeader takes a block header that has been worked on and has a
 	// valid target.

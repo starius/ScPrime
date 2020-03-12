@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
 )
 
 // TestRenterUploadDirectory verifies that the renter returns an error if a
@@ -27,7 +27,7 @@ func TestRenterUploadDirectory(t *testing.T) {
 	}
 	defer os.RemoveAll(testUploadPath)
 
-	ec, err := siafile.NewRSCode(defaultDataPieces, defaultParityPieces)
+	ec, err := siafile.NewRSCode(DefaultDataPieces, DefaultParityPieces)
 	if err != nil {
 		t.Fatal(err)
 	}

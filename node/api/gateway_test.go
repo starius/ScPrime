@@ -3,8 +3,8 @@ package api
 import (
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
 )
 
 // TestGatewayStatus checks that the /gateway/status call is returning a corect
