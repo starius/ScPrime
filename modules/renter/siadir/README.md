@@ -26,7 +26,7 @@ The following subsystems help the SiaDir module execute its responsibilities:
 
 The Persistence subsystem is responsible for the disk interaction with the
 `.siadir` files and ensuring safe and performant ACID operations by using the
-[writeaheadlog](https://gitlab.com/SiaPrime/writeaheadlog) package. There
+[writeaheadlog](https://gitlab.com/scpcorp/writeaheadlog) package. There
 are two WAL updates that are used, deletion and metadata updates.
 
 The WAL deletion update removes all the contents of the directory including the

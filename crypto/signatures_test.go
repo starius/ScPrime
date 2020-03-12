@@ -6,7 +6,7 @@ import (
 
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/encoding"
 )
 
 // TestUnitSignatureEncoding creates and encodes a public key, and verifies

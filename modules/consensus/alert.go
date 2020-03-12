@@ -1,6 +1,6 @@
 package consensus
 
-import "gitlab.com/SiaPrime/SiaPrime/modules"
+import "gitlab.com/scpcorp/ScPrime/modules"
 
 // Alerts implements the Alerter interface for the consensusset.
 func (c *ConsensusSet) Alerts() []modules.Alert {

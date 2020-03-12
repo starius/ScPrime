@@ -1,4 +1,4 @@
-module gitlab.com/SiaPrime/SiaPrime
+module gitlab.com/scpcorp/ScPrime
 
 go 1.13
 
@@ -13,6 +13,7 @@ require (
 	github.com/klauspost/reedsolomon v1.9.3
 	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
+	github.com/pkg/errors v0.8.1 // indirect
 	github.com/sasha-s/go-deadlock v0.2.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
@@ -31,7 +32,7 @@ require (
 	gitlab.com/NebulousLabs/monitor v0.0.0-20191205095550-2b0fd3e1012a
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20191111145210-66b93e150b27
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20180716154133-88a11db9e46c
-	gitlab.com/SiaPrime/writeaheadlog v0.0.0-20190830195947-8d9d57b6e40f
+	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200311132821-9a59657fecfa
 	go.etcd.io/bbolt v1.3.3
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect

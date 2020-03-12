@@ -3,8 +3,8 @@ package miner
 import (
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/siatest"
 )
 
 // TestMinerEmptyBlock tests if a miner can mine and submit an empty block.

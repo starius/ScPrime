@@ -3,8 +3,8 @@ BUILD_TIME=$(shell date)
 GIT_REVISION=$(shell git rev-parse --short HEAD)
 GIT_DIRTY=$(shell git diff-index --quiet HEAD -- || echo "✗-")
 
-ldflags= -X gitlab.com/SiaPrime/SiaPrime/build.GitRevision=${GIT_DIRTY}${GIT_REVISION} \
--X "gitlab.com/SiaPrime/SiaPrime/build.BuildTime=${BUILD_TIME}"
+ldflags= -X gitlab.com/scpcorp/ScPrime/build.GitRevision=${GIT_DIRTY}${GIT_REVISION} \
+-X "gitlab.com/scpcorp/ScPrime/build.BuildTime=${BUILD_TIME}"
 
 # all will build and install release binaries
 all: release

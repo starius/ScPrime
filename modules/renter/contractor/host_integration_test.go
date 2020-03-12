@@ -11,18 +11,18 @@ import (
 
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
-	"gitlab.com/SiaPrime/SiaPrime/modules/host"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb"
-	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
-	modWallet "gitlab.com/SiaPrime/SiaPrime/modules/wallet"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/consensus"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/modules/host"
+	"gitlab.com/scpcorp/ScPrime/modules/miner"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
+	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
+	modWallet "gitlab.com/scpcorp/ScPrime/modules/wallet"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // newTestingWallet is a helper function that creates a ready-to-use wallet
@@ -739,7 +739,7 @@ func TestIntegrationEditorCaching(t *testing.T) {
 
 // TestContractPresenceLeak tests that a renter can not tell from the response
 // of the host to RPCs if the host has the contract if the renter doesn't
-// own this contract. See https://gitlab.com/SiaPrime/SiaPrime/issues/2327.
+// own this contract. See https://gitlab.com/scpcorp/ScPrime/issues/2327.
 func TestContractPresenceLeak(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()

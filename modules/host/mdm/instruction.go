@@ -1,6 +1,6 @@
 package mdm
 
-import "gitlab.com/SiaPrime/SiaPrime/crypto"
+import "gitlab.com/scpcorp/ScPrime/crypto"
 
 // instruction is the interface an instruction needs to implement to be part of
 // a program.

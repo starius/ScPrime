@@ -11,7 +11,7 @@ import (
 	"math/big"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 var (

@@ -8,15 +8,15 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/threadgroup"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 var (

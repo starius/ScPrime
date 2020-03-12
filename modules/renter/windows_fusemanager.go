@@ -5,7 +5,7 @@ package renter
 import (
 	"gitlab.com/NebulousLabs/errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 var errNoFuseOnWindows = errors.New("Fuse library is incompatible with this OS")

@@ -152,7 +152,7 @@ format and most of the exported methods of the package.
 The persistence subsystem handles all of the disk I/O and marshaling of
 datatypes. It provides helper functions to read the SiaFile from disk and
 atomically write to disk using the
-[writeaheadlog](https://gitlab.com/SiaPrime/writeaheadlog) package.
+[writeaheadlog](https://gitlab.com/scpcorp/writeaheadlog) package.
 
 ### SiaFileSet Subsystem
 **Key Files**

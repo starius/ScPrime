@@ -9,10 +9,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
-	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/node/api/client"
 
 	"gitlab.com/NebulousLabs/errors"
 )

@@ -3,7 +3,7 @@ package dependencies
 import (
 	"sync"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 // DependencyDisableCloseUploadEntry prevents SiaFileEntries in the upload code

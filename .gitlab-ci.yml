@@ -133,7 +133,7 @@ deploy:
   stage: deploy
   only:
     refs:
-      - master@SiaPrime/SiaPrime
+      - master@scpcorp/ScPrime
   artifacts:
     name: "Binaries"
     paths:

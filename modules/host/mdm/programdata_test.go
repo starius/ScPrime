@@ -6,7 +6,7 @@ import (
 	"io"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/crypto"
 
 	"gitlab.com/NebulousLabs/fastrand"
 )

@@ -7,14 +7,14 @@ import (
 	"time"
 	"unsafe"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
-	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
-	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/consensus"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
+	"gitlab.com/scpcorp/ScPrime/modules/wallet"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // A minerTester is the helper object for miner testing.

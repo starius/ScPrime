@@ -4,9 +4,9 @@ import (
 	"encoding/base64"
 	"net/url"
 
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TransactionPoolFeeGet uses the /tpool/fee endpoint to get a fee estimation.

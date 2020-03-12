@@ -5,8 +5,8 @@ import (
 	"io"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 // TestNewEmptyProgram runs a program without instructions.

@@ -99,9 +99,9 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"

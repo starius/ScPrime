@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/node/api"
 )
 
 // A Client makes requests to the siad HTTP API.

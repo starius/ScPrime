@@ -1,6 +1,6 @@
 package modules
 
-import "gitlab.com/SiaPrime/SiaPrime/types"
+import "gitlab.com/scpcorp/ScPrime/types"
 
 import "encoding/binary"
 

@@ -43,10 +43,10 @@ To build ScPrime on your machine, enter the following on the command line:
 ```bash
 # Download ScPrime and its dependencies
 # Binaries will be installed in $GOPATH/bin
-$ go get -u gitlab.com/SiaPrime/SiaPrime/...
+$ go get -u gitlab.com/scpcorp/ScPrime/...
 
 # Switch to directory containing ScPrime source code
-$ cd $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
+$ cd $GOPATH/src/gitlab.com/scpcorp/ScPrime
 
 # You have three ScPrime builds to choose from.
 # To build the standard release binary:
@@ -93,11 +93,11 @@ has a 'forked' copy of the original repo at
 `https://gitlab.com/<your GitLab username>/SiaPrime`.
 
 When you installed ScPrime using `go get`, the go tool put the ScPrime source code in 
-$GOPATH/src/gitlab.com/SiaPrime/SiaPrime. Change to that directory and set up
+$GOPATH/src/gitlab.com/scpcorp/ScPrime. Change to that directory and set up
 your fork as a git [remote][remote]:
 
 ```bash
-$ cd $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
+$ cd $GOPATH/src/gitlab.com/scpcorp/ScPrime
 # Add your fork as a remote.  Name it whatever is convenient,
 # e.g your GitLab username
 $ git remote add <remote name> https://gitlab.com/<username>/SiaPrime.git
@@ -109,13 +109,13 @@ $ git remote add <remote name> git@gitlab.com:<username>/SiaPrime.git
 
 Right now your git local repository only has one branch (called 'master' by 
 default). If you want to make changes, add a new branch and make your changes 
-there. You should maintain master as an up-to-date copy of the SiaPrime/SiaPrime 
+there. You should maintain master as an up-to-date copy of the scpcorp/ScPrime
 repository's master branch.
 
 To create and checkout a new branch:
 ```bash
 # If you're not already in the right directory:
-$ cd $GOPATH/src/gitlab.com/SiaPrime/SiaPrime
+$ cd $GOPATH/src/gitlab.com/scpcorp/ScPrime
 # Make sure you're on branch master
 $ git checkout master
 # Create and checkout a new branch
@@ -237,14 +237,14 @@ Feel free to ask for help on the #general-dev channel on [discord][discord].
 [install-go]: https://golang.org/doc/install
 [signup]: https://github.com/join?source=header-home
 [effective]: https://golang.org/doc/effective_go.html
-[siaprime]: https://gitlab.com/SiaPrime/SiaPrime
+[siaprime]: https://gitlab.com/scpcorp/ScPrime
 [branch]: http://blog.scottlowe.org/2015/01/27/using-fork-branch-git-workflow/
-[developers.md]: https://gitlab.com/SiaPrime/SiaPrime/blob/master/doc/Developers.md
+[developers.md]: https://gitlab.com/scpcorp/ScPrime/blob/master/doc/Developers.md
 [gofmt]: https://golang.org/cmd/gofmt/
 [nutshell]: https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell
 [discord]: https://discord.gg/GkeJ58H
 [install-git]: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
-[test-doc]: https://gitlab.com/SiaPrime/SiaPrime/blob/master/doc/Testing.md
+[test-doc]: https://gitlab.com/scpcorp/ScPrime/blob/master/doc/Testing.md
 [stashing]: https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning
 [remote]: https://git-scm.com/book/en/v2/Git-Basics-Working-with-Remotes
 [signup]: https://github.com/join?source=header-home

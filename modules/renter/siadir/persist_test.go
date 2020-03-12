@@ -10,8 +10,8 @@ import (
 
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/writeaheadlog"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/writeaheadlog"
 )
 
 // equalMetadatas is a helper that compares two siaDirMetadatas. If using this

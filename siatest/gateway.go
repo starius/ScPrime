@@ -1,7 +1,7 @@
 package siatest
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 // hasPeer checks if peer is a peer of tn.

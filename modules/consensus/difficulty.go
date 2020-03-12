@@ -8,7 +8,7 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	bolt "go.etcd.io/bbolt"
 
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // difficulty.go defines the Oak difficulty adjustment algorithm.

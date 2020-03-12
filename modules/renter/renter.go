@@ -33,15 +33,15 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/threadgroup"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/writeaheadlog"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
+	"gitlab.com/scpcorp/ScPrime/types"
+	"gitlab.com/scpcorp/writeaheadlog"
 )
 
 var (

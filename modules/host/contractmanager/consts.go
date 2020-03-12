@@ -3,8 +3,8 @@ package contractmanager
 import (
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
 // Constants related to the host's alerts.

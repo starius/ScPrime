@@ -1,7 +1,7 @@
 package dependencies
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 // HostRejectAllSessionLocks is a dependency injection for the host that will

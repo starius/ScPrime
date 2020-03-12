@@ -1,9 +1,9 @@
 # [![SiaPrime Logo](https://siaprime.net/imagestore/SPRho_256x256.png)](http://siaprime.net) v1.4.2.0
 
-[![Build Status](https://gitlab.com/SiaPrime/SiaPrime/badges/master/build.svg)](https://gitlab.com/SiaPrime/SiaPrime/commits/master)
-[![Coverage Report](https://gitlab.com/SiaPrime/SiaPrime/badges/master/coverage.svg)](https://gitlab.com/SiaPrime/SiaPrime/commits/master)
-[![GoDoc](https://godoc.org/gitlab.com/SiaPrime/SiaPrime?status.svg)](https://godoc.org/gitlab.com/SiaPrime/SiaPrime)
-[![Go Report Card](https://goreportcard.com/badge/gitlab.com/SiaPrime/SiaPrime)](https://goreportcard.com/report/gitlab.com/SiaPrime/SiaPrime)
+[![Build Status](https://gitlab.com/scpcorp/ScPrime/badges/master/build.svg)](https://gitlab.com/scpcorp/ScPrime/commits/master)
+[![Coverage Report](https://gitlab.com/scpcorp/ScPrime/badges/master/coverage.svg)](https://gitlab.com/scpcorp/ScPrime/commits/master)
+[![GoDoc](https://godoc.org/gitlab.com/scpcorp/ScPrime?status.svg)](https://godoc.org/gitlab.com/scpcorp/ScPrime)
+[![Go Report Card](https://goreportcard.com/badge/gitlab.com/scpcorp/ScPrime)](https://goreportcard.com/report/gitlab.com/scpcorp/ScPrime)
 [![License MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://img.shields.io/badge/License-MIT-brightgreen.svg)
 
 SiaPrime is a decentralized cloud storage platform based on the Sia core 
@@ -57,7 +57,7 @@ Usage
 This release comes with 2 binaries, `spd` and `spc`. `spd` is a background
 service, or "daemon," that runs the SiaPrime protocol and exposes an HTTP API on
 port 4280. `spc` is a command-line client that can be used to interact with
-`spd` in a user-friendly way. There is also a graphical client, [SiaPrime-UI](https://gitlab.com/SiaPrime/SiaPrime-UI), 
+`spd` in a user-friendly way. There is also a graphical client, [SiaPrime-UI](https://gitlab.com/scpcorp/ScPrime-UI),
 which is the preferred way of using SiaPrime for most users. For interested 
 developers, the `spd` API is documented [here](doc/API.md).
 
@@ -76,7 +76,7 @@ To build from source, [Go 1.13 or above must be installed](https://golang.org/do
 on the system. Clone the repo and run `make`:
 
 ```
-git clone https://gitlab.com/SiaPrime/SiaPrime
+git clone https://gitlab.com/scpcorp/ScPrime
 cd SiaPrime && make
 ```
 

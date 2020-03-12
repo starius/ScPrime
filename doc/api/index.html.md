@@ -6,7 +6,7 @@ language_tabs: # must be one of https://git.io/vQNgJ
 
 toc_footers:
   - <a href='https://scpri.me'>The Official ScPrime Website
-  - <a href='https://gitlab.com/SiaPrime/SiaPrime'>ScPrime on GitLab</a>
+  - <a href='https://gitlab.com/scpcorp/ScPrime'>ScPrime on GitLab</a>
 
 search: true
 ---

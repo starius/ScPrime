@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
 )
 
 // TestCalculateCoinbase probes the CalculateCoinbase function. The test code

@@ -8,8 +8,8 @@ import (
 	"sort"
 	"sync"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
 )
 
 // programData is a buffer for the program data. It will read packets from r and

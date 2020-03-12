@@ -4,9 +4,9 @@ import (
 	"os"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/writeaheadlog"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/writeaheadlog"
 
 	"gitlab.com/NebulousLabs/errors"
 )

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
 // There's a global lock on cpu and memory profiling, because I'm not sure what

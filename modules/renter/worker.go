@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // A worker listens for work on a certain host.

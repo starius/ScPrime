@@ -3,7 +3,7 @@ package types
 import (
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 // TestCheckBuildConstants checks that the required build constants have been

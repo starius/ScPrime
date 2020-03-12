@@ -5,8 +5,8 @@ import (
 
 	"gitlab.com/NebulousLabs/merkletree/merkletree-blake"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/encoding"
 )
 
 const (
