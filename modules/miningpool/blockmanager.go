@@ -1,9 +1,15 @@
 package pool
 
 import (
+	"bytes"
+	"encoding/hex"
 	"errors"
-	"time"
 
+	//	"hash"
+	"time"
+	"unsafe"
+
+	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
@@ -140,4 +146,54 @@ func (p *Pool) managedSubmitBlock(b types.Block) error {
 	// }
 	// p.persist.Address = uc.UnlockHash()
 	return p.saveSync()
+}
+
+// ReadMerkleBranches returns the merkle branches of a block, as used in stratum
+// mining.
+func ReadMerkleBranches(b types.Block) []string {
+	mbranch := crypto.NewTree()
+	var buf bytes.Buffer
+	for _, payout := range b.MinerPayouts {
+		payout.MarshalSia(&buf)
+		mbranch.Push(buf.Bytes())
+		buf.Reset()
+	}
+
+	for _, txn := range b.Transactions {
+		txn.MarshalSia(&buf)
+		mbranch.Push(buf.Bytes())
+		buf.Reset()
+	}
+	//
+	// This whole approach needs to be revisited.  I basically am cheating to look
+	// inside the merkle tree struct to determine if the head is a leaf or not
+	//
+
+	//SubTree here is redefined to read the sum field
+	type SubTree struct {
+		height int
+		sum    [32]byte
+	}
+
+	// Tree here is redefined from
+	// NebulousLabs\merkletree@v0.0.0-20200118113624-07fbf710afc4\merkletree-blake\tree.go
+	// to access the merkle branches stored in the stack
+	type Tree struct {
+		stack        []SubTree
+		currentIndex uint64
+		proofIndex   uint64
+		proofBase    []byte
+		proofSet     [][32]byte
+		proofTree    bool
+		cachedTree   bool
+	}
+
+	tr := *(*Tree)(unsafe.Pointer(mbranch))
+
+	var merkle []string
+
+	for i := len(tr.stack) - 1; i >= 0; i-- {
+		merkle = append(merkle, hex.EncodeToString(tr.stack[i].sum[:]))
+	}
+	return merkle
 }
