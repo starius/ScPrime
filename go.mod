@@ -13,6 +13,7 @@ require (
 	github.com/klauspost/reedsolomon v1.9.3
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/pelletier/go-toml v1.6.0 // indirect
+	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
 	github.com/sasha-s/go-deadlock v0.2.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
@@ -34,10 +35,10 @@ require (
 	gitlab.com/scpcorp/siamux v0.0.0-20200311132905-d9e44bda336f
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200311132821-9a59657fecfa
 	go.etcd.io/bbolt v1.3.3
-	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
+	golang.org/x/crypto v0.0.0-20200317142112-1b76d66859c6
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
-	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
-	golang.org/x/tools v0.0.0-20200309202150-20ab64c0d93f
+	golang.org/x/sys v0.0.0-20200317113312-5766fd39f98d // indirect
+	golang.org/x/tools v0.0.0-20200318150045-ba25ddc85566
 	google.golang.org/appengine v1.6.5 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/ini.v1 v1.54.0 // indirect
