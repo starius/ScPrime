@@ -13,7 +13,7 @@ set -e
 for arch in amd64 arm64; do
 	for os in darwin linux windows freebsd; do
 	  echo Building ${os}/${arch}...
-	        for pkg in siac siad; do
+	        for pkg in spc spd; do
 			# Ignore unsupported arch/os combinations.
 			if [ "$arch" == "arm64" ]; then
 				if [ "$os" == "windows" ] || [ "$os" == "darwin" ] || [ "$os" == "freebsd" ]; then
