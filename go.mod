@@ -23,8 +23,6 @@ require (
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/xtaci/smux v1.5.12
-	gitlab.com/NebulousLabs/Sia v1.4.4
-	gitlab.com/NebulousLabs/bolt v1.4.0
 	gitlab.com/NebulousLabs/demotemutex v0.0.0-20151003192217-235395f71c40
 	gitlab.com/NebulousLabs/entropy-mnemonics v0.0.0-20181018051301-7532f67e3500
 	gitlab.com/NebulousLabs/errors v0.0.0-20171229012116-7ead97ef90b8
@@ -33,9 +31,7 @@ require (
 	gitlab.com/NebulousLabs/merkletree v0.0.0-20200118113624-07fbf710afc4
 	gitlab.com/NebulousLabs/monitor v0.0.0-20191205095550-2b0fd3e1012a
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20191111145210-66b93e150b27
-	gitlab.com/NebulousLabs/siamux v0.0.0-20200217153321-94516948dae2
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20180716154133-88a11db9e46c
-	gitlab.com/NebulousLabs/writeaheadlog v0.0.0-20190814160017-69f300e9bcb8
 	gitlab.com/scpcorp/siamux v0.0.0-20200311132905-d9e44bda336f
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200311132821-9a59657fecfa
 	go.etcd.io/bbolt v1.3.4

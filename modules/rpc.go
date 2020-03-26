@@ -3,7 +3,7 @@ package modules
 import (
 	"io"
 
-	"gitlab.com/NebulousLabs/siamux"
+	"gitlab.com/scpcorp/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/types"
