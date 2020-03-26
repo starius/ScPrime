@@ -3,8 +3,9 @@ package feemanager
 import (
 	"sync"
 
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/persist"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+
 	"gitlab.com/NebulousLabs/threadgroup"
 )
 

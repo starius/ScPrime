@@ -1,5 +1,5 @@
-module gitlab.com/NebulousLabs/Sia/vendor/github.com/xtaci/smux
+module gitlab.com/scpcorp/ScPrime/vendor/github.com/xtaci/smux
 
 go 1.12
 
-replace gitlab.com/NebulousLabs/Sia => ../../../../
+replace gitlab.com/scpcorp/ScPrime => ../../../../

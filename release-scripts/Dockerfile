@@ -6,7 +6,7 @@ RUN useradd -ms /bin/bash builder
 USER builder
 WORKDIR /home/builder
 
-RUN git clone https://gitlab.com/NebulousLabs/Sia
+RUN git clone https://gitlab.com/scpcorp/ScPrime
 WORKDIR /home/builder/Sia
 RUN git fetch --all && git checkout $branch
 

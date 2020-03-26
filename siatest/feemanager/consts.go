@@ -3,8 +3,8 @@ package feemanager
 import (
 	"os"
 
-	"gitlab.com/NebulousLabs/Sia/persist"
-	"gitlab.com/NebulousLabs/Sia/siatest"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/siatest"
 )
 
 // feeManagerTestDir creates a temporary testing directory for a feemanager

@@ -5371,7 +5371,7 @@ ID of the transaction being requested.
 {
   "transaction": {
     "transaction": {
-      // See types.Transaction in https://gitlab.com/NebulousLabs/Sia/blob/master/types/transactions.go
+      // See types.Transaction in https://gitlab.com/scpcorp/ScPrime/blob/master/types/transactions.go
     },
     "transactionid":         "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "confirmationheight":    50000,
@@ -5404,7 +5404,7 @@ raw transaction. It is left undocumented here as the processed transaction (the
 rest of the fields in this object) are usually what is desired.  
 
 See types.Transaction in
-https://gitlab.com/NebulousLabs/Sia/blob/master/types/transactions.go  
+https://gitlab.com/scpcorp/ScPrime/blob/master/types/transactions.go  
 
 **transactionid**  
 ID of the transaction from which the wallet transaction was derived.  

@@ -9,7 +9,7 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/modules"
 
-	"gitlab.com/NebulousLabs/writeaheadlog"
+	"gitlab.com/scpcorp/writeaheadlog"
 
 	"gitlab.com/NebulousLabs/errors"
 )
