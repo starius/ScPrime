@@ -32,6 +32,7 @@ pkgs = ./build \
 	./modules \
 	./modules/consensus \
 	./modules/explorer \
+	./modules/feemanager \
 	./modules/gateway \
 	./modules/host \
 	./modules/host/contractmanager \
@@ -59,6 +60,7 @@ pkgs = ./build \
 	./siatest/consensus \
 	./siatest/daemon \
 	./siatest/dependencies \
+	./siatest/feemanager \
 	./siatest/gateway \
 	./siatest/host \
 	./siatest/miner \

@@ -1,10 +1,4 @@
 # Host
-<<<<<<< HEAD
-<<<<<<< HEAD
-Coming Soon...
-=======
-=======
->>>>>>> 48ada05a6ff8ff71e661156893a00bf2a4ba8ea1
 The host takes local disk storage and makes it available to the Sia network. It
 will do so by announcing itself, and its settings, to the network. Renters
 transact with the host through a number of RPC calls.
@@ -87,7 +81,3 @@ a single accounts file. The fingerprints are persisted across two files, the
 current and the next fingerprint bucket. The expiry blockheight of the
 withdrawal message decide if the fingerprint belongs to either the current or
 the next bucket.
-<<<<<<< HEAD
->>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
-=======
->>>>>>> 48ada05a6ff8ff71e661156893a00bf2a4ba8ea1

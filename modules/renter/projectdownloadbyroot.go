@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/threadgroup"
@@ -78,8 +79,9 @@ type projectDownloadByRoot struct {
 	err          error
 	completeChan chan struct{}
 
-	tg *threadgroup.ThreadGroup
-	mu sync.Mutex
+	staticDeps modules.Dependencies
+	tg         *threadgroup.ThreadGroup
+	mu         sync.Mutex
 }
 
 // callPerformJobDownloadByRoot will perform a download by root job.
@@ -135,8 +137,7 @@ func (pdbr *projectDownloadByRoot) managedRemoveWorker(w *worker) {
 		if len(pdbr.workersStandby) != 0 {
 			w.renter.log.Critical("pdbr has standby workers but no registered workers:", len(pdbr.workersStandby))
 		}
-		pdbr.err = ErrRootNotFound
-		close(pdbr.completeChan)
+		pdbr.markComplete(ErrRootNotFound)
 	}
 }
 
@@ -151,12 +152,14 @@ func (pdbr *projectDownloadByRoot) managedResumeJobDownloadByRoot(w *worker) {
 		pdbr.managedRemoveWorker(w)
 		return
 	}
+	// Block if necessary.
+	pdbr.staticDeps.Disrupt("BlockUntilTimeout")
 
 	// Set the data and perform cleanup.
 	pdbr.mu.Lock()
 	pdbr.data = data
+	pdbr.markComplete(nil)
 	pdbr.mu.Unlock()
-	close(pdbr.completeChan)
 }
 
 // managedStartJobDownloadByRoot will execute the first stage of downloading
@@ -228,6 +231,16 @@ func (pdbr *projectDownloadByRoot) managedWakeStandbyWorker() {
 	newWorker.callQueueJobDownloadByRoot(jdbr)
 }
 
+// markComplete marks the project as done and assigns the provided error to
+// pdbr.err.
+func (pdbr *projectDownloadByRoot) markComplete(err error) {
+	if pdbr.staticComplete() {
+		return
+	}
+	pdbr.err = err
+	close(pdbr.completeChan)
+}
+
 // threadedHandleTimeout sets a timeout on the project. If the root is not found
 // before the timeout expires, the project is finished. A zero timeout is
 // ignored.
@@ -249,6 +262,9 @@ func (pdbr *projectDownloadByRoot) threadedHandleTimeout(timeout time.Duration) 
 		return
 	case <-time.After(timeout):
 	}
+	// Project timed out. Trigger waiting depenencies.
+	pdbr.staticDeps.Disrupt("ResumeOnTimeout")
+
 	pdbr.managedTriggerTimeout(timeout)
 }
 
@@ -257,11 +273,8 @@ func (pdbr *projectDownloadByRoot) threadedHandleTimeout(timeout time.Duration) 
 func (pdbr *projectDownloadByRoot) managedTriggerTimeout(t time.Duration) {
 	pdbr.mu.Lock()
 	defer pdbr.mu.Unlock()
-	if pdbr.staticComplete() {
-		return
-	}
-	close(pdbr.completeChan)
-	pdbr.err = errors.Compose(ErrRootNotFound, errors.AddContext(ErrProjectTimedOut, fmt.Sprintf("timed out after %vs", t.Seconds())))
+	err := errors.Compose(ErrRootNotFound, errors.AddContext(ErrProjectTimedOut, fmt.Sprintf("timed out after %vs", t.Seconds())))
+	pdbr.markComplete(err)
 }
 
 // staticComplete is a helper function to check if the project has already
@@ -288,7 +301,8 @@ func (r *Renter) DownloadByRoot(root crypto.Hash, offset, length uint64, timeout
 
 		completeChan: make(chan struct{}),
 
-		tg: &r.tg,
+		staticDeps: r.deps,
+		tg:         &r.tg,
 	}
 
 	// Apply the timeout to the project. A timeout of 0 will be ignored.

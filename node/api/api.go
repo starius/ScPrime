@@ -97,6 +97,7 @@ func HttpPOSTAuthenticated(url string, data string, password string) (resp *http
 type API struct {
 	cs           modules.ConsensusSet
 	explorer     modules.Explorer
+	feemanager   modules.FeeManager
 	gateway      modules.Gateway
 	host         modules.Host
 	miner        modules.Miner
@@ -125,9 +126,10 @@ func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // SetModules allows for replacing the modules in the API at runtime.
-func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner) {
+func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner) {
 	api.cs = cs
 	api.explorer = e
+	api.feemanager = fm
 	api.gateway = g
 	api.host = h
 	api.miner = m
@@ -142,10 +144,11 @@ func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, g module
 // New creates a new Sia API from the provided modules.  The API will require
 // authentication using HTTP basic auth for certain endpoints of the supplied
 // password is not the empty string.  Usernames are ignored for authentication.
-func New(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner, index modules.Index) *API {
+func New(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner, index modules.Index) *API {
 	api := &API{
 		cs:                cs,
 		explorer:          e,
+		feemanager:        fm,
 		gateway:           g,
 		host:              h,
 		miner:             m,

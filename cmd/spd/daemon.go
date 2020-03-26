@@ -12,17 +12,18 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
+	"golang.org/x/crypto/ssh/terminal"
+
 	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/cmd"
 	fileConfig "gitlab.com/scpcorp/ScPrime/config"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/node/api/server"
 	"gitlab.com/scpcorp/ScPrime/profile"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 // passwordPrompt securely reads a password from stdin.
@@ -72,7 +73,7 @@ func processNetAddr(addr string) string {
 // invalid module character.
 func processModules(modules string) (string, error) {
 	modules = strings.ToLower(modules)
-	validModules := "cghmrtwepsi"
+	validModules := "cghmrtwefpsi"
 	invalidModules := modules
 	for _, m := range validModules {
 		invalidModules = strings.Replace(invalidModules, string(m), "", 1)
@@ -120,12 +121,13 @@ func processConfig(config Config) (Config, error) {
 // stdin.
 func apiPassword(siaDir string) (string, error) {
 	// Check the environment variable.
-	pw := os.Getenv("SCPRIME_API_PASSWORD")
+	pw := os.Getenv(cmd.SiaAPIPassword)
 	if pw != "" {
 		fmt.Println("Using SCPRIME_API_PASSWORD environment variable")
 		return pw, nil
 	}
 
+	//Try the old name of environment variable and print a warning if found
 	pw = os.Getenv("SIAPRIME_API_PASSWORD")
 	if pw != "" {
 		fmt.Println("Warning: Using SIAPRIME_API_PASSWORD environment variable.")
@@ -218,7 +220,7 @@ func installKillSignalHandler() chan os.Signal {
 // tryAutoUnlock will try to automatically unlock the server's wallet if the
 // environment variable is set.
 func tryAutoUnlock(srv *server.Server) {
-	if password := os.Getenv("SCPRIME_WALLET_PASSWORD"); password != "" {
+	if password := os.Getenv(cmd.SiaWalletPassword); password != "" {
 		fmt.Println("ScPrime Wallet Password found, attempting to auto-unlock wallet")
 		if err := srv.Unlock(password); err != nil {
 			fmt.Println("Auto-unlock failed:", err)
@@ -231,7 +233,6 @@ func tryAutoUnlock(srv *server.Server) {
 		fmt.Println("SiaPrime Wallet Password found, attempting to auto-unlock wallet")
 		fmt.Println("Warning: Using SIAPRIME_WALLET_PASSWORD is deprecated.")
 		fmt.Println("Using it will not be supported in future versions, please update \n your configuration to use the environment variable 'SCPRIME_WALLET_PASSWORD'")
-
 		if err := srv.Unlock(password); err != nil {
 			fmt.Println("Auto-unlock failed:", err)
 		} else {
@@ -341,7 +342,7 @@ func startDaemonCmd(cmd *cobra.Command, _ []string) {
 		die(err)
 	}
 
-	// Daemon seems to have closed cleanly. Print a 'closed' mesasge.
+	// Daemon seems to have closed cleanly. Print a 'closed' message.
 	fmt.Println("Shutdown complete.")
 }
 

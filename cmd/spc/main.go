@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/cmd"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/node/api"
 	"gitlab.com/scpcorp/ScPrime/node/api/client"
@@ -347,7 +348,7 @@ func main() {
 	root.PersistentFlags().StringVarP(&httpClient.UserAgent, "useragent", "", "SiaPrime-Agent", "the useragent used by spc to connect to the daemon's API")
 
 	// Check if the api password environment variable is set.
-	apiPassword := os.Getenv("SCPRIME_API_PASSWORD")
+	apiPassword := os.Getenv(cmd.SiaAPIPassword)
 	if apiPassword != "" {
 		httpClient.Password = apiPassword
 		fmt.Println("Using SCPRIME_API_PASSWORD environment variable")

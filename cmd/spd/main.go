@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/cmd"
 	"gitlab.com/scpcorp/ScPrime/config"
 )
 
@@ -137,6 +138,12 @@ Mining Pool (p):
 	The pool requires the gateway,consensus set, transactions pool and wallet.
 	Example:
 		spd -M gctwp
+FeeManager (f):
+	The FeeManager provides a means for application developers to charge
+	users for the user of their application.
+	The FeeManager requires the consensus set, gateway, transaction pool, and wallet.
+	Example:
+		siad -M gctwf
 Explorer (e):
 	The explorer provides statistics about the blockchain and can be
 	queried for information about specific transactions or other objects on
@@ -195,9 +202,9 @@ func main() {
 
 	// If globalConfig.Spd.DataDir is not set, use the environment variable provided.
 	if globalConfig.Spd.DataDir == "" {
-		globalConfig.Spd.DataDir = os.Getenv("SCPRIME_DATA_DIR")
+		globalConfig.Spd.DataDir = os.Getenv(cmd.SiaDataDir)
 		if globalConfig.Spd.DataDir != "" {
-			fmt.Println("Using SCPRIME_DATA_DIR environment variable")
+			fmt.Printf("Using %v environment variable\n", cmd.SiaDataDir)
 		}
 	}
 

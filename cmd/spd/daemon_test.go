@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/cmd"
 )
 
 // TestUnitProcessNetAddr probes the 'processNetAddr' function.
@@ -180,8 +181,8 @@ func TestAPIPassword(t *testing.T) {
 		t.Fatal("loadAPIPassword should have used previously-generated password")
 	}
 	// If the environment variable is set, loadAPIPassword should use that
-	defer os.Setenv("SCPRIME_API_PASSWORD", os.Getenv("SCPRIME_API_PASSWORD"))
-	os.Setenv("SCPRIME_API_PASSWORD", "foobar")
+	defer os.Setenv(cmd.SiaAPIPassword, os.Getenv(cmd.SiaAPIPassword))
+	os.Setenv(cmd.SiaAPIPassword, "foobar")
 	config4, err := loadAPIPassword(config, dir)
 	if err != nil {
 		t.Fatal(err)

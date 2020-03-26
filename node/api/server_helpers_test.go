@@ -110,7 +110,7 @@ func (srv *Server) Serve() error {
 // the empty string. Usernames are ignored for authentication. This type of
 // authentication sends passwords in plaintext and should therefore only be
 // used if the APIaddr is localhost.
-func NewServer(dir string, APIaddr string, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, mp modules.Pool, sm modules.StratumMiner, i modules.Index) (*Server, error) {
+func NewServer(dir string, APIaddr string, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, mp modules.Pool, sm modules.StratumMiner, i modules.Index) (*Server, error) {
 	listener, err := net.Listen("tcp", APIaddr)
 	if err != nil {
 		return nil, err
@@ -122,7 +122,7 @@ func NewServer(dir string, APIaddr string, requiredUserAgent string, requiredPas
 		return nil, errors.AddContext(err, "failed to load siad config")
 	}
 
-	api := New(cfg, requiredUserAgent, requiredPassword, cs, e, g, h, m, r, tp, w, mp, sm, i)
+	api := New(cfg, requiredUserAgent, requiredPassword, cs, e, fm, g, h, m, r, tp, w, mp, sm, i)
 	srv := &Server{
 		api: api,
 		apiServer: &http.Server{
@@ -229,7 +229,7 @@ func assembleServerTesterWithDeps(key crypto.CipherKey, testdir string, gDeps, c
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
-	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, nil, g, h, m, r, tp, w, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +338,7 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 			return nil, err
 		}
 	}
-	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", requiredPassword, cs, nil, g, h, m, r, tp, w, mp, nil, idx)
+	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", requiredPassword, cs, nil, nil, g, h, m, r, tp, w, mp, nil, idx)
 	if err != nil {
 		return nil, err
 	}
@@ -392,7 +392,7 @@ func assembleExplorerServerTester(testdir string) (*serverTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	srv, err := NewServer(testdir, "localhost:0", "", "", cs, e, g, nil, nil, nil, nil, nil, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "", "", cs, e, nil, g, nil, nil, nil, nil, nil, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"gitlab.com/scpcorp/ScPrime/cmd"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -635,9 +636,9 @@ func wallettransactionscmd() {
 func walletunlockcmd() {
 	// try reading from environment variable first, then fallback to
 	// interactive method. Also allow overriding auto-unlock via -p
-	password := os.Getenv("SCPRIME_WALLET_PASSWORD")
+	password := os.Getenv(cmd.SiaWalletPassword)
 	if password != "" && !initPassword {
-		fmt.Println("Using SCPRIME_WALLET_PASSWORD environment variable")
+		fmt.Printf("Using %v environment variable", cmd.SiaWalletPassword)
 		err := httpClient.WalletUnlockPost(password)
 		if err != nil {
 			fmt.Println("Automatic unlock failed!")
