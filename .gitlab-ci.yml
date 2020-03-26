@@ -11,8 +11,8 @@ variables:
   package_pkgs: >-
     ./build
     ./cmd/sia-node-scanner
-    ./cmd/siac
-    ./cmd/siad
+    ./cmd/spc
+    ./cmd/spd
     ./compatibility
     ./crypto
     ./encoding

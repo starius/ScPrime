@@ -3,7 +3,7 @@ set -e
 
 if ! [ -x "$(command -v golangci-lint)" ]; then
   echo "Installing golangci-lint..."
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.22.2
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.23.8
 fi
 
 if ! [ -x "$(command -v codespell)" ]; then

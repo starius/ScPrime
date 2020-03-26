@@ -3,7 +3,7 @@ BUILD_TIME=$(shell date)
 GIT_REVISION=$(shell git rev-parse --short HEAD)
 GIT_DIRTY=$(shell git diff-index --quiet HEAD -- || echo "modified-")
 
-ldflags= -X gitlab.com/SiaPrime/SiaPrime/build.GitRevision=${GIT_DIRTY}${GIT_REVISION} \
+ldflags= -X gitlab.com/scpcorp/ScPrime/build.GitRevision=${GIT_DIRTY}${GIT_REVISION} \
 -X "gitlab.com/SiaPrime/SiaPrime/build.BuildTime=${BUILD_TIME}"
 
 GO111MODULE=on
@@ -90,7 +90,7 @@ run = .
 util-pkgs = ./cmd/sia-node-scanner
 
 # dependencies list all packages needed to run make commands used to build, test
-# and lint siac/siad locally and in CI systems.
+# and lint spc/spd locally and in CI systems.
 dependencies:
 	go get -d ./...
 	./install-dependencies.sh
