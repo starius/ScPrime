@@ -7,8 +7,8 @@ import (
 	"testing"
 	"text/tabwriter"
 
-	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 const (

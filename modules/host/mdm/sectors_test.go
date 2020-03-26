@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
+	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // randomSector is a testing helper function that initializes a random sector.

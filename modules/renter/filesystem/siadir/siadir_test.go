@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 // checkMetadataInit is a helper that verifies that the metadata was initialized

@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/writeaheadlog"
 )
 
