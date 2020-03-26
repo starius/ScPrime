@@ -84,6 +84,9 @@ func (h *Host) externalSettings() modules.HostExternalSettings {
 		ContractPrice:          contractPrice,
 		DownloadBandwidthPrice: h.settings.MinDownloadBandwidthPrice,
 		SectorAccessPrice:      h.settings.MinSectorAccessPrice,
+		KeyValueSetPrice:       h.settings.MinKeyValueSetPrice,
+		KeyValueGetPrice:       h.settings.MinKeyValueGetPrice,
+		KeyValueDeletePrice:    h.settings.MinKeyValueDeletePrice,
 		StoragePrice:           h.settings.MinStoragePrice,
 		UploadBandwidthPrice:   h.settings.MinUploadBandwidthPrice,
 

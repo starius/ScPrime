@@ -312,6 +312,9 @@ type (
 		ContractPrice          types.Currency `json:"contractprice"`
 		DownloadBandwidthPrice types.Currency `json:"downloadbandwidthprice"`
 		SectorAccessPrice      types.Currency `json:"sectoraccessprice"`
+		KeyValueSetPrice       types.Currency `json:"keyvaluesetprice"`
+		KeyValueGetPrice       types.Currency `json:"keyvaluegetprice"`
+		KeyValueDeletePrice    types.Currency `json:"keyvaluedeleteprice"`
 		StoragePrice           types.Currency `json:"storageprice"`
 		UploadBandwidthPrice   types.Currency `json:"uploadbandwidthprice"`
 
@@ -379,6 +382,16 @@ var (
 	RPCLoopWrite             = types.NewSpecifier("LoopWrite")
 	RPCLoopTopUpToken        = types.NewSpecifier("LoopTopUpToken")
 	RPCLoopDownloadWithToken = types.NewSpecifier("LoopDownload")
+)
+
+// Token resources
+var (
+	DownloadBytes   = types.NewSpecifier("DownloadBytes")
+	UploadBytes     = types.NewSpecifier("UploadBytes")
+	SectorAccesses  = types.NewSpecifier("SectorAccesses")
+	KeyValueSets    = types.NewSpecifier("KeyValueSets")
+	KeyValueGets    = types.NewSpecifier("KeyValueGets")
+	KeyValueDeletes = types.NewSpecifier("KeyValueDeletes")
 )
 
 // RPC ciphers
@@ -586,13 +599,15 @@ type (
 		NewMissedProofValues []types.Currency
 		Signature            []byte
 
-		BytesAmount    int64
-		SectorAccesses int64
-		Token          [32]byte
+		ResourcesType   types.Specifier
+		ResourcesAmount int64
+
+		Token [16]byte
 	}
 
 	// LoopTopUpTokenResponse contains the response data for RPCLoopTopUpToken.
 	LoopTopUpTokenResponse struct {
+		Signature []byte
 	}
 
 	// LoopDownloadWithTokenRequest contains the request parameters for RPCLoopDownloadWithToken.
@@ -600,7 +615,7 @@ type (
 		Sections    []LoopReadRequestSection
 		MerkleProof bool
 
-		Token [32]byte
+		Token [16]byte
 	}
 
 	// LoopDownloadWithTokenResponse contains the response data for RPCLoopDownloadWithToken.

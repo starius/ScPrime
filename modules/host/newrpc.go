@@ -926,7 +926,6 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 	h.mu.RLock()
 	blockHeight := h.blockHeight
 	secretKey := h.secretKey
-	settings := h.externalSettings()
 	h.mu.RUnlock()
 	currentRevision := s.so.RevisionTransactionSet[len(s.so.RevisionTransactionSet)-1].FileContractRevisions[0]
 
@@ -934,24 +933,19 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 	if err := validateProofValues(s, req.NewValidProofValues, req.NewMissedProofValues); err != nil {
 		return err
 	}
-	// TODO: support selling of token fields back to the host (i.e. make negative values for the following parameters sensible).
+	// TODO: support selling of token resources back to the host (i.e. make negative values for the following parameters sensible).
 	// In such case, money flows from the host to the renter.
 	// This is interesting concept, but before implementing it we have to consider all the possible outcomes, including speculating storage price.
 	// This idea needs deeper economic comprehension.
-	if req.BytesAmount <= 0 {
-		return errors.New("negative bytes amount is requested, but selling bytes back is not yet implemented")
-	}
-	if req.SectorAccesses <= 0 {
-		return errors.New("negative sector accesses number is requested, but selling sector accessess back is not yet implemented")
+	if req.ResourcesAmount <= 0 {
+		return errors.New("negative resources amount is requested, but selling resources back is not yet implemented")
 	}
 
 	// Construct the new revision.
 	newRevision := buildNewRevision(currentRevision, req.NewRevisionNumber, req.NewValidProofValues, req.NewMissedProofValues)
 
 	// Calculate expected cost and verify against renter's revision.
-	bandwidthCost := settings.DownloadBandwidthPrice.Mul64(uint64(req.BytesAmount))
-	sectorAccessCost := settings.SectorAccessPrice.Mul64(uint64(req.SectorAccesses))
-	totalCost := settings.BaseRPCPrice.Add(bandwidthCost).Add(sectorAccessCost)
+	totalCost := h.calculatePriceByResource(req.ResourcesType, req.ResourcesAmount)
 	err := verifyPaymentRevision(currentRevision, newRevision, blockHeight, totalCost)
 	if err != nil {
 		s.writeError(err)
@@ -985,10 +979,15 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 
 	// Save changes to token storage.
 	id := tokenID(req.Token)
-	if err := h.tokenStor.addBytes(&id, req.BytesAmount); err != nil {
+	if err := h.tokenStor.addResources(&id, req.ResourcesType, req.ResourcesAmount); err != nil {
 		return err
 	}
-	if err := h.tokenStor.addSectors(&id, req.SectorAccesses); err != nil {
+
+	// Send response.
+	resp := modules.LoopTopUpTokenResponse{
+		Signature: txn.TransactionSignatures[1].Signature,
+	}
+	if err := s.writeResponse(resp); err != nil {
 		return err
 	}
 	return nil
@@ -1023,35 +1022,37 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 	id := tokenID(req.Token)
 	estBandwidth := estimateBandwidth(req.Sections)
 	sectorAccesses := estimateSectorsAccesses(req.Sections)
-	availableBandwidth, err := h.tokenStor.bytesAmount(&id)
+	tokenResources, err := h.tokenStor.tokenRecord(&id)
 	if err != nil {
 		s.writeError(err)
 		return err
 	}
+	availableBandwidth := tokenResources.downloadBytes
 	if availableBandwidth < estBandwidth {
-		err := errors.New("Token does not have enough bytes available to handle the requested amount of downloading")
+		err := errors.New("Token does not have enough download bytes available to handle the requested amount of downloading")
 		s.writeError(err)
 		return err
 	}
-	availableSectors, err := h.tokenStor.sectorsAmount(&id)
-	if err != nil {
-		s.writeError(err)
-		return err
-	}
+	availableSectors := tokenResources.sectorAccesses
 	if availableSectors < sectorAccesses {
 		err := errors.New("Token does not have enough sector accesses available to handle this request")
 		s.writeError(err)
 		return err
 	}
-	// Decrease token resources.
-	if err := h.tokenStor.addBytes(&id, -estBandwidth); err != nil {
-		s.writeError(err)
-		return err
-	}
-	if err := h.tokenStor.addSectors(&id, -sectorAccesses); err != nil {
-		s.writeError(err)
-		return err
-	}
+
+	go func() {
+		// Update token resources.
+		// We do it in a separate goroutine, because we want this RPC
+		// to start returning data as soon as possible,
+		// and here we do slow operatin - saving to disk.
+		newDownloadBytes := availableBandwidth - estBandwidth
+		tokenResources.downloadBytes = newDownloadBytes
+		newSectorAccesses := availableSectors - sectorAccesses
+		tokenResources.sectorAccesses = newSectorAccesses
+		if err := h.tokenStor.setTokenRecord(&id, tokenResources); err != nil {
+			h.log.Println(err)
+		}
+	}()
 
 	// Enter response loop.
 	for _, sec := range req.Sections {

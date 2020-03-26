@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"gitlab.com/scpcorp/ScPrime/modules"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +19,7 @@ func createTokenStorage(t *testing.T) (*tokenStorage, string) {
 	return stor, dbDir
 }
 
-func TestAddBytes(t *testing.T) {
+func TestAddResources(t *testing.T) {
 	stor, path := createTokenStorage(t)
 
 	defer func() {
@@ -31,30 +33,14 @@ func TestAddBytes(t *testing.T) {
 	var id tokenID
 	_, err := rand.Read(id[:])
 	assert.NoError(t, err, "rand.Read() failed")
-	err = stor.addBytes(&id, amount)
-	assert.NoError(t, err, "stor.addBytes() failed")
-	savedAmount, err := stor.bytesAmount(&id)
-	assert.NoError(t, err, "bytesAmount() failed")
-	assert.Equal(t, amount, savedAmount, "bytes amount saved is not correct")
-}
-
-func TestAddSectors(t *testing.T) {
-	stor, path := createTokenStorage(t)
-
-	defer func() {
-		err := os.RemoveAll(path)
-		assert.NoError(t, err, "failed to clean test data dir")
-		err = stor.close()
-		assert.NoError(t, err, "failed to close tokenStorage")
-	}()
-
-	amount := int64(100500)
-	var id tokenID
-	_, err := rand.Read(id[:])
-	assert.NoError(t, err, "rand.Read() failed")
-	err = stor.addSectors(&id, amount)
-	assert.NoError(t, err, "stor.addSectors() failed")
-	savedAmount, err := stor.sectorsAmount(&id)
-	assert.NoError(t, err, "sectorsAmount() failed")
-	assert.Equal(t, amount, savedAmount, "sectors amount saved is not correct")
+	err = stor.addResources(&id, modules.DownloadBytes, amount)
+	assert.NoError(t, err, "stor.addResources() failed")
+	newResources, err := stor.tokenRecord(&id)
+	assert.NoError(t, err, "tokenRecord() failed")
+	assert.Equal(t, amount, newResources.downloadBytes)
+	err = stor.addResources(&id, modules.UploadBytes, amount)
+	assert.NoError(t, err, "stor.addResources() failed")
+	newResources, err = stor.tokenRecord(&id)
+	assert.NoError(t, err, "tokenRecord() failed")
+	assert.Equal(t, amount, newResources.uploadBytes)
 }

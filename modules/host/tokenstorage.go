@@ -1,8 +1,10 @@
 package host
 
 import (
-	"bytes"
 	"encoding/binary"
+
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"github.com/pkg/errors"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -12,9 +14,9 @@ import (
 // If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
 
 const (
-	tokenNameSize   = 32
+	tokenNameSize   = 16
 	tokenKeySize    = 1 + tokenNameSize
-	tokenRecordSize = 8 + 8
+	tokenRecordSize = 48
 )
 
 const (
@@ -47,30 +49,35 @@ func (k *tokenKey) marshalBinary() ([]byte, error) {
 }
 
 type tokenRecord struct {
-	bytesAmount    int64
+	downloadBytes  int64
+	uploadBytes    int64
 	sectorAccesses int64
+	keyValSets     int64
+	keyValGets     int64
+	keyValDeletes  int64
 }
 
 func (r *tokenRecord) unmarshalBinary(data []byte) error {
 	if len(data) != tokenRecordSize {
 		return errInvalidDataSize
 	}
-	var err error
-	r.bytesAmount, err = binary.ReadVarint(bytes.NewReader(data[:8]))
-	if err != nil {
-		return err
-	}
-	r.sectorAccesses, err = binary.ReadVarint(bytes.NewReader(data[8:16]))
-	if err != nil {
-		return err
-	}
+	r.downloadBytes = int64(binary.BigEndian.Uint64(data[:8]))
+	r.uploadBytes = int64(binary.BigEndian.Uint64(data[8:16]))
+	r.sectorAccesses = int64(binary.BigEndian.Uint64(data[16:24]))
+	r.keyValSets = int64(binary.BigEndian.Uint64(data[24:32]))
+	r.keyValGets = int64(binary.BigEndian.Uint64(data[32:40]))
+	r.keyValDeletes = int64(binary.BigEndian.Uint64(data[40:48]))
 	return nil
 }
 
 func (r *tokenRecord) marshalBinary() ([]byte, error) {
 	buf := make([]byte, tokenRecordSize)
-	binary.PutVarint(buf[:8], r.bytesAmount)
-	binary.PutVarint(buf[8:16], r.sectorAccesses)
+	binary.BigEndian.PutUint64(buf[:8], uint64(r.downloadBytes))
+	binary.BigEndian.PutUint64(buf[8:16], uint64(r.uploadBytes))
+	binary.BigEndian.PutUint64(buf[16:24], uint64(r.sectorAccesses))
+	binary.BigEndian.PutUint64(buf[24:32], uint64(r.keyValSets))
+	binary.BigEndian.PutUint64(buf[32:40], uint64(r.keyValGets))
+	binary.BigEndian.PutUint64(buf[40:48], uint64(r.keyValDeletes))
 	return buf, nil
 }
 
@@ -103,22 +110,6 @@ func (s *tokenStorage) tokenRecord(id *tokenID) (*tokenRecord, error) {
 	return &record, nil
 }
 
-func (s *tokenStorage) bytesAmount(id *tokenID) (int64, error) {
-	record, err := s.tokenRecord(id)
-	if err != nil {
-		return 0, err
-	}
-	return record.bytesAmount, nil
-}
-
-func (s *tokenStorage) sectorsAmount(id *tokenID) (int64, error) {
-	record, err := s.tokenRecord(id)
-	if err != nil {
-		return 0, err
-	}
-	return record.sectorAccesses, nil
-}
-
 func (s *tokenStorage) setTokenRecord(id *tokenID, r *tokenRecord) error {
 	key := tokenKey{*id}
 	keyBytes, err := key.marshalBinary()
@@ -135,28 +126,32 @@ func (s *tokenStorage) setTokenRecord(id *tokenID, r *tokenRecord) error {
 	return nil
 }
 
-func (s *tokenStorage) addBytes(id *tokenID, amount int64) error {
-	record, err := s.tokenRecord(id)
+func (s *tokenStorage) addResources(id *tokenID, resourceType types.Specifier, amount int64) error {
+	resources, err := s.tokenRecord(id)
 	if err == leveldb.ErrNotFound {
-		// Fresh record.
-		record = &tokenRecord{}
+		// New record.
+		resources = &tokenRecord{}
 	} else if err != nil {
 		return err
 	}
-	record.bytesAmount += amount
-	return s.setTokenRecord(id, record)
-}
-
-func (s *tokenStorage) addSectors(id *tokenID, amount int64) error {
-	record, err := s.tokenRecord(id)
-	if err == leveldb.ErrNotFound {
-		// Fresh record.
-		record = &tokenRecord{}
-	} else if err != nil {
+	switch resourceType {
+	case modules.DownloadBytes:
+		resources.downloadBytes += amount
+	case modules.UploadBytes:
+		resources.uploadBytes += amount
+	case modules.SectorAccesses:
+		resources.sectorAccesses += amount
+	case modules.KeyValueSets:
+		resources.keyValSets += amount
+	case modules.KeyValueGets:
+		resources.keyValGets += amount
+	case modules.KeyValueDeletes:
+		resources.keyValDeletes += amount
+	}
+	if err := s.setTokenRecord(id, resources); err != nil {
 		return err
 	}
-	record.sectorAccesses += amount
-	return s.setTokenRecord(id, record)
+	return nil
 }
 
 func (s *tokenStorage) close() error {
