@@ -114,7 +114,7 @@ issues:
   # Additional exclusion rules.
   exclude-rules:
     # Ignore  gosec hardcoded credentials false positive.
-    - path: cmd/spc/
+    - path: cmd/
       text: "G101: Potential hardcoded credentials"
       linters:
         - gosec
