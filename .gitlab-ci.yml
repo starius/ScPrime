@@ -109,7 +109,7 @@ lint:
     - apt-get -y install python3-pip
     - pip3 install codespell
     - ./bin/golangci-lint run -c .golangci.yml ./...
-    - make lint-analysis
+#disable for now    - make lint-analysis
     - make markdown-spellcheck
     - make test
 
