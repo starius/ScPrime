@@ -1,11 +1,11 @@
 package hostdb
 
 import (
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb/hosttree"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
 )
 
 // RandomHosts implements the HostDB interface's RandomHosts() method. It takes

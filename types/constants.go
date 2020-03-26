@@ -109,6 +109,9 @@ var (
 	// for the airdrop at network launch
 	GenesisAirdropAllocation []SiacoinOutput
 
+	// GenesisSiacoinAllocation is the set of SiacoinOutputs created in the Genesis
+	// block
+	GenesisSiacoinAllocation []SiacoinOutput
 	// GenesisSiafundAllocation is the set of SiafundOutputs created in the Genesis
 	// block.
 	GenesisSiafundAllocation []SiafundOutput

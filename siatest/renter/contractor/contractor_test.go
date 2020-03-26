@@ -132,14 +132,15 @@ func testContractFunding(t *testing.T, tg *siatest.TestGroup) {
 // testContractorIncompleteMaintenanceAlert tests that having the wallet locked
 // during maintenance results in an alert.
 func testContractorIncompleteMaintenanceAlert(t *testing.T, tg *siatest.TestGroup) {
-	// The renter shouldn't have any alerts.
+	// The renter shouldn't have any alerts apart from the pre-registered
+	// testing alerts.
 	r := tg.Renters()[0]
 	dag, err := r.DaemonAlertsGet()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(dag.Alerts) != 0 {
-		t.Fatal("number of alerts is not 0")
+	if len(dag.Alerts) != 12 {
+		t.Fatal("number of alerts is not 12")
 	}
 	// Save the seed for later.
 	wsg, err := r.WalletSeedsGet()
@@ -2100,7 +2101,7 @@ func TestWatchdogExtraDependencyRegression(t *testing.T) {
 		t.Fatal(err)
 	}
 	fee := feeGet.Maximum.Mul64(modules.EstimatedFileContractTransactionSetSize)
-	_, err = renter.WalletSiacoinsPost(balance.Sub(fee), addressGet.Address)
+	_, err = renter.WalletSiacoinsPost(balance.Sub(fee), addressGet.Address, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2174,13 +2175,14 @@ func TestFailedContractRenewalAlert(t *testing.T) {
 	}
 	r := nodes[0]
 
-	// The renter shouldn't have any alerts.
+	// The daemon shouldn't have any alerts besides the 3 testing alerts per
+	// module.
 	dag, err := r.DaemonAlertsGet()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(dag.Alerts) != 0 {
-		t.Fatal("number of alerts is not 0")
+	if len(dag.Alerts) != 12 {
+		t.Fatal("Number of alerts is not 12!", len(dag.Alerts))
 	}
 
 	// Mine blocks to force contract renewal
@@ -2206,8 +2208,8 @@ func TestFailedContractRenewalAlert(t *testing.T) {
 				return err
 			}
 		}
-		// Since this alert casuse can be multiple composed errors it can not
-		// use the IsAlertRegistered helper method
+		// Since this alert cause can be multiple composed errors it can not use
+		// the IsAlertRegistered helper method
 		dag, err := r.DaemonAlertsGet()
 		if err != nil {
 			return err
@@ -2236,8 +2238,8 @@ func TestFailedContractRenewalAlert(t *testing.T) {
 			}
 		}
 		numTries++
-		// Since this alert casuse can be multiple composed errors it can not
-		// use the IsAlertUnregistered helper method
+		// Since this alert cause can be multiple composed errors it can not use
+		// the IsAlertUnregistered helper method
 		dag, err := r.DaemonAlertsGet()
 		if err != nil {
 			return err

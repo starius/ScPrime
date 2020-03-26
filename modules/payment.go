@@ -2,6 +2,7 @@ package modules
 
 import (
 	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/types"
 )

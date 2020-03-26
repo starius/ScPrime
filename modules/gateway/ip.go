@@ -4,10 +4,10 @@ import (
 	"net"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
-
-	"gitlab.com/NebulousLabs/errors"
 )
 
 // discoverPeerIP is the handler for the discoverPeer RPC. It returns the

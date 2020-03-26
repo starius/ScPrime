@@ -55,7 +55,9 @@ func isSyncObject(t types.Type) bool {
 	case "sync.Mutex",
 		"sync.RWMutex",
 		"sync.WaitGroup",
+
 		"gitlab.com/scpcorp/ScPrime/sync.TryMutex",
+
 		"gitlab.com/NebulousLabs/threadgroup.ThreadGroup":
 		return true
 	}

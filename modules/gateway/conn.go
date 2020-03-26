@@ -4,10 +4,10 @@ import (
 	"net"
 	"time"
 
+	"gitlab.com/NebulousLabs/monitor"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
-
-	"gitlab.com/NebulousLabs/monitor"
 )
 
 // peerConn is a simple type that implements the modules.PeerConn interface.

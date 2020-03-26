@@ -14,10 +14,10 @@ import (
 	"os"
 	"strings"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-
-	"gitlab.com/NebulousLabs/errors"
 )
 
 // verifyChecksum will disregard the metadata of the saved file, and just verify

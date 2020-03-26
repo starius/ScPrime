@@ -15,7 +15,6 @@ network. To get the release build, it is usually sufficient to run `go get -u
 gitlab.com/scpcorp/ScPrime/...`. This will download SiaPrime and its dependencies
 and install binaries in `$GOPATH/bin`.
 
-<<<<<<< HEAD
 After downloading, you can find the SiaPrime source code in
 `$GOPATH/src/gitlab.com/scpcorp/ScPrime`. To build the release binary, run
 `make release-std` from this directory. To build the release binary with a
@@ -25,22 +24,10 @@ times, and a few other tweaks), run `make dev`.
 
 If you intend to contribute to SiaPrime, you should start by forking the project on
 GitHub, and then adding your fork as a "remote" in the SiaPrime git repository via
-=======
-After downloading, you can find the Sia source code in
-`$GOPATH/src/gitlab.com/NebulousLabs/Sia`. To build the release binary, run
-`make release` from this directory. To build the release binary with a (slow)
-race detector and an array of debugging asserts, run `make release-race`. To
-build the developer binary (which has a different genesis block, faster block
-times, and a few other tweaks), run `make dev`.
-
-If you intend to contribute to Sia, you should start by forking the project on
-GitLab, and then adding your fork as a "remote" in the Sia git repository via
->>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 `git remote add [fork name] [fork url]`. Now you can develop by pulling changes
 from `origin`, pushing your modifications to `[fork name]`, and then making a
 merge request on GitLab.
 
-<<<<<<< HEAD
 If you see an error like the one below, it means that you either forgot to run
 `make dependencies`, or you cloned the project into a path that the go tool
 does not recognize (usually the wrong path, or symbolic links were somehow
@@ -51,8 +38,6 @@ consensus/fork.go:4:2: cannot find package "gitlab.com/scpcorp/ScPrime/crypto" i
     /usr/lib/go/src/gitlab.com/scpcorp/ScPrime/crypto (from $GOROOT)
     /home/user/gopath/src/gitlab.com/scpcorp/ScPrime/crypto (from $GOPATH)
 ```
-=======
->>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 
 Developer Conventions
 =====================

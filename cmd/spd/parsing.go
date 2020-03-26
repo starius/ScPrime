@@ -45,6 +45,7 @@ func parseModules(config Config) node.NodeParams {
 	params.Bootstrap = !config.Spd.NoBootstrap
 	params.HostAddress = config.Spd.HostAddr
 	params.RPCAddress = config.Spd.RPCaddr
+	params.SiaMuxAddress = config.Spd.SiaMuxAddr
 	params.Dir = config.Spd.DataDir
 	return params
 }

@@ -13,9 +13,9 @@ import (
 	"errors"
 	"hash"
 
-	"gitlab.com/scpcorp/ScPrime/encoding"
-
 	"golang.org/x/crypto/blake2b"
+
+	"gitlab.com/scpcorp/ScPrime/encoding"
 )
 
 const (

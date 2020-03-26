@@ -5,6 +5,10 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/NebulousLabs/demotemutex"
+	"gitlab.com/NebulousLabs/errors"
+	bolt "go.etcd.io/bbolt"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -12,10 +16,6 @@ import (
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
 	"gitlab.com/scpcorp/ScPrime/types"
 	"gitlab.com/scpcorp/ScPrime/types/typesutil"
-
-	"gitlab.com/NebulousLabs/demotemutex"
-	"gitlab.com/NebulousLabs/errors"
-	bolt "go.etcd.io/bbolt"
 )
 
 var (

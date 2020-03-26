@@ -3,9 +3,10 @@ package skynetblacklist
 import (
 	"sync"
 
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // SkynetBlacklist manages a set of blacklisted skylinks by tracking the
@@ -32,6 +33,17 @@ func New(persistDir string) (*SkynetBlacklist, error) {
 	}
 
 	return sb, nil
+}
+
+// Blacklist returns the merkleroots that are blacklisted
+func (sb *SkynetBlacklist) Blacklist() []crypto.Hash {
+	sb.mu.Lock()
+	defer sb.mu.Unlock()
+	var blacklist []crypto.Hash
+	for mr := range sb.merkleroots {
+		blacklist = append(blacklist, mr)
+	}
+	return blacklist
 }
 
 // IsBlacklisted indicates if a skylink is currently blacklisted

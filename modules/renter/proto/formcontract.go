@@ -1,13 +1,13 @@
 package proto
 
 import (
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 	"gitlab.com/scpcorp/ScPrime/types/typesutil"
-
-	"gitlab.com/NebulousLabs/errors"
 )
 
 // FormContract forms a contract with a host and submits the contract

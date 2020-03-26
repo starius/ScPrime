@@ -4,13 +4,13 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TODO If we already have an active contract with a host for
@@ -79,13 +79,6 @@ func (rs *recoveryScanner) threadedScan(cs modules.ConsensusSet, scanStart modul
 // ProcessConsensusChange scans the blockchain for information relevant to the
 // recoveryScanner.
 func (rs *recoveryScanner) ProcessConsensusChange(cc modules.ConsensusChange) {
-	//skip if wallet is not initialised
-	unlocked, err := rs.c.wallet.Unlocked()
-	if err != nil || !unlocked {
-		rs.c.log.Debugln("Skipping contract recovery because wallet is not available or unlocked.")
-		return
-	}
-
 	for _, block := range cc.AppliedBlocks {
 		// Find lost contracts for recovery.
 		rs.c.mu.Lock()

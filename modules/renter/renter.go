@@ -32,6 +32,7 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/threadgroup"
+
 	"gitlab.com/scpcorp/siamux"
 	"gitlab.com/scpcorp/writeaheadlog"
 
@@ -42,6 +43,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/skynetblacklist"
 	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/skykey"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
@@ -217,6 +219,7 @@ type Renter struct {
 	mu                    *siasync.RWMutex
 	repairLog             *persist.Logger
 	staticFuseManager     renterFuseManager
+	staticSkykeyManager   *skykey.SkykeyManager
 	staticStreamBufferSet *streamBufferSet
 	tg                    threadgroup.ThreadGroup
 	tpool                 modules.TransactionPool
@@ -471,13 +474,8 @@ func (r *Renter) managedRenterContractsAndUtilities(entrys []*filesystem.FileNod
 	goodForRenew = make(map[string]bool)
 	offline = make(map[string]bool)
 	for _, e := range entrys {
-		var used []types.SiaPublicKey
 		for _, pk := range e.HostPublicKeys() {
 			pks[pk.String()] = pk
-			used = append(used, pk)
-		}
-		if err := e.UpdateUsedHosts(used); err != nil {
-			r.log.Debugln("WARN: Could not update used hosts:", err)
 		}
 	}
 	// Build 2 maps that map every pubkey to its offline and goodForRenew
@@ -495,6 +493,19 @@ func (r *Renter) managedRenterContractsAndUtilities(entrys []*filesystem.FileNod
 		goodForRenew[pk.String()] = cu.GoodForRenew
 		offline[pk.String()] = r.hostContractor.IsOffline(pk)
 		contracts[pk.String()] = contract
+	}
+	// Update the used hosts of the Siafile. Only consider the ones that
+	// are goodForRenew.
+	var used []types.SiaPublicKey
+	for _, pk := range pks {
+		if _, gfr := goodForRenew[pk.String()]; gfr {
+			used = append(used, pk)
+		}
+	}
+	for _, e := range entrys {
+		if err := e.UpdateUsedHosts(used); err != nil {
+			r.log.Debugln("WARN: Could not update used hosts:", err)
+		}
 	}
 	// Update the cached expiration of the siafiles.
 	for _, e := range entrys {
@@ -867,7 +878,8 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	r.staticSkynetBlacklist = sb
 
 	// Load all saved data.
-	if err := r.managedInitPersist(); err != nil {
+	err = r.managedInitPersist()
+	if err != nil {
 		return nil, err
 	}
 	// After persist is initialized, push the root directory onto the directory
@@ -875,6 +887,17 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	r.managedPushUnexploredDirectory(modules.RootSiaPath())
 	// After persist is initialized, create the worker pool.
 	r.staticWorkerPool = r.newWorkerPool()
+
+	// Create the skykey manager.
+	// In testing, keep the skykeys with the rest of the renter data.
+	skykeyManDir := build.DefaultSkynetDir()
+	if build.Release == "testing" {
+		skykeyManDir = persistDir
+	}
+	r.staticSkykeyManager, err = skykey.NewSkykeyManager(skykeyManDir)
+	if err != nil {
+		return nil, err
+	}
 
 	// Spin up background threads which are not depending on the renter being
 	// up-to-date with consensus.

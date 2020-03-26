@@ -10,13 +10,13 @@ import (
 	"reflect"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 var (
@@ -24,6 +24,10 @@ var (
 	// than the amount necessary to store at least one sector
 	ErrInsufficientAllowance = errors.New("allowance is not large enough to cover fees of contract creation")
 	errTooExpensive          = errors.New("host price was too high")
+
+	// errContractNotGFR is used to indicate that a contract renewal failed
+	// because the contract was marked !GFR.
+	errContractNotGFR = errors.New("contract is not GoodForRenew")
 )
 
 type (
@@ -442,6 +446,7 @@ func (c *Contractor) managedPrunePubkeyMap() {
 
 // managedPrunedRedundantAddressRange uses the hostdb to find hosts that
 // violate the rules about address ranges and cancels them.
+//TODO: adjust for IPRestriction > 1
 func (c *Contractor) managedPrunedRedundantAddressRange() {
 	// Get all contracts which are not canceled.
 	allContracts := c.staticContracts.ViewAll()
@@ -453,7 +458,6 @@ func (c *Contractor) managedPrunedRedundantAddressRange() {
 		}
 		contracts = append(contracts, contract)
 	}
-	//TODO: adjust for IPRestriction>1
 
 	// Get all the public keys and map them to contract ids.
 	pks := make([]types.SiaPublicKey, 0, len(allContracts))
@@ -688,6 +692,12 @@ func (c *Contractor) managedRenewContract(renewInstructions fileContractRenewal,
 	if !exists {
 		c.log.Printf("Contract %v slated for renew could not be found in the utility lookup", id)
 		return types.ZeroCurrency, errors.New("contract utility could not be found")
+	}
+
+	// The contract could have been marked !GFR while the contractor lock was not
+	// held.
+	if !oldUtility.GoodForRenew {
+		return types.ZeroCurrency, errContractNotGFR
 	}
 
 	// Perform the actual renew. If the renew fails, return the
@@ -1080,7 +1090,6 @@ func (c *Contractor) threadedContractMaintenance() {
 	// (refreshSet). If there is not enough money available, the more expensive
 	// contracts will be skipped.
 	for _, renewal := range renewSet {
-
 		// Return here if an interrupt or kill signal has been sent.
 		select {
 		case <-c.tg.StopChan():
@@ -1111,7 +1120,10 @@ func (c *Contractor) threadedContractMaintenance() {
 		// already will have logged the error, and in the event of an error,
 		// 'fundsSpent' will return '0'.
 		fundsSpent, err := c.managedRenewContract(renewal, currentPeriod, allowance, blockHeight, endHeight)
-		if err != nil {
+		if errors.Contains(err, errContractNotGFR) {
+			// Do not add a renewal error.
+			c.log.Debugln("Contract skipped because it is not good for renew", renewal.id)
+		} else if err != nil {
 			c.log.Println("Error renewing a contract", renewal.id, err)
 			renewErr = errors.Compose(renewErr, err)
 		} else {

@@ -11,6 +11,12 @@ func AppendMemory() uint64 {
 	return modules.SectorSize // A full sector is added to the program's memory until the program is finalized.
 }
 
+// DropSectorsMemory returns the additional memory consumption of a
+// `DropSectors` instruction
+func DropSectorsMemory() uint64 {
+	return 0 // 'DropSectors' doesn't hold on to any memory beyond the lifetime of the instruction.
+}
+
 // HasSectorMemory returns the additional memory consumption of a 'HasSector'
 // instruction.
 func HasSectorMemory() uint64 {

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 )

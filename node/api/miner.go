@@ -3,10 +3,10 @@ package api
 import (
 	"net/http"
 
+	"github.com/julienschmidt/httprouter"
+
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"github.com/julienschmidt/httprouter"
 )
 
 type (

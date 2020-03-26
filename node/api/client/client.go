@@ -102,11 +102,6 @@ func (c *Client) getReaderResponse(resource string) (http.Header, io.ReadCloser,
 		return nil, nil, errors.AddContext(err, "GET request failed")
 	}
 
-	if res.StatusCode == http.StatusNotFound {
-		drainAndClose(res.Body)
-		return nil, nil, errors.AddContext(api.ErrAPICallNotRecognized, "unable to perform GET on "+resource)
-	}
-
 	// If the status code is not 2xx, decode and return the accompanying
 	// api.Error.
 	if res.StatusCode < 200 || res.StatusCode > 299 {
@@ -177,6 +172,21 @@ func (c *Client) get(resource string, obj interface{}) error {
 	return nil
 }
 
+// head makes a HEAD request to the resource at `resource`. The headers that are
+// returned are the headers that would be returned if requesting the same
+// `resource` using a GET request.
+func (c *Client) head(resource string) (int, http.Header, error) {
+	req, err := c.NewRequest("HEAD", resource, nil)
+	if err != nil {
+		return 0, nil, errors.AddContext(err, "failed to construct HEAD request")
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, nil, errors.AddContext(err, "HEAD request failed")
+	}
+	return res.StatusCode, res.Header, nil
+}
+
 // postRawResponse requests the specified resource. The response, if provided,
 // will be returned in a byte slice
 func (c *Client) postRawResponse(resource string, body io.Reader) (http.Header, []byte, error) {
@@ -206,10 +216,6 @@ func (c *Client) postRawResponseWithHeaders(resource string, body io.Reader, hea
 		return http.Header{}, nil, errors.AddContext(err, "POST request failed")
 	}
 	defer drainAndClose(res.Body)
-
-	if res.StatusCode == http.StatusNotFound {
-		return http.Header{}, nil, errors.AddContext(api.ErrAPICallNotRecognized, "unable to perform POST on "+resource)
-	}
 
 	// If the status code is not 2xx, decode and return the accompanying
 	// api.Error.

@@ -40,12 +40,12 @@ pkgs = ./build \
 	./modules/renter \
 	./modules/renter/contractor \
 	./modules/renter/filesystem \
+	./modules/stratumminer \
+	./modules/renter/filesystem/siadir \
+	./modules/renter/filesystem/siafile \
 	./modules/renter/hostdb \
 	./modules/renter/hostdb/hosttree \
 	./modules/renter/proto \
-	./modules/renter/siadir \
-	./modules/renter/siafile \
-	./modules/stratumminer \
 	./modules/renter/skynetblacklist \
 	./modules/transactionpool \
 	./modules/wallet \
@@ -68,6 +68,7 @@ pkgs = ./build \
 	./siatest/renterhost \
 	./siatest/transactionpool \
 	./siatest/wallet \
+	./skykey \
 	./sync \
 	./types \
 	./types/typesutil
@@ -89,6 +90,7 @@ util-pkgs = ./cmd/sia-node-scanner
 # dependencies list all packages needed to run make commands used to build, test
 # and lint siac/siad locally and in CI systems.
 dependencies:
+	go get -d ./...
 	./install-dependencies.sh
 
 # fmt calls go fmt on all packages.

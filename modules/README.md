@@ -19,9 +19,13 @@ The modules package is the top-level package for all modules. It contains the in
 - [Network Addresses](#network-addresses)
 - [Siad Configuration](#siad-configuration)
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 - [Skylink](#skylink)
 >>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
+=======
+- [Skylink](#skylink)
+>>>>>>> 48ada05a6ff8ff71e661156893a00bf2a4ba8ea1
 - [SiaPath](#siapath)
 - [Storage Manager](#storage-manager)
 
@@ -102,7 +106,11 @@ The Alert System provides the `Alerter` interface and an implementation of the i
 
 The following levels of severity are currently available:
 
+<<<<<<< HEAD
 - **Unknown**: This should never be used and is a safeguard against developer errors	
+=======
+- **Unknown**: This should never be used and is a safeguard against developer errors
+>>>>>>> 48ada05a6ff8ff71e661156893a00bf2a4ba8ea1
 - **Warning**: Warns the user about potential issues which might require preventive actions
 - **Error**: Alerts the user of an issue that requires immediate action to prevent further issues like loss of data
 - **Critical**: Indicates that a critical error is imminent. e.g. lack of funds causing contracts to get lost
@@ -128,6 +136,17 @@ The following levels of severity are currently available:
 *TODO* 
   - fill out subsystem explanation
 
+<<<<<<< HEAD
+=======
+### Packing
+**Key Files**
+- [packing.go](./packing.go)
+
+The smallest amount of data that can be uploaded to the Sia network is 4 MiB. This limitation can be overcome by packing multiple files together. The upload batching commands can pack a bunch of small files into the same sector, producing a unique skylink for each file.
+
+Batch uploads work much the same as uploads, except that a JSON manifest is provided which pairs a list of source files to their destination siapaths. Every file in the manifest must be smaller than 4 MiB. The packing algorithm attempts to optimally pack the list of files into as few chunks as possible, where each chunk is 4 MiB in size.
+
+>>>>>>> 48ada05a6ff8ff71e661156893a00bf2a4ba8ea1
 ### Siad Configuration
 **Key Files**
 - [siadconfig.go](./siadconfig.go)
@@ -136,7 +155,10 @@ The following levels of severity are currently available:
   - fill out subsystem explanation
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> 48ada05a6ff8ff71e661156893a00bf2a4ba8ea1
 ### Skylink
 
 **Key Files**
@@ -151,17 +173,25 @@ All told, there are 32 bytes in a skylink for encoding the Merkle root of the
 sector being linked, and 2 bytes encoding a link version, the offset, and the
 length of the sector being fetched.
 
+<<<<<<< HEAD
 For more information, checkout the documentation in the [skylink.go](./skylink.go) file.
 
 >>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
+=======
+For more information, check out the documentation in the [skylink.go](./skylink.go) file.
+
+>>>>>>> 48ada05a6ff8ff71e661156893a00bf2a4ba8ea1
 ### SiaPath
 **Key Files**
 - [siapath.go](./siapath.go)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 *TODO* 
   - fill out subsystem explanation
 =======
+=======
+>>>>>>> 48ada05a6ff8ff71e661156893a00bf2a4ba8ea1
 Siapaths are the format of filesystem paths on the Sia network. Internally they
 are handled as linux paths and use the `/` separator. Siapaths are used to
 identify directories on the Sia network as well as files.  When manipulating
@@ -169,7 +199,10 @@ Siapaths in memory the `strings` package should be used so that the `/`
 separator can be enforced. When Siapaths are being translated to System paths,
 the `filepath` package is used to ensure the correct path separator is used for
 the OS that is running.
+<<<<<<< HEAD
 >>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
+=======
+>>>>>>> 48ada05a6ff8ff71e661156893a00bf2a4ba8ea1
 
 ### Storage Manager
 **Key Files**

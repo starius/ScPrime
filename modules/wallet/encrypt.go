@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
+	bolt "go.etcd.io/bbolt"
+	"golang.org/x/crypto/pbkdf2"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
-	bolt "go.etcd.io/bbolt"
-	"golang.org/x/crypto/pbkdf2"
 )
 
 var (
@@ -726,7 +726,6 @@ func (w *Wallet) managedChangeKey(masterKey crypto.CipherKey, newKey crypto.Ciph
 		if err != nil {
 			return errors.AddContext(err, "unable to put key encryption verification into db")
 		}
-
 		wpk := walletPasswordEncryptionKey(primarySeed, dbGetWalletSalt(w.dbTx))
 		mkt := newKey.Type()
 		mke := newKey.Key()

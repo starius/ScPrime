@@ -11,12 +11,14 @@ package renter
 
 import (
 	"sync"
+	"time"
 
 	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 )
 
 // fanoutStreamBufferDataSource implements streamBufferDataSource with the
@@ -31,6 +33,9 @@ type fanoutStreamBufferDataSource struct {
 	staticMasterKey    crypto.CipherKey
 	staticStreamID     streamDataSourceID
 
+	// staticTimeout defines a timeout that is applied to every chunk download
+	staticTimeout time.Duration
+
 	// Utils.
 	staticRenter *Renter
 	mu           sync.Mutex
@@ -39,7 +44,7 @@ type fanoutStreamBufferDataSource struct {
 // newFanoutStreamer will create a modules.Streamer from the fanout of a
 // skyfile. The streamer is created by implementing the streamBufferDataSource
 // interface on the skyfile, and then passing that to the stream buffer set.
-func (r *Renter) newFanoutStreamer(link modules.Skylink, ll skyfileLayout, fanoutBytes []byte) (modules.Streamer, error) {
+func (r *Renter) newFanoutStreamer(link modules.Skylink, ll skyfileLayout, fanoutBytes []byte, timeout time.Duration) (modules.Streamer, error) {
 	// Create the erasure coder and the master key.
 	masterKey, err := crypto.NewSiaKey(ll.cipherType, ll.cipherKey[:])
 	if err != nil {
@@ -57,8 +62,8 @@ func (r *Renter) newFanoutStreamer(link modules.Skylink, ll skyfileLayout, fanou
 		staticLayout:       ll,
 		staticMasterKey:    masterKey,
 		staticStreamID:     streamDataSourceID(crypto.HashObject(link.String())),
-
-		staticRenter: r,
+		staticTimeout:      timeout,
+		staticRenter:       r,
 	}
 	err = fs.decodeFanout(fanoutBytes)
 	if err != nil {

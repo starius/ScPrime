@@ -5,14 +5,14 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/ratelimit"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/ratelimit"
 )
 
 // cachedMerkleRoot calculates the root of a set of existing Merkle roots.
@@ -106,7 +106,10 @@ func (he *Editor) Upload(data []byte) (_ modules.RenterContract, _ crypto.Hash, 
 		SectorIndex: uint64(sc.merkleRoots.len()),
 		Data:        data,
 	}}
-	rev := newUploadRevision(contract.LastRevision(), merkleRoot, sectorPrice, sectorCollateral)
+	rev, err := newUploadRevision(contract.LastRevision(), merkleRoot, sectorPrice, sectorCollateral)
+	if err != nil {
+		return modules.RenterContract{}, crypto.Hash{}, errors.AddContext(err, "Error creating new upload revision")
+	}
 
 	// run the revision iteration
 	defer func() {

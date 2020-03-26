@@ -138,16 +138,6 @@ func TestSaveLoad(t *testing.T) {
 	c.allowance.ExpectedRedundancy = 0
 	c.allowance.MaxPeriodChurn = 0
 
-	// COMPATv136 save the allowance but make sure that the newly added fields
-	// are 0. After loading them from disk they should be set to the default
-	// values.
-	c.allowance = modules.DefaultAllowance
-	c.allowance.ExpectedStorage = 0
-	c.allowance.ExpectedUpload = 0
-	c.allowance.ExpectedDownload = 0
-	c.allowance.ExpectedRedundancy = 0
-	c.allowance.MaxPeriodChurn = 0
-
 	// save, clear, and reload
 	err = c.save()
 	if err != nil {

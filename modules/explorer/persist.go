@@ -2,15 +2,14 @@ package explorer
 
 import (
 	"os"
-	//"fmt"
 	"path/filepath"
+
+	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	bolt "go.etcd.io/bbolt"
 )
 
 var explorerMetadata = persist.Metadata{

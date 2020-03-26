@@ -106,11 +106,10 @@ type API struct {
 	pool         modules.Pool
 	stratumminer modules.StratumMiner
 	index        modules.Index
-
-	downloadMu sync.Mutex
-	downloads  map[modules.DownloadID]func()
-	router     http.Handler
-	routerMu   sync.RWMutex
+	downloadMu   sync.Mutex
+	downloads    map[modules.DownloadID]func()
+	router       http.Handler
+	routerMu     sync.RWMutex
 
 	requiredUserAgent string
 	requiredPassword  string

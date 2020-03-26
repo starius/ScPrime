@@ -261,7 +261,7 @@ func TestPruneRedundantAddressRange(t *testing.T) {
 
 	// Enable the IPViolationCheck again to cancel the "youngest" host.
 	if err := renter.RenterIPRestrictionPost(1); err != nil {
-		t.Fatal(errors.AddContext(err, "Failed to set IPRestriction=1."))
+		t.Fatal(errors.AddContext(err, "Failed to set IPRestriction to 1."))
 	}
 
 	// host4.com has the most recent change time. It should be canceled and

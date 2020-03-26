@@ -112,7 +112,8 @@ func blankMockHostTester(d modules.Dependencies, name string) (*hostTester, erro
 	testdir := build.TempDir(modules.HostDir, name)
 
 	// Create the siamux.
-	mux, err := modules.NewSiaMux(testdir, "localhost:0")
+	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0")
 	if err != nil {
 		return nil, err
 	}
@@ -255,10 +256,12 @@ func TestHostInitialization(t *testing.T) {
 	}
 
 	// verify its RPC price table was properly initialised
-	if reflect.DeepEqual(ht.host.priceTable, modules.RPCPriceTable{}) {
+	ht.host.staticPriceTables.mu.RLock()
+	defer ht.host.staticPriceTables.mu.RUnlock()
+	if reflect.DeepEqual(ht.host.staticPriceTables.current, modules.RPCPriceTable{}) {
 		t.Fatal("RPC price table wasn't initialized")
 	}
-	if ht.host.priceTable.Expiry == 0 {
+	if ht.host.staticPriceTables.current.Expiry == 0 {
 		t.Fatal("RPC price table was not properly initialised")
 	}
 }

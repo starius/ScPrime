@@ -43,4 +43,8 @@ The gateway might register the following alerts:
 - *Gateway-Offline*: Registered when the gateway is not connected to the public internet
 
 **TODO**
+<<<<<<< HEAD
  - Fill in subsystems
+=======
+ - Fill in subsystems
+>>>>>>> 48ada05a6ff8ff71e661156893a00bf2a4ba8ea1

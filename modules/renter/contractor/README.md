@@ -61,10 +61,6 @@ The Contractor is split up into the following subsystems:
 - [Persistence Subsystem](#persistence-subsystem)
 - [Watchdog Subsystem](#watchdog-subsystem)
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ## Allowance Subsystem
 **Key Files**
 - [Allowance](./allowance.go)
@@ -172,10 +168,6 @@ aggregate for the period has been reached.
 - `callPersistData` is called whenever the contractor's `persistData` is
    called.
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 7a752c5725cecd036380608233b7c116fcd37561
 ## Recovery Subsystem
 **Key Files**
 - [recovery.go](./recovery.go)

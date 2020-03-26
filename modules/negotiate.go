@@ -10,13 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/NebulousLabs/fastrand"
+	"golang.org/x/crypto/chacha20poly1305"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/fastrand"
-	"golang.org/x/crypto/chacha20poly1305"
 )
 
 const (
@@ -131,18 +131,6 @@ const (
 )
 
 var (
-	// ErrInsufficientStorageForSector is returned if the host tries to add a
-	// sector when there is not enough storage remaining on the host to accept
-	// the sector.
-	//
-	// Ideally, the host will adjust pricing as the host starts to fill up, so
-	// this error should be pretty rare. Demand should drive the price up
-	// faster than the Host runs out of space, such that the host is always
-	// hovering around 95% capacity and rarely over 98% or under 90% capacity.
-	ErrInsufficientStorageForSector = errors.New("not enough storage remaining to accept sector")
-)
-
-var (
 	// NegotiateSettingsTime establishes the minimum amount of time that the
 	// connection deadline is expected to be set to when settings are being
 	// requested from the host. The deadline is long enough that the connection
@@ -222,10 +210,28 @@ var (
 	// sectors significantly reduce the tracking overhead experienced by the
 	// renter and the host.
 	SectorSize = build.Select(build.Var{
-		Dev:      uint64(1 << 18), // 262144 = 256 KiB
-		Standard: uint64(1 << 22), // 4194304 = 4 MiB
-		Testing:  uint64(1 << 12), // 4096 = 4 KiB
+		Dev:      SectorSizeDev,
+		Standard: SectorSizeStandard,
+		Testing:  SectorSizeTesting,
 	}).(uint64)
+
+	// SectorSizeDev defines how large a sector should be in Dev builds.
+	SectorSizeDev = uint64(1 << SectorSizeScalingDev)
+	// SectorSizeStandard defines how large a sector should be in Standard
+	// builds.
+	SectorSizeStandard = uint64(1 << SectorSizeScalingStandard)
+	// SectorSizeTesting defines how large a sector should be in Testing builds.
+	SectorSizeTesting = uint64(1 << SectorSizeScalingTesting)
+
+	// SectorSizeScalingDev defines the power of 2 to which we scale sector
+	// sizes in Dev builds.
+	SectorSizeScalingDev = 18 // 256 KiB
+	// SectorSizeScalingStandard defines the power of 2 to which we scale sector
+	// sizes in Standard builds.
+	SectorSizeScalingStandard = 22 // 4 MiB
+	// SectorSizeScalingTesting defines the power of 2 to which we scale sector
+	// sizes in Testing builds.
+	SectorSizeScalingTesting = 12 // 4 KiB
 )
 
 type (
@@ -321,6 +327,8 @@ type (
 		// which is the most recent.
 		RevisionNumber uint64 `json:"revisionnumber"`
 		Version        string `json:"version"`
+
+		SiaMuxPort string `json:"siamuxport"`
 	}
 
 	// HostOldExternalSettings are the pre-v1.4.0 host settings.
@@ -367,16 +375,17 @@ type (
 
 // New RPC IDs
 var (
-	RPCLoopEnter         = types.NewSpecifier("LoopEnter")
-	RPCLoopExit          = types.NewSpecifier("LoopExit")
-	RPCLoopFormContract  = types.NewSpecifier("LoopFormContract")
-	RPCLoopLock          = types.NewSpecifier("LoopLock")
-	RPCLoopRead          = types.NewSpecifier("LoopRead")
-	RPCLoopRenewContract = types.NewSpecifier("LoopRenew")
-	RPCLoopSectorRoots   = types.NewSpecifier("LoopSectorRoots")
-	RPCLoopSettings      = types.NewSpecifier("LoopSettings")
-	RPCLoopUnlock        = types.NewSpecifier("LoopUnlock")
-	RPCLoopWrite         = types.NewSpecifier("LoopWrite")
+	RPCLoopEnter              = types.NewSpecifier("LoopEnter")
+	RPCLoopExit               = types.NewSpecifier("LoopExit")
+	RPCLoopFormContract       = types.NewSpecifier("LoopFormContract")
+	RPCLoopLock               = types.NewSpecifier("LoopLock")
+	RPCLoopRead               = types.NewSpecifier("LoopRead")
+	RPCLoopRenewContract      = types.NewSpecifier("LoopRenew")
+	RPCLoopRenewClearContract = types.NewSpecifier("LoopRenewClear")
+	RPCLoopSectorRoots        = types.NewSpecifier("LoopSectorRoots")
+	RPCLoopSettings           = types.NewSpecifier("LoopSettings")
+	RPCLoopUnlock             = types.NewSpecifier("LoopUnlock")
+	RPCLoopWrite              = types.NewSpecifier("LoopWrite")
 )
 
 // RPC ciphers
@@ -540,6 +549,26 @@ type (
 		RenterKey    types.SiaPublicKey
 	}
 
+	// LoopRenewAndClearContractSignatures contains the signatures for a contract
+	// transaction, initial revision and final revision of the old contract. These
+	// signatures are sent by the renter during contract renewal.
+	LoopRenewAndClearContractSignatures struct {
+		ContractSignatures []types.TransactionSignature
+		RevisionSignature  types.TransactionSignature
+
+		FinalRevisionSignature []byte
+	}
+
+	// LoopRenewAndClearContractRequest contains the request parameters for
+	// RPCLoopRenewClearContract.
+	LoopRenewAndClearContractRequest struct {
+		Transactions []types.Transaction
+		RenterKey    types.SiaPublicKey
+
+		FinalValidProofValues  []types.Currency
+		FinalMissedProofValues []types.Currency
+	}
+
 	// LoopSettingsResponse contains the response data for RPCLoopSettingsResponse.
 	LoopSettingsResponse struct {
 		Settings []byte // actually a JSON-encoded HostExternalSettings
@@ -621,31 +650,6 @@ func WriteRPCRequest(w io.Writer, aead cipher.AEAD, rpcID types.Specifier, req i
 		return WriteRPCMessage(w, aead, req)
 	}
 	return nil
-}
-
-// rpcResponse is a helper type for encoding and decoding RPC response messages.
-type rpcResponse struct {
-	err  *RPCError
-	data interface{}
-}
-
-func (resp *rpcResponse) MarshalSia(w io.Writer) error {
-	if resp.data == nil {
-		resp.data = struct{}{}
-	}
-	return encoding.NewEncoder(w).EncodeAll(resp.err, resp.data)
-}
-
-func (resp *rpcResponse) UnmarshalSia(r io.Reader) error {
-	// NOTE: no allocation limit is required because this method is always
-	// called via encoding.Unmarshal, which already imposes an allocation limit.
-	d := encoding.NewDecoder(r, 0)
-	if err := d.Decode(&resp.err); err != nil {
-		return err
-	} else if resp.err != nil {
-		return resp.err
-	}
-	return d.Decode(resp.data)
 }
 
 // WriteRPCResponse writes an RPC response or error using the new loop
@@ -885,7 +889,10 @@ func IsOOSErr(err error) bool {
 	if err == nil {
 		return false
 	}
-	return strings.Contains(err.Error(), V1420HostOutOfStorageErrString)
+	if strings.Contains(err.Error(), V1420HostOutOfStorageErrString) {
+		return true
+	}
+	return false
 }
 
 // IsContractNotRecognizedErr is a helper function to determine whether an error
@@ -899,7 +906,10 @@ func IsContractNotRecognizedErr(err error) bool {
 	if err == nil {
 		return false
 	}
-	return strings.Contains(err.Error(), V1420ContractNotRecognizedErrString)
+	if strings.Contains(err.Error(), V1420ContractNotRecognizedErrString) {
+		return true
+	}
+	return false
 }
 
 // VerifyFileContractRevisionTransactionSignatures checks that the signatures

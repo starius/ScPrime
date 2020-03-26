@@ -271,7 +271,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 	}
 
 	// Create the siamux.
-	mux, err := modules.NewSiaMux(dir, params.SiaMuxAddress)
+	mux, err := modules.NewSiaMux(filepath.Join(dir, modules.SiaMuxDir), dir, params.SiaMuxAddress)
 	if err != nil {
 		errChan <- errors.Extend(err, errors.New("unable to create siamux"))
 		return nil, errChan
@@ -292,12 +292,12 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		if params.RPCAddress == "" {
 			params.RPCAddress = "localhost:0"
 		}
-		i++
-		printfRelease("(%d/%d) Loading gateway...", i, numModules)
 		gatewayDeps := params.GatewayDeps
 		if gatewayDeps == nil {
 			gatewayDeps = modules.ProdDependencies
 		}
+		i++
+		printfRelease("(%d/%d) Loading gateway...", i, numModules)
 		return gateway.NewCustomGateway(params.RPCAddress, params.Bootstrap, filepath.Join(dir, modules.GatewayDir), gatewayDeps)
 	}()
 	if err != nil {
@@ -308,8 +308,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Consensus.
 	loadStart = time.Now()
+	// Consensus.
 	cs, errChanCS := func() (modules.ConsensusSet, <-chan error) {
 		c := make(chan error, 1)
 		defer close(c)
@@ -339,8 +339,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Explorer.
 	loadStart = time.Now()
+	// Explorer.
 	e, err := func() (modules.Explorer, error) {
 		if !params.CreateExplorer && params.Explorer != nil {
 			return nil, errors.New("cannot create explorer and also use custom explorer")
@@ -357,8 +357,6 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		if err != nil {
 			return nil, err
 		}
-		i++
-		printfRelease("(%d/%d) Loading explorer...\n", i, numModules)
 		return e, nil
 	}()
 	if err != nil {
@@ -369,8 +367,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Transaction Pool.
 	loadStart = time.Now()
+	// Transaction Pool.
 	tp, err := func() (modules.TransactionPool, error) {
 		if params.CreateTransactionPool && params.TransactionPool != nil {
 			return nil, errors.New("cannot create transaction pool and also use custom transaction pool")
@@ -397,8 +395,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Wallet.
 	loadStart = time.Now()
+	// Wallet.
 	w, err := func() (modules.Wallet, error) {
 		if params.CreateWallet && params.Wallet != nil {
 			return nil, errors.New("cannot create wallet and use custom wallet")
@@ -425,8 +423,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Miner.
 	loadStart = time.Now()
+	// Miner.
 	m, err := func() (modules.TestMiner, error) {
 		if params.CreateMiner && params.Miner != nil {
 			return nil, errors.New("cannot create miner and also use custom miner")
@@ -453,8 +451,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Host.
 	loadStart = time.Now()
+	// Host.
 	h, err := func() (modules.Host, error) {
 		if params.CreateHost && params.Host != nil {
 			return nil, errors.New("cannot create host and use custom host")
@@ -489,8 +487,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Renter.
 	loadStart = time.Now()
+	// Renter.
 	r, errChanRenter := func() (modules.Renter, <-chan error) {
 		c := make(chan error, 1)
 		if params.CreateRenter && params.Renter != nil {
@@ -534,7 +532,6 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 			close(c)
 			return nil, c
 		}
-
 		// ContractSet
 		contractSet, err := proto.NewContractSet(filepath.Join(persistDir, "contracts"), contractSetDeps)
 		if err != nil {
@@ -542,7 +539,6 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 			close(c)
 			return nil, c
 		}
-
 		// Contractor
 		logger, err := persist.NewFileLogger(filepath.Join(persistDir, "contractor.log"))
 		if err != nil {
@@ -557,6 +553,11 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 			return nil, c
 		}
 		renter, errChanRenter := renter.NewCustomRenter(g, cs, tp, hdb, w, hc, mux, persistDir, renterDeps)
+		if err := modules.PeekErr(errChanRenter); err != nil {
+			c <- err
+			close(c)
+			return nil, c
+		}
 		go func() {
 			c <- errors.Compose(<-errChanHDB, <-errChanContractor, <-errChanRenter)
 			close(c)

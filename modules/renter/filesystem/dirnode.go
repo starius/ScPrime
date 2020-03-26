@@ -12,8 +12,8 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siadir"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siadir"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -260,7 +260,10 @@ func (n *DirNode) managedRecursiveList(recursive, cached bool, fileLoadChan chan
 		if recursive {
 			err = dir.managedRecursiveList(recursive, cached, fileLoadChan, dirLoadChan)
 		}
-		dir.Close()
+		if err != nil {
+			return err
+		}
+		err = dir.Close()
 		if err != nil {
 			return err
 		}

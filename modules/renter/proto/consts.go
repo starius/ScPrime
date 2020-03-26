@@ -3,17 +3,20 @@ package proto
 import (
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
 )
 
 const (
 	// contractExtension is the extension given to contract files.
 	contractExtension = ".contract"
+
+	// refCounterExtension is the extension given to reference counter files.
+	refCounterExtension = ".rc"
 
 	// rootsDiskLoadBulkSize is the max number of roots we read from disk at
 	// once to avoid using up all the ram.
@@ -93,4 +96,12 @@ var (
 	// ErrBadHostVersion indicates that the host is using an older, incompatible
 	// version of the renter-host protocol.
 	ErrBadHostVersion = errors.New("Bad host version; host does not support required protocols")
+
+	// errRevisionCostTooHigh indicates that a new revision can't be created
+	// because the cost is higher than the available funds.
+	errRevisionCostTooHigh = errors.New("Can't create new revision with this cost. Not enough funds remaining to cover it")
+
+	// errRevisionCollateralTooLow indicates that a new revision can't be created
+	// because the available collateral is too low.
+	errRevisionCollateralTooLow = errors.New("Can't create new revision with this collateral. Not enough funds remaining to cover it")
 )
