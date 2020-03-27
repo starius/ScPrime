@@ -121,14 +121,15 @@ func TestSendSiacoinsFeeIncluded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !confirmedBal.Equals(types.CalculateCoinbase(1)) {
-		t.Error("unexpected confirmed balance")
+	expectedBalance := types.CalculateCoinbase(1).Sub(types.CalculateDevSubsidy(1))
+	if !confirmedBal.Equals(expectedBalance) {
+		t.Errorf("confirmed balance (%v) should equal coinbase-devfee at block 1(%v)", confirmedBal, expectedBalance)
 	}
 	if !unconfirmedOut.IsZero() {
-		t.Error("unconfirmed balance should be 0")
+		t.Error("unconfirmedOut balance should be 0")
 	}
 	if !unconfirmedIn.IsZero() {
-		t.Error("unconfirmed balance should be 0")
+		t.Error("unconfirmedIn balance should be 0")
 	}
 
 	// Send siacoins. The wallet will automatically add a fee. Outgoing
@@ -170,7 +171,7 @@ func TestSendSiacoinsFeeIncluded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !confirmedBal3.Equals(confirmedBal2.Add(types.CalculateCoinbase(2)).Sub(sendValue)) {
+	if !confirmedBal3.Equals(confirmedBal2.Add(types.CalculateCoinbase(2).Sub(types.CalculateDevSubsidy(2))).Sub(sendValue)) {
 		t.Error("confirmed balance did not adjust to the expected value")
 	}
 	if !unconfirmedOut3.IsZero() {
