@@ -229,7 +229,7 @@ func TestBlankStorageObligation(t *testing.T) {
 // be certain that the file contract will never make it to the blockchain and
 // that it is safe to remove the obligation from the database.
 func TestPruneStaleStorageObligations(t *testing.T) {
-	//	t.Skip("Need a reliable way to generate stale contracts")
+	t.Skip("Need a reliable way to generate stale contracts")
 	if testing.Short() {
 		t.SkipNow()
 	}
