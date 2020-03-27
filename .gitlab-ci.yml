@@ -4,7 +4,7 @@ stages:
   - deploy
 
 variables:
-  legacy_pkgs: >-
+  api_pkgs: >-
     ./node
     ./node/api
     ./node/api/server
@@ -116,7 +116,7 @@ lint:
 build:
   stage: lint
   ## go 1.13 is the minimum accepted version for building Sia.
-  image: golang:1.13
+  image: golang:latest
   artifacts:
     name: "Binaries"
     paths:
@@ -124,14 +124,14 @@ build:
   script:
     - ./check-builds.sh
 
-legacy-tests:
+api-tests:
   <<: *default_test_params
   cache:
-    key: legacy-cache
+    key: api-cache
     paths:
       - .cache
   script:
-    - make test-long run=. pkgs="$legacy_pkgs"
+    - make test-long run=. pkgs="$api_pkgs"
 
 package-tests:
   <<: *default_test_params
@@ -172,10 +172,10 @@ siatest-renter-sub-tests:
     - apt-get install -y fuse
     - make test-long run=. pkgs="$siatest_renter_sub_pkgs"
 
-legacy-tests-nightly:
+api-tests-nightly:
   <<: *default_nightly_params
   script:
-    - make test-vlong run=. pkgs="$legacy_pkgs"
+    - make test-vlong run=. pkgs="$api_pkgs"
 
 package-tests-nightly:
   <<: *default_nightly_params

@@ -212,7 +212,7 @@ func currencyUnits(c types.Currency) string {
 	return fmt.Sprintf("%.4g %s", res, unit)
 }
 
-// parseCurrency converts a siacoin amount to base units.
+// parseCurrency converts a scprimecoin amount to base units.
 func parseCurrency(amount string) (string, error) {
 	units := []string{"pS", "nS", "uS", "mS", "SCP", "KS", "MS", "GS", "TS"}
 	amount = strings.TrimSpace(amount)

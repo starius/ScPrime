@@ -135,7 +135,7 @@ func TestParseCurrency(t *testing.T) {
 		{"1 TS", "1000000000000000000000000000000000000000", nil},
 		{"0.5TS", "500000000000000000000000000000000000000", nil},
 		{"0.5 TS", "500000000000000000000000000000000000000", nil},
-		{"x SC", "", errParseCurrencyAmount},
+		{"x SCP", "", errParseCurrencyAmount},
 	}
 	for _, test := range tests {
 		res, err := parseCurrency(test.in)
