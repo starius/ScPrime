@@ -21,7 +21,7 @@ Common tasks
 * `spc consensus` view block height
 
 Wallet:
-* `spc wallet init [-p]` initilize a wallet
+* `spc wallet init [-p]` initialize a wallet
 * `spc wallet unlock` unlock a wallet
 * `spc wallet balance` retrieve wallet balance
 * `spc wallet address` get a wallet address
