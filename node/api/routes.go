@@ -253,7 +253,7 @@ func cleanCloseHandler(next http.Handler) http.Handler {
 func RequireUserAgent(h http.Handler, ua string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if !strings.Contains(req.UserAgent(), ua) && !isUnrestricted(req) {
-			WriteError(w, Error{"Browser access disabled due to security vulnerability. Use Sia-UI or siac."}, http.StatusBadRequest)
+			WriteError(w, Error{"Browser access disabled due to security vulnerability. Use ScPrime-UI or spc."}, http.StatusBadRequest)
 			return
 		}
 		h.ServeHTTP(w, req)

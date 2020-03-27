@@ -1374,7 +1374,7 @@ Public key used to identify the host.
 > curl example
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/host/bandwidth"
+curl -A "SiaPrime-Agent" "localhost:9980/host/bandwidth"
 ```
 
 returns the total upload and download bandwidth usage for the host
@@ -4195,7 +4195,7 @@ responses](#standard-responses).
 > curl example
 
 ```bash
-curl -I -A "Sia-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
+curl -I -A "SiaPrime-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
 ```
 
 This curl command performs a HEAD request that fetches the headers for
@@ -4222,13 +4222,13 @@ This request has an empty response body.
 
 ```bash
 # entire file
-curl -A "Sia-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
+curl -A "SiaPrime-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
 
 # directory
-curl -A "Sia-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder"
+curl -A "SiaPrime-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder"
 
 # sub file
-curl -A "Sia-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder/file.txt"
+curl -A "SiaPrime-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder/file.txt"
 ```  
 
 downloads a skylink using http streaming. This call blocks until the data is
@@ -4301,7 +4301,7 @@ The response body is the raw data for the file.
 // This command uploads the file 'myImage.png' to the Sia folder
 // 'var/skynet/images/myImage.png'. Users who download the file will see the name
 // 'image.png'.
-curl -A "Sia-Agent" -u "":<apipassword> "localhost:9980/skynet/skyfile/images/myImage.png?filename=image.png" --data-binary @myImage.png
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:9980/skynet/skyfile/images/myImage.png?filename=image.png" --data-binary @myImage.png
 ```
 
 uploads a file to the network using a stream. If the upload stream POST call
