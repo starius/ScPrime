@@ -276,6 +276,12 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	if err != nil {
 		return nil, err
 	}
+	h.tg.AfterStop(func() {
+		err = h.tokenStor.close()
+		if err != nil {
+			fmt.Println("Error when closing token storage:", err)
+		}
+	})
 
 	// Initialize the logger, and set up the stop call that will close the
 	// logger.

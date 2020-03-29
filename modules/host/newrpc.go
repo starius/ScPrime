@@ -1041,6 +1041,11 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 	}
 
 	go func() {
+		err := h.tg.Add()
+		if err != nil {
+			return
+		}
+		defer h.tg.Done()
 		// Update token resources.
 		// We do it in a separate goroutine, because we want this RPC
 		// to start returning data as soon as possible,
