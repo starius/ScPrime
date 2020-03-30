@@ -11,7 +11,7 @@ Below is an example of how the files are structured by type and version. In this
 example there are 2 versions, v.1.4.5 being the latest version.
 
     /changelog
-        /v1.4.4
+        /v1.4.3
             /bugs-fixed
                 bug1-filename.md
                 bug2-filename.md
@@ -93,12 +93,12 @@ In the `release-scripts/generate-changelog.sh` file is a configuration variable
 #### Example
 
 You have 3 version directories:
-- `v1.4.4` - old released version
+- `v1.4.3` - old released version
 - `v1.4.5` - latest released version
 - `v1.4.6` - upcoming version in development
 
 You want to generate changelog file for the latest released version
-(`v1.4.5`) and all older versions (`v1.4.4`), but you want to ignore
+(`v1.4.5`) and all older versions (`v1.4.3`), but you want to ignore
 (not to include) the upcoming version (`v1.4.6`).
 
 In this case set:
@@ -147,7 +147,7 @@ The Changelog generator automatically creates directory structure
 for upcoming versions when there is no upcoming version directory.
 
 If in `release-scripts/generate-changelog.sh` is the following setting
-`generate_till_version=v1.4.4` and there is no upcoming version directory,
+`generate_till_version=v1.4.3` and there is no upcoming version directory,
 then directory `v1.4.5` with sub-directories `key-updates`, `bugs-fixed` and
 `other` are created automatically.
 

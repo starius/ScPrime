@@ -32,7 +32,7 @@ const (
 )
 
 var (
-	skykeyVersionString = "1.4.4"
+	skykeyVersionString = "1.4.3"
 	skykeyVersion       = types.NewSpecifier(skykeyVersionString)
 
 	// SkykeySpecifier is used as a prefix when hashing Skykeys to compute their

@@ -1,5 +1,5 @@
 ## Mar 2020:
-### v1.4.4
+### v1.4.3
 **Key Updates**
 - Add a delay when modifying large contracts on hosts to prevent hosts from
   becoming unresponsive due to massive disk i/o.

@@ -36,7 +36,7 @@ releases are ready.
 ## Example
 The following list of commands shows how one could use the scripts in this directory to build Sia.
 
-1. `./build-in-docker.sh master v1.4.4`
-2. `./build-ui.sh v1.4.4 ../release/ ~/Sia-UI`
-3. `cd ../release && sha256sum --check Sia-v1.4.4-SHA256SUMS.txt`
-3. `gpg --clearsign --armor Sia-v1.4.4-SHA256SUMS.txt`
+1. `./build-in-docker.sh master v1.4.3`
+2. `./build-ui.sh v1.4.3 ../release/ ~/Sia-UI`
+3. `cd ../release && sha256sum --check Sia-v1.4.3-SHA256SUMS.txt`
+3. `gpg --clearsign --armor Sia-v1.4.3-SHA256SUMS.txt`

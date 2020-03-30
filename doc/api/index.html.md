@@ -4406,7 +4406,7 @@ returns statistical information about Skynet, e.g. number of files uploaded
     "totalsize": 44527895  // int
   },
   "versioninfo": {
-    "version":     "1.4.4-master", // string
+    "version":     "1.4.3-master", // string
     "gitrevision": "cd5a83712"     // string
   }
 }
