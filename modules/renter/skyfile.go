@@ -37,14 +37,14 @@ import (
 	"io"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 	"gitlab.com/scpcorp/ScPrime/types"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 const (
