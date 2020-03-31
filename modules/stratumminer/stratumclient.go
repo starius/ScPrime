@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/big"
 	"reflect"
+
 	//"strconv"
 	"sync"
 	"time"
@@ -193,7 +194,6 @@ func (sc *StratumClient) Start() {
 	// In case of an error, drop the current tcpclient and restart
 	sc.tcpclient.ErrorCallback = sc.RestartOnError
 	sc.SubscribeAndAuthorize()
-
 }
 
 func (sc *StratumClient) subscribeToStratumDifficultyChanges() {

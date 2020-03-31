@@ -56,7 +56,6 @@ func TestIntegrationTransactions(t *testing.T) {
 		for i, ut := range utxns {
 			t.Logf("Transaction %v : \n%+v", i, ut)
 		}
-
 	}
 
 	b, _ := wt.miner.FindBlock()

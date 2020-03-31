@@ -77,7 +77,6 @@ func (c *Client) SetName(n string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.cr.name = n
-
 }
 
 // Wallet returns the unlockhash associated with the client

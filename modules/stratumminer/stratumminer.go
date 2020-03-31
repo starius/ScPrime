@@ -358,7 +358,6 @@ func (sm *StratumMiner) mine() {
 					sm.submissions += 1
 				}
 			}()
-
 		}
 		hashesComputed += 1
 
@@ -370,7 +369,5 @@ func (sm *StratumMiner) mine() {
 			hashesComputed = 0
 			cycleStart = time.Now()
 		}
-
 	}
-
 }

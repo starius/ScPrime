@@ -239,7 +239,6 @@ func tryAutoUnlock(srv *server.Server) {
 			fmt.Println("Auto-unlock successful.")
 		}
 	}
-
 }
 
 // startDaemon uses the config parameters to initialize modules and start spd.

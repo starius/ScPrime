@@ -103,7 +103,6 @@ func poolconfigcmd(param, value string) {
 	err = httpClient.MiningPoolConfigPost(param, value)
 	if err != nil {
 		die("Could not update pool settings:", err)
-
 	}
 }
 

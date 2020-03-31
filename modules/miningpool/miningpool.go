@@ -500,7 +500,6 @@ func (p *Pool) AddClient(c *Client) {
 	defer p.mu.Unlock()
 
 	p.clients[c.Name()] = c
-
 }
 
 // newStratumID returns a function pointer to a unique ID generator used
