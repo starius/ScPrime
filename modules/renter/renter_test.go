@@ -56,12 +56,12 @@ func (rt *renterTester) addHost(name string) (modules.Host, error) {
 	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
 	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0")
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Failed to create SiaMux")
 	}
 
 	h, err := host.New(rt.cs, rt.gateway, rt.tpool, rt.wallet, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Failed to create host")
 	}
 
 	// configure host to accept contracts
@@ -69,7 +69,7 @@ func (rt *renterTester) addHost(name string) (modules.Host, error) {
 	settings.AcceptingContracts = true
 	err = h.SetInternalSettings(settings)
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Could not set host settings")
 	}
 
 	// add storage to host
@@ -80,7 +80,7 @@ func (rt *renterTester) addHost(name string) (modules.Host, error) {
 	}
 	err = h.AddStorageFolder(storageFolder, modules.SectorSize*64)
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Could not add folder")
 	}
 
 	// announce the host
@@ -92,20 +92,20 @@ func (rt *renterTester) addHost(name string) (modules.Host, error) {
 	// mine a block, processing the announcement
 	_, err = rt.miner.AddBlock()
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Miner can not Add block")
 	}
 
 	// wait for hostdb to scan host
 	activeHosts, err := rt.renter.ActiveHosts()
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Could not get Active hosts")
 	}
 	for i := 0; i < 50 && len(activeHosts) == 0; i++ {
 		time.Sleep(time.Millisecond * 100)
 	}
 	activeHosts, err = rt.renter.ActiveHosts()
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Could not get Active hosts")
 	}
 	if len(activeHosts) == 0 {
 		return nil, errors.New("host did not make it into the contractor hostdb in time")
@@ -286,7 +286,6 @@ func TestRenterPricesDivideByZero(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 }
 
 // TestRenterPricesVolatility verifies that the renter caches its price
@@ -307,7 +306,7 @@ func TestRenterPricesVolatility(t *testing.T) {
 		// Add a host to the test group
 		h, err := rt.addHost(t.Name())
 		if err != nil {
-			t.Fatal(err)
+			t.Fatal(errors.AddContext(err, "Could not add host"))
 		}
 		hosts = append(hosts, h)
 	}

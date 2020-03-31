@@ -10,14 +10,12 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
-// managedRPCUpdatePriceTable returns a copy of the host's current rpc price
+// staticRPCUpdatePriceTable returns a copy of the host's current rpc price
 // table. These prices are valid for the duration of the
 // rpcPriceGuaranteePeriod, which is defined by the price table's Expiry
-func (h *Host) managedRPCUpdatePriceTable(stream siamux.Stream) error {
+func (h *Host) staticRPCUpdatePriceTable(stream siamux.Stream) error {
 	// copy the host's price table
-	h.staticPriceTables.mu.RLock()
-	pt := h.staticPriceTables.current
-	h.staticPriceTables.mu.RUnlock()
+	pt := h.staticPriceTables.managedCurrent()
 
 	// update the epxiry to ensure prices are guaranteed for the duration of the
 	// rpcPriceGuaranteePeriod
@@ -45,10 +43,7 @@ func (h *Host) managedRPCUpdatePriceTable(stream siamux.Stream) error {
 
 	// after payment has been received, track the price table in the host's list
 	// of price tables
-	h.staticPriceTables.mu.Lock()
-	h.staticPriceTables.guaranteed[pt.UUID] = &pt
-	h.staticPriceTables.mu.Unlock()
-	h.staticPriceTables.staticMinHeap.Push(&pt)
+	h.staticPriceTables.managedTrack(&pt)
 
 	return nil
 }

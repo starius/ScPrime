@@ -243,7 +243,6 @@ func TestChildTargetOak(t *testing.T) {
 // TestStoreBlockTotals checks features of the storeBlockTotals and
 // getBlockTotals code.
 func TestStoreBlockTotals(t *testing.T) {
-
 	// NOTE: Test must not be run in parallel.
 	if testing.Short() {
 		t.SkipNow()
