@@ -48,7 +48,7 @@ var (
 	// the host default settings are that price gouging protection does not kick
 	// in.
 	DefaultAllowance = modules.Allowance{
-		Funds:       types.ScPrimecoinPrecision.Mul64(200),
+		Funds:       types.ScPrimecoinPrecision.Mul64(300),
 		Hosts:       5,
 		Period:      50,
 		RenewWindow: 24,
