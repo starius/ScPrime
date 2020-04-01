@@ -217,7 +217,7 @@ func addStorageFolderToHosts(hosts map[*TestNode]struct{}) error {
 	for host := range hosts {
 		wg.Add(1)
 		go func(i int, host *TestNode) {
-			storage := 2 * contractmanager.MinimumSectorsPerStorageFolder * modules.SectorSize
+			storage := 4 * contractmanager.MinimumSectorsPerStorageFolder * modules.SectorSize
 			if host.params.HostStorage > 0 {
 				storage = host.params.HostStorage
 			}
