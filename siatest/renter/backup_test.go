@@ -25,7 +25,7 @@ func TestCreateLoadBackup(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	// Create a testgroup.
 	groupParams := siatest.GroupParams{
@@ -190,7 +190,7 @@ func TestInterruptBackup(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	// Create a testgroup.
 	groupParams := siatest.GroupParams{
@@ -277,7 +277,7 @@ func TestRemoteBackup(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	// Test Params.
 	filesSize := int(20e3)

@@ -277,8 +277,8 @@ func hostdbBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 		return hdb, nil
 	}
 
-	// COMPATv1.4.7
-	// Before version v1.4.7, the hostdb sometimes removed hosts from the host
+	// COMPATv1.4.3
+	// Before version v1.4.3, the hostdb sometimes removed hosts from the host
 	// tree even if it was known that the contractor had contracts with them. To
 	// fix this, we must initiate a rescan if we don't have a knownContract's host
 	// in the hostdb.
