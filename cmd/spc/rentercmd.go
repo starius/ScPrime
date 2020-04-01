@@ -3004,6 +3004,6 @@ func enableiprestriction(cmd *cobra.Command, args []string) {
 	if currentNumhosts == 0 {
 		fmt.Println("IPRestriction setting is set to zero, restriction is disabled.")
 	} else {
-		fmt.Printf("IPRestriction setting is %v allowed storage providers from the same IP address subnet", currentNumhosts)
+		fmt.Printf("IPRestriction setting is %v allowed storage providers from the same IP address subnet\n", currentNumhosts)
 	}
 }
