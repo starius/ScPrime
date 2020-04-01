@@ -201,6 +201,7 @@ gitlab.com/scpcorp/siamux v0.0.0-20200326160319-adac4a7d7a74/go.mod h1:FlRcI0bE9
 gitlab.com/scpcorp/writeaheadlog v0.0.0-20200311132821-9a59657fecfa h1:K+oNPr0jeWv7B71aXULcHnbUpMNCEPUa0bLvzUfA5FA=
 gitlab.com/scpcorp/writeaheadlog v0.0.0-20200311132821-9a59657fecfa/go.mod h1:VCi1GFsK4+8dEudelJogRFUGqHVewPi4JPZd+GMvZrA=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
+go.etcd.io/bbolt v1.3.3 h1:MUGmc65QhB3pIlaQ5bB4LwqSj6GIonVJXpZiaKNyaKk=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.4 h1:hi1bXHMVrlQh6WwxAy+qZCV/SYIlqo+Ushwdpa4tAKg=
 go.etcd.io/bbolt v1.3.4/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=

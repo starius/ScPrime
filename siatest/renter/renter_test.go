@@ -40,7 +40,7 @@ func TestRenterOne(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	////t.Parallel()
+	t.Parallel()
 
 	// Create a group for the subtests
 	groupParams := siatest.GroupParams{
@@ -73,7 +73,7 @@ func TestRenterTwo(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	////t.Parallel()
+	t.Parallel()
 
 	// Create a group for the subtests
 	groupParams := siatest.GroupParams{
@@ -230,7 +230,7 @@ func TestRenterThree(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	////t.Parallel()
+	t.Parallel()
 
 	// Create a group for the subtests
 	groupParams := siatest.GroupParams{
@@ -261,7 +261,7 @@ func TestRenterFour(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Create a group for the subtests
 	groupParams := siatest.GroupParams{
@@ -974,7 +974,7 @@ func testLocalRepair(t *testing.T, tg *siatest.TestGroup) {
 //
 // The test has certain timing contraints, in particular we wait 20 seconds at
 // the end to ensure that a file cannot be repaired. Because of these timing
-// constraints, the test is run standalone and without //t.Parallel().
+// constraints, the test is run standalone and without t.Parallel().
 func TestLocalRepairCorrupted(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -1428,7 +1428,7 @@ func TestRenterInterrupt(t *testing.T) {
 	if !build.VLONG {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Create a group for the subtests
 	groupParams := siatest.GroupParams{
@@ -1722,7 +1722,7 @@ func TestRenterAddNodes(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Create a group for testing
 	groupParams := siatest.GroupParams{
@@ -1753,7 +1753,7 @@ func TestRenterAddNodes2(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Create a group for testing
 	groupParams := siatest.GroupParams{
@@ -1862,7 +1862,7 @@ func TestRenewFailing(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Create a group for testing
 	groupParams := siatest.GroupParams{
@@ -2368,7 +2368,7 @@ func TestRenterLosingHosts(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Create a testgroup without a renter so renter can be added with custom
 	// allowance
@@ -2587,7 +2587,7 @@ func TestRenterFailingStandbyDownload(t *testing.T) {
 	if !build.VLONG {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Create a testgroup without a renter so renter can be added with custom
 	// allowance
@@ -2771,7 +2771,7 @@ func TestRenterPersistData(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Get test directory
 	testDir := renterTestDir(t.Name())
@@ -2983,7 +2983,7 @@ func TestRenterFileChangeDuringDownload(t *testing.T) {
 	if !build.VLONG {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Create a testgroup,
 	groupParams := siatest.GroupParams{
@@ -3168,7 +3168,7 @@ func TestRenterFileContractIdentifier(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Create a testgroup, creating without renter so the renter's
 	// contract transactions can easily be obtained.
@@ -3310,7 +3310,7 @@ func TestUploadAfterDelete(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Create a testgroup.
 	groupParams := siatest.GroupParams{
@@ -3388,7 +3388,7 @@ func TestSiafileCompatCodeV137(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Get test directory
 	testDir := renterTestDir(t.Name())
@@ -3523,7 +3523,7 @@ func TestSiafileCompatCodeV140(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Get test directory
 	testDir := renterTestDir(t.Name())
@@ -3904,7 +3904,7 @@ func TestOutOfStorageHandling(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Create a group with 1 default host.
 	gp := siatest.GroupParams{
@@ -4043,7 +4043,7 @@ func TestAsyncStartupRace(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	testDir := renterTestDir(t.Name())
 	np := node.AllModules(testDir)

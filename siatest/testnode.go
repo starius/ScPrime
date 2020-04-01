@@ -373,7 +373,7 @@ func (tn *TestNode) StartNode() error {
 	// Create server
 	s, err := server.New(":0", tn.UserAgent, tn.Password, tn.params, time.Now())
 	if err != nil {
-		return err
+		return errors.AddContext(err, "Error starting testnode")
 	}
 	tn.Server = s
 	tn.Client.Address = s.APIAddress()

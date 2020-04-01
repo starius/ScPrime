@@ -30,7 +30,7 @@ require (
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20180716154133-88a11db9e46c
 	gitlab.com/scpcorp/siamux v0.0.0-20200326160319-adac4a7d7a74
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200311132821-9a59657fecfa
-	go.etcd.io/bbolt v1.3.4
+	go.etcd.io/bbolt v1.3.3
 	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
 	golang.org/x/sys v0.0.0-20200331124033-c3d80250170d // indirect
