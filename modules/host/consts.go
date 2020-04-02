@@ -70,7 +70,7 @@ var (
 	// defaultBaseRPCPrice is the default price of talking to the host. It is
 	// roughly equal to the default bandwidth cost of exchanging a pair of
 	// 4096-byte messages.
-	defaultBaseRPCPrice = types.SiacoinPrecision.Mul64(100).Div64(1e9) // 100 nS
+	defaultBaseRPCPrice = types.ScPrimecoinPrecision.Mul64(100).Div64(1e9) // 100 nS
 
 	// defaultCollateral defines the amount of money that the host puts up as
 	// collateral per-byte by default. The collateral should be considered as
@@ -83,24 +83,24 @@ var (
 	// keep the data even if the price of SCP fluctuates, the price of raw
 	// storage fluctuates, or the host realizes that there is unexpected
 	// opportunity cost in being a host.
-	defaultCollateral = types.SiacoinPrecision.Mul64(20e3).Div(modules.BlockBytesPerMonthTerabyte) // 20000 SCP / TB / Month
+	defaultCollateral = types.ScPrimecoinPrecision.Mul64(35).Div(modules.BlockBytesPerMonthTerabyte) // 35 SCP / TB / Month
 
 	// defaultCollateralBudget defines the maximum number of SCP that the
 	// host is going to allocate towards collateral. The number has been chosen
 	// as a number that is large, but not so large that someone would be
 	// furious for losing access to it for a few weeks.
-	defaultCollateralBudget = types.SiacoinPrecision.Mul64(4e6) //4 MS
+	defaultCollateralBudget = types.ScPrimecoinPrecision.Mul64(4e3) //4 KS
 
 	// defaultContractPrice defines the default price of creating a contract
 	// with the host. The current default is 0.1. This was chosen since it is
 	// the minimum fee estimation of the transactionpool for a filecontract
 	// transaction..
-	defaultContractPrice = types.SiacoinPrecision.Div64(100).Div64(1e3).Mul64(modules.EstimatedFileContractRevisionAndProofTransactionSetSize)
+	defaultContractPrice = types.ScPrimecoinPrecision.Div64(100).Div64(1e3).Mul64(modules.EstimatedFileContractRevisionAndProofTransactionSetSize)
 
 	// defaultDownloadBandwidthPrice defines the default price of upload
 	// bandwidth. The default is set to 500 SCP per gigabyte, because
 	// download bandwidth is expected to be plentiful but also in-demand.
-	defaultDownloadBandwidthPrice = types.SiacoinPrecision.Mul64(2500).Div(modules.BytesPerTerabyte) // 2500 SCP / TB
+	defaultDownloadBandwidthPrice = types.ScPrimecoinPrecision.Mul64(2).Div(modules.BytesPerTerabyte) // 2 SCP / TB
 
 	// defaultMaxCollateral defines the maximum amount of collateral that the
 	// host is comfortable putting into a single file contract. 10e3 is a
@@ -108,35 +108,35 @@ var (
 	// away by only a few hundred file contracts. As the ecosystem matures, it
 	// is expected that the safe default for this value will increase quite a
 	// bit.
-	defaultMaxCollateral = types.SiacoinPrecision.Mul64(2e5) // 200 KS
+	defaultMaxCollateral = types.ScPrimecoinPrecision.Mul64(400) // 400 SCP
 
 	// defaultMaxDownloadBatchSize defines the maximum number of bytes that the
-	// host will allow to be requested by a single download request. 17 MiB has
-	// been chosen because it's 4 full sectors plus some wiggle room. 17 MiB is
+	// host will allow to be requested by a single download request. 33 MiB has
+	// been chosen because it's 8 full sectors plus some wiggle room. 33 MiB is
 	// a conservative default, most hosts will be fine with a number like 65
 	// MiB.
-	defaultMaxDownloadBatchSize = 17 * (1 << 20)
+	defaultMaxDownloadBatchSize = 33 * (1 << 20)
 
 	// defaultMaxReviseBatchSize defines the maximum number of bytes that the
 	// host will allow to be sent during a single batch update in a revision
-	// RPC. 17 MiB has been chosen because it's four full sectors, plus some
+	// RPC. 33 MiB has been chosen because it's eight full sectors, plus some
 	// wiggle room for the extra data or a few delete operations. The whole
 	// batch will be held in memory, so the batch size should only be increased
 	// substantially if the host has a lot of memory. Additionally, the whole
 	// batch is sent in one network connection. Additionally, the renter can
 	// steal funds for upload bandwidth all the way out to the size of a batch.
-	// 17 MiB is a conservative default, most hosts are likely to be just fine
+	// 33 MiB is a conservative default, most hosts are likely to be just fine
 	// with a number like 65 MiB.
-	defaultMaxReviseBatchSize = 17 * (1 << 20)
+	defaultMaxReviseBatchSize = 33 * (1 << 20)
 
 	// defaultSectorAccessPrice defines the default price of a sector access. It
 	// is roughly equal to the cost of downloading 64 KiB.
-	defaultSectorAccessPrice = types.SiacoinPrecision.Mul64(2).Div64(1e6) // 2 uS
+	defaultSectorAccessPrice = types.ScPrimecoinPrecision.Mul64(2).Div64(1e6) // 2 uS
 
 	// defaultStoragePrice defines the starting price for hosts selling
 	// storage. We try to match a number that is both reasonably profitable and
 	// reasonably competitive.
-	defaultStoragePrice = types.SiacoinPrecision.Mul64(10e3).Div(modules.BlockBytesPerMonthTerabyte) // 10 KS / TB / Month
+	defaultStoragePrice = types.ScPrimecoinPrecision.Mul64(20e3).Div(modules.BlockBytesPerMonthTerabyte) // 20 SCP / TB / Month
 
 	// defaultUploadBandwidthPrice defines the default price of upload
 	// bandwidth. The default is set to 250 SCP per GB, because the host is
@@ -144,7 +144,7 @@ var (
 	// the host is typically only downloading data if it is planning to store
 	// the data, meaning that the host serves to profit from accepting the
 	// data.
-	defaultUploadBandwidthPrice = types.SiacoinPrecision.Mul64(250).Div(modules.BytesPerTerabyte) // 250 SCP / TB
+	defaultUploadBandwidthPrice = types.ScPrimecoinPrecision.Mul64(2).Div(modules.BytesPerTerabyte) // 2 SCP / TB
 
 	// defaultEphemeralAccountExpiry defines the default maximum amount of
 	// time an ephemeral account can be inactive before it expires and gets
@@ -153,14 +153,14 @@ var (
 
 	// defaultMaxEphemeralAccountBalance defines the default maximum amount of
 	// money that the host will allow to deposit into a single ephemeral account
-	defaultMaxEphemeralAccountBalance = types.SiacoinPrecision
+	defaultMaxEphemeralAccountBalance = types.ScPrimecoinPrecision
 
 	// defaultMaxEphemeralAccountRisk is the maximum amount of money that the
 	// host is willing to risk to a power loss. If a user's withdrawal would put
 	// the host over the maxunsaveddelat, the host will wait to complete the
 	// user's transaction until the host has persisted the widthdrawal, to
 	// prevent the host from having too much money at risk.
-	defaultMaxEphemeralAccountRisk = types.SiacoinPrecision.Mul64(5)
+	defaultMaxEphemeralAccountRisk = types.ScPrimecoinPrecision.Mul64(5)
 
 	// defaultWindowSize is the size of the proof of storage window requested
 	// by the host. The host will not delete any obligations until the window
