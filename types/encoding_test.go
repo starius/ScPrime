@@ -277,22 +277,22 @@ func TestNegativeCurrencyScan(t *testing.T) {
 // value does not overwrite its contents.
 func TestCurrencyUnsafeDecode(t *testing.T) {
 	// Scan
-	backup := SiacoinPrecision.Mul64(1)
-	c := SiacoinPrecision
+	backup := ScPrimecoinPrecision.Mul64(1)
+	c := ScPrimecoinPrecision
 	_, err := fmt.Sscan("7", &c)
 	if err != nil {
 		t.Error(err)
-	} else if !SiacoinPrecision.Equals(backup) {
-		t.Errorf("Scan changed value of SiacoinPrecision: %v -> %v", backup, SiacoinPrecision)
+	} else if !ScPrimecoinPrecision.Equals(backup) {
+		t.Errorf("Scan changed value of ScPrimecoinPrecision: %v -> %v", backup, ScPrimecoinPrecision)
 	}
 
 	// UnmarshalSia
-	c = SiacoinPrecision
+	c = ScPrimecoinPrecision
 	err = encoding.Unmarshal(encoding.Marshal(NewCurrency64(7)), &c)
 	if err != nil {
 		t.Error(err)
-	} else if !SiacoinPrecision.Equals(backup) {
-		t.Errorf("UnmarshalSia changed value of SiacoinPrecision: %v -> %v", backup, SiacoinPrecision)
+	} else if !ScPrimecoinPrecision.Equals(backup) {
+		t.Errorf("UnmarshalSia changed value of ScPrimecoinPrecision: %v -> %v", backup, ScPrimecoinPrecision)
 	}
 }
 
@@ -669,20 +669,20 @@ func TestCurrencyUnits(t *testing.T) {
 		{NewCurrency64(1), "1 H"},
 		{NewCurrency64(1000), "1000 H"},
 		{NewCurrency64(100000000000), "100000000000 H"},
-		{NewCurrency64(1000000000000), "1 pS"},
-		{NewCurrency64(1234560000000), "1.235 pS"},
-		{NewCurrency64(12345600000000), "12.35 pS"},
-		{NewCurrency64(123456000000000), "123.5 pS"},
-		{NewCurrency64(1000000000000000), "1 nS"},
-		{NewCurrency64(1000000000000000000), "1 uS"},
-		{NewCurrency64(1000000000).Mul64(1000000000000), "1 mS"},
-		{NewCurrency64(1).Mul(SiacoinPrecision), "1 SC"},
-		{NewCurrency64(1000).Mul(SiacoinPrecision), "1 KS"},
-		{NewCurrency64(1000000).Mul(SiacoinPrecision), "1 MS"},
-		{NewCurrency64(1000000000).Mul(SiacoinPrecision), "1 GS"},
-		{NewCurrency64(1000000000000).Mul(SiacoinPrecision), "1 TS"},
-		{NewCurrency64(1234560000000).Mul(SiacoinPrecision), "1.235 TS"},
-		{NewCurrency64(1234560000000000).Mul(SiacoinPrecision), "1235 TS"},
+		{NewCurrency64(1000000000000000), "1 pS"},
+		{NewCurrency64(1234560000000000), "1.235 pS"},
+		{NewCurrency64(12345600000000000), "12.35 pS"},
+		{NewCurrency64(123456000000000000), "123.5 pS"},
+		{NewCurrency64(1000000000000000000), "1 nS"},
+		{ScPrimecoinPrecision.Div64(1e6), "1 uS"},
+		{NewCurrency64(100000000000).Mul64(10000000000000), "1 mS"},
+		{NewCurrency64(1).Mul(ScPrimecoinPrecision), "1 SCP"},
+		{NewCurrency64(1000).Mul(ScPrimecoinPrecision), "1 KS"},
+		{NewCurrency64(1000000).Mul(ScPrimecoinPrecision), "1 MS"},
+		{NewCurrency64(1000000000).Mul(ScPrimecoinPrecision), "1 GS"},
+		{NewCurrency64(1000000000000).Mul(ScPrimecoinPrecision), "1 TS"},
+		{NewCurrency64(1234560000000).Mul(ScPrimecoinPrecision), "1.235 TS"},
+		{NewCurrency64(1234560000000000).Mul(ScPrimecoinPrecision), "1235 TS"},
 	}
 	for _, test := range tests {
 		if test.in.HumanString() != test.out {
