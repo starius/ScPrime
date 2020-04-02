@@ -53,9 +53,9 @@ var (
 		Period:      50,
 		RenewWindow: 24,
 
-		ExpectedStorage:    modules.SectorSize * 1024, //=4 MiB in testing
-		ExpectedUpload:     modules.SectorSize * 512,
-		ExpectedDownload:   modules.SectorSize * 512,
+		ExpectedStorage:    modules.SectorSize * 4096, //=16 MiB in testing
+		ExpectedUpload:     modules.SectorSize * 512,  //=2MiB in testing
+		ExpectedDownload:   modules.SectorSize * 512,  //=2MiB in testing
 		ExpectedRedundancy: 5.0,
 		MaxPeriodChurn:     modules.SectorSize * 500,
 	}
