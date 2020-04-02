@@ -2393,8 +2393,12 @@ func TestExtendPeriod(t *testing.T) {
 
 	// Confirm the previously active contracts are now marked as expired and
 	// were replaced with new active contracts
-	err = build.Retry(100, 100*time.Millisecond, func() error {
-		return siatest.CheckExpectedNumberOfContracts(renter, len(tg.Hosts()), 0, 0, 0, len(tg.Hosts()), 0)
+	err = build.Retry(30, 500*time.Millisecond, func() error {
+		e := miner.MineBlock()
+		if e == nil {
+			return siatest.CheckExpectedNumberOfContracts(renter, len(tg.Hosts()), 0, 0, 0, len(tg.Hosts()), 0)
+		}
+		return e
 	})
 	if err != nil {
 		t.Fatal(err)
