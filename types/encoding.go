@@ -234,7 +234,7 @@ func (c *Currency) UnmarshalSia(r io.Reader) error {
 // will be the largest unit that results in a value greater than 1. The value is
 // rounded to 4 significant digits.
 func (c Currency) HumanString() string {
-	pico := SiacoinPrecision.Div64(1e12)
+	pico := ScPrimecoinPrecision.Div64(1e12)
 	if c.Cmp(pico) < 0 {
 		return c.String() + " H"
 	}
@@ -242,7 +242,7 @@ func (c Currency) HumanString() string {
 	// iterate until we find a unit greater than c
 	mag := pico
 	unit := ""
-	for _, unit = range []string{"pS", "nS", "uS", "mS", "SC", "KS", "MS", "GS", "TS"} {
+	for _, unit = range []string{"pS", "nS", "uS", "mS", "SCP", "KS", "MS", "GS", "TS"} {
 		if c.Cmp(mag.Mul64(1e3)) < 0 {
 			break
 		} else if unit != "TS" {

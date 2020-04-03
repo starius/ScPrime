@@ -1,12 +1,13 @@
 package contractor
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -168,7 +169,7 @@ func TestIntegrationSetAllowance(t *testing.T) {
 	if err != ErrAllowanceZeroFunds {
 		t.Errorf("expected %q, got %q", ErrAllowanceZeroFunds, err)
 	}
-	a.Funds = types.SiacoinPrecision
+	a.Funds = types.ScPrimecoinPrecision
 	a.Hosts = 0
 	err = c.SetAllowance(a)
 	if err != ErrAllowanceNoHosts {
@@ -213,15 +214,20 @@ func TestIntegrationSetAllowance(t *testing.T) {
 	a.MaxPeriodChurn = modules.DefaultAllowance.MaxPeriodChurn
 
 	// reasonable values; should succeed
-	a.Funds = types.SiacoinPrecision.Mul64(100)
+	a.Funds = types.ScPrimecoinPrecision.Mul64(300)
+	a.ExpectedStorage = 8192
+	a.ExpectedUpload = 2048
+	a.ExpectedDownload = 2048
 	err = c.SetAllowance(a)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = build.Retry(50, 100*time.Millisecond, func() error {
-		if len(c.Contracts()) != 1 {
-			return errors.New("allowance forming seems to have failed")
+	err = build.Retry(50, 250*time.Millisecond, func() error {
+		if len(c.Contracts()) < 1 {
+			message := fmt.Sprintf("allowance \n%+v\nforming seems to have failed\n hosts:\n%+v\n", a, hosts)
+			return errors.New(message)
 		}
+		_, err = m.AddBlock()
 		return nil
 	})
 	if err != nil {
@@ -336,7 +342,7 @@ func TestHostMaxDuration(t *testing.T) {
 
 	// Create allowance
 	a := modules.Allowance{
-		Funds:              types.SiacoinPrecision.Mul64(100),
+		Funds:              types.ScPrimecoinPrecision.Mul64(100),
 		Hosts:              1,
 		Period:             30,
 		RenewWindow:        20,
@@ -456,7 +462,7 @@ func TestLinkedContracts(t *testing.T) {
 
 	// Create allowance
 	a := modules.Allowance{
-		Funds:              types.SiacoinPrecision.Mul64(100),
+		Funds:              types.ScPrimecoinPrecision.Mul64(100),
 		Hosts:              1,
 		Period:             20,
 		RenewWindow:        10,

@@ -21,6 +21,8 @@ Latest:
 - Extended `siac renter` to include number of passive and disabled contracts
 - Add contract data to `siac renter`
 - Add getters and setter to `FileContract` and `FileContractRevision` types to prevent index-out-of-bounds panics after a `RenewAndClear`.
+- Add `--dry-run` parameter to Skynet upload
+- Set ratio for `MinBaseRPCPrice` and `MinSectorAccessPrice` with   `MinDownloadBandwidthPrice`
 
 **Bugs Fixed**
 - Fixed file health output of `siac renter -v` not adding to 100% by adding   parsePercentage function.
@@ -28,6 +30,12 @@ Latest:
 - Fix potential channel double closed panic in DownloadByRootProject 
 - Fix divide by zero panic in `renterFileHealthSummary` for `siac renter -v`
 - Fix negative currency panic in `siac renter contracts view`
+- Fix panic when metadata of skyfile upload exceeds modules.SectorSize
+- Fix curl example for `/skynet/skyfile/` post
+- Don't delete hosts the renter has a contract with from hostdb 
+- Initiate a hostdb rescan on startup if a host the renter has a contract with isn't in the host tree 
+- Increase max host downtime in hostbd from 10 days to 20 days.
+- Remove `build.Critical` and update to a metadata update
 
 **Other**
 - Add timeout parameter to Skylink pin route - Also apply timeout when fetching the individual chunks
@@ -39,6 +47,10 @@ Latest:
 - Updated `Resources.md` with links to filled out README files
 - Add version information to the stats endpoint
 - Extract environment variables to constants and add to API docs.
+ - Add PaymentProcessor interface (host-side)
+- Move golangci-lint to `make lint` and remove `make lint-all`.
+- Add whitespace lint to catch extraneous whitespace and newlines.
+- Expand `SiaPath` unit testing to address more edge cases.
 
 **Key Updates**
  - Introduced Skynet with initial feature set for portals, web portals, skyfiles,

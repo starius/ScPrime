@@ -1111,6 +1111,7 @@ func TestRenterDownloadWithDrainedContract(t *testing.T) {
 	// uploading.
 	_, err = siatest.DrainContractsByUploading(renter, tg)
 	if err != nil {
+		renter.PrintDebugInfo(t, true, true, true)
 		t.Fatal(err)
 	}
 	numRetries := 0
@@ -2256,7 +2257,7 @@ func TestFailedContractRenewalAlert(t *testing.T) {
 	}
 
 	// Wait for active contracts
-	err = build.Retry(100, 100*time.Millisecond, func() error {
+	err = build.Retry(50, 200*time.Millisecond, func() error {
 		return siatest.CheckExpectedNumberOfContracts(r, len(tg.Hosts()), 0, 0, 0, len(tg.Hosts()), 0)
 	})
 	if err != nil {
@@ -2269,6 +2270,7 @@ func TestFailedContractRenewalAlert(t *testing.T) {
 	// Drain contracts
 	_, err = siatest.DrainContractsByUploading(r, tg)
 	if err != nil {
+		r.PrintDebugInfo(t, true, true, true)
 		t.Fatal(err)
 	}
 

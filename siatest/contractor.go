@@ -265,11 +265,15 @@ func DrainContractsByUploading(renter *TestNode, tg *TestGroup) (startingUploadS
 
 	// Renew contracts by running out of funds
 	// Set upload price to max price
-	maxStoragePrice := types.ScPrimecoinPrecision.Mul64(3e3).Div(modules.BlockBytesPerMonthTerabyte)
+	maxStoragePrice := types.ScPrimecoinPrecision.Mul64(100).Div(modules.BlockBytesPerMonthTerabyte)
 	maxUploadPrice := maxStoragePrice.Mul64(100 * uint64(types.BlocksPerMonth))
 	hosts := tg.Hosts()
 	for _, h := range hosts {
 		err := h.HostModifySettingPost(client.HostParamMinUploadBandwidthPrice, maxUploadPrice)
+		if err != nil {
+			return types.ZeroCurrency, errors.AddContext(err, "could not set Host Upload Price")
+		}
+		err = h.HostModifySettingPost(client.HostParamMinStoragePrice, maxStoragePrice)
 		if err != nil {
 			return types.ZeroCurrency, errors.AddContext(err, "could not set Host Upload Price")
 		}

@@ -320,6 +320,10 @@ func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterI
 				t.Log("            ", subnet)
 			}
 			t.Log()
+			t.Log("        RemainingStorage", host.RemainingStorage)
+			t.Log("        StoragePrice", host.StoragePrice)
+			t.Log("        UploadPrice", host.UploadBandwidthPrice)
+			t.Log()
 		}
 		t.Log()
 	}

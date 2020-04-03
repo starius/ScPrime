@@ -2347,6 +2347,7 @@ func testOverspendAllowance(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 	if len(rc.ActiveContracts) == 0 && len(rc.InactiveContracts) == 0 {
+		renter.PrintDebugInfo(t, true, true, true)
 		t.Fatal("No Contracts formed")
 	}
 
@@ -3101,6 +3102,14 @@ func TestSetFileTrackingPath(t *testing.T) {
 	if len(tg.Hosts()) < 2 {
 		t.Fatal("This test requires at least 2 hosts")
 	}
+	//increase allowance
+	rs, rserr := renter.RenterSettings()
+	if rserr != nil {
+		t.Fatal(errors.AddContext(rserr, "Could not get RenterSettings"))
+	}
+	allowance := rs.Allowance
+	allowance.Funds = rs.Allowance.Funds.Mul64(3)
+	renter.RenterPostAllowance(allowance)
 	// Set fileSize and redundancy for upload
 	fileSize := int(modules.SectorSize)
 	dataPieces := uint64(1)
@@ -3133,6 +3142,7 @@ func TestSetFileTrackingPath(t *testing.T) {
 	// Create new hosts.
 	_, err = tg.AddNodeN(node.HostTemplate, numHosts)
 	if err != nil {
+		renter.PrintDebugInfo(t, true, true, true)
 		t.Fatal("Failed to create a new host", err)
 	}
 	// We should reach full health again.
@@ -4000,6 +4010,7 @@ func TestOutOfStorageHandling(t *testing.T) {
 		return nil
 	})
 	if err != nil {
+		renter.PrintDebugInfo(t, true, true, true)
 		t.Fatal(err)
 	}
 
