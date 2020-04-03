@@ -1178,6 +1178,7 @@ func TestLowAllowanceAlert(t *testing.T) {
 	// Add a renter which won't be able to renew a contract due to low funds.
 	renterParams := node.Renter(filepath.Join(testDir, "renter_renew"))
 	renterParams.Allowance = siatest.DefaultAllowance
+	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(3)
 	renterParams.Allowance.Period = 10
 	renterParams.Allowance.RenewWindow = 5
 	renterParams.ContractorDeps = &dependencies.DependencyLowFundsRenewalFail{}
