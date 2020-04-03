@@ -12,16 +12,15 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
-	"gitlab.com/SiaPrime/SiaPrime/siatest/dependencies"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestRenterSpendingReporting checks the accuracy for the reported
@@ -289,7 +288,7 @@ func TestRenterSpendingReporting(t *testing.T) {
 	}
 
 	// Renew contracts by running out of funds
-	_, err = siatest.DrainContractsByUploading(r, tg, contractor.MinContractFundRenewalThreshold)
+	_, err = siatest.DrainContractsByUploading(r, tg)
 	if err != nil {
 		r.PrintDebugInfo(t, true, true, true)
 		t.Fatal(err)
@@ -795,5 +794,72 @@ func TestUploadStreamFailAndRepair(t *testing.T) {
 	}
 	if !bytes.Equal(data, downloadedData) {
 		t.Fatal("downloaded data doesn't match uploaded data")
+	}
+}
+
+// TestHostChurnSiafileDefragRegression tests that constant host churn won't
+// ever stop the SiaFile from being repaired to full health again.
+func TestHostChurnSiafileDefragRegression(t *testing.T) {
+	if testing.Short() || !build.VLONG {
+		t.SkipNow()
+	}
+	t.Parallel()
+	// Create a group for testing
+	groupParams := siatest.GroupParams{
+		Hosts:   5,
+		Miners:  1,
+		Renters: 1,
+	}
+	testDir := renterTestDir(t.Name())
+	tg, err := siatest.NewGroupFromTemplate(testDir, groupParams)
+	if err != nil {
+		t.Fatal("Failed to create group:", err)
+	}
+	defer func() {
+		if err := tg.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	// Increase the renter's allowance to avoid complications during the test.
+	r := tg.Renters()[0]
+	a := siatest.DefaultAllowance
+	a.MaxPeriodChurn *= 100
+	a.Funds = a.Funds.Mul64(100)
+	a.Hosts = 200
+	r.RenterPostAllowance(a)
+	// Upload a file to all hosts.
+	_, rf, err := r.UploadNewFileBlocking(100, 1, uint64(len(tg.Hosts())-1), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Take hosts offline.
+	for _, host := range tg.Hosts() {
+		if err := tg.RemoveNode(host); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Add hosts until we have had 100 hosts which all have repaired the file at
+	// some point.
+	// Go through 200 hosts
+	for i := 0; i < 40; i++ {
+		// Wait for redundancy to drop to 0.
+		if err := r.WaitForDecreasingRedundancy(rf, 0); err != nil {
+			t.Fatal(err)
+		}
+		// Spin up new hosts.
+		_, err := tg.AddNodeN(node.HostTemplate, 5)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Health should go back up.
+		if err := r.WaitForUploadHealth(rf); err != nil {
+			t.Fatal(err)
+		}
+		// Take hosts offline.
+		for _, host := range tg.Hosts() {
+			if err := tg.RemoveNode(host); err != nil {
+				t.Fatal(err)
+			}
+		}
 	}
 }

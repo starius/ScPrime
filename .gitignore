@@ -3,6 +3,7 @@
 *.swo
 
 # build artifacts
+artifacts
 cover
 fullcover
 release
@@ -16,8 +17,8 @@ doc/whitepaper.pdf
 .idea
 sia.iml
 
-# Mac
-.DS_Store
-
 # VSCode debug files
 debug.test
+
+# OSX auto-generated file
+**/.DS_Store

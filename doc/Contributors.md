@@ -55,6 +55,6 @@
 * pachisi456
 * Google Inc.
 
-[developers]: https://gitlab.com/SiaPrime/SiaPrime/blob/master/doc/Developers.md
-[doc]: https://gitlab.com/SiaPrime/SiaPrime/tree/master/doc
+[developers]: https://gitlab.com/scpcorp/ScPrime/blob/master/doc/Developers.md
+[doc]: https://gitlab.com/scpcorp/ScPrime/tree/master/doc
 [discord]: https://discord.gg/Cvxj5pQ

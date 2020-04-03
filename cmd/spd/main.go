@@ -6,8 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/config"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/cmd"
+	"gitlab.com/scpcorp/ScPrime/config"
 )
 
 var (
@@ -36,6 +37,7 @@ type Config struct {
 		APIaddr      string
 		RPCaddr      string
 		HostAddr     string
+		SiaMuxAddr   string
 		AllowAPIBind bool
 
 		Modules           string
@@ -46,7 +48,7 @@ type Config struct {
 
 		Profile    string
 		ProfileDir string
-		SiaDir     string
+		DataDir    string
 	}
 
 	MiningPoolConfig config.MiningPoolConfig
@@ -136,6 +138,12 @@ Mining Pool (p):
 	The pool requires the gateway,consensus set, transactions pool and wallet.
 	Example:
 		spd -M gctwp
+FeeManager (f):
+	The FeeManager provides a means for application developers to charge
+	users for the user of their application.
+	The FeeManager requires the consensus set, gateway, transaction pool, and wallet.
+	Example:
+		siad -M gctwf
 Explorer (e):
 	The explorer provides statistics about the blockchain and can be
 	queried for information about specific transactions or other objects on
@@ -182,14 +190,23 @@ func main() {
 	root.Flags().StringVarP(&globalConfig.Spd.HostAddr, "host-addr", "", ":4282", "which port the host listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.ProfileDir, "profile-directory", "", "profiles", "location of the profiling directory")
 	root.Flags().StringVarP(&globalConfig.Spd.APIaddr, "api-addr", "", "localhost:4280", "which host:port the API server listens on")
-	root.Flags().StringVarP(&globalConfig.Spd.SiaDir, "scprime-directory", "d", "", "location of the metadata directory")
+	root.Flags().StringVarP(&globalConfig.Spd.DataDir, "scprime-directory", "d", "", "location of the metadata directory")
 	root.Flags().BoolVarP(&globalConfig.Spd.NoBootstrap, "no-bootstrap", "", false, "disable bootstrapping on this run")
 	root.Flags().StringVarP(&globalConfig.Spd.Profile, "profile", "", "", "enable profiling with flags 'cmt' for CPU, memory, trace")
 	root.Flags().StringVarP(&globalConfig.Spd.RPCaddr, "rpc-addr", "", ":4281", "which port the gateway listens on")
-	root.Flags().StringVarP(&globalConfig.Spd.Modules, "modules", "M", "cghrtw", "enabled modules, see 'spd modules' for more info")
+	root.Flags().StringVarP(&globalConfig.Spd.SiaMuxAddr, "siamux-addr", "", ":9999", "which port the SiaMux listens on")
+	root.Flags().StringVarP(&globalConfig.Spd.Modules, "modules", "M", "gctwrh", "enabled modules, see 'spd modules' for more info")
 	root.Flags().BoolVarP(&globalConfig.Spd.AuthenticateAPI, "authenticate-api", "", true, "enable API password protection")
 	root.Flags().BoolVarP(&globalConfig.Spd.TempPassword, "temp-password", "", false, "enter a temporary API password during startup")
 	root.Flags().BoolVarP(&globalConfig.Spd.AllowAPIBind, "disable-api-security", "", false, "allow spd to listen on a non-localhost address (DANGEROUS)")
+
+	// If globalConfig.Spd.DataDir is not set, use the environment variable provided.
+	if globalConfig.Spd.DataDir == "" {
+		globalConfig.Spd.DataDir = os.Getenv(cmd.SiaDataDir)
+		if globalConfig.Spd.DataDir != "" {
+			fmt.Printf("Using %v environment variable\n", cmd.SiaDataDir)
+		}
+	}
 
 	// Parse cmdline flags, overwriting both the default values and the config
 	// file values.

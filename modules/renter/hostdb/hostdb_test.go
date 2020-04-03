@@ -9,17 +9,17 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb/hosttree"
-	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
-	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/consensus"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/modules/miner"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb/hosttree"
+	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
+	"gitlab.com/scpcorp/ScPrime/modules/wallet"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // hdbTester contains a hostdb and all dependencies.
@@ -41,12 +41,12 @@ type hdbTester struct {
 func bareHostDB() *HostDB {
 	hdb := &HostDB{
 		allowance:      modules.DefaultAllowance,
-		log:            persist.NewLogger(ioutil.Discard),
+		staticLog:      persist.NewLogger(ioutil.Discard),
 		knownContracts: make(map[string]contractInfo),
 	}
 	hdb.weightFunc = hdb.managedCalculateHostWeightFn(hdb.allowance)
-	hdb.hostTree = hosttree.New(hdb.weightFunc, &modules.ProductionResolver{})
-	hdb.filteredTree = hosttree.New(hdb.weightFunc, &modules.ProductionResolver{})
+	hdb.staticHostTree = hosttree.New(hdb.weightFunc, &modules.ProductionResolver{})
+	hdb.staticFilteredTree = hosttree.New(hdb.weightFunc, &modules.ProductionResolver{})
 	return hdb
 }
 
@@ -212,24 +212,12 @@ func TestRandomHosts(t *testing.T) {
 	for i := 0; i < nEntries; i++ {
 		entry := makeHostDBEntry()
 		entries[entry.PublicKey.String()] = entry
-		err := hdbt.hdb.filteredTree.Insert(entry)
+		err := hdbt.hdb.staticFilteredTree.Insert(entry)
 		if err != nil {
 			t.Error(err)
 		}
 	}
-	insertedEntries := hdbt.hdb.filteredTree.All()
-	if len(insertedEntries) != len(entries) {
-		t.Errorf("Inserted %v entries and got stored %v entries.", len(entries), len(insertedEntries))
-	}
 
-	hdbt.hdb.initialScanComplete = true
-	complete, err := hdbt.hdb.InitialScanComplete()
-	if !complete {
-		t.Error("InitialScanComplete should be true")
-	}
-	if err != nil {
-		t.Fatal("Failed to get InitialScanComplete()", err)
-	}
 	// Check that all hosts can be queried.
 	for i := 0; i < 25; i++ {
 		hosts, err := hdbt.hdb.RandomHosts(nEntries, nil, nil)
@@ -302,7 +290,6 @@ func TestRandomHosts(t *testing.T) {
 				disjoint = true
 			}
 			dupCheck2[host.PublicKey.String()] = host
-
 		}
 		if !overlap || !disjoint {
 			t.Error("Random hosts does not seem to be random")
@@ -430,7 +417,7 @@ func TestRemoveNonexistingHostFromHostTree(t *testing.T) {
 	}
 
 	// Remove a host that doesn't exist from the tree.
-	err = hdbt.hdb.hostTree.Remove(types.SiaPublicKey{})
+	err = hdbt.hdb.staticHostTree.Remove(types.SiaPublicKey{})
 	if err == nil {
 		t.Fatal("There should be an error, but not a panic:", err)
 	}
@@ -452,7 +439,7 @@ func TestUpdateHistoricInteractions(t *testing.T) {
 
 	// create a HostDBEntry and add it to the tree
 	host := makeHostDBEntry()
-	err = hdbt.hdb.hostTree.Insert(host)
+	err = hdbt.hdb.staticHostTree.Insert(host)
 	if err != nil {
 		t.Error(err)
 	}

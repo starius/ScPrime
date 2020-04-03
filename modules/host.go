@@ -1,13 +1,43 @@
 package modules
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"time"
+
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (
 	// HostDir names the directory that contains the host persistence.
 	HostDir = "host"
+
+	// HostSettingsFile is the name of the host's persistence file.
+	HostSettingsFile = "host.json"
+
+	// HostSiaMuxSubscriberName is the name used by the host to register a
+	// listener on the SiaMux.
+	HostSiaMuxSubscriberName = "host"
+)
+
+var (
+	// Hostv112PersistMetadata is the header of the v112 host persist file.
+	Hostv112PersistMetadata = persist.Metadata{
+		Header:  "Sia Host",
+		Version: "0.5",
+	}
+
+	// Hostv120PersistMetadata is the header of the v120 host persist file.
+	Hostv120PersistMetadata = persist.Metadata{
+		Header:  "Sia Host",
+		Version: "1.2.0",
+	}
+
+	// Hostv143PersistMetadata is the header of the v143 host persist file.
+	Hostv143PersistMetadata = persist.Metadata{
+		Header:  "Sia Host",
+		Version: "1.4.3",
+	}
 )
 
 var (
@@ -16,6 +46,21 @@ var (
 
 	// BytesPerTerabyte is the conversion rate between bytes and terabytes.
 	BytesPerTerabyte = types.NewCurrency64(1e12)
+
+	// MaxBaseRPCPriceVsBandwidth is the max ratio for sane pricing between the
+	// MinBaseRPCPrice and the MinDownloadBandwidthPrice. This ensures that 1
+	// million base RPC charges are at most 1% of the cost to download 4TB. This
+	// ratio should be used by checking that the MinBaseRPCPrice is less than or
+	// equal to the MinDownloadBandwidthPrice multiplied by this constant
+	MaxBaseRPCPriceVsBandwidth = uint64(40e3)
+
+	// MaxSectorAccessPriceVsBandwidth is the max ratio for sane pricing between
+	// the MinSectorAccessPrice and the MinDownloadBandwidthPrice. This ensures
+	// that 1 million base accesses are at most 10% of the cost to download 4TB.
+	// This ratio should be used by checking that the MinSectorAccessPrice is
+	// less than or equal to the MinDownloadBandwidthPrice multiplied by this
+	// constant
+	MaxSectorAccessPriceVsBandwidth = uint64(400e3)
 )
 
 var (
@@ -99,6 +144,10 @@ type (
 		MinSectorAccessPrice      types.Currency `json:"minsectoraccessprice"`
 		MinStoragePrice           types.Currency `json:"minstorageprice"`
 		MinUploadBandwidthPrice   types.Currency `json:"minuploadbandwidthprice"`
+
+		EphemeralAccountExpiry     uint64         `json:"ephemeralaccountexpiry"`
+		MaxEphemeralAccountBalance types.Currency `json:"maxephemeralaccountbalance"`
+		MaxEphemeralAccountRisk    types.Currency `json:"maxephemeralaccountrisk"`
 	}
 
 	// HostNetworkMetrics reports the quantity of each type of RPC call that
@@ -170,6 +219,10 @@ type (
 		// data once.
 		AddSector(sectorRoot crypto.Hash, sectorData []byte) error
 
+		// HasSector indicates whether the host stores a sector with a given
+		// root or not.
+		HasSector(crypto.Hash) bool
+
 		// AddSectorBatch is a performance optimization over AddSector when
 		// adding a bunch of virtual sectors. It is necessary because otherwise
 		// potentially thousands or even tens-of-thousands of fsync calls would
@@ -208,6 +261,9 @@ type (
 		// untrusted node querying the host for settings.
 		ExternalSettings() HostExternalSettings
 
+		// BandwidthCounters returns the Hosts's upload and download bandwidth
+		BandwidthCounters() (uint64, uint64, time.Time, error)
+
 		// FinancialMetrics returns the financial statistics of the host.
 		FinancialMetrics() HostFinancialMetrics
 
@@ -218,6 +274,8 @@ type (
 		// NetworkMetrics returns information on the types of RPC calls that
 		// have been made to the host.
 		NetworkMetrics() HostNetworkMetrics
+
+		PaymentProcessor
 
 		// PruneStaleStorageObligations will delete storage obligations from the
 		// host that, for whatever reason, did not make it on the block chain.
@@ -232,6 +290,10 @@ type (
 		// ReadSector will read a sector from the host, returning the bytes that
 		// match the input sector root.
 		ReadSector(sectorRoot crypto.Hash) ([]byte, error)
+
+		// ReadPartialSector will read a sector from the storage manager, returning the
+		// 'length' bytes at offset 'offset' that match the input sector root.
+		ReadPartialSector(sectorRoot crypto.Hash, offset, length uint64) ([]byte, error)
 
 		// RemoveSector will remove a sector from the host. The height at which
 		// the sector expires should be provided, so that the auto-expiry
@@ -282,3 +344,15 @@ type (
 		WorkingStatus() HostWorkingStatus
 	}
 )
+
+// MaxBaseRPCPrice returns the maximum value for the MinBaseRPCPrice based on
+// the MinDownloadBandwidthPrice
+func (his HostInternalSettings) MaxBaseRPCPrice() types.Currency {
+	return his.MinDownloadBandwidthPrice.Mul64(MaxBaseRPCPriceVsBandwidth)
+}
+
+// MaxSectorAccessPrice returns the maximum value for the MinSectorAccessPrice
+// based on the MinDownloadBandwidthPrice
+func (his HostInternalSettings) MaxSectorAccessPrice() types.Currency {
+	return his.MinDownloadBandwidthPrice.Mul64(MaxSectorAccessPriceVsBandwidth)
+}

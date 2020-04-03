@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/node/api"
 )
 
 var (
@@ -103,7 +103,6 @@ func poolconfigcmd(param, value string) {
 	err = httpClient.MiningPoolConfigPost(param, value)
 	if err != nil {
 		die("Could not update pool settings:", err)
-
 	}
 }
 

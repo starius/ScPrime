@@ -4,10 +4,10 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // capacity returns the amount of storage still available on the machine. The
@@ -65,6 +65,12 @@ func (h *Host) externalSettings() modules.HostExternalSettings {
 		maxCollateral = h.settings.CollateralBudget.Sub(h.financialMetrics.LockedStorageCollateral)
 	}
 
+	// Extract the port from the SiaMux's address
+	_, port, err := net.SplitHostPort(h.staticMux.Address().String())
+	if err != nil {
+		build.Critical("Could not split the SiaMux address in a host and port")
+	}
+
 	return modules.HostExternalSettings{
 		AcceptingContracts:   acceptingContracts,
 		MaxDownloadBatchSize: h.settings.MaxDownloadBatchSize,
@@ -89,6 +95,8 @@ func (h *Host) externalSettings() modules.HostExternalSettings {
 
 		RevisionNumber: h.revisionNumber,
 		Version:        build.Version,
+
+		SiaMuxPort: port,
 	}
 }
 

@@ -3,8 +3,8 @@ package contractor
 import (
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // contractWithSize is a helper function that creates a dummy file contract with a certain size.

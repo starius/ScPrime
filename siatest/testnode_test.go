@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/node"
+	"gitlab.com/scpcorp/ScPrime/node"
 )
 
 // TestNextNodeAddress probes nextNodeAddress to verify that the addresses are

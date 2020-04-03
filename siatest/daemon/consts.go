@@ -3,8 +3,8 @@ package daemon
 import (
 	"os"
 
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/siatest"
 )
 
 // daemonTestDir creates a temporary testing directory for daemon tests. This

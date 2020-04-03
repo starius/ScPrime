@@ -5,13 +5,13 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-
 	"gitlab.com/NebulousLabs/fastrand"
 	bolt "go.etcd.io/bbolt"
+
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 var (
@@ -52,7 +52,7 @@ func (h *Host) managedVerifyChallengeResponse(fcid types.FileContractID, challen
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	err = h.db.View(func(tx *bolt.Tx) error {
-		so, err = getStorageObligation(tx, fcid)
+		so, err = h.getStorageObligation(tx, fcid)
 		return err
 	})
 	if err != nil {

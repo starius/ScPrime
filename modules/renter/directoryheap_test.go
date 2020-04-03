@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/siatest/dependencies"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
 )
 
 // updateSiaDirHealth is a helper method to update the health and the aggregate
@@ -227,9 +227,9 @@ func TestPushSubDirectories(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Heap should have a length of 4
-	if rt.renter.directoryHeap.managedLen() != 4 {
-		t.Fatal("Heap should have length of 4 but was", rt.renter.directoryHeap.managedLen())
+	// Heap should have a length of 5
+	if rt.renter.directoryHeap.managedLen() != 5 {
+		t.Fatal("Heap should have length of 5 but was", rt.renter.directoryHeap.managedLen())
 	}
 
 	// Pop off elements and confirm the are correct

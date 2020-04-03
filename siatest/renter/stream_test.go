@@ -8,14 +8,15 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
-	"gitlab.com/SiaPrime/SiaPrime/siatest/dependencies"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
 )
 
 // TestRenterDownloadStreamCache checks that the download stream caching is
@@ -174,17 +175,18 @@ func TestRenterStream(t *testing.T) {
 		Renters: 1,
 		Miners:  1,
 	}
+	groupDir := renterTestDir(t.Name())
 
 	// Specify subtests to run
-	subTests := []test{
-		{"TestStreamLargeFile", testStreamLargeFile},
-		{"TestStreamRepair", testStreamRepair},
-		{"TestUploadStreaming", testUploadStreaming},
-		{"TestUploadStreamingWithBadDeps", testUploadStreamingWithBadDeps},
+	subTests := []siatest.SubTest{
+		{Name: "TestStreamLargeFile", Test: testStreamLargeFile},
+		{Name: "TestStreamRepair", Test: testStreamRepair},
+		{Name: "TestUploadStreaming", Test: testUploadStreaming},
+		{Name: "TestUploadStreamingWithBadDeps", Test: testUploadStreamingWithBadDeps},
 	}
 
 	// Run tests
-	if err := runRenterTests(t, groupParams, subTests); err != nil {
+	if err := siatest.RunSubTests(t, groupParams, groupDir, subTests); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -219,6 +221,15 @@ func testStreamLargeFile(t *testing.T, tg *siatest.TestGroup) {
 func testStreamRepair(t *testing.T, tg *siatest.TestGroup) {
 	// Grab the first of the group's renters
 	r := tg.Renters()[0]
+
+	//increase allowance
+	rs, rserr := r.RenterSettings()
+	if rserr != nil {
+		t.Fatal(errors.AddContext(rserr, "Could not get RenterSettings"))
+	}
+	allowance := rs.Allowance
+	allowance.Funds = rs.Allowance.Funds.Mul64(3)
+	r.RenterPostAllowance(allowance)
 
 	// Check that we have enough hosts for this test.
 	if len(tg.Hosts()) < 2 {

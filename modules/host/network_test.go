@@ -1,12 +1,17 @@
 package host
 
 import (
+	"fmt"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
+
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // blockingPortForward is a dependency set that causes the host port forward
@@ -111,8 +116,8 @@ func TestHostWorkingStatus(t *testing.T) {
 	}
 }
 
-// TestHostConnectabilityStatus checks that the host properly updates its connectable
-// state
+// TestHostConnectabilityStatus checks that the host properly updates its
+// connectable state
 func TestHostConnectabilityStatus(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -141,5 +146,52 @@ func TestHostConnectabilityStatus(t *testing.T) {
 	}
 	if !success {
 		t.Fatal("expected connectability state to flip to HostConnectabilityStatusConnectable")
+	}
+}
+
+// TestHostSiaMuxSubscriber verifies the host is properly subscribed and is
+// listening for incoming streams.
+func TestHostSiaMuxSubscriber(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	ht, err := newHostTester(t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ht.Close()
+
+	hes := ht.host.ExternalSettings()
+	muxAddress := fmt.Sprintf("%s:%s", hes.NetAddress.Host(), hes.SiaMuxPort)
+	mux := ht.host.staticMux
+
+	// fetch a stream from the mux
+	stream, err := mux.NewStream(modules.HostSiaMuxSubscriberName, muxAddress, modules.SiaPKToMuxPK(ht.host.publicKey))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stream.Close()
+
+	// write the RPC id on the stream
+	var randomRPCID types.Specifier
+	fastrand.Read(randomRPCID[:])
+	err = modules.RPCWrite(stream, randomRPCID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// write the price table UUID
+	var ptID types.Specifier
+	fastrand.Read(ptID[:])
+	err = modules.RPCWrite(stream, randomRPCID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = modules.RPCRead(stream, struct{}{})
+	if err == nil || !strings.Contains(err.Error(), randomRPCID.String()) {
+		t.Fatal("Expected Unrecognized RPC ID error")
 	}
 }

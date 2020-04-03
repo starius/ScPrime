@@ -3,9 +3,9 @@ package transactionpool
 import (
 	"errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // standard.go adds extra rules to transactions which help preserve network
@@ -134,7 +134,6 @@ func isStandardTransactionSet(ts []types.Transaction) (uint64, error) {
 		if totalSize > modules.TransactionSetSizeLimit {
 			return 0, modules.ErrLargeTransactionSet
 		}
-
 	}
 	return totalSize, nil
 }

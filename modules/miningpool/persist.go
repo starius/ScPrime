@@ -6,10 +6,10 @@ import (
 
 	"github.com/sasha-s/go-deadlock"
 
-	"gitlab.com/SiaPrime/SiaPrime/config"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/config"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // persistence is the data that is kept when the pool is restarted.
@@ -203,7 +203,6 @@ func (mp *Pool) hasSettings() bool {
 
 // load loads the Hosts's persistent data from disk.
 func (mp *Pool) load() error {
-
 	// Load the old persistence object from disk. Simple task if the version is
 	// the most recent version, but older versions need to be updated to the
 	// more recent structures.

@@ -3,8 +3,8 @@ package hosttree
 import (
 	"math/big"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // ScoreBreakdown is an interface that allows us to mock the hostAdjustments

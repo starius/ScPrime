@@ -10,7 +10,7 @@ import (
 	"runtime/debug"
 	"sync"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 // memoryManager can handle requests for memory and returns of memory. The

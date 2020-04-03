@@ -5,11 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -70,18 +70,29 @@ func (h *Host) establishDefaults() error {
 		MinSectorAccessPrice:      defaultSectorAccessPrice,
 		MinStoragePrice:           defaultStoragePrice,
 		MinUploadBandwidthPrice:   defaultUploadBandwidthPrice,
+
+		EphemeralAccountExpiry:     defaultEphemeralAccountExpiry,
+		MaxEphemeralAccountBalance: defaultMaxEphemeralAccountBalance,
+		MaxEphemeralAccountRisk:    defaultMaxEphemeralAccountRisk,
 	}
 
-	// Generate signing key, for revising contracts.
-	sk, pk := crypto.GenerateKeyPair()
-	h.secretKey = sk
+	// Load the host's key pair, use the same keys as the SiaMux.
+	var sk crypto.SecretKey
+	var pk crypto.PublicKey
+	msk := h.staticMux.PrivateKey()
+	mpk := h.staticMux.PublicKey()
+
+	// Sanity check that the mux's key are the same length as the host keys
+	// before copying them
+	if len(sk) != len(msk) || len(pk) != len(mpk) {
+		build.Critical("Expected the siamux keys to be of equal length as the host keys")
+	}
+	copy(sk[:], msk[:])
+	copy(pk[:], mpk[:])
+
 	h.publicKey = types.Ed25519PublicKey(pk)
+	h.secretKey = sk
 
-	// Subscribe to the consensus set.
-	err := h.initConsensusSubscription()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -157,7 +168,7 @@ func (h *Host) load() error {
 	// the most recent version, but older versions need to be updated to the
 	// more recent structures.
 	p := new(persistence)
-	err = h.dependencies.LoadFile(persistMetadata, p, filepath.Join(h.persistDir, settingsFile))
+	err = h.dependencies.LoadFile(modules.Hostv143PersistMetadata, p, filepath.Join(h.persistDir, settingsFile))
 	if err == nil {
 		// Copy in the persistence.
 		h.loadPersistObject(p)
@@ -165,13 +176,46 @@ func (h *Host) load() error {
 		// There is no host.json file, set up sane defaults.
 		return h.establishDefaults()
 	} else if err == persist.ErrBadVersion {
+		h.log.Debugln("Host needs upgrading.")
 		// Attempt an upgrade from V112 to V120.
 		err = h.upgradeFromV112ToV120()
 		if err != nil {
+			h.log.Println("WARNING: v112 to v120 host upgrade failed, trying v120 to v143 next", err)
+		}
+		// Then upgrade from V120 to V143.
+		err = h.upgradeFromV120ToV143()
+		if err != nil {
+			h.log.Println("WARNING: v120 to v143 host upgrade failed, nothing left to try", err)
 			return err
 		}
+
+		h.log.Println("SUCCESS: successfully upgraded host to v143")
 	} else {
 		return err
+	}
+
+	// Check if the host is currently using defaults that violate the ratio
+	// restrictions between the SectorAccessPrice, BaseRPCPrice, and
+	// DownloadBandwidthPrice
+	var updated bool
+	minBaseRPCPrice := h.settings.MinBaseRPCPrice
+	maxBaseRPCPrice := h.settings.MaxBaseRPCPrice()
+	if minBaseRPCPrice.Cmp(maxBaseRPCPrice) > 0 {
+		h.settings.MinBaseRPCPrice = maxBaseRPCPrice
+		updated = true
+	}
+	minSectorAccessPrice := h.settings.MinSectorAccessPrice
+	maxSectorAccessPrice := h.settings.MaxSectorAccessPrice()
+	if minSectorAccessPrice.Cmp(maxSectorAccessPrice) > 0 {
+		h.settings.MinSectorAccessPrice = maxSectorAccessPrice
+		updated = true
+	}
+	// If we updated the Price values we should save the changes to disk
+	if updated {
+		err = h.saveSync()
+		if err != nil {
+			return err
+		}
 	}
 
 	// Get the contract count and locked collateral by observing all of the incomplete
@@ -199,10 +243,10 @@ func (h *Host) load() error {
 		return err
 	}
 
-	return h.initConsensusSubscription()
+	return nil
 }
 
 // saveSync stores all of the persist data to disk and then syncs to disk.
 func (h *Host) saveSync() error {
-	return persist.SaveJSON(persistMetadata, h.persistData(), filepath.Join(h.persistDir, settingsFile))
+	return persist.SaveJSON(modules.Hostv143PersistMetadata, h.persistData(), filepath.Join(h.persistDir, settingsFile))
 }

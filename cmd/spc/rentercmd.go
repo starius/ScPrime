@@ -7,7 +7,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -21,11 +23,15 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.com/NebulousLabs/errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
-	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/node/api/client"
+	"gitlab.com/scpcorp/ScPrime/types"
+)
+
+const (
+	fileSizeUnits = "B, KB, MB, GB, TB, PB, EB, ZB, YB"
 )
 
 var (
@@ -71,18 +77,6 @@ var (
 		Run:   wrap(rentercmd),
 	}
 
-	renterSetIPRestrictionCmd = &cobra.Command{
-		Use:   "enableiprestriction [number]",
-		Short: "Set the allowed number of storage providers from single IP address subnet",
-		Long: `Set the allowed number of storage providers from single IP address 
-subnet (host farms). If set to 0 (zero) the restriction is disabled allowing to contract all.
-
-Example:
-renter enableiprestriction 1 allows the renter to form contracts with only one storage 
-provider from the same IP address subnet.`,
-		Run: enableiprestriction,
-	}
-
 	renterContractsCmd = &cobra.Command{
 		Use:   "contracts",
 		Short: "View the Renter's contracts",
@@ -122,8 +116,8 @@ provider from the same IP address subnet.`,
 		Use:     "delete [path]",
 		Aliases: []string{"rm"},
 		Short:   "Delete a file or folder",
-		Long:    "Delete a file or folder. Does not delete the file/folder on disk.",
-		Run:     wrap(renterfilesdeletecmd),
+		Long:    "Delete a file or folder. Does not delete the file/folder on disk.  Multiple files may be deleted with space separation.",
+		Run:     renterfilesdeletecmd,
 	}
 
 	renterFilesDownloadCmd = &cobra.Command{
@@ -136,7 +130,7 @@ provider from the same IP address subnet.`,
 	renterFilesListCmd = &cobra.Command{
 		Use:   "ls [path]",
 		Short: "List the status of a specific file or all files within specified dir",
-		Long:  "List the status of a specific file or all files known to the renter within the specified folder on the Sia network. To query the root dir either '\"\"', '/' or '.' can be supplied",
+		Long:  "List the status of a specific file or all files known to the renter within the specified folder on the ScPrime network. To query the root dir either '\"\"', '/' or '.' can be supplied",
 		Run:   renterfileslistcmd,
 	}
 
@@ -157,20 +151,20 @@ provider from the same IP address subnet.`,
 
 	renterFuseMountCmd = &cobra.Command{
 		Use:   "mount [path] [siapath]",
-		Short: "Mount a Sia folder to your disk",
-		Long: `Mount a Sia folder to your disk. Applications will be able to see this folder
-as though it is a normal part of your filesystem.  Currently experimental, and
-read-only. When Sia is ready to support read-write fuse mounting, spc will be
-updated to mount in read-write mode as the default. If you must guarantee that
-read-only mode is used, you must use the API.`,
+		Short: "Mount a folder on ScPrime network to your disk",
+		Long: `Mount a folder on ScPrime network to your disk. Applications will
+be able to see this folder as though it is a normal part of your filesystem.  
+Currently experimental, and read-only. When ScPrime is ready to support read-write 
+fuse mounting, spc will be updated to mount in read-write mode as the default. 
+If you must guarantee that read-only mode is used, you must use the API.`,
 		Run: wrap(renterfusemountcmd),
 	}
 
 	renterFuseUnmountCmd = &cobra.Command{
 		Use:   "unmount [path]",
-		Short: "Unmount a Sia folder",
-		Long: `Unmount a Sia folder that has previously been mounted. Unmount by specifying the
-local path where the Sia folder is mounted.`,
+		Short: "Unmount a ScPrime network folder",
+		Long: `Unmount a folder on ScPrime network that has previously been 
+mounted. Unmount by specifying the local path where the folder is mounted.`,
 		Run: wrap(renterfuseunmountcmd),
 	}
 
@@ -191,8 +185,25 @@ local path where the Sia folder is mounted.`,
 	renterFilesUploadCmd = &cobra.Command{
 		Use:   "upload [source] [path]",
 		Short: "Upload a file or folder",
-		Long:  "Upload a file or folder to [path] on the Sia network.",
-		Run:   wrap(renterfilesuploadcmd),
+		Long: `Upload a file or folder to [path] on the ScPrime network. The --data-pieces and --parity-pieces
+flags can be used to set a custom redundancy for the file.`,
+		Run: wrap(renterfilesuploadcmd),
+	}
+
+	renterFilesUploadPauseCmd = &cobra.Command{
+		Use:   "pause [duration]",
+		Short: "Pause renter uploads for a duration",
+		Long: `Temporarily pause renter uploads for the duration specified.
+Available durations include "s" for seconds, "m" for minutes, and "h" for hours.
+For Example: 'spc renter upload pause 3h' would pause uploads for 3 hours.`,
+		Run: wrap(renterfilesuploadpausecmd),
+	}
+
+	renterFilesUploadResumeCmd = &cobra.Command{
+		Use:   "resume",
+		Short: "Resume renter uploads",
+		Long:  "Resume renter uploads that were previously paused.",
+		Run:   wrap(renterfilesuploadresumecmd),
 	}
 
 	renterPricesCmd = &cobra.Command{
@@ -209,7 +220,7 @@ allowance of 500SCP, 12w period, 50 hosts, and 4w renew window will be used.`,
 
 	renterRatelimitCmd = &cobra.Command{
 		Use:   "ratelimit [maxdownloadspeed] [maxuploadspeed]",
-		Short: "set maxdownloadspeed and maxuploadspeed",
+		Short: "Set maxdownloadspeed and maxuploadspeed",
 		Long: `Set the maxdownloadspeed and maxuploadspeed in 
 Bytes per second: B/s, KB/s, MB/s, GB/s, TB/s
 or
@@ -249,6 +260,90 @@ have a reasonable number (>30) of hosts in your hostdb.`,
 		Short: "View the upload queue",
 		Long:  "View the list of files currently uploading.",
 		Run:   wrap(renteruploadscmd),
+	}
+
+	skynetCmd = &cobra.Command{
+		Use:   "skynet",
+		Short: "Perform actions related to Skynet",
+		Long: `Perform actions related to Skynet, a file sharing and data publication platform
+on top of ScPrime.`,
+		Run: skynetcmd,
+	}
+
+	skynetBlacklistCmd = &cobra.Command{
+		Use:   "blacklist [skylink]",
+		Short: "Blacklist a skylink from skynet.",
+		Long: `Blacklist a skylink from skynet. Use the --remove flag to
+remove a skylink from the blacklist.`,
+		Run: skynetblacklistcmd,
+	}
+
+	skynetDownloadCmd = &cobra.Command{
+		Use:   "download [skylink] [destination]",
+		Short: "Download a skylink from skynet.",
+		Long: `Download a file from skynet using a skylink. The download may fail unless this
+node is configured as a skynet portal. Use the --portal flag to fetch a skylink
+file from a chosen skynet portal.`,
+		Run: skynetdownloadcmd,
+	}
+
+	skynetPinCmd = &cobra.Command{
+		Use:   "pin [skylink] [destination siapath]",
+		Short: "Pin a skylink from skynet by re-uploading it yourself.",
+		Long: `Pin the file associated with this skylink by re-uploading an exact copy. This
+ensures that the file will still be available on skynet as long as you continue
+maintaining the file in your renter.`,
+		Run: wrap(skynetpincmd),
+	}
+
+	skynetUnpinCmd = &cobra.Command{
+		Use:   "unpin [siapath]",
+		Short: "Unpin a pinned skyfile.",
+		Long: `Unpin the pinned skyfile at the given siapath. The file will continue to be
+available on Skynet if other nodes have pinned the file.`,
+		Run: wrap(skynetunpincmd),
+	}
+
+	skynetLsCmd = &cobra.Command{
+		Use:   "ls",
+		Short: "List all skyfiles that the user has pinned.",
+		Long: `List all skyfiles that the user has pinned along with the corresponding
+skylinks. By default, only files in var/skynet/ will be displayed. The --root
+flag can be used to view skyfiles pinned in other folders.`,
+		Run: skynetlscmd,
+	}
+
+	skynetUploadCmd = &cobra.Command{
+		Use:   "upload [source path] [destination siapath]",
+		Short: "Upload a file or a directory to Skynet.",
+		Long: `Upload a file or a directory to Skynet. A skylink will be produced which can be
+shared and used to retrieve the file. If the given path is a directory all files under that directory will
+be uploaded individually and an individual skylink will be produced for each. All files that get uploaded
+will be pinned to this Sia node, meaning that this node will pay for storage and repairs until the files 
+are manually deleted. Use the --dry-run flag to fetch the skylink without actually uploading the file.`,
+		Run: wrap(skynetuploadcmd),
+	}
+
+	skynetConvertCmd = &cobra.Command{
+		Use:   "convert [source siaPath] [destination siaPath]",
+		Short: "Convert a siafile to a skyfile with a skylink.",
+		Long: `Convert a siafile to a skyfile and then generate its skylink. A new skylink
+	will be created in the user's skyfile directory. The skyfile and the original
+	siafile are both necessary to pin the file and keep the skylink active. The
+	skyfile will consume an additional 40 MiB of storage.`,
+		Run: wrap(skynetconvertcmd),
+	}
+
+	renterSetIPRestrictionCmd = &cobra.Command{
+		Use:   "enableiprestriction [number]",
+		Short: "Set the allowed number of storage providers from single IP address subnet",
+		Long: `Set the allowed number of storage providers from single IP address 
+subnet (host farms). If set to 0 (zero) the restriction is disabled allowing to contract all.
+
+Example:
+renter enableiprestriction 1 allows the renter to form contracts with only one storage 
+provider from the same IP address subnet.`,
+		Run: enableiprestriction,
 	}
 )
 
@@ -306,13 +401,74 @@ func rentercmd() {
 		die(err)
 	}
 
-	if !renterListVerbose {
+	if !renterVerbose {
 		return
 	}
 
 	// Print out ratelimit info about the renter
 	fmt.Println()
 	rateLimitSummary(rg.Settings.MaxDownloadSpeed, rg.Settings.MaxUploadSpeed)
+
+	// Print out file health summary for the renter
+	dirs := getDir(modules.RootSiaPath(), false, true)
+	fmt.Println()
+	renterFileHealthSummary(dirs)
+}
+
+// renterFileHealthSummary prints out a summary of the status of all the files
+// in the renter to track the progress of the files
+func renterFileHealthSummary(dirs []directoryInfo) {
+	// Check for nil input
+	if len(dirs) == 0 {
+		fmt.Println("No Directories Found")
+		return
+	}
+
+	// Check for no files uploaded
+	total := float64(dirs[0].dir.AggregateNumFiles)
+	if total == 0 {
+		fmt.Println("No Files Uploaded")
+		return
+	}
+
+	var fullHealth, greater75, greater50, greater25, greater0, unrecoverable float64
+	for _, dir := range dirs {
+		for _, file := range dir.files {
+			switch {
+			case file.MaxHealthPercent == 100:
+				fullHealth++
+			case file.MaxHealthPercent > 75:
+				greater75++
+			case file.MaxHealthPercent > 50:
+				greater50++
+			case file.MaxHealthPercent > 25:
+				greater25++
+			case file.MaxHealthPercent > 0:
+				greater0++
+			default:
+				unrecoverable++
+			}
+		}
+	}
+
+	fullHealth = 100 * fullHealth / total
+	greater75 = 100 * greater75 / total
+	greater50 = 100 * greater50 / total
+	greater25 = 100 * greater25 / total
+	greater0 = 100 * greater0 / total
+	unrecoverable = 100 * unrecoverable / total
+
+	percentages := []float64{fullHealth, greater75, greater50, greater25, greater0, unrecoverable}
+	percentages = parsePercentages(percentages)
+
+	fmt.Printf(`File Health Summary:
+  %% At 100%%:            %v%%
+  %% Between 75%% - 100%%: %v%%
+  %% Between 50%% - 75%%:  %v%%
+  %% Between 25%% - 50%%:  %v%%
+  %% Between 0%% - 25%%:   %v%%
+  %% Unrecoverable:      %v%%
+`, percentages[0], percentages[1], percentages[2], percentages[3], percentages[4], percentages[5])
 }
 
 // renterFilesAndContractSummary prints out a summary of what the renter is
@@ -327,7 +483,7 @@ func renterFilesAndContractSummary() error {
 		return errors.AddContext(err, "unable to get root dir with RenterDirGet")
 	}
 
-	rc, err := httpClient.RenterContractsGet()
+	rc, err := httpClient.RenterDisabledContractsGet()
 	if err != nil {
 		return err
 	}
@@ -335,13 +491,22 @@ func renterFilesAndContractSummary() error {
 	if rf.Directories[0].AggregateMinRedundancy == -1 {
 		redundancyStr = "-"
 	}
+	// Active Contracts are all good data
+	activeSize, _, _, _ := contractStats(rc.ActiveContracts)
+	// Passive Contracts are all good data
+	passiveSize, _, _, _ := contractStats(rc.PassiveContracts)
 
 	fmt.Printf(`
-  Files:          %v
-  Total Stored:   %v
-  Min Redundancy: %v
-  Contracts:      %v
-`, rf.Directories[0].AggregateNumFiles, modules.FilesizeUnits(rf.Directories[0].AggregateSize), redundancyStr, len(rc.ActiveContracts))
+  Files:               %v
+  Total Stored:        %v
+  Total Contract Data: %v
+  Min Redundancy:      %v
+  Active Contracts:    %v
+  Passive Contracts:   %v
+  Disabled Contracts:  %v
+`, rf.Directories[0].AggregateNumFiles, modules.FilesizeUnits(rf.Directories[0].AggregateSize),
+		modules.FilesizeUnits(activeSize+passiveSize), redundancyStr, len(rc.ActiveContracts),
+		len(rc.PassiveContracts), len(rc.DisabledContracts))
 
 	return nil
 }
@@ -478,6 +643,8 @@ func renterallowancecmd() {
   Renew Window:         %v blocks
   Hosts:                %v
 
+Skynet Portal Per-Contract Budget: %v
+
 Expectations for period:
   Expected Storage:     %v
   Expected Upload:      %v
@@ -492,7 +659,8 @@ Price Protections:
   MaxStoragePrice:           %v per TB per Month
   MaxUploadBandwidthPrice:   %v per TB
 `, currencyUnits(allowance.Funds), allowance.Period, allowance.RenewWindow,
-		allowance.Hosts, modules.FilesizeUnits(allowance.ExpectedStorage),
+		allowance.Hosts, currencyUnits(allowance.PaymentContractInitialFunding),
+		modules.FilesizeUnits(allowance.ExpectedStorage),
 		modules.FilesizeUnits(allowance.ExpectedUpload*uint64(allowance.Period)),
 		modules.FilesizeUnits(allowance.ExpectedDownload*uint64(allowance.Period)),
 		allowance.ExpectedRedundancy,
@@ -606,6 +774,20 @@ func rentersetallowancecmd(cmd *cobra.Command, args []string) {
 			die("Could not parse renew window:", err)
 		}
 		req = req.WithRenewWindow(renewWindow)
+		changedFields++
+	}
+	// parse the payment contract initial funding
+	if allowancePaymentContractInitialFunding != "" {
+		priceStr, err := parseCurrency(allowancePaymentContractInitialFunding)
+		if err != nil {
+			die("Could not parse payment contract initial funding:", err)
+		}
+		var price types.Currency
+		_, err = fmt.Sscan(priceStr, &price)
+		if err != nil {
+			die("could not read payment contract initial funding:", err)
+		}
+		req = req.WithPaymentContractInitialFunding(price)
 		changedFields++
 	}
 	// parse expectedStorage
@@ -774,6 +956,8 @@ func rentersetallowancecmd(cmd *cobra.Command, args []string) {
 	fmt.Printf("Allowance updated. %v setting(s) changed.\n", changedFields)
 }
 
+// rentersetallowancecmdInteractive is the interactive handler for `siac renter
+// setallowance`.
 func rentersetallowancecmdInteractive(req *client.AllowanceRequestPost, allowance modules.Allowance) *client.AllowanceRequestPost {
 	br := bufio.NewReader(os.Stdin)
 	readString := func() string {
@@ -782,9 +966,9 @@ func rentersetallowancecmdInteractive(req *client.AllowanceRequestPost, allowanc
 	}
 
 	fmt.Println("Interactive tool for setting the 8 allowance options.")
-	fmt.Println()
 
 	// funds
+	fmt.Println()
 	fmt.Println(`1/8: Funds
 Funds determines the number of scprimecoins that the renter will spend when forming
 contracts with hosts. The renter will not allocate more than this amount of
@@ -820,24 +1004,33 @@ The following units can be used to set the allowance:
 		funds = allowance.Funds
 		fmt.Println("Enter desired value below, or leave blank to use current value")
 	}
-	fmt.Print("Funds: ")
-	allowanceFunds := readString()
-	if allowanceFunds != "" {
+	for {
+		fmt.Print("Funds: ")
+		allowanceFunds := readString()
+		if allowanceFunds == "" {
+			break
+		}
+
 		hastings, err := parseCurrency(allowanceFunds)
 		if err != nil {
-			die("Could not parse amount:", err)
+			fmt.Printf("Could not parse currency in '%v': %v\n", allowanceFunds, err)
+			continue
 		}
 		_, err = fmt.Sscan(hastings, &funds)
 		if err != nil {
-			die("Could not parse amount:", err)
+			fmt.Printf("Could not parse currency in '%v': %v\n", allowanceFunds, err)
+			continue
 		}
-	}
-	if funds.IsZero() {
-		die("Allowance cannot be 0")
+		if funds.IsZero() {
+			fmt.Println("Allowance funds cannot be 0")
+			continue
+		}
+		break
 	}
 	req = req.WithFunds(funds)
 
 	// period
+	fmt.Println()
 	fmt.Println(`2/8: Period
 The period is equivalent to the billing cycle length. The renter will not spend
 more than the full balance of its funds every billing period. When the billing
@@ -860,26 +1053,35 @@ The following units can be used to set the period:
 		period = allowance.Period
 		fmt.Println("Enter desired value below, or leave blank to use current value")
 	}
-	fmt.Print("Period: ")
-	allowancePeriod := readString()
-	if allowancePeriod != "" {
+	for {
+		fmt.Print("Period: ")
+		allowancePeriod := readString()
+		if allowancePeriod == "" {
+			break
+		}
+
 		blocks, err := parsePeriod(allowancePeriod)
 		if err != nil {
-			die("Could not parse period:", err)
+			fmt.Printf("Could not parse period in '%v': %v\n", allowancePeriod, err)
+			continue
 		}
 		_, err = fmt.Sscan(blocks, &period)
 		if err != nil {
-			die("Could not parse period:", err)
+			fmt.Printf("Could not parse period in '%v': %v\n", allowancePeriod, err)
+			continue
 		}
-	}
-	if period == 0 {
-		die("Period cannot be 0")
+		if period == 0 {
+			fmt.Println("Period cannot be 0")
+			continue
+		}
+		break
 	}
 	req = req.WithPeriod(period)
 
 	// hosts
+	fmt.Println()
 	fmt.Println(`3/8: Hosts
-Hosts sets the number of hosts that will be used to form the allowance. Sia
+Hosts sets the number of hosts that will be used to form the allowance. ScPrime
 gains most of its resiliancy from having a large number of hosts. More hosts
 will mean both more robustness and higher speeds when using the network, however
 will also result in more memory consumption and higher blockchain fees. It is
@@ -897,24 +1099,32 @@ double the default number of default hosts be treated as a maximum.`)
 		hosts = allowance.Hosts
 		fmt.Println("Enter desired value below, or leave blank to use current value")
 	}
-	fmt.Print("Hosts: ")
-	allowanceHosts := readString()
-	if allowanceHosts != "" {
+	for {
+		fmt.Print("Hosts: ")
+		allowanceHosts := readString()
+		if allowanceHosts == "" {
+			break
+		}
+
 		hostsInt, err := strconv.Atoi(allowanceHosts)
 		if err != nil {
-			die("Could not parse host count")
+			fmt.Printf("Could not parse host count in '%v': %v\n", allowanceHosts, err)
+			continue
 		}
 		hosts = uint64(hostsInt)
+		if hosts == 0 {
+			fmt.Println("Must have at least 1 host")
+			continue
+		}
+		break
 	}
-	if hosts == 0 {
-		die("Must have at least 1 host")
-	}
-	req = req.WithHosts(uint64(hosts))
+	req = req.WithHosts(hosts)
 
 	// renewWindow
+	fmt.Println()
 	fmt.Println(`4/8: Renew Window
 The renew window is how long the user has to renew their contracts. At the end
-of the period, all of the contracts expire. The contracts need to be renewewd
+of the period, all of the contracts expire. The contracts need to be renewed
 before they expire, otherwise the user will lose all of their files. The renew
 window is the window of time at the end of the period during which the renter
 will renew the users contracts. For example, if the renew window is 1 week long,
@@ -945,28 +1155,37 @@ The following units can be used to set the renew window:
 		renewWindow = allowance.RenewWindow
 		fmt.Println("Enter desired value below, or leave blank to use current value")
 	}
-	fmt.Print("Renew Window: ")
-	allowanceRenewWindow := readString()
-	if allowanceRenewWindow != "" {
+	for {
+		fmt.Print("Renew Window: ")
+		allowanceRenewWindow := readString()
+		if allowanceRenewWindow == "" {
+			break
+		}
+
 		rw, err := parsePeriod(allowanceRenewWindow)
 		if err != nil {
-			die("Could not parse renew window")
+			fmt.Printf("Could not parse renew window in '%v': %v\n", allowanceRenewWindow, err)
+			continue
 		}
 		_, err = fmt.Sscan(rw, &renewWindow)
 		if err != nil {
-			die("Could not parse renew window:", err)
+			fmt.Printf("Could not parse renew window in '%v': %v\n", allowanceRenewWindow, err)
+			continue
 		}
-	}
-	if renewWindow == 0 {
-		die("Cannot set renew window to zero")
+		if renewWindow == 0 {
+			fmt.Println("Cannot set renew window to zero")
+			continue
+		}
+		break
 	}
 	req = req.WithRenewWindow(renewWindow)
 
 	// expectedStorage
+	fmt.Println()
 	fmt.Println(`5/8: Expected Storage
 Expected storage is the amount of storage that the user expects to keep on the
-Sia network. This value is important to calibrate the spending habits of spd.
-Because Sia is decentralized, there is no easy way for spd to know what the
+ScPrime network. This value is important to calibrate the spending habits of spd.
+Because ScPrime is decentralized, there is no easy way for spd to know what the
 real world cost of storage is, nor what the real world price of a scprimecoin is. To
 overcome this deficiency, spd depends on the user for guidance.
 
@@ -979,7 +1198,11 @@ uptime and age.
 
 Even when the user has a large allowance and a low amount of expected storage,
 spd will try to optimize for saving money; spd tries to meet the users storage
-and bandwidth needs while spending significantly less than the overall allowance.`)
+and bandwidth needs while spending significantly less than the overall allowance.
+
+The following units can be used to set the expected storage:`)
+	fmt.Println()
+	fmt.Printf("    %v\n", fileSizeUnits)
 	fmt.Println()
 	fmt.Println("Current value:", modules.FilesizeUnits(allowance.ExpectedStorage))
 	fmt.Println("Default value:", modules.FilesizeUnits(modules.DefaultAllowance.ExpectedStorage))
@@ -992,21 +1215,29 @@ and bandwidth needs while spending significantly less than the overall allowance
 		expectedStorage = allowance.ExpectedStorage
 		fmt.Println("Enter desired value below, or leave blank to use current value")
 	}
-	fmt.Print("Expected Storage: ")
-	allowanceExpectedStorage := readString()
-	if allowanceExpectedStorage != "" {
+	for {
+		fmt.Print("Expected Storage: ")
+		allowanceExpectedStorage := readString()
+		if allowanceExpectedStorage == "" {
+			break
+		}
+
 		es, err := parseFilesize(allowanceExpectedStorage)
 		if err != nil {
-			die("Could not parse expected storage")
+			fmt.Printf("Could not parse expected storage in '%v': %v\n", allowanceExpectedStorage, err)
+			continue
 		}
 		_, err = fmt.Sscan(es, &expectedStorage)
 		if err != nil {
-			die("Could not parse expected storage")
+			fmt.Printf("Could not parse expected storage in '%v': %v\n", allowanceExpectedStorage, err)
+			continue
 		}
+		break
 	}
 	req = req.WithExpectedStorage(expectedStorage)
 
 	// expectedUpload
+	fmt.Println()
 	fmt.Println(`6/8: Expected Upload
 Expected upload tells spd how much uploading the user expects to do each
 period. If this value is high, spd will more strongly prefer hosts that have a
@@ -1015,36 +1246,55 @@ metrics than upload bandwidth pricing, because even if the host charges a lot
 for upload bandwidth, it will not impact the total cost to the user very much.
 
 The user should not consider upload bandwidth used during repairs, spd will
-consider repair bandwidth separately.`)
-	fmt.Println()
-	fmt.Println("Current value:", modules.FilesizeUnits(allowance.ExpectedUpload*uint64(allowance.Period)))
-	fmt.Println("Default value:", modules.FilesizeUnits(modules.DefaultAllowance.ExpectedUpload*uint64(allowance.Period)))
+consider repair bandwidth separately.
 
-	var expectedUpload uint64
+The following units can be used to set the expected upload:`)
+	fmt.Println()
+	fmt.Printf("    %v\n", fileSizeUnits)
+	fmt.Println()
+	euCurrentPeriod := allowance.ExpectedUpload * uint64(allowance.Period)
+	euDefaultPeriod := modules.DefaultAllowance.ExpectedUpload * uint64(modules.DefaultAllowance.Period)
+	fmt.Println("Current value:", modules.FilesizeUnits(euCurrentPeriod))
+	fmt.Println("Default value:", modules.FilesizeUnits(euDefaultPeriod))
+
 	if allowance.ExpectedUpload == 0 {
-		expectedUpload = modules.DefaultAllowance.ExpectedUpload
 		fmt.Println("Enter desired value below, or leave blank to use default value")
 	} else {
-		expectedUpload = allowance.ExpectedUpload
 		fmt.Println("Enter desired value below, or leave blank to use current value")
 	}
-	fmt.Print("Expected Upload: ")
-	allowanceExpectedUpload := readString()
-	if allowanceExpectedUpload != "" {
+	var expectedUpload uint64
+	for {
+		fmt.Print("Expected Upload: ")
+		allowanceExpectedUpload := readString()
+		if allowanceExpectedUpload == "" {
+			// The user did not enter a value so use either the default or the
+			// current value, as appropriate.
+			if allowance.ExpectedUpload == 0 {
+				expectedUpload = euDefaultPeriod
+			} else {
+				expectedUpload = euCurrentPeriod
+			}
+			break
+		}
+
 		eu, err := parseFilesize(allowanceExpectedUpload)
 		if err != nil {
-			die("Could not parse expected upload")
+			fmt.Printf("Could not parse expected upload in '%v': %v\n", allowanceExpectedUpload, err)
+			continue
 		}
 		_, err = fmt.Sscan(eu, &expectedUpload)
 		if err != nil {
-			die("Could not parse expected upload")
+			fmt.Printf("Could not parse expected upload in '%v': %v\n", allowanceExpectedUpload, err)
+			continue
 		}
-		// User set field in terms of period, need to normalize to per-block.
-		expectedUpload /= uint64(period)
+		break
 	}
+	// User set field in terms of period, need to normalize to per-block.
+	expectedUpload /= uint64(period)
 	req = req.WithExpectedUpload(expectedUpload)
 
 	// expectedDownload
+	fmt.Println()
 	fmt.Println(`7/8: Expected Download
 Expected download tells spd how much downloading the user expects to do each
 period. If this value is high, spd will more strongly prefer hosts that have a
@@ -1053,36 +1303,55 @@ metrics than download bandwidth pricing, because even if the host charges a lot
 for downloads, it will not impact the total cost to the user very much.
 
 The user should not consider download bandwidth used during repairs, spd will
-consider repair bandwidth separately.`)
-	fmt.Println()
-	fmt.Println("Current value:", modules.FilesizeUnits(allowance.ExpectedDownload*uint64(allowance.Period)))
-	fmt.Println("Default value:", modules.FilesizeUnits(modules.DefaultAllowance.ExpectedDownload*uint64(allowance.Period)))
+consider repair bandwidth separately.
 
-	var expectedDownload uint64
+The following units can be used to set the expected download:`)
+	fmt.Println()
+	fmt.Printf("    %v\n", fileSizeUnits)
+	fmt.Println()
+	edCurrentPeriod := allowance.ExpectedDownload * uint64(allowance.Period)
+	edDefaultPeriod := modules.DefaultAllowance.ExpectedDownload * uint64(modules.DefaultAllowance.Period)
+	fmt.Println("Current value:", modules.FilesizeUnits(edCurrentPeriod))
+	fmt.Println("Default value:", modules.FilesizeUnits(edDefaultPeriod))
+
 	if allowance.ExpectedDownload == 0 {
-		expectedDownload = modules.DefaultAllowance.ExpectedDownload
 		fmt.Println("Enter desired value below, or leave blank to use default value")
 	} else {
-		expectedDownload = allowance.ExpectedDownload
 		fmt.Println("Enter desired value below, or leave blank to use current value")
 	}
-	fmt.Print("Expected Download: ")
-	allowanceExpectedDownload := readString()
-	if allowanceExpectedDownload != "" {
+	var expectedDownload uint64
+	for {
+		fmt.Print("Expected Download: ")
+		allowanceExpectedDownload := readString()
+		if allowanceExpectedDownload == "" {
+			// The user did not enter a value so use either the default or the
+			// current value, as appropriate.
+			if allowance.ExpectedDownload == 0 {
+				expectedDownload = edDefaultPeriod
+			} else {
+				expectedDownload = edCurrentPeriod
+			}
+			break
+		}
+
 		ed, err := parseFilesize(allowanceExpectedDownload)
 		if err != nil {
-			die("Could not parse expected download")
+			fmt.Printf("Could not parse expected download in '%v': %v\n", allowanceExpectedDownload, err)
+			continue
 		}
 		_, err = fmt.Sscan(ed, &expectedDownload)
 		if err != nil {
-			die("Could not parse expected download")
+			fmt.Printf("Could not parse expected download in '%v': %v\n", allowanceExpectedDownload, err)
+			continue
 		}
-		// User set field in terms of period, need to normalize to per-block.
-		expectedDownload /= uint64(period)
+		break
 	}
+	// User set field in terms of period, need to normalize to per-block.
+	expectedDownload /= uint64(period)
 	req = req.WithExpectedDownload(expectedDownload)
 
 	// expectedRedundancy
+	fmt.Println()
 	fmt.Println(`8/8: Expected Redundancy
 Expected redundancy is used in conjunction with expected storage to determine
 the total amount of raw storage that will be stored on hosts. If the expected
@@ -1107,16 +1376,23 @@ how large the files are.`)
 		expectedRedundancy = allowance.ExpectedRedundancy
 		fmt.Println("Enter desired value below, or leave blank to use current value")
 	}
-	fmt.Print("Expected Redundancy: ")
-	allowanceExpectedRedundancy := readString()
-	if allowanceExpectedRedundancy != "" {
+	for {
+		fmt.Print("Expected Redundancy: ")
+		allowanceExpectedRedundancy := readString()
+		if allowanceExpectedRedundancy == "" {
+			break
+		}
+
 		expectedRedundancy, err = strconv.ParseFloat(allowanceExpectedRedundancy, 64)
 		if err != nil {
-			die("Could not parse expected redundancy")
+			fmt.Printf("Could not parse expected redundancy in '%v': %v\n", allowanceExpectedRedundancy, err)
+			continue
 		}
-	}
-	if expectedRedundancy < 1 {
-		die("Expected redundancy must be at least 1")
+		if expectedRedundancy < 1 {
+			fmt.Println("Expected redundancy must be at least 1")
+			continue
+		}
+		break
 	}
 	req = req.WithExpectedRedundancy(expectedRedundancy)
 	fmt.Println()
@@ -1340,23 +1616,35 @@ func rentercontractscmd() {
 // rentercontractsviewcmd is the handler for the command `spc renter contracts <id>`.
 // It lists details of a specific contract.
 func rentercontractsviewcmd(cid string) {
-	rc, err := httpClient.RenterInactiveContractsGet()
+	rc, err := httpClient.RenterAllContractsGet()
 	if err != nil {
 		die("Could not get contract details: ", err)
 	}
-	rce, err := httpClient.RenterExpiredContractsGet()
+
+	contracts := append(rc.ActiveContracts, rc.PassiveContracts...)
+	contracts = append(contracts, rc.RefreshedContracts...)
+	contracts = append(contracts, rc.DisabledContracts...)
+	contracts = append(contracts, rc.ExpiredContracts...)
+	contracts = append(contracts, rc.ExpiredRefreshedContracts...)
+
+	err = printContractInfo(cid, contracts)
 	if err != nil {
-		die("Could not get expired contract details: ", err)
+		die(err)
 	}
+}
 
-	contracts := append(rc.ActiveContracts, rc.InactiveContracts...)
-	contracts = append(contracts, rce.ExpiredContracts...)
-
+// printContractInfo is a helper function for printing the information about a
+// specific contract
+func printContractInfo(cid string, contracts []api.RenterContract) error {
 	for _, rc := range contracts {
 		if rc.ID.String() == cid {
+			var fundsAllocated types.Currency
+			if rc.TotalCost.Cmp(rc.Fees) > 0 {
+				fundsAllocated = rc.TotalCost.Sub(rc.Fees)
+			}
 			hostInfo, err := httpClient.HostDbHostsGet(rc.HostPublicKey)
 			if err != nil {
-				die("Could not fetch details of host: ", err)
+				return fmt.Errorf("Could not fetch details of host: %v", err)
 			}
 			fmt.Printf(`
 Contract %v
@@ -1374,10 +1662,9 @@ Contract %v
   Remaining Funds:   %v
 
   File Size: %v
-`, rc.ID, rc.NetAddress, rc.HostVersion, rc.HostPublicKey.String(), rc.StartHeight, rc.EndHeight,
-				currencyUnits(rc.TotalCost),
-				currencyUnits(rc.Fees),
-				currencyUnits(rc.TotalCost.Sub(rc.Fees)),
+`, rc.ID, rc.NetAddress, rc.HostPublicKey.String(), rc.HostVersion, rc.StartHeight, rc.EndHeight,
+				currencyUnits(rc.TotalCost), currencyUnits(rc.Fees),
+				currencyUnits(fundsAllocated),
 				currencyUnits(rc.UploadSpending),
 				currencyUnits(rc.StorageSpending),
 				currencyUnits(rc.DownloadSpending),
@@ -1385,11 +1672,12 @@ Contract %v
 				modules.FilesizeUnits(rc.Size))
 
 			printScoreBreakdown(&hostInfo)
-			return
+			return nil
 		}
 	}
 
 	fmt.Println("Contract not found")
+	return nil
 }
 
 // downloadDir downloads the dir at the specified siaPath to the specified
@@ -1448,7 +1736,7 @@ func downloadDir(siaPath modules.SiaPath, destination string) (tfs []trackedFile
 	return
 }
 
-// renterfilesdownload downloads the dir at the given path from the Sia network
+// renterfilesdownload downloads the dir at the given path from the ScPrime network
 // to the local specified destination.
 func renterdirdownload(path, destination string) {
 	destination = abs(destination)
@@ -1499,31 +1787,44 @@ func renterdownloadcancelcmd(cancelID modules.DownloadID) {
 }
 
 // renterfilesdeletecmd is the handler for the command `spc renter delete [path]`.
-// Removes the specified path from the Sia network.
-func renterfilesdeletecmd(path string) {
-	// Parse SiaPath.
-	siaPath, err := modules.NewSiaPath(path)
-	if err != nil {
-		die("Couldn't parse SiaPath:", err)
+// Removes the specified path from the ScPrime network.
+func renterfilesdeletecmd(cmd *cobra.Command, paths []string) {
+	for _, path := range paths {
+		// Parse SiaPath.
+		siaPath, err := modules.NewSiaPath(path)
+		if err != nil {
+			die("Couldn't parse SiaPath:", err)
+		}
+		// Try to delete file.
+		var errFile error
+		if renterDeleteRoot {
+			errFile = httpClient.RenterFileDeleteRootPost(siaPath)
+		} else {
+			errFile = httpClient.RenterFileDeletePost(siaPath)
+		}
+		if errFile == nil {
+			fmt.Printf("Deleted file '%v'\n", path)
+			continue
+		} else if !(strings.Contains(errFile.Error(), filesystem.ErrNotExist.Error()) || strings.Contains(errFile.Error(), filesystem.ErrDeleteFileIsDir.Error())) {
+			die(fmt.Sprintf("Failed to delete file %v: %v", path, errFile))
+		}
+		// Try to delete folder.
+		var errDir error
+		if renterDeleteRoot {
+			errDir = httpClient.RenterDirDeleteRootPost(siaPath)
+		} else {
+			errDir = httpClient.RenterDirDeletePost(siaPath)
+		}
+		if errDir == nil {
+			fmt.Printf("Deleted directory '%v'\n", path)
+			continue
+		} else if !strings.Contains(errDir.Error(), filesystem.ErrNotExist.Error()) {
+			die(fmt.Sprintf("Failed to delete directory %v: %v", path, errDir))
+		}
+		// Unknown file/folder.
+		die(fmt.Sprintf("Unknown path '%v'", path))
 	}
-	// Try to delete file.
-	errFile := httpClient.RenterFileDeletePost(siaPath)
-	if errFile == nil {
-		fmt.Printf("Deleted file '%v'\n", path)
-		return
-	} else if !(strings.Contains(errFile.Error(), filesystem.ErrNotExist.Error()) || strings.Contains(errFile.Error(), filesystem.ErrDeleteFileIsDir.Error())) {
-		die(fmt.Sprintf("Failed to delete file %v: %v", path, errFile))
-	}
-	// Try to delete folder.
-	errDir := httpClient.RenterDirDeletePost(siaPath)
-	if errDir == nil {
-		fmt.Printf("Deleted directory '%v'\n", path)
-		return
-	} else if !strings.Contains(errDir.Error(), filesystem.ErrNotExist.Error()) {
-		die(fmt.Sprintf("Failed to delete directory %v: %v", path, errDir))
-	}
-	// Unknown file/folder.
-	die(fmt.Sprintf("Unknown path '%v'", path))
+	return
 }
 
 // renterfilesdownload is the handler for the comand `spc renter download [path] [destination]`.
@@ -1551,7 +1852,7 @@ func renterfilesdownloadcmd(path, destination string) {
 	die(fmt.Sprintf("Unknown file '%v'", path))
 }
 
-// renterfilesdownload downloads the file at the specified path from the Sia
+// renterfilesdownload downloads the file at the specified path from the ScPrime
 // network to the local specified destination.
 func renterfilesdownload(path, destination string) {
 	destination = abs(destination)
@@ -1642,7 +1943,6 @@ func bandwidthUnit(bps uint64) string {
 			// would give us 1.235 Ybps instead of 1235 Ybps
 			mag *= 1e3
 		}
-
 	}
 	return fmt.Sprintf("%.2f %s", float64(bps)/float64(mag), unit)
 }
@@ -1805,29 +2105,35 @@ func (s byDirectoryInfo) Less(i, j int) bool {
 }
 
 // getDir returns the directory info for the directory at siaPath and its
-// subdirs.
-func getDir(siaPath modules.SiaPath) (dirs []directoryInfo) {
-	rgd, err := httpClient.RenterDirGet(siaPath)
+// subdirs, querying the root directory.
+func getDir(siaPath modules.SiaPath, root, recursive bool) (dirs []directoryInfo) {
+	var rd api.RenterDirectory
+	var err error
+	if root {
+		rd, err = httpClient.RenterDirRootGet(siaPath)
+	} else {
+		rd, err = httpClient.RenterDirGet(siaPath)
+	}
 	if err != nil {
 		die("failed to get dir info:", err)
 	}
-	dir := rgd.Directories[0]
-	subDirs := rgd.Directories[1:]
+	dir := rd.Directories[0]
+	subDirs := rd.Directories[1:]
 
 	// Append directory to dirs.
 	dirs = append(dirs, directoryInfo{
 		dir:     dir,
-		files:   rgd.Files,
+		files:   rd.Files,
 		subDirs: subDirs,
 	})
 
 	// If -R isn't set we are done.
-	if !renterListRecursive {
+	if !recursive {
 		return
 	}
 	// Call getDir on subdirs.
 	for _, subDir := range subDirs {
-		rdirs := getDir(subDir.SiaPath)
+		rdirs := getDir(subDir.SiaPath, root, recursive)
 		dirs = append(dirs, rdirs...)
 	}
 	return
@@ -1862,12 +2168,12 @@ func renterfileslistcmd(cmd *cobra.Command, args []string) {
 	if !sp.IsRoot() {
 		rf, err := httpClient.RenterFileGet(sp)
 		if err == nil {
-			fmt.Println()
 			json, err := json.MarshalIndent(rf.File, "", "  ")
 			if err != nil {
 				log.Fatal(err)
 			}
 
+			fmt.Println()
 			fmt.Println(string(json))
 			fmt.Println()
 			return
@@ -1877,7 +2183,7 @@ func renterfileslistcmd(cmd *cobra.Command, args []string) {
 	}
 
 	// Get dirs with their corresponding files.
-	dirs := getDir(sp)
+	dirs := getDir(sp, renterListRoot, renterListRecursive)
 	numFiles := 0
 	var totalStored uint64
 	for _, dir := range dirs {
@@ -1890,68 +2196,85 @@ func renterfileslistcmd(cmd *cobra.Command, args []string) {
 		fmt.Println("No files/dirs have been uploaded.")
 		return
 	}
-	fmt.Printf("\nListing %v files/dirs:", numFiles+len(dirs)-1)
-	fmt.Printf(" %9s\n", modules.FilesizeUnits(totalStored))
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	if renterListVerbose {
-		fmt.Fprintln(w, "  Name\tFile size\tAvailable\t Uploaded\tProgress\tRedundancy\t Health\tStuck\tRenewing\tOn Disk\tRecoverable")
-	}
+
+	// Sort the directories and the files.
 	sort.Sort(byDirectoryInfo(dirs))
-	// Print dirs.
-	for _, dir := range dirs {
-		fmt.Fprintf(w, "%v/\t\t\t\t\t\t\t\t\t\t\n", dir.dir.SiaPath)
-		// Print subdirs.
-		sort.Sort(bySiaPathDir(dir.subDirs))
-		for _, subDir := range dir.subDirs {
-			fmt.Fprintf(w, "  %s", subDir.SiaPath.Name()+"/")
-			fmt.Fprintf(w, "\t%9s", modules.FilesizeUnits(subDir.AggregateSize))
-			if renterListVerbose {
-				redundancyStr := fmt.Sprintf("%.2f", subDir.AggregateMinRedundancy)
-				if subDir.AggregateMinRedundancy == -1 {
-					redundancyStr = "-"
-				}
-				healthStr := fmt.Sprintf("%.2f%%", subDir.AggregateMaxHealthPercentage)
-				stuckStr := yesNo(subDir.AggregateNumStuckChunks > 0)
-				fmt.Fprintf(w, "\t%9s\t%9s\t%8s\t%10s\t%7s\t%5s\t%8s\t%7s\t%11s", "-", "-", "-", redundancyStr, healthStr, stuckStr, "-", "-", "-")
+	for i := 0; i < len(dirs); i++ {
+		sort.Sort(bySiaPathDir(dirs[i].subDirs))
+		sort.Sort(bySiaPathFile(dirs[i].files))
+	}
+
+	// Print text that available for both verbose and not verbose output.
+	numFilesDirs := numFiles + len(dirs) - 1
+	totalStoredStr := modules.FilesizeUnits(totalStored)
+	fmt.Printf("\nListing %v files/dirs: %9s\n\n", numFilesDirs, totalStoredStr)
+
+	// Handle the non verbose output.
+	if !renterListVerbose {
+		for _, dir := range dirs {
+			fmt.Println(dir.dir.SiaPath.String() + "/")
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+			for _, subDir := range dir.subDirs {
+				name := subDir.SiaPath.Name() + "/"
+				size := modules.FilesizeUnits(subDir.AggregateSize)
+				fmt.Fprintf(w, "  %v\t%9v\n", name, size)
 			}
-			fmt.Fprintln(w, "\t\t\t\t\t\t\t\t\t\t")
+
+			for _, file := range dir.files {
+				name := file.SiaPath.Name()
+				size := modules.FilesizeUnits(file.Filesize)
+				fmt.Fprintf(w, "  %v\t%9v\n", name, size)
+			}
+			w.Flush()
+			fmt.Println()
+		}
+		return
+	}
+
+	// Handle the verbose output.
+	for _, dir := range dirs {
+		fmt.Println(dir.dir.SiaPath.String() + "/")
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		fmt.Fprintf(w, "  Name\tFile size\tAvailable\t Uploaded\tProgress\tRedundancy\t Health\tStuck\tRenewing\tOn Disk\tRecoverable\n")
+		for _, subDir := range dir.subDirs {
+			name := subDir.SiaPath.Name() + "/"
+			size := modules.FilesizeUnits(subDir.AggregateSize)
+			redundancyStr := fmt.Sprintf("%.2f", subDir.AggregateMinRedundancy)
+			if subDir.AggregateMinRedundancy == -1 {
+				redundancyStr = "-"
+			}
+			healthStr := fmt.Sprintf("%.2f%%", subDir.AggregateMaxHealthPercentage)
+			stuckStr := yesNo(subDir.AggregateNumStuckChunks > 0)
+			fmt.Fprintf(w, "  %v\t%9v\t%9s\t%9s\t%8s\t%10s\t%7s\t%5s\t%8s\t%7s\t%11s\n", name, size, "-", "-", "-", redundancyStr, healthStr, stuckStr, "-", "-", "-")
 		}
 
-		// Print files.
-		sort.Sort(bySiaPathFile(dir.files))
 		for _, file := range dir.files {
 			name := file.SiaPath.Name()
-			fmt.Fprintf(w, "  %s", name)
-			fmt.Fprintf(w, "\t%9s", modules.FilesizeUnits(file.Filesize))
-			if renterListVerbose {
-				availableStr := yesNo(file.Available)
-				renewingStr := yesNo(file.Renewing)
-				redundancyStr := fmt.Sprintf("%.2f", file.Redundancy)
-				if file.Redundancy == -1 {
-					redundancyStr = "-"
-				}
-				healthStr := fmt.Sprintf("%.2f%%", file.MaxHealthPercent)
-				uploadProgressStr := fmt.Sprintf("%.2f%%", file.UploadProgress)
-				if file.UploadProgress == -1 {
-					uploadProgressStr = "-"
-				}
-				onDiskStr := yesNo(file.OnDisk)
-				recoverableStr := yesNo(file.Recoverable)
-				stuckStr := yesNo(file.Stuck)
-				fmt.Fprintf(w, "\t%9s\t%9s\t%8s\t%10s\t%7s\t%5s\t%8s\t%7s\t%11s", availableStr, modules.FilesizeUnits(file.UploadedBytes), uploadProgressStr, redundancyStr, healthStr, stuckStr, renewingStr, onDiskStr, recoverableStr)
+			size := modules.FilesizeUnits(file.Filesize)
+			availStr := yesNo(file.Available)
+			bytesUploaded := modules.FilesizeUnits(file.UploadedBytes)
+			uploadStr := fmt.Sprintf("%.2f%%", file.UploadProgress)
+			if file.UploadProgress == -1 {
+				uploadStr = "-"
 			}
-			if !renterListVerbose && !file.Available {
-				fmt.Fprintf(w, " (uploading, %0.2f%%)", file.UploadProgress)
+			redundancyStr := fmt.Sprintf("%.2f", file.Redundancy)
+			if file.Redundancy == -1 {
+				redundancyStr = "-"
 			}
-			fmt.Fprintln(w, "\t\t\t\t\t\t\t\t\t\t")
+			healthStr := fmt.Sprintf("%.2f%%", file.MaxHealthPercent)
+			stuckStr := yesNo(file.Stuck)
+			renewStr := yesNo(file.Renewing)
+			onDiskStr := yesNo(file.OnDisk)
+			recoverStr := yesNo(file.Recoverable)
+			fmt.Fprintf(w, "  %v\t%9v\t%9s\t%9s\t%8s\t%10s\t%7s\t%5s\t%8s\t%7s\t%11s\n", name, size, availStr, bytesUploaded, uploadStr, redundancyStr, healthStr, stuckStr, renewStr, onDiskStr, recoverStr)
 		}
-		fmt.Fprintln(w, "\t\t\t\t\t\t\t\t\t\t")
+		w.Flush()
+		fmt.Println()
 	}
-	w.Flush()
 }
 
 // renterfilesrenamecmd is the handler for the command `spc renter rename [path] [newpath]`.
-// Renames a file on the Sia network.
+// Renames a file on the ScPrime network.
 func renterfilesrenamecmd(path, newpath string) {
 	// Parse SiaPath.
 	siaPath, err1 := modules.NewSiaPath(path)
@@ -2001,7 +2324,6 @@ func renterfusecmd() {
 	}
 	w.Flush()
 	fmt.Println()
-
 }
 
 // renterfusemountcmd is the handler for the command `spc renter fuse mount [path] [siapath]`.
@@ -2103,13 +2425,19 @@ func renterfilesunstuckcmd() {
 }
 
 // renterfilesuploadcmd is the handler for the command `spc renter upload
-// [source] [path]`. Uploads the [source] file to [path] on the Sia network.
+// [source] [path]`. Uploads the [source] file to [path] on the ScPrime network.
 // If [source] is a directory, all files inside it will be uploaded and named
 // relative to [path].
 func renterfilesuploadcmd(source, path string) {
 	stat, err := os.Stat(source)
 	if err != nil {
 		die("Could not stat file or folder:", err)
+	}
+
+	// Check for and parse any redundancy settings
+	numDataPieces, numParityPieces, err := api.ParseDataAndParityPieces(dataPieces, parityPieces)
+	if err != nil {
+		die("Could not parse data and parity pieces:", err)
 	}
 
 	if stat.IsDir() {
@@ -2141,7 +2469,7 @@ func renterfilesuploadcmd(source, path string) {
 			if err != nil {
 				die("Couldn't parse SiaPath:", err)
 			}
-			err = httpClient.RenterUploadDefaultPost(abs(file), fSiaPath)
+			err = httpClient.RenterUploadPost(abs(file), fSiaPath, uint64(numDataPieces), uint64(numParityPieces))
 			if err != nil {
 				failed++
 				fmt.Printf("Could not upload file %s :%v\n", file, err)
@@ -2155,12 +2483,419 @@ func renterfilesuploadcmd(source, path string) {
 		if err != nil {
 			die("Couldn't parse SiaPath:", err)
 		}
-		err = httpClient.RenterUploadDefaultPost(abs(source), siaPath)
+		err = httpClient.RenterUploadPost(abs(source), siaPath, uint64(numDataPieces), uint64(numParityPieces))
 		if err != nil {
 			die("Could not upload file:", err)
 		}
 		fmt.Printf("Uploaded '%s' as '%s'.\n", abs(source), path)
 	}
+}
+
+// renterfilesuploadpausecmd is the handler for the command `spc renter upload
+// pause`.  It pauses all renter uploads for the duration (in minutes)
+// passed in.
+func renterfilesuploadpausecmd(dur string) {
+	pauseDuration, err := time.ParseDuration(dur)
+	if err != nil {
+		die("Couldn't parse duration:", err)
+	}
+	err = httpClient.RenterUploadsPausePost(pauseDuration)
+	if err != nil {
+		die("Could not pause renter uploads:", err)
+	}
+	fmt.Println("Renter uploads have been paused for", dur)
+}
+
+// renterfilesuploadresumecmd is the handler for the command `spc renter upload
+// resume`.  It resumes all renter uploads that have been paused.
+func renterfilesuploadresumecmd() {
+	err := httpClient.RenterUploadsResumePost()
+	if err != nil {
+		die("Could not resume renter uploads:", err)
+	}
+	fmt.Println("Renter uploads have been resumed")
+}
+
+// skynetcmd displays the usage info for the command.
+//
+// TODO: Could put some stats or summaries or something here.
+func skynetcmd(cmd *cobra.Command, args []string) {
+	cmd.UsageFunc()(cmd)
+	os.Exit(exitCodeUsage)
+}
+
+// skynetblacklistcmd handles adding and removing a skylink from the Skynet
+// Blacklist
+func skynetblacklistcmd(cmd *cobra.Command, args []string) {
+	if len(args) != 1 {
+		cmd.UsageFunc()(cmd)
+		os.Exit(exitCodeUsage)
+	}
+
+	// Get the skylink
+	skylink := args[0]
+	skylink = strings.TrimPrefix(skylink, "sia://")
+
+	// Check if this is an addition or removal
+	var add, remove []string
+	if skynetBlacklistRemove {
+		remove = append(remove, skylink)
+	} else {
+		add = append(add, skylink)
+	}
+
+	// Try to update the Skynet Blacklist.
+	err := httpClient.SkynetBlacklistPost(add, remove)
+	if err != nil {
+		die("Unable to update skynet blacklist:", err)
+	}
+	fmt.Println("Skynet Blacklist updated")
+}
+
+// skynetdownloadcmd will perform the download of a skylink.
+func skynetdownloadcmd(cmd *cobra.Command, args []string) {
+	if len(args) != 2 {
+		cmd.UsageFunc()(cmd)
+		os.Exit(exitCodeUsage)
+	}
+
+	// Open the file.
+	skylink := args[0]
+	skylink = strings.TrimPrefix(skylink, "sia://")
+	filename := args[1]
+	file, err := os.Create(filename)
+	if err != nil {
+		die("Unable to create destination file:", err)
+	}
+	defer file.Close()
+
+	// Check whether the portal flag is set, if so use the portal download
+	// method.
+	var reader io.ReadCloser
+	if skynetDownloadPortal != "" {
+		url := skynetDownloadPortal + "/" + skylink
+		resp, err := http.Get(url)
+		if err != nil {
+			die("Unable to download from portal:", err)
+		}
+		reader = resp.Body
+		defer reader.Close()
+	} else {
+		// Try to perform a download using the client package.
+		reader, err = httpClient.SkynetSkylinkReaderGet(skylink)
+		if err != nil {
+			die("Unable to fetch skylink:", err)
+		}
+		defer reader.Close()
+	}
+
+	_, err = io.Copy(file, reader)
+	if err != nil {
+		die("Unable to write full data:", err)
+	}
+}
+
+// skynetlscmd is the handler for the command `siac skynet ls`. Works very
+// similar to 'siac renter ls' but defaults to the SkynetFolder and only
+// displays files that are pinning skylinks.
+func skynetlscmd(cmd *cobra.Command, args []string) {
+	var path string
+	switch len(args) {
+	case 0:
+		path = "."
+	case 1:
+		path = args[0]
+	default:
+		cmd.UsageFunc()(cmd)
+		os.Exit(exitCodeUsage)
+	}
+	// Parse the input siapath.
+	var sp modules.SiaPath
+	var err error
+	if path == "." || path == "" || path == "/" {
+		sp = modules.RootSiaPath()
+	} else {
+		sp, err = modules.NewSiaPath(path)
+		if err != nil {
+			die("could not parse siapath:", err)
+		}
+	}
+
+	// Check whether the command is based in root or based in the skynet folder.
+	if !skynetLsRoot {
+		if sp.IsRoot() {
+			sp = modules.SkynetFolder
+		} else {
+			sp, err = modules.SkynetFolder.Join(sp.String())
+			if err != nil {
+				die("could not build siapath:", err)
+			}
+		}
+	}
+
+	// Check if the command is hitting a single file.
+	if !sp.IsRoot() {
+		rf, err := httpClient.RenterFileRootGet(sp)
+		if err == nil {
+			if len(rf.File.Skylinks) == 0 {
+				fmt.Println("File is not pinning any skylinks")
+				return
+			}
+			json, err := json.MarshalIndent(rf.File, "", "  ")
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Println()
+			fmt.Println(string(json))
+			fmt.Println()
+			return
+		} else if !strings.Contains(err.Error(), filesystem.ErrNotExist.Error()) {
+			die(fmt.Sprintf("Error getting file %v: %v", path, err))
+		}
+	}
+
+	// Get the full set of files and directories.
+	dirs := getDir(sp, true, skynetLsRecursive)
+	// Drop any files that are not tracking skylinks.
+	for j := 0; j < len(dirs); j++ {
+		for i := 0; i < len(dirs[j].files); i++ {
+			if len(dirs[j].files[i].Skylinks) == 0 {
+				dirs[j].files = append(dirs[j].files[:i], dirs[j].files[i+1:]...)
+				i--
+			}
+		}
+	}
+
+	// Produce the full information for these files.
+	numFiles := 0
+	var totalStored uint64
+	for _, dir := range dirs {
+		for _, file := range dir.files {
+			totalStored += file.Filesize
+		}
+		numFiles += len(dir.files)
+	}
+	if numFiles+len(dirs) < 1 {
+		fmt.Println("No files/dirs have been uploaded.")
+		return
+	}
+	fmt.Printf("\nListing %v files/dirs:", numFiles+len(dirs)-1)
+	fmt.Printf(" %9s\n", modules.FilesizeUnits(totalStored))
+	sort.Sort(byDirectoryInfo(dirs))
+	// Print dirs.
+	for _, dir := range dirs {
+		fmt.Printf("%v/\n", dir.dir.SiaPath)
+		// Print subdirs.
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		sort.Sort(bySiaPathDir(dir.subDirs))
+		for _, subDir := range dir.subDirs {
+			subDirName := subDir.SiaPath.Name() + "/"
+			size := modules.FilesizeUnits(subDir.AggregateSize)
+			fmt.Fprintf(w, "  %v\t\t%9v\n", subDirName, size)
+		}
+
+		// Print files.
+		sort.Sort(bySiaPathFile(dir.files))
+		for _, file := range dir.files {
+			name := file.SiaPath.Name()
+			firstSkylink := file.Skylinks[0]
+			size := modules.FilesizeUnits(file.Filesize)
+			fmt.Fprintf(w, "  %v\t%v\t%9v\n", name, firstSkylink, size)
+			for _, skylink := range file.Skylinks[1:] {
+				fmt.Fprintf(w, "\t%v\t\n", skylink)
+			}
+		}
+		w.Flush()
+		fmt.Println()
+	}
+}
+
+// skynetpincmd will pin the file from this skylink.
+func skynetpincmd(sourceSkylink, destSiaPath string) {
+	skylink := strings.TrimPrefix(sourceSkylink, "sia://")
+	// Create the siapath.
+	siaPath, err := modules.NewSiaPath(destSiaPath)
+	if err != nil {
+		die("Could not parse destination siapath:", err)
+	}
+
+	spp := modules.SkyfilePinParameters{
+		SiaPath: siaPath,
+		Root:    skynetUploadRoot,
+	}
+
+	err = httpClient.SkynetSkylinkPinPost(skylink, spp)
+	if err != nil {
+		die("could not pin file to Skynet:", err)
+	}
+
+	fmt.Printf("Skyfile pinned successfully \nSkylink: sia://%v\n", skylink)
+}
+
+// skynetuploadcmd will upload a file to Skynet.
+func skynetuploadcmd(sourcePath, destSiaPath string) {
+	// Open the source file.
+	file, err := os.Open(sourcePath)
+	if err != nil {
+		die("Unable to open source path:", err)
+	}
+	defer file.Close()
+	fi, err := file.Stat()
+	if err != nil {
+		die("Unable to fetch source fileinfo:", err)
+	}
+
+	if !fi.IsDir() {
+		skynetuploadfile(sourcePath, destSiaPath)
+		fmt.Printf("Successfully uploaded skyfile!\n")
+		return
+	}
+
+	// Collect all filenames under this directory with their relative paths.
+	counterUploaded := 0
+	var wg sync.WaitGroup
+	filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			die(fmt.Sprintf("Failed to process path %s: ", path), err)
+		}
+		if info.IsDir() {
+			return nil
+		}
+		wg.Add(1)
+		go func(filename string) {
+			defer wg.Done()
+			// get only the filename and path, relative to the original destSiaPath
+			// in order to figure out where to put the file
+			newDestSiaPath := filepath.Join(destSiaPath, strings.TrimPrefix(filename, sourcePath))
+			skynetuploadfile(filename, newDestSiaPath)
+			counterUploaded++
+		}(path)
+		return nil
+	})
+	wg.Wait()
+	fmt.Printf("Successfully uploaded %d skyfiles!\n", counterUploaded)
+}
+
+// skynetuploadfile handles the upload of a single file. It should only be
+// called from skynetuploadcmd
+func skynetuploadfile(sourcePath, destSiaPath string) {
+	// Create the siapath.
+	siaPath, err := modules.NewSiaPath(destSiaPath)
+	if err != nil {
+		die("Could not parse destination siapath:", err)
+	}
+
+	// Open the source file.
+	file, err := os.Open(sourcePath)
+	if err != nil {
+		die("Unable to open source path:", err)
+	}
+	defer file.Close()
+	fi, err := file.Stat()
+	if err != nil {
+		die("Unable to fetch source fileinfo:", err)
+	}
+	// Do not process directories. Those should be processed by skynetuploadcmd.
+	if fi.IsDir() {
+		return
+	}
+
+	_, sourceName := filepath.Split(sourcePath)
+	// Perform the upload and print the result.
+	sup := modules.SkyfileUploadParameters{
+		SiaPath: siaPath,
+		Root:    skynetUploadRoot,
+
+		DryRun: skynetUploadDryRun,
+
+		FileMetadata: modules.SkyfileMetadata{
+			Filename: sourceName,
+			Mode:     fi.Mode(),
+		},
+
+		Reader: file,
+	}
+	skylink, _, err := httpClient.SkynetSkyfilePost(sup)
+	if err != nil {
+		die("could not upload file to Skynet:", err)
+	}
+
+	// Calculate the siapath that was used for the upload.
+	var skypath modules.SiaPath
+	if skynetUploadRoot {
+		skypath = siaPath
+	} else {
+		skypath, err = modules.SkynetFolder.Join(siaPath.String())
+		if err != nil {
+			die("could not fetch skypath:", err)
+		}
+	}
+	fmt.Printf("%v\n -> Skylink: sia://%v\n", skypath, skylink)
+}
+
+// skynetunpincmd will unpin and delete the file from the Renter.
+func skynetunpincmd(siaPathStr string) {
+	// Create the siapath.
+	siaPath, err := modules.NewSiaPath(siaPathStr)
+	if err != nil {
+		die("Could not parse siapath:", err)
+	}
+
+	// Parse out the intended siapath.
+	if !skynetUnpinRoot {
+		siaPath, err = modules.SkynetFolder.Join(siaPath.String())
+		if err != nil {
+			die("could not build siapath:", err)
+		}
+	}
+
+	// Try to delete file.
+	errFile := httpClient.RenterFileDeleteRootPost(siaPath)
+	if errFile == nil {
+		fmt.Printf("Unpinned skyfile '%v'\n", siaPath)
+		return
+	} else if !(strings.Contains(errFile.Error(), filesystem.ErrNotExist.Error()) || strings.Contains(errFile.Error(), filesystem.ErrDeleteFileIsDir.Error())) {
+		die(fmt.Sprintf("Failed to unpin skyfile %v: %v", siaPath, errFile))
+	}
+
+	// Unknown file/folder.
+	die(fmt.Sprintf("Unknown path '%v'", siaPath))
+}
+
+// skynetconvertcmd will convert an existing siafile to a skyfile and skylink on
+// the ScPrime network.
+func skynetconvertcmd(sourceSiaPathStr, destSiaPathStr string) {
+	// Create the siapaths.
+	sourceSiaPath, err := modules.NewSiaPath(sourceSiaPathStr)
+	if err != nil {
+		die("Could not parse source siapath:", err)
+	}
+	destSiaPath, err := modules.NewSiaPath(destSiaPathStr)
+	if err != nil {
+		die("Could not parse destination siapath:", err)
+	}
+
+	// Perform the conversion and print the result.
+	sup := modules.SkyfileUploadParameters{
+		SiaPath: destSiaPath,
+	}
+	skylink, err := httpClient.SkynetConvertSiafileToSkyfilePost(sup, sourceSiaPath)
+	if err != nil {
+		die("could not convert siafile to skyfile:", err)
+	}
+
+	// Calculate the siapath that was used for the upload.
+	var skypath modules.SiaPath
+	if skynetUploadRoot {
+		skypath = destSiaPath
+	} else {
+		skypath, err = modules.SkynetFolder.Join(destSiaPath.String())
+		if err != nil {
+			die("could not fetch skypath:", err)
+		}
+	}
+	fmt.Printf("Skyfile uploaded successfully to %v\nSkylink: sia://%v\n", skypath, skylink)
 }
 
 // renterpricescmd is the handler for the command `spc renter prices`, which
@@ -2269,6 +3004,6 @@ func enableiprestriction(cmd *cobra.Command, args []string) {
 	if currentNumhosts == 0 {
 		fmt.Println("IPRestriction setting is set to zero, restriction is disabled.")
 	} else {
-		fmt.Printf("IPRestriction setting is %v allowed storage providers from the same IP address subnet", currentNumhosts)
+		fmt.Printf("IPRestriction setting is %v allowed storage providers from the same IP address subnet\n", currentNumhosts)
 	}
 }

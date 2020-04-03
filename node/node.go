@@ -15,24 +15,26 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/siamux"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/config"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
-	"gitlab.com/SiaPrime/SiaPrime/modules/explorer"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
-	"gitlab.com/SiaPrime/SiaPrime/modules/host"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
-	pool "gitlab.com/SiaPrime/SiaPrime/modules/miningpool"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
-	"gitlab.com/SiaPrime/SiaPrime/modules/stratumminer"
-	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
-	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/config"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/consensus"
+	"gitlab.com/scpcorp/ScPrime/modules/explorer"
+	"gitlab.com/scpcorp/ScPrime/modules/feemanager"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/modules/host"
+	"gitlab.com/scpcorp/ScPrime/modules/miner"
+	pool "gitlab.com/scpcorp/ScPrime/modules/miningpool"
+	"gitlab.com/scpcorp/ScPrime/modules/renter"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
+	"gitlab.com/scpcorp/ScPrime/modules/stratumminer"
+	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
+	"gitlab.com/scpcorp/ScPrime/modules/wallet"
+	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
 // NodeParams contains a bunch of parameters for creating a new test node. As
@@ -62,6 +64,7 @@ type NodeParams struct {
 	// example.
 	CreateConsensusSet    bool
 	CreateExplorer        bool
+	CreateFeeManager      bool
 	CreateGateway         bool
 	CreateHost            bool
 	CreateMiner           bool
@@ -77,6 +80,7 @@ type NodeParams struct {
 	// the default setting).
 	ConsensusSet    modules.ConsensusSet
 	Explorer        modules.Explorer
+	FeeManager      modules.FeeManager
 	Gateway         modules.Gateway
 	Host            modules.Host
 	Miner           modules.TestMiner
@@ -91,20 +95,26 @@ type NodeParams struct {
 	ContractorDeps   modules.Dependencies
 	ContractSetDeps  modules.Dependencies
 	GatewayDeps      modules.Dependencies
+	FeeManagerDeps   modules.Dependencies
 	HostDeps         modules.Dependencies
 	HostDBDeps       modules.Dependencies
 	RenterDeps       modules.Dependencies
+	TPoolDeps        modules.Dependencies
 	WalletDeps       modules.Dependencies
 
 	// Dependencies for storage monitor supporting dependency injection.
 	StorageManagerDeps modules.Dependencies
 
+	// Custom settings for siamux
+	SiaMuxAddress string
+
 	// Custom settings for modules
-	Allowance   modules.Allowance
-	Bootstrap   bool
-	HostAddress string
-	HostStorage uint64
-	RPCAddress  string
+	Allowance           modules.Allowance
+	Bootstrap           bool
+	FeeManagerServerStr string
+	HostAddress         string
+	HostStorage         uint64
+	RPCAddress          string
 
 	// Initialize node from existing seed.
 	PrimarySeed string
@@ -125,9 +135,13 @@ type NodeParams struct {
 
 // Node is a collection of Sia modules operating together as a Sia node.
 type Node struct {
+	// The mux of the node.
+	Mux *siamux.SiaMux
+
 	// The modules of the node. Modules that are not initialized will be nil.
 	ConsensusSet    modules.ConsensusSet
 	Explorer        modules.Explorer
+	FeeManager      modules.FeeManager
 	Gateway         modules.Gateway
 	Host            modules.Host
 	Miner           modules.TestMiner
@@ -173,6 +187,9 @@ func (np NodeParams) NumModules() (n int) {
 		n++
 	}
 	if np.CreateStratumMiner || np.StratumMiner != nil {
+		n++
+	}
+	if np.CreateFeeManager || np.FeeManager != nil {
 		n++
 	}
 	return
@@ -229,6 +246,10 @@ func (n *Node) Close() (err error) {
 		printlnRelease("Closing explorer...")
 		err = errors.Compose(n.Explorer.Close())
 	}
+	if n.FeeManager != nil {
+		printlnRelease("Closing feemanager...")
+		err = errors.Compose(n.FeeManager.Close())
+	}
 	if n.ConsensusSet != nil {
 		printlnRelease("Closing consensusset...")
 		err = errors.Compose(n.ConsensusSet.Close())
@@ -237,21 +258,38 @@ func (n *Node) Close() (err error) {
 		printlnRelease("Closing gateway...")
 		err = errors.Compose(n.Gateway.Close())
 	}
+	if n.Mux != nil {
+		printlnRelease("Closing siamux...")
+		err = errors.Compose(n.Mux.Close())
+	}
 	return err
 }
 
-// New will create a new test node. The inputs to the function are the
-// respective 'New' calls for each module. We need to use this awkward method
-// of initialization because the siatest package cannot import any of the
-// modules directly (so that the modules may use the siatest package to test
+// New will create a new node. The inputs to the function are the respective
+// 'New' calls for each module. We need to use this awkward method of
+// initialization because the siatest package cannot import any of the modules
+// directly (so that the modules may use the siatest package to test
 // themselves).
 func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
-	dir := params.Dir
-	errChan := make(chan error, 1)
-
 	numModules := params.NumModules()
 	i := 0
 	printlnRelease("Starting modules:")
+
+	// Make sure the path is an absolute one.
+	dir, err := filepath.Abs(params.Dir)
+	errChan := make(chan error, 1)
+	if err != nil {
+		errChan <- err
+		return nil, errChan
+	}
+
+	// Create the siamux.
+	mux, err := modules.NewSiaMux(filepath.Join(dir, modules.SiaMuxDir), dir, params.SiaMuxAddress)
+	if err != nil {
+		errChan <- errors.Extend(err, errors.New("unable to create siamux"))
+		return nil, errChan
+	}
+
 	// Gateway.
 	loadStart := time.Now()
 	g, err := func() (modules.Gateway, error) {
@@ -283,8 +321,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Consensus.
 	loadStart = time.Now()
+	// Consensus.
 	cs, errChanCS := func() (modules.ConsensusSet, <-chan error) {
 		c := make(chan error, 1)
 		defer close(c)
@@ -314,8 +352,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Explorer.
 	loadStart = time.Now()
+	// Explorer.
 	e, err := func() (modules.Explorer, error) {
 		if !params.CreateExplorer && params.Explorer != nil {
 			return nil, errors.New("cannot create explorer and also use custom explorer")
@@ -342,8 +380,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Transaction Pool.
 	loadStart = time.Now()
+	// Transaction Pool.
 	tp, err := func() (modules.TransactionPool, error) {
 		if params.CreateTransactionPool && params.TransactionPool != nil {
 			return nil, errors.New("cannot create transaction pool and also use custom transaction pool")
@@ -356,7 +394,11 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		}
 		i++
 		printfRelease("(%d/%d) Loading transaction pool...", i, numModules)
-		return transactionpool.New(cs, g, filepath.Join(dir, modules.TransactionPoolDir))
+		tpoolDeps := params.TPoolDeps
+		if tpoolDeps == nil {
+			tpoolDeps = modules.ProdDependencies
+		}
+		return transactionpool.NewCustomTPool(cs, g, filepath.Join(dir, modules.TransactionPoolDir), tpoolDeps)
 	}()
 	if err != nil {
 		errChan <- errors.Extend(err, errors.New("unable to create transaction pool"))
@@ -366,8 +408,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Wallet.
 	loadStart = time.Now()
+	// Wallet.
 	w, err := func() (modules.Wallet, error) {
 		if params.CreateWallet && params.Wallet != nil {
 			return nil, errors.New("cannot create wallet and use custom wallet")
@@ -394,8 +436,40 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Miner.
 	loadStart = time.Now()
+	// FeeManager.
+	fm, err := func() (modules.FeeManager, error) {
+		if !params.CreateFeeManager && params.FeeManager != nil {
+			return nil, errors.New("cannot create feemanager and also use custom feemanager")
+		}
+		if params.FeeManager != nil {
+			return params.FeeManager, nil
+		}
+		if !params.CreateFeeManager {
+			return nil, nil
+		}
+		feeManagerDeps := params.FeeManagerDeps
+		if feeManagerDeps == nil {
+			feeManagerDeps = modules.ProdDependencies
+		}
+		// Not Implemented yet
+		// if params.FeeManagerServerStr == "" {
+		// 	params.FeeManagerServerStr = feemanager.DefaultServerStr
+		// }
+		i++
+		printfRelease("(%d/%d) Loading feemanager...", i, numModules)
+		return feemanager.NewCustomFeeManager(cs, w, filepath.Join(dir, modules.FeeManagerDir), "", feeManagerDeps)
+	}()
+	if err != nil {
+		errChan <- errors.Extend(err, errors.New("unable to create feemanager"))
+		return nil, errChan
+	}
+	if fm != nil {
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+	}
+
+	loadStart = time.Now()
+	// Miner.
 	m, err := func() (modules.TestMiner, error) {
 		if params.CreateMiner && params.Miner != nil {
 			return nil, errors.New("cannot create miner and also use custom miner")
@@ -422,8 +496,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Host.
 	loadStart = time.Now()
+	// Host.
 	h, err := func() (modules.Host, error) {
 		if params.CreateHost && params.Host != nil {
 			return nil, errors.New("cannot create host and use custom host")
@@ -447,7 +521,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		}
 		i++
 		printfRelease("(%d/%d) Loading host...", i, numModules)
-		host, err := host.NewCustomTestHost(hostDeps, smDeps, cs, g, tp, w, params.HostAddress, filepath.Join(dir, modules.HostDir))
+		host, err := host.NewCustomTestHost(hostDeps, smDeps, cs, g, tp, w, mux, params.HostAddress, filepath.Join(dir, modules.HostDir))
 		return host, err
 	}()
 	if err != nil {
@@ -458,8 +532,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	// Renter.
 	loadStart = time.Now()
+	// Renter.
 	r, errChanRenter := func() (modules.Renter, <-chan error) {
 		c := make(chan error, 1)
 		if params.CreateRenter && params.Renter != nil {
@@ -503,7 +577,6 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 			close(c)
 			return nil, c
 		}
-
 		// ContractSet
 		contractSet, err := proto.NewContractSet(filepath.Join(persistDir, "contracts"), contractSetDeps)
 		if err != nil {
@@ -511,7 +584,6 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 			close(c)
 			return nil, c
 		}
-
 		// Contractor
 		logger, err := persist.NewFileLogger(filepath.Join(persistDir, "contractor.log"))
 		if err != nil {
@@ -519,19 +591,25 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 			close(c)
 			return nil, c
 		}
-		hc, errChanContractor := contractor.NewCustomContractor(cs, &contractor.WalletBridge{W: w}, tp, hdb, contractSet, contractor.NewPersist(persistDir), logger, contractorDeps)
+		hc, errChanContractor := contractor.NewCustomContractor(cs, w, tp, hdb, persistDir, contractSet, logger, contractorDeps)
 		if err := modules.PeekErr(errChanContractor); err != nil {
 			c <- err
 			close(c)
 			return nil, c
 		}
-		renter, errChanRenter := renter.NewCustomRenter(g, cs, tp, hdb, w, hc, persistDir, renterDeps)
+		renter, errChanRenter := renter.NewCustomRenter(g, cs, tp, hdb, w, hc, mux, persistDir, renterDeps)
+		if err := modules.PeekErr(errChanRenter); err != nil {
+			c <- err
+			close(c)
+			return nil, c
+		}
 		go func() {
 			c <- errors.Compose(<-errChanHDB, <-errChanContractor, <-errChanRenter)
 			close(c)
 		}()
 		return renter, c
 	}()
+
 	if err := modules.PeekErr(errChanRenter); err != nil {
 		errChan <- errors.Extend(err, errors.New("unable to create renter"))
 		return nil, errChan
@@ -604,8 +682,11 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 	}()
 
 	return &Node{
+		Mux: mux,
+
 		ConsensusSet:    cs,
 		Explorer:        e,
+		FeeManager:      fm,
 		Gateway:         g,
 		Host:            h,
 		Miner:           m,

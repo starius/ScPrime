@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestIntegrationTransactions checks that the transaction history is being
@@ -56,7 +56,6 @@ func TestIntegrationTransactions(t *testing.T) {
 		for i, ut := range utxns {
 			t.Logf("Transaction %v : \n%+v", i, ut)
 		}
-
 	}
 
 	b, _ := wt.miner.FindBlock()

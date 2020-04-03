@@ -1,7 +1,7 @@
 package typesutil
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // MinimumTransactionSet takes two transaction sets as input and returns a

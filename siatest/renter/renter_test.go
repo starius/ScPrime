@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,48 +20,20 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/host/contractmanager"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
-	"gitlab.com/SiaPrime/SiaPrime/node"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
-	"gitlab.com/SiaPrime/SiaPrime/siatest/dependencies"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/host/contractmanager"
+	"gitlab.com/scpcorp/ScPrime/modules/renter"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
+	"gitlab.com/scpcorp/ScPrime/node"
+	"gitlab.com/scpcorp/ScPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
-
-// test is a helper struct for running subtests when tests can use the same test
-// group
-type test struct {
-	name string
-	test func(*testing.T, *siatest.TestGroup)
-}
-
-// runRenterTests is a helper function to run the subtests when tests can use
-// the same test group
-func runRenterTests(t *testing.T, gp siatest.GroupParams, tests []test) error {
-	tg, err := siatest.NewGroupFromTemplate(renterTestDir(t.Name()), gp)
-	if err != nil {
-		return errors.AddContext(err, "failed to create group")
-	}
-	defer func() {
-		if err := tg.Close(); err != nil {
-			t.Fatal(err)
-		}
-	}()
-	// Run subtests
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			test.test(t, tg)
-		})
-	}
-	return nil
-}
 
 // TestRenterOne executes a number of subtests using the same TestGroup to save
 // time on initialization
@@ -76,18 +49,21 @@ func TestRenterOne(t *testing.T) {
 		Renters: 1,
 		Miners:  1,
 	}
+	groupDir := renterTestDir(t.Name())
 
 	// Specify subtests to run
-	subTests := []test{
-		{"TestDownloadMultipleLargeSectors", testDownloadMultipleLargeSectors},
-		{"TestLocalRepair", testLocalRepair},
-		{"TestClearDownloadHistory", testClearDownloadHistory},
-		{"TestDownloadAfterRenew", testDownloadAfterRenew},
-		{"TestDirectories", testDirectories},
+	subTests := []siatest.SubTest{
+		{Name: "TestDownloadMultipleLargeSectors", Test: testDownloadMultipleLargeSectors},
+		{Name: "TestLocalRepair", Test: testLocalRepair},
+		{Name: "TestClearDownloadHistory", Test: testClearDownloadHistory},
+		{Name: "TestDownloadAfterRenew", Test: testDownloadAfterRenew},
+		{Name: "TestDownloadAfterLegacyRenewAndClear", Test: testDownloadAfterLegacyRenewAndClear},
+		{Name: "TestDirectories", Test: testDirectories},
+		{Name: "TestAlertsSorted", Test: testAlertsSorted},
 	}
 
 	// Run tests
-	if err := runRenterTests(t, groupParams, subTests); err != nil {
+	if err := siatest.RunSubTests(t, groupParams, groupDir, subTests); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -106,19 +82,20 @@ func TestRenterTwo(t *testing.T) {
 		Renters: 1,
 		Miners:  1,
 	}
+	groupDir := renterTestDir(t.Name())
 
 	// Specify subtests to run
-	subTests := []test{
-		{"TestReceivedFieldEqualsFileSize", testReceivedFieldEqualsFileSize},
-		{"TestRemoteRepair", testRemoteRepair},
-		{"TestSingleFileGet", testSingleFileGet},
-		{"TestSiaFileTimestamps", testSiafileTimestamps},
-		{"TestZeroByteFile", testZeroByteFile},
-		{"TestUploadWithAndWithoutForceParameter", testUploadWithAndWithoutForceParameter},
+	subTests := []siatest.SubTest{
+		{Name: "TestReceivedFieldEqualsFileSize", Test: testReceivedFieldEqualsFileSize},
+		{Name: "TestRemoteRepair", Test: testRemoteRepair},
+		{Name: "TestSingleFileGet", Test: testSingleFileGet},
+		{Name: "TestSiaFileTimestamps", Test: testSiafileTimestamps},
+		{Name: "TestZeroByteFile", Test: testZeroByteFile},
+		{Name: "TestUploadWithAndWithoutForceParameter", Test: testUploadWithAndWithoutForceParameter},
 	}
 
 	// Run tests
-	if err := runRenterTests(t, groupParams, subTests); err != nil {
+	if err := siatest.RunSubTests(t, groupParams, groupDir, subTests); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -262,18 +239,19 @@ func TestRenterThree(t *testing.T) {
 		Renters: 1,
 		Miners:  1,
 	}
+	groupDir := renterTestDir(t.Name())
 
 	// Specify subtests to run
-	subTests := []test{
-		{"TestAllowanceDefaultSet", testAllowanceDefaultSet},
-		{"TestFileAvailableAndRecoverable", testFileAvailableAndRecoverable},
-		{"TestSetFileStuck", testSetFileStuck},
-		{"TestCancelAsyncDownload", testCancelAsyncDownload},
-		{"TestUploadDownload", testUploadDownload}, // Needs to be last as it impacts hosts
+	subTests := []siatest.SubTest{
+		{Name: "TestAllowanceDefaultSet", Test: testAllowanceDefaultSet},
+		{Name: "TestFileAvailableAndRecoverable", Test: testFileAvailableAndRecoverable},
+		{Name: "TestSetFileStuck", Test: testSetFileStuck},
+		{Name: "TestCancelAsyncDownload", Test: testCancelAsyncDownload},
+		{Name: "TestUploadDownload", Test: testUploadDownload}, // Needs to be last as it impacts hosts
 	}
 
 	// Run tests
-	if err := runRenterTests(t, groupParams, subTests); err != nil {
+	if err := siatest.RunSubTests(t, groupParams, groupDir, subTests); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -292,19 +270,20 @@ func TestRenterFour(t *testing.T) {
 		Renters: 1,
 		Miners:  1,
 	}
+	groupDir := renterTestDir(t.Name())
 
 	// Specify subtests to run
-	subTests := []test{
-		{"TestValidateSiaPath", testValidateSiaPath},
-		{"TestNextPeriod", testNextPeriod},
-		{"TestPauseAndResumeRepairAndUploads", testPauseAndResumeRepairAndUploads},
-		{"TestDownloadServedFromDisk", testDownloadServedFromDisk},
-		{"TestDirMode", testDirMode},
-		{"TestEscapeSiaPath", testEscapeSiaPath}, // Runs last because it uploads many files
+	subTests := []siatest.SubTest{
+		{Name: "TestValidateSiaPath", Test: testValidateSiaPath},
+		{Name: "TestNextPeriod", Test: testNextPeriod},
+		{Name: "TestPauseAndResumeRepairAndUploads", Test: testPauseAndResumeRepairAndUploads},
+		{Name: "TestDownloadServedFromDisk", Test: testDownloadServedFromDisk},
+		{Name: "TestDirMode", Test: testDirMode},
+		{Name: "TestEscapeSiaPath", Test: testEscapeSiaPath}, // Runs last because it uploads many files
 	}
 
 	// Run tests
-	if err := runRenterTests(t, groupParams, subTests); err != nil {
+	if err := siatest.RunSubTests(t, groupParams, groupDir, subTests); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -683,15 +662,89 @@ func testDirectories(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal("Expected IsNotExist err, but got err:", err)
 	}
 
+	// create a file to test file deletion
+	lf1, err := ld.NewFile(size)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rf1, err := r.UploadBlocking(lf1, dataPieces, parityPieces, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Test deleting a file by its relative path
+	err = r.RenterFileDeletePost(rf1.SiaPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Test deleting directory
 	if err = r.RenterDirDeletePost(rd.SiaPath()); err != nil {
 		t.Fatal(err)
+	}
+
+	// Create a new set of remote files and dirs, so we can test deleting with a
+	// root path
+	rd2, err := r.UploadNewDirectory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ld2, err := fd.CreateDir("subDir1a/subDir2a/subDir3a-" + persist.RandomSuffix())
+	if err != nil {
+		t.Fatal(err)
+	}
+	lf2, err := ld2.NewFile(size)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rf2, err := r.UploadBlocking(lf2, dataPieces, parityPieces, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Test deleting a file by its root path
+	rf2RootPath, err := modules.NewSiaPath("/home/user/" + rf2.SiaPath().Path)
+	err = r.RenterFileDeleteRootPost(rf2RootPath)
+	if err != nil {
+		t.Fatal(fmt.Errorf(err.Error() + " => " + rf2RootPath.Path))
+	}
+
+	// Test deleting directory by its root path
+	rd2RootPath, err := modules.NewSiaPath("/home/user/" + rd2.SiaPath().Path)
+	if err = r.RenterDirDeleteRootPost(rd2RootPath); err != nil {
+		t.Fatal(fmt.Errorf(err.Error() + " => " + rd2RootPath.Path))
 	}
 
 	// Check that siadir was deleted from disk
 	_, err = os.Stat(rd.SiaPath().SiaDirSysPath(r.RenterFilesDir()))
 	if !os.IsNotExist(err) {
 		t.Fatal("Expected IsNotExist err, but got err:", err)
+	}
+	// Check that siadir was deleted from disk by root path
+	_, err = os.Stat(rd2.SiaPath().SiaDirSysPath(r.RenterFilesDir()))
+	if !os.IsNotExist(err) {
+		t.Fatal("Expected IsNotExist err, but got err:", err)
+	}
+}
+
+// testAlertsSorted checks that the alerts returned by the /daemon/alerts
+// endpoint are sorted by severity.
+func testAlertsSorted(t *testing.T, tg *siatest.TestGroup) {
+	// Grab Renter
+	r := tg.Renters()[0]
+	dag, err := r.DaemonAlertsGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(dag.Alerts) < 3 {
+		t.Fatalf("renter should have at least %v alerts registered but was %v", 3, len(dag.Alerts))
+	}
+	sorted := sort.SliceIsSorted(dag.Alerts, func(i, j int) bool {
+		return dag.Alerts[i].Severity > dag.Alerts[j].Severity
+	})
+	if !sorted {
+		t.Log("alerts:", dag.Alerts)
+		t.Fatal("alerts are not sorted by severity")
 	}
 }
 
@@ -721,6 +774,43 @@ func testDownloadAfterRenew(t *testing.T, tg *siatest.TestGroup) {
 	_, _, err = renter.DownloadByStream(remoteFile)
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+// testDownloadAfterRenew makes sure that we can't download a file after
+// finalizing the contract and dropping the void output. This is also a
+// regression test for a index-out-of-bounds panic in siad.
+func testDownloadAfterLegacyRenewAndClear(t *testing.T, tg *siatest.TestGroup) {
+	// Create a node with the right dependency.
+	params := node.Renter(renterTestDir(t.Name()))
+	params.ContractorDeps = &dependencies.DependencySkipDeleteContractAfterRenewal{}
+
+	// Add the node and remove it at the end of the test.
+	nodes, err := tg.AddNodes(params)
+	renter := nodes[0]
+	defer tg.RemoveNode(renter)
+
+	// Upload file, creating a piece for each host in the group
+	dataPieces := uint64(1)
+	parityPieces := uint64(len(tg.Hosts())) - dataPieces
+	fileSize := 100 + siatest.Fuzz()
+	_, remoteFile, err := renter.UploadNewFileBlocking(fileSize, dataPieces, parityPieces, false)
+	if err != nil {
+		t.Fatal("Failed to upload a file for testing: ", err)
+	}
+	// Mine enough blocks for the next period to start. This means the
+	// contracts should be renewed and the data should still be available for
+	// download.
+	miner := tg.Miners()[0]
+	for i := types.BlockHeight(0); i < siatest.DefaultAllowance.Period; i++ {
+		if err := miner.MineBlock(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Download the file synchronously directly into memory.
+	_, _, err = renter.DownloadByStream(remoteFile)
+	if err == nil {
+		t.Fatal("download should fail due to contract being finalized")
 	}
 }
 
@@ -1346,18 +1436,19 @@ func TestRenterInterrupt(t *testing.T) {
 		Hosts:  5,
 		Miners: 1,
 	}
+	groupDir := renterTestDir(t.Name())
 
 	// Specify sub tests
-	subTests := []test{
-		{"TestContractInterruptedSaveToDiskAfterDeletion", testContractInterruptedSaveToDiskAfterDeletion},
-		{"TestDownloadInterruptedAfterSendingRevision", testDownloadInterruptedAfterSendingRevision},
-		{"TestDownloadInterruptedBeforeSendingRevision", testDownloadInterruptedBeforeSendingRevision},
-		{"TestUploadInterruptedAfterSendingRevision", testUploadInterruptedAfterSendingRevision},
-		{"TestUploadInterruptedBeforeSendingRevision", testUploadInterruptedBeforeSendingRevision},
+	subTests := []siatest.SubTest{
+		{Name: "TestContractInterruptedSaveToDiskAfterDeletion", Test: testContractInterruptedSaveToDiskAfterDeletion},
+		{Name: "TestDownloadInterruptedAfterSendingRevision", Test: testDownloadInterruptedAfterSendingRevision},
+		{Name: "TestDownloadInterruptedBeforeSendingRevision", Test: testDownloadInterruptedBeforeSendingRevision},
+		{Name: "TestUploadInterruptedAfterSendingRevision", Test: testUploadInterruptedAfterSendingRevision},
+		{Name: "TestUploadInterruptedBeforeSendingRevision", Test: testUploadInterruptedBeforeSendingRevision},
 	}
 
 	// Run tests
-	if err := runRenterTests(t, groupParams, subTests); err != nil {
+	if err := siatest.RunSubTests(t, groupParams, groupDir, subTests); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -1640,17 +1731,18 @@ func TestRenterAddNodes(t *testing.T) {
 		Renters: 1,
 		Miners:  1,
 	}
+	groupDir := renterTestDir(t.Name())
 
 	// Specify subtests to run
-	subTests := []test{
-		{"TestRedundancyReporting", testRedundancyReporting}, // Put first because it pulls the original tg renter
-		{"TestUploadReady", testUploadReady},
-		{"TestOverspendAllowance", testOverspendAllowance},
-		{"TestRenterAllowanceCancel", testRenterAllowanceCancel},
+	subTests := []siatest.SubTest{
+		{Name: "TestRedundancyReporting", Test: testRedundancyReporting}, // Put first because it pulls the original tg renter
+		{Name: "TestUploadReady", Test: testUploadReady},
+		{Name: "TestOverspendAllowance", Test: testOverspendAllowance},
+		{Name: "TestRenterAllowanceCancel", Test: testRenterAllowanceCancel},
 	}
 
 	// Run tests
-	if err := runRenterTests(t, groupParams, subTests); err != nil {
+	if err := siatest.RunSubTests(t, groupParams, groupDir, subTests); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -1670,14 +1762,15 @@ func TestRenterAddNodes2(t *testing.T) {
 		Renters: 1,
 		Miners:  1,
 	}
+	groupDir := renterTestDir(t.Name())
 
 	// Specify subtests to run
-	subTests := []test{
-		{"TestRenterPostCancelAllowance", testRenterPostCancelAllowance},
+	subTests := []siatest.SubTest{
+		{Name: "TestRenterPostCancelAllowance", Test: testRenterPostCancelAllowance},
 	}
 
 	// Run tests
-	if err := runRenterTests(t, groupParams, subTests); err != nil {
+	if err := siatest.RunSubTests(t, groupParams, groupDir, subTests); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -2195,9 +2288,9 @@ func testOverspendAllowance(t *testing.T, tg *siatest.TestGroup) {
 	}
 	renter := nodes[0]
 
-	// Set the allowance with only 4SC
+	// Set the allowance with only 1SCP
 	allowance := siatest.DefaultAllowance
-	allowance.Funds = types.SiacoinPrecision.Mul64(4)
+	allowance.Funds = types.ScPrimecoinPrecision.Mul64(1)
 	if err := renter.RenterPostAllowance(allowance); err != nil {
 		t.Fatal(err)
 	}
@@ -2254,6 +2347,7 @@ func testOverspendAllowance(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 	if len(rc.ActiveContracts) == 0 && len(rc.InactiveContracts) == 0 {
+		renter.PrintDebugInfo(t, true, true, true)
 		t.Fatal("No Contracts formed")
 	}
 
@@ -2536,7 +2630,7 @@ func TestRenterFailingStandbyDownload(t *testing.T) {
 	// Upload a file
 	_, rf, err := r.UploadNewFileBlocking(100, 2, 1, false)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Failed to add renter:", err)
 	}
 
 	// File should be at redundancy of 1.5
@@ -3008,6 +3102,14 @@ func TestSetFileTrackingPath(t *testing.T) {
 	if len(tg.Hosts()) < 2 {
 		t.Fatal("This test requires at least 2 hosts")
 	}
+	//increase allowance
+	rs, rserr := renter.RenterSettings()
+	if rserr != nil {
+		t.Fatal(errors.AddContext(rserr, "Could not get RenterSettings"))
+	}
+	allowance := rs.Allowance
+	allowance.Funds = rs.Allowance.Funds.Mul64(3)
+	renter.RenterPostAllowance(allowance)
 	// Set fileSize and redundancy for upload
 	fileSize := int(modules.SectorSize)
 	dataPieces := uint64(1)
@@ -3040,6 +3142,7 @@ func TestSetFileTrackingPath(t *testing.T) {
 	// Create new hosts.
 	_, err = tg.AddNodeN(node.HostTemplate, numHosts)
 	if err != nil {
+		renter.PrintDebugInfo(t, true, true, true)
 		t.Fatal("Failed to create a new host", err)
 	}
 	// We should reach full health again.
@@ -3725,8 +3828,8 @@ func testValidateSiaPath(t *testing.T, tg *siatest.TestGroup) {
 		path  string
 		valid bool
 	}{
+		{`\\some\\windows\\path`, false}, // false if no running windows
 		{"valid/siapath", true},
-		{"\\some\\windows\\path", true}, // clean converts OS separators
 		{"../../../directory/traversal", false},
 		{"testpath", true},
 		{"valid/siapath/../with/directory/traversal", false},
@@ -3747,6 +3850,10 @@ func testValidateSiaPath(t *testing.T, tg *siatest.TestGroup) {
 		{"../", false},
 		{"./", false},
 		{".", false},
+	}
+	// Update if running windows
+	if runtime.GOOS == "windows" {
+		pathTests[0].valid = true
 	}
 	// Test all siapaths
 	for _, pathTest := range pathTests {
@@ -3903,6 +4010,7 @@ func TestOutOfStorageHandling(t *testing.T) {
 		return nil
 	})
 	if err != nil {
+		renter.PrintDebugInfo(t, true, true, true)
 		t.Fatal(err)
 	}
 
@@ -4118,7 +4226,6 @@ func testRenterPostCancelAllowance(t *testing.T, tg *siatest.TestGroup) {
 			t.Logf("testing key %v and value %v", test.key, test.value)
 			t.Fatalf("Expected error to contain %v but got %v", test.err, err)
 		}
-
 	}
 
 	// Test setting a non allowance field, this should have no affect on the

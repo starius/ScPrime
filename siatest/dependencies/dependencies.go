@@ -3,8 +3,9 @@ package dependencies
 import (
 	"net"
 	"sync"
+	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 type (
@@ -25,8 +26,8 @@ type (
 		modules.ProductionDependencies
 	}
 
-	// DependencyDisableAsyncStartup prevents the async part of a module's creation
-	// from being executed.
+	// DependencyDisableAsyncStartup prevents the async part of a module's
+	// creation from being executed.
 	DependencyDisableAsyncStartup struct {
 		modules.ProductionDependencies
 	}
@@ -45,6 +46,12 @@ type (
 
 	// DependencyDisableRenewal prevents contracts from being renewed.
 	DependencyDisableRenewal struct {
+		modules.ProductionDependencies
+	}
+
+	// DependencySkipDeleteContractAfterRenewal prevents the old contract from
+	// being deleted after a renewal.
+	DependencySkipDeleteContractAfterRenewal struct {
 		modules.ProductionDependencies
 	}
 
@@ -73,7 +80,30 @@ type (
 	DependencyPostponeWritePiecesRecovery struct {
 		modules.ProductionDependencies
 	}
+
+	// DependencyRenewWithoutClear will force contracts to be renewed without
+	// clearing their contents.
+	DependencyRenewWithoutClear struct {
+		modules.ProductionDependencies
+	}
+
+	// DependencyBlockResumeJobDownloadUntilTimeout blocks in
+	// managedResumeJobDownloadByRoot until the timeout for the download project
+	// is reached.
+	DependencyBlockResumeJobDownloadUntilTimeout struct {
+		DependencyTimeoutProjectDownloadByRoot
+		c chan struct{}
+	}
 )
+
+// NewDependencyBlockResumeJobDownloadUntilTimeout blocks in
+// managedResumeJobDownloadByRoot until the timeout for the download project is
+// reached.
+func NewDependencyBlockResumeJobDownloadUntilTimeout() modules.Dependencies {
+	return &DependencyBlockResumeJobDownloadUntilTimeout{
+		c: make(chan struct{}),
+	}
+}
 
 // NewDependencyCustomResolver creates a dependency from a given lookupIP
 // method which returns a custom resolver that uses the specified lookupIP
@@ -144,8 +174,25 @@ func newDependencyInterruptAfterNCalls(str string, n int) *DependencyInterruptAf
 }
 
 // Disrupt returns true if the correct string is provided.
+func (d *DependencyBlockResumeJobDownloadUntilTimeout) Disrupt(s string) bool {
+	if s == "BlockUntilTimeout" {
+		<-d.c
+		return true
+	} else if s == "ResumeOnTimeout" {
+		close(d.c)
+		return true
+	}
+	return false
+}
+
+// Disrupt returns true if the correct string is provided.
 func (d *DependencyDisableAsyncStartup) Disrupt(s string) bool {
 	return s == "BlockAsyncStartup"
+}
+
+// Disrupt returns true if the correct string is provided.
+func (d *DependencySkipDeleteContractAfterRenewal) Disrupt(s string) bool {
+	return s == "SkipContractDeleteAfterRenew"
 }
 
 // Disrupt causes contract formation to fail due to low allowance funds.
@@ -161,6 +208,11 @@ func (d *DependencyLowFundsRenewalFail) Disrupt(s string) bool {
 // Disrupt causes contract renewal to fail due to low allowance funds.
 func (d *DependencyLowFundsRefreshFail) Disrupt(s string) bool {
 	return s == "LowFundsRefresh"
+}
+
+// Disrupt causes contract renewal to not clear the contents of a contract.
+func (d *DependencyRenewWithoutClear) Disrupt(s string) bool {
+	return s == "RenewWithoutClear"
 }
 
 // Disrupt returns true if the correct string is provided and if the flag was
@@ -259,4 +311,31 @@ func (d *dependencyCustomResolver) Disrupt(s string) bool {
 // Resolver creates a new custom resolver.
 func (d *dependencyCustomResolver) Resolver() modules.Resolver {
 	return customResolver{d.lookupIP}
+}
+
+// DependencyAddLatency will introduce a latency by sleeping for the
+// specified duration if the argument passed to Distrupt equals str.
+type DependencyAddLatency struct {
+	str      string
+	duration time.Duration
+	modules.ProductionDependencies
+}
+
+// newDependencyAddLatency creates a new DependencyAddLatency from a given
+// disrupt string and duration
+func newDependencyAddLatency(str string, d time.Duration) *DependencyAddLatency {
+	return &DependencyAddLatency{
+		str:      str,
+		duration: d,
+	}
+}
+
+// Disrupt will sleep for the specified duration if the correct string is
+// provided.
+func (d *DependencyAddLatency) Disrupt(s string) bool {
+	if s == d.str {
+		time.Sleep(d.duration)
+		return true
+	}
+	return false
 }

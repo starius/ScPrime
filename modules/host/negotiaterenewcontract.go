@@ -4,10 +4,10 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // renewBaseCollateral returns the base collateral on the storage in the file
@@ -34,7 +34,7 @@ func renewBasePrice(so storageObligation, settings modules.HostExternalSettings,
 // expected to add to the file contract based on the file contract and host
 // settings.
 func renewContractCollateral(so storageObligation, settings modules.HostExternalSettings, fc types.FileContract) types.Currency {
-	return fc.ValidProofOutputs[1].Value.Sub(settings.ContractPrice).Sub(renewBasePrice(so, settings, fc))
+	return fc.ValidHostPayout().Sub(settings.ContractPrice).Sub(renewBasePrice(so, settings, fc))
 }
 
 // managedAddRenewCollateral adds the host's collateral to the renewed file
@@ -182,7 +182,19 @@ func (h *Host) managedRPCRenewContract(conn net.Conn) error {
 	renewRevenue := renewBasePrice(so, settings, fc)
 	renewRisk := renewBaseCollateral(so, settings, fc)
 	h.mu.RUnlock()
-	hostTxnSignatures, hostRevisionSignature, newSOID, err := h.managedFinalizeContract(txnBuilder, renterPK, renterTxnSignatures, renterRevisionSignature, so.SectorRoots, renewCollateral, renewRevenue, renewRisk, settings)
+	fca := finalizeContractArgs{
+		builder:                 txnBuilder,
+		renewal:                 false,
+		renterPK:                renterPK,
+		renterSignatures:        renterTxnSignatures,
+		renterRevisionSignature: renterRevisionSignature,
+		initialSectorRoots:      so.SectorRoots,
+		hostCollateral:          renewCollateral,
+		hostInitialRevenue:      renewRevenue,
+		hostInitialRisk:         renewRisk,
+		settings:                settings,
+	}
+	hostTxnSignatures, hostRevisionSignature, newSOID, err := h.managedFinalizeContract(fca)
 	if err != nil {
 		modules.WriteNegotiationRejection(conn, err) // Error is ignored to preserve type for extendErr
 		return extendErr("failed to finalize contract: ", err)
@@ -268,7 +280,11 @@ func (h *Host) managedVerifyRenewedContract(so storageObligation, txnSet []types
 	// The unlock hashes of the valid and missed proof outputs for the host
 	// must match the host's unlock hash. The third missed output should point
 	// to the void.
-	if fc.ValidProofOutputs[1].UnlockHash != unlockHash || fc.MissedProofOutputs[1].UnlockHash != unlockHash || fc.MissedProofOutputs[2].UnlockHash != (types.UnlockHash{}) {
+	voidOutput, err := fc.MissedVoidOutput()
+	if err != nil {
+		return err
+	}
+	if fc.ValidHostOutput().UnlockHash != unlockHash || fc.MissedHostOutput().UnlockHash != unlockHash || voidOutput.UnlockHash != (types.UnlockHash{}) {
 		return errBadPayoutUnlockHashes
 	}
 
@@ -289,16 +305,16 @@ func (h *Host) managedVerifyRenewedContract(so storageObligation, txnSet []types
 	// void output contains enough money.
 	basePrice := renewBasePrice(so, externalSettings, fc)
 	baseCollateral := renewBaseCollateral(so, externalSettings, fc)
-	if fc.ValidProofOutputs[1].Value.Cmp(basePrice.Add(baseCollateral)) < 0 {
+	if fc.ValidHostPayout().Cmp(basePrice.Add(baseCollateral)) < 0 {
 		return errLowHostValidOutput
 	}
-	expectedHostMissedOutput := fc.ValidProofOutputs[1].Value.Sub(basePrice).Sub(baseCollateral)
-	if fc.MissedProofOutputs[1].Value.Cmp(expectedHostMissedOutput) < 0 {
+	expectedHostMissedOutput := fc.ValidHostPayout().Sub(basePrice).Sub(baseCollateral)
+	if fc.MissedHostOutput().Value.Cmp(expectedHostMissedOutput) < 0 {
 		return errLowHostMissedOutput
 	}
 	// Check that the void output has the correct value.
 	expectedVoidOutput := basePrice.Add(baseCollateral)
-	if fc.MissedProofOutputs[2].Value.Cmp(expectedVoidOutput) > 0 {
+	if voidOutput.Value.Cmp(expectedVoidOutput) > 0 {
 		return errLowVoidOutput
 	}
 

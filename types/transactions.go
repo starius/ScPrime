@@ -8,8 +8,8 @@ package types
 import (
 	"errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
 )
 
 const (
@@ -208,6 +208,11 @@ func (t Transaction) SiacoinOutputSum() (sum Currency) {
 	}
 
 	return
+}
+
+// HostSignature returns the host's transaction signature
+func (t Transaction) HostSignature() TransactionSignature {
+	return t.TransactionSignatures[1]
 }
 
 // SiaClaimOutputID returns the ID of the SiacoinOutput that is created when

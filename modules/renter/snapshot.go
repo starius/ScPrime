@@ -8,13 +8,13 @@ import (
 	"sort"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/proto"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
@@ -138,13 +138,18 @@ func (r *Renter) managedUploadBackup(src, name string) error {
 		SiaPath:     sp,
 		ErasureCode: ec,
 		Force:       false,
-		CipherType:  crypto.TypeDefaultRenter,
+
+		CipherType: crypto.TypeDefaultRenter,
 	}
 	// Begin uploading the backup. When the upload finishes, the backup .sia
 	// file will be uploaded by r.threadedSynchronizeSnapshots and then deleted.
-	_, err = r.managedUploadStreamFromReader(up, backup, true)
+	fileNode, err := r.callUploadStreamFromReader(up, backup, true)
 	if err != nil {
 		return errors.AddContext(err, "failed to upload backup")
+	}
+	err = fileNode.Close()
+	if err != nil {
+		return errors.AddContext(err, "unable to close fileNode while uploading a backup")
 	}
 	// Save initial snapshot entry.
 	meta := modules.UploadedBackup{

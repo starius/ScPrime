@@ -33,15 +33,19 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/threadgroup"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/contractor"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/hostdb"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/writeaheadlog"
+	"gitlab.com/scpcorp/siamux"
+	"gitlab.com/scpcorp/writeaheadlog"
+
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/skynetblacklist"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/skykey"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 var (
@@ -52,64 +56,6 @@ var (
 	errNilTpool      = errors.New("cannot create renter with nil transaction pool")
 	errNilWallet     = errors.New("cannot create renter with nil wallet")
 )
-
-// A hostDB is a database of hosts that the renter can use for figuring out who
-// to upload to, and download from.
-type hostDB interface {
-	modules.Alerter
-
-	// ActiveHosts returns the list of hosts that are actively being selected
-	// from.
-	ActiveHosts() ([]modules.HostDBEntry, error)
-
-	// AllHosts returns the full list of hosts known to the hostdb, sorted in
-	// order of preference.
-	AllHosts() ([]modules.HostDBEntry, error)
-
-	// Close closes the hostdb.
-	Close() error
-
-	// Filter returns the hostdb's filterMode and filteredHosts
-	Filter() (modules.FilterMode, map[string]types.SiaPublicKey, error)
-
-	// SetFilterMode sets the renter's hostdb filter mode
-	SetFilterMode(lm modules.FilterMode, hosts []types.SiaPublicKey) error
-
-	// Host returns the HostDBEntry for a given host.
-	Host(pk types.SiaPublicKey) (modules.HostDBEntry, bool, error)
-
-	// initialScanComplete returns a boolean indicating if the initial scan of the
-	// hostdb is completed.
-	InitialScanComplete() (bool, error)
-
-	// RandomHosts returns a set of random hosts, weighted by their estimated
-	// usefulness / attractiveness to the renter. RandomHosts will not return
-	// any offline or inactive hosts.
-	RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey) ([]modules.HostDBEntry, error)
-
-	// RandomHostsWithAllowance is the same as RandomHosts but accepts an
-	// allowance as an argument to be used instead of the allowance set in the
-	// renter.
-	RandomHostsWithAllowance(int, []types.SiaPublicKey, []types.SiaPublicKey, modules.Allowance) ([]modules.HostDBEntry, error)
-
-	// ScoreBreakdown returns a detailed explanation of the various properties
-	// of the host.
-	ScoreBreakdown(modules.HostDBEntry) (modules.HostScoreBreakdown, error)
-
-	// SetIPRestriction sets the number of hosts from same IP address subnet that
-	// the renter is allowed to form contracts with. Setting it to 0 disables the
-	// IP restriction
-	SetIPRestriction(numhosts int) error
-
-	// IPRestriction returns the number of hosts from same IP address subnet that
-	// the renter is allowed to form contracts with. Value of zero means the
-	// IP restriction is disabled
-	IPRestriction() (int, error)
-
-	// EstimateHostScore returns the estimated score breakdown of a host with the
-	// provided settings.
-	EstimateHostScore(modules.HostDBEntry, modules.Allowance) (modules.HostScoreBreakdown, error)
-}
 
 // A hostContractor negotiates, revises, renews, and provides access to file
 // contracts.
@@ -224,6 +170,9 @@ type Renter struct {
 	// File management.
 	staticFileSystem *filesystem.FileSystem
 
+	// Skynet Management
+	staticSkynetBlacklist *skynetblacklist.SkynetBlacklist
+
 	// Download management. The heap has a separate mutex because it is always
 	// accessed in isolation.
 	downloadHeapMu sync.Mutex         // Used to protect the downloadHeap.
@@ -257,23 +206,26 @@ type Renter struct {
 	bubbleUpdatesMu sync.Mutex
 
 	// Utilities.
-	cs                modules.ConsensusSet
-	deps              modules.Dependencies
-	g                 modules.Gateway
-	w                 modules.Wallet
-	hostContractor    hostContractor
-	hostDB            hostDB
-	log               *persist.Logger
-	persist           persistence
-	persistDir        string
-	memoryManager     *memoryManager
-	mu                *siasync.RWMutex
-	repairLog         *persist.Logger
-	staticFuseManager renterFuseManager
-	tg                threadgroup.ThreadGroup
-	tpool             modules.TransactionPool
-	wal               *writeaheadlog.WAL
-	staticWorkerPool  *workerPool
+	cs                    modules.ConsensusSet
+	deps                  modules.Dependencies
+	g                     modules.Gateway
+	w                     modules.Wallet
+	hostContractor        hostContractor
+	hostDB                modules.HostDB
+	log                   *persist.Logger
+	persist               persistence
+	persistDir            string
+	memoryManager         *memoryManager
+	mu                    *siasync.RWMutex
+	repairLog             *persist.Logger
+	staticFuseManager     renterFuseManager
+	staticSkykeyManager   *skykey.SkykeyManager
+	staticStreamBufferSet *streamBufferSet
+	tg                    threadgroup.ThreadGroup
+	tpool                 modules.TransactionPool
+	wal                   *writeaheadlog.WAL
+	staticWorkerPool      *workerPool
+	staticMux             *siamux.SiaMux
 }
 
 // Close closes the Renter and its dependencies
@@ -474,6 +426,13 @@ func (r *Renter) PriceEstimation(allowance modules.Allowance) (modules.RenterPri
 	return est, allowance, nil
 }
 
+// managedRPCClient returns an RPC client for the host with given key
+func (r *Renter) managedRPCClient(host types.SiaPublicKey) (RPCClient, error) {
+	id := r.mu.Lock()
+	defer r.mu.Unlock(id)
+	return &MockRPCClient{}, nil
+}
+
 // managedContractUtilityMaps returns a set of maps that contain contract
 // information. Information about which contracts are offline, goodForRenew are
 // available, as well as a full list of contracts keyed by their public key.
@@ -515,13 +474,8 @@ func (r *Renter) managedRenterContractsAndUtilities(entrys []*filesystem.FileNod
 	goodForRenew = make(map[string]bool)
 	offline = make(map[string]bool)
 	for _, e := range entrys {
-		var used []types.SiaPublicKey
 		for _, pk := range e.HostPublicKeys() {
 			pks[pk.String()] = pk
-			used = append(used, pk)
-		}
-		if err := e.UpdateUsedHosts(used); err != nil {
-			r.log.Debugln("WARN: Could not update used hosts:", err)
 		}
 	}
 	// Build 2 maps that map every pubkey to its offline and goodForRenew
@@ -539,6 +493,19 @@ func (r *Renter) managedRenterContractsAndUtilities(entrys []*filesystem.FileNod
 		goodForRenew[pk.String()] = cu.GoodForRenew
 		offline[pk.String()] = r.hostContractor.IsOffline(pk)
 		contracts[pk.String()] = contract
+	}
+	// Update the used hosts of the Siafile. Only consider the ones that
+	// are goodForRenew.
+	var used []types.SiaPublicKey
+	for _, pk := range pks {
+		if _, gfr := goodForRenew[pk.String()]; gfr {
+			used = append(used, pk)
+		}
+	}
+	for _, e := range entrys {
+		if err := e.UpdateUsedHosts(used); err != nil {
+			r.log.Debugln("WARN: Could not update used hosts:", err)
+		}
 	}
 	// Update the cached expiration of the siafiles.
 	for _, e := range entrys {
@@ -837,7 +804,7 @@ func (r *Renter) Unmount(mountPoint string) error {
 var _ modules.Renter = (*Renter)(nil)
 
 // renterBlockingStartup handles the blocking portion of NewCustomRenter.
-func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, hdb hostDB, w modules.Wallet, hc hostContractor, persistDir string, deps modules.Dependencies) (*Renter, error) {
+func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, hdb modules.HostDB, w modules.Wallet, hc hostContractor, mux *siamux.SiaMux, persistDir string, deps modules.Dependencies) (*Renter, error) {
 	if g == nil {
 		return nil, errNilGateway
 	}
@@ -885,24 +852,34 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 		bubbleUpdates:   make(map[string]bubbleStatus),
 		downloadHistory: make(map[modules.DownloadID]*download),
 
-		cs:             cs,
-		deps:           deps,
-		g:              g,
-		w:              w,
-		hostDB:         hdb,
-		hostContractor: hc,
-		persistDir:     persistDir,
-		staticAlerter:  modules.NewAlerter("renter"),
-		mu:             siasync.New(modules.SafeMutexDelay, 1),
-		tpool:          tpool,
+		cs:                    cs,
+		deps:                  deps,
+		g:                     g,
+		w:                     w,
+		hostDB:                hdb,
+		hostContractor:        hc,
+		persistDir:            persistDir,
+		staticAlerter:         modules.NewAlerter("renter"),
+		staticStreamBufferSet: newStreamBufferSet(),
+		staticMux:             mux,
+		mu:                    siasync.New(modules.SafeMutexDelay, 1),
+		tpool:                 tpool,
 	}
 	close(r.uploadHeap.pauseChan)
 	r.memoryManager = newMemoryManager(defaultMemory, r.tg.StopChan())
 	r.staticFuseManager = newFuseManager(r)
 	r.stuckStack = callNewStuckStack()
 
+	// Add SkynetBlacklist
+	sb, err := skynetblacklist.New(r.persistDir)
+	if err != nil {
+		return nil, errors.AddContext(err, "unable to create new skynet blacklist")
+	}
+	r.staticSkynetBlacklist = sb
+
 	// Load all saved data.
-	if err := r.managedInitPersist(); err != nil {
+	err = r.managedInitPersist()
+	if err != nil {
 		return nil, err
 	}
 	// After persist is initialized, push the root directory onto the directory
@@ -911,13 +888,24 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	// After persist is initialized, create the worker pool.
 	r.staticWorkerPool = r.newWorkerPool()
 
+	// Create the skykey manager.
+	// In testing, keep the skykeys with the rest of the renter data.
+	skykeyManDir := build.DefaultSkynetDir()
+	if build.Release == "testing" {
+		skykeyManDir = persistDir
+	}
+	r.staticSkykeyManager, err = skykey.NewSkykeyManager(skykeyManDir)
+	if err != nil {
+		return nil, err
+	}
+
 	// Spin up background threads which are not depending on the renter being
 	// up-to-date with consensus.
 	if !r.deps.Disrupt("DisableRepairAndHealthLoops") {
 		go r.threadedUpdateRenterHealth()
 	}
 	// Unsubscribe on shutdown.
-	err := r.tg.OnStop(func() error {
+	err = r.tg.OnStop(func() error {
 		cs.Unsubscribe(r)
 		return nil
 	})
@@ -956,11 +944,11 @@ func renterAsyncStartup(r *Renter, cs modules.ConsensusSet) error {
 }
 
 // NewCustomRenter initializes a renter and returns it.
-func NewCustomRenter(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, hdb hostDB, w modules.Wallet, hc hostContractor, persistDir string, deps modules.Dependencies) (*Renter, <-chan error) {
+func NewCustomRenter(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, hdb modules.HostDB, w modules.Wallet, hc hostContractor, mux *siamux.SiaMux, persistDir string, deps modules.Dependencies) (*Renter, <-chan error) {
 	errChan := make(chan error, 1)
 
 	// Blocking startup.
-	r, err := renterBlockingStartup(g, cs, tpool, hdb, w, hc, persistDir, deps)
+	r, err := renterBlockingStartup(g, cs, tpool, hdb, w, hc, mux, persistDir, deps)
 	if err != nil {
 		errChan <- err
 		return nil, errChan
@@ -983,7 +971,7 @@ func NewCustomRenter(g modules.Gateway, cs modules.ConsensusSet, tpool modules.T
 }
 
 // New returns an initialized renter.
-func New(g modules.Gateway, cs modules.ConsensusSet, wallet modules.Wallet, tpool modules.TransactionPool, persistDir string) (*Renter, <-chan error) {
+func New(g modules.Gateway, cs modules.ConsensusSet, wallet modules.Wallet, tpool modules.TransactionPool, mux *siamux.SiaMux, persistDir string) (*Renter, <-chan error) {
 	errChan := make(chan error, 1)
 	hdb, errChanHDB := hostdb.New(g, cs, tpool, persistDir)
 	if err := modules.PeekErr(errChanHDB); err != nil {
@@ -995,7 +983,7 @@ func New(g modules.Gateway, cs modules.ConsensusSet, wallet modules.Wallet, tpoo
 		errChan <- err
 		return nil, errChan
 	}
-	renter, errChanRenter := NewCustomRenter(g, cs, tpool, hdb, wallet, hc, persistDir, modules.ProdDependencies)
+	renter, errChanRenter := NewCustomRenter(g, cs, tpool, hdb, wallet, hc, mux, persistDir, modules.ProdDependencies)
 	if err := modules.PeekErr(errChanRenter); err != nil {
 		errChan <- err
 		return nil, errChan

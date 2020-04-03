@@ -1,12 +1,16 @@
 package wallet
 
 import (
-	"errors"
+	"gitlab.com/NebulousLabs/errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
+
+// estimatedTransactionSize is the estimated size of a transaction used to send
+// siacoins.
+const estimatedTransactionSize = 750
 
 // sortedOutputs is a struct containing a slice of siacoin outputs and their
 // corresponding ids. sortedOutputs can be sorted using the sort package.
@@ -105,15 +109,45 @@ func (w *Wallet) UnconfirmedBalance() (outgoingSiacoins types.Currency, incoming
 	return
 }
 
-// SendSiacoins creates a transaction sending 'amount' to 'dest'. The transaction
-// is submitted to the transaction pool and is also returned.
-func (w *Wallet) SendSiacoins(amount types.Currency, dest types.UnlockHash) (txns []types.Transaction, err error) {
+// SendSiacoins creates a transaction sending 'amount' to 'dest'. The
+// transaction is submitted to the transaction pool and is also returned. Fees
+// are added to the amount sent.
+func (w *Wallet) SendSiacoins(amount types.Currency, dest types.UnlockHash) ([]types.Transaction, error) {
 	if err := w.tg.Add(); err != nil {
 		err = modules.ErrWalletShutdown
 		return nil, err
 	}
 	defer w.tg.Done()
 
+	_, fee := w.tpool.FeeEstimation()
+	fee = fee.Mul64(estimatedTransactionSize)
+	return w.managedSendSiacoins(amount, fee, dest)
+}
+
+// SendSiacoinsFeeIncluded creates a transaction sending 'amount' to 'dest'. The
+// transaction is submitted to the transaction pool and is also returned. Fees
+// are subtracted from the amount sent.
+func (w *Wallet) SendSiacoinsFeeIncluded(amount types.Currency, dest types.UnlockHash) ([]types.Transaction, error) {
+	if err := w.tg.Add(); err != nil {
+		err = modules.ErrWalletShutdown
+		return nil, err
+	}
+	defer w.tg.Done()
+
+	_, fee := w.tpool.FeeEstimation()
+	fee = fee.Mul64(estimatedTransactionSize)
+	// Don't allow sending an amount equal to the fee, as zero spending is not
+	// allowed and would error out later.
+	if amount.Cmp(fee) <= 0 {
+		w.log.Println("Attempt to send coins has failed - not enough to cover fee")
+		return nil, errors.AddContext(modules.ErrLowBalance, "not enough coins to cover fee")
+	}
+	return w.managedSendSiacoins(amount.Sub(fee), fee, dest)
+}
+
+// managedSendSiacoins creates a transaction sending 'amount' to 'dest'. The
+// transaction is submitted to the transaction pool and is also returned.
+func (w *Wallet) managedSendSiacoins(amount, fee types.Currency, dest types.UnlockHash) (txns []types.Transaction, err error) {
 	// Check if consensus is synced
 	if !w.cs.Synced() || w.deps.Disrupt("UnsyncedConsensus") {
 		return nil, errors.New("cannot send scprimecoin until fully synced")
@@ -127,8 +161,6 @@ func (w *Wallet) SendSiacoins(amount types.Currency, dest types.UnlockHash) (txn
 		return nil, modules.ErrLockedWallet
 	}
 
-	_, tpoolFee := w.tpool.FeeEstimation()
-	tpoolFee = tpoolFee.Mul64(750) // Estimated transaction size in bytes
 	output := types.SiacoinOutput{
 		Value:      amount,
 		UnlockHash: dest,
@@ -143,12 +175,12 @@ func (w *Wallet) SendSiacoins(amount types.Currency, dest types.UnlockHash) (txn
 			txnBuilder.Drop()
 		}
 	}()
-	err = txnBuilder.FundSiacoins(amount.Add(tpoolFee))
+	err = txnBuilder.FundSiacoins(amount.Add(fee))
 	if err != nil {
 		w.log.Println("Attempt to send coins has failed - failed to fund transaction:", err)
 		return nil, build.ExtendErr("unable to fund transaction", err)
 	}
-	txnBuilder.AddMinerFee(tpoolFee)
+	txnBuilder.AddMinerFee(fee)
 	txnBuilder.AddSiacoinOutput(output)
 	txnSet, err := txnBuilder.Sign(true)
 	if err != nil {
@@ -163,7 +195,7 @@ func (w *Wallet) SendSiacoins(amount types.Currency, dest types.UnlockHash) (txn
 		w.log.Println("Attempt to send coins has failed - transaction pool rejected transaction:", err)
 		return nil, build.ExtendErr("unable to get transaction accepted", err)
 	}
-	w.log.Println("Submitted a scprimecoin transfer transaction set for value", amount.HumanString(), "with fees", tpoolFee.HumanString(), "IDs:")
+	w.log.Println("Submitted a scprimecoin transfer transaction set for value", amount.HumanString(), "with fees", fee.HumanString(), "IDs:")
 	for _, txn := range txnSet {
 		w.log.Println("\t", txn.ID())
 	}

@@ -5,12 +5,12 @@ import (
 	"os"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/siatest/dependencies"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
 )
 
 // TestBuildUnfinishedChunks probes buildUnfinishedChunks to make sure that the
@@ -201,6 +201,7 @@ func addChunksOfDifferentHealth(r *Renter, numChunks int, stuck, fileRecentlySuc
 			fileRecentlySuccessful: fileRecentlySuccessful,
 			priority:               priority,
 			health:                 float64(i),
+			availableChan:          make(chan struct{}),
 		}
 		if !r.uploadHeap.managedPush(chunk) {
 			return fmt.Errorf("unable to push chunk: %v", chunk)
@@ -383,8 +384,9 @@ func TestAddChunksToHeap(t *testing.T) {
 
 	// Confirm that all chunks from all the directories were added since there
 	// are not enough chunks in only one directory to fill the heap
-	if len(siaPaths) != 3 {
-		t.Fatal("Expected 3 siaPaths to be returned, got", siaPaths)
+	totalDirs := len(siaPaths.childDirs) + len(siaPaths.parentDirs)
+	if totalDirs != 3 {
+		t.Fatal("Expected 3 siaPaths to be returned, got", totalDirs)
 	}
 	if rt.renter.uploadHeap.managedLen() != int(numChunks) {
 		t.Fatalf("Expected uploadHeap to have %v chunks but it has %v chunks", numChunks, rt.renter.uploadHeap.managedLen())
@@ -484,6 +486,7 @@ func TestAddDirectoryBackToHeap(t *testing.T) {
 			stuck:           false,
 			piecesCompleted: -1,
 			piecesNeeded:    1,
+			availableChan:   make(chan struct{}),
 		}
 		if !rt.renter.uploadHeap.managedPush(chunk) {
 			t.Fatal("Chunk should have been added to heap")
@@ -556,6 +559,7 @@ func TestUploadHeapMaps(t *testing.T) {
 			stuck:           stuck,
 			piecesCompleted: 1,
 			piecesNeeded:    1,
+			availableChan:   make(chan struct{}),
 		}
 		// push chunk to heap
 		if !rt.renter.uploadHeap.managedPush(chunk) {

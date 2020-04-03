@@ -6,7 +6,7 @@ language_tabs: # must be one of https://git.io/vQNgJ
 
 toc_footers:
   - <a href='https://scpri.me'>The Official ScPrime Website
-  - <a href='https://gitlab.com/SiaPrime/SiaPrime'>ScPrime on GitLab</a>
+  - <a href='https://gitlab.com/scpcorp/ScPrime'>ScPrime on GitLab</a>
 
 search: true
 ---
@@ -31,8 +31,6 @@ curl -A "SiaPrime-Agent" -u "":<apipassword> --data "amount=123&destination=abcd
 ```go
 curl -A "SiaPrime-Agent" -X POST "localhost:4280/gateway/connect/123.456.789.0:4281"
 ```
-
-ScPrime uses semantic versioning and is backwards compatible to version v1.0.0.
 
 API calls return either JSON or no content. Success is indicated by 2xx HTTP
 status codes, while errors are indicated by 4xx and 5xx HTTP status codes. If an
@@ -60,17 +58,23 @@ The following details the documentation standards for the API endpoints.
     - Parameters
     - Response
  - Each endpoint should have a corresponding curl example
+   - For formatting there needs to be a newline between `> curl example` and the
+     example
  - All non-standard responses should have a JSON Response example with units
+   - For formatting there needs to be a newline between `> JSON Response
+     Example` and the example
  - There should be detailed descriptions of all JSON response fields
  - There should be detailed descriptions of all query string parameters
  - Query String Parameters should be separated into **REQUIRED** and
    **OPTIONAL** sections
- - Detailed descriptions should be structured as "**field** | units"
+   - Detailed descriptions should be structured as "**field** | units"
+   - For formatting there needs to be two spaces after the units so that the
+     description is on a new line
+ - All code blocks should specify `go` as the language for consistent formatting
 
 Contributors should follow these standards when submitting updates to the API
 documentation.  If you find API endpoints that do not adhere to these
 documentation standards please let the ScPrime team know by submitting an issue
-[here](https://gitlab.com/NebulousLabs/Sia/issues)
 
 # Standard Responses
 
@@ -98,6 +102,7 @@ The standard error response indicating the request failed for any reason, is a
 
 ```go
 curl -A "SiaPrime-Agent" --user "":<apipassword> --data "amount=123&destination=abcd" "localhost:4280/wallet/siacoins"
+
 ```
 
 API authentication is enabled by default, using a password stored in a flat
@@ -106,7 +111,6 @@ file. The location of this file is:
  - Linux:   `$HOME/.sia/apipassword`
  - MacOS:   `$HOME/Library/Application Support/ScPrime/apipassword`
  - Windows: `%LOCALAPPDATA%\ScPrime\apipassword`
-
 
 Note that the file contains a trailing newline, which must be trimmed before
 use.
@@ -141,6 +145,15 @@ If a number is returned as a string in JSON, it should be treated as an
 arbitrary-precision number (bignum), and it should be parsed with your
 language's corresponding bignum library. Currency values are the most common
 example where this is necessary.
+
+# Environment Variables
+There are three environment variables supported by siad.
+ - `SIA_API_PASSWORD` is the environment variable that sets a custom API
+   password if the default is not used
+ - `SIA_DATA_DIR` is the environment variable that tells siad where to put the
+   sia data
+ - `SIA_WALLET_PASSWORD` is the environment variable that can be set to enable
+   auto unlocking the wallet
 
 # Consensus
 
@@ -411,7 +424,8 @@ the rest of Sia.
 curl -A "SiaPrime-Agent" "localhost:4280/daemon/alerts"
 ```
 
-Returns the alerts of the Sia instance.
+Returns the alerts of the node sorted by severity from highest to
+lowest.
 
 ### JSON Response
 > JSON Response Example
@@ -491,6 +505,7 @@ Returns the some of the constants that the Sia daemon uses.
   "maxtargetadjustmentdown":"2/5",  // big.Rat
   
   "siacoinprecision":"1000000000000000000000000"  // currency
+  "scprimecoinprecision":"1000000000000000000000000000"  // currency
 }
 ```
 **blockfrequency** | blockheight  
@@ -577,9 +592,14 @@ MaxTargetAdjustmentDown restrict how much the block difficulty is allowed to
 change in a single step, which is important to limit the effect of difficulty
 raising and lowering attacks.
 
-**siacoinprecision** | currency  
+**siacoinprecision** | currency 
 SiacoinPrecision is the number of base units in a siacoin. The Sia network has a
 very large number of base units. We call 10^24 of these a siacoin.
+
+**siacoinprecision** | currency  
+ScPrimecoinPrecision is the number of base units in a scprimecoin. The ScPrime 
+network has a very large number of base units. For trading and accounting we 
+define 10^27 of these a scprimecoin.
 
 ## /daemon/settings [GET]
 > curl example  
@@ -717,7 +737,7 @@ returns information about the gateway, including the list of connected peers.
 ### JSON Response
 > JSON Response Example
  
-```go
+```JSON
 {
     "netaddress":"333.333.333.333:4281",  // string
     "peers":[
@@ -791,14 +811,17 @@ responses](#standard-responses).
 
 ## /gateway/bandwidth [GET]
 > curl example
-```go
+
+```sh
 curl -A "SiaPrime-Agent" "localhost:4280/gateway/bandwidth"
 ```
 
 returns the total upload and download bandwidth usage for the gateway
 
 ### JSON Response
-```go
+> JSON Response Example
+
+```JSON
 {
   "download":  12345                                  // bytes
   "upload":    12345                                  // bytes
@@ -879,14 +902,15 @@ fetches the list of blacklisted addresses.
 
 ### JSON Response
 > JSON Response Example
-```go
+
+```JSON
 {
-"blacklist":
-[
-"123.123.123.123",  // string
-"123.123.123.123",  // string
-"123.123.123.123",  // string
-],
+  "blacklist":
+    [
+    "123.123.123.123",  // string
+    "123.123.123.123",  // string
+    "123.123.123.123",  // string
+    ],
 }
 ```
 **blacklist** | string  
@@ -943,7 +967,7 @@ fetches status information about the host.
 ### JSON Response
 > JSON Response Example
  
-```go
+```JSON
 {
   "externalsettings": {
     "acceptingcontracts":   true,                 // boolean
@@ -1006,6 +1030,10 @@ fetches status information about the host.
     "minsectoraccessprice":      "123",                        //hastings
     "minstorageprice":           "231481481481",               // hastings / byte / block
     "minuploadbandwidthprice":   "100000000000000"             // hastings / byte
+
+    "ephemeralaccountexpiry":     "604800",                          // seconds
+    "maxephemeralaccountbalance": "2000000000000000000000000000000", // hastings
+    "maxephemeralaccountrisk":    "2000000000000000000000000000000", // hastings
   },
 
   "networkmetrics": {
@@ -1266,6 +1294,39 @@ The minimum price that the host will demand from a renter when the renter is
 uploading data. If the host is saturated, the host may increase the price from
 the minimum.  
 
+**ephemeralaccountexpiry** | seconds  
+The  maximum amount of time an ephemeral account can be inactive before it is
+considered to be expired and gets deleted. After an account has expired, the
+account owner has no way of retrieving the funds. Setting this value to 0 means
+ephemeral accounts never expire, regardless of how long they have been inactive.
+
+**maxephemeralaccountbalance** | hastings  
+The maximum amount of money that the host will allow a user to deposit into a
+single ephemeral account.
+
+**maxephemeralaccountrisk** | hastings  
+To increase performance, the host will allow a user to withdraw from an
+ephemeral account without requiring the user to wait until the host has
+persisted the updated ephemeral account balance to complete a transaction. This
+means that the user can perform actions such as downloads with significantly
+less latency. This also means that if the host loses power at that exact moment,
+the host will forget that the user has spent money and the user will be able to
+spend that money again.
+
+maxephemeralaccountrisk is the maximum amount of money that the host is willing
+to risk to a system failure. The account manager will keep track of the total
+amount of money that has been withdrawn, but has not yet been persisted to disk.
+If a user's withdrawal would put the host over the maxephemeralaccountrisk, the
+host will wait to complete the user's transaction until it has persisted the
+widthdrawal, to prevent the host from having too much money at risk.
+
+Note that money is only at risk if the host experiences an unclean shutdown
+while in the middle of a transaction with a user, and generally the amount at
+risk will be minuscule unless the host experiences an unclean shutdown while in
+the middle of many transactions with many users at once. This value should be
+larger than maxephemeralaccountbalance but does not need to be significantly
+larger.
+
 **networkmetrics**    
 Information about the network, specifically various ways in which renters have
 contacted the host.  
@@ -1304,10 +1365,40 @@ and indicates if the host can connect to itself on its configured NetAddress.
 
 **workingstatus** | string  
 workingstatus is one of "checking", "working", or "not working" and indicates if
-the host is being actively used by renters.  
+the host is being actively used by renters.
 
 **publickey** | SiaPublicKey  
-Public key used to identify the host.  
+Public key used to identify the host.
+
+## /host/bandwidth [GET]
+> curl example
+
+```go
+curl -A "SiaPrime-Agent" "localhost:9980/host/bandwidth"
+```
+
+returns the total upload and download bandwidth usage for the host
+
+### JSON Response
+```JSON
+{
+  "download":  12345                                  // bytes
+  "upload":    12345                                  // bytes
+  "starttime": "2018-09-23T08:00:00.000000000+04:00", // Unix timestamp
+}
+```
+
+**download** | bytes  
+the total number of bytes that have been sent from the host to renters since the
+starttime.
+
+**upload** | bytes  
+the total number of bytes that have been received by the host from renters since the
+starttime.
+
+**starttime** | Unix timestamp  
+the time at which the host started monitoring the bandwidth, since the
+bandwidth is not currently persisted this will be startup timestamp.
 
 ## /host [POST]
 > curl example  
@@ -1403,6 +1494,33 @@ higher than the minimum.
 The minimum price that the host will demand from a renter when the renter is
 uploading data. If the host is saturated, the host may increase the price from
 the minimum.  
+
+**maxephemeralaccountbalance** | hastings  
+The maximum amount of money that the host will allow a user to deposit into a
+single ephemeral account.
+
+**maxephemeralaccountrisk** | hastings  
+To increase performance, the host will allow a user to withdraw from an
+ephemeral account without requiring the user to wait until the host has
+persisted the updated ephemeral account balance to complete a transaction. This
+means that the user can perform actions such as downloads with significantly
+less latency. This also means that if the host loses power at that exact moment,
+the host will forget that the user has spent money and the user will be able to
+spend that money again.
+
+maxephemeralaccountrisk is the maximum amount of money that the host is willing
+to risk to a system failure. The account manager will keep track of the total
+amount of money that has been withdrawn, but has not yet been persisted to disk.
+If a user's withdrawal would put the host over the maxephemeralaccountrisk, the
+host will wait to complete the user's transaction until it has persisted the
+widthdrawal, to prevent the host from having too much money at risk.
+
+Note that money is only at risk if the host experiences an
+unclean shutdown while in the middle of a transaction with a user, and generally
+the amount at risk will be minuscule unless the host experiences an unclean
+shutdown while in the middle of many transactions with many users at once. This
+value should be larger than 'maxephemeralaccountbalance but does not need to be
+significantly larger.
 
 ### Response
 
@@ -1664,7 +1782,7 @@ responses](#standard-responses).
 ## /host/storage/folders/resize [POST]
 > curl example  
 
-```go
+```sh
 curl -A "SiaPrime-Agent" -u "":<apipassword> --data "path=foo/bar&newsize=1000000000000" "localhost:4280/host/storage/folders/resize"
 ```
 
@@ -1695,7 +1813,7 @@ responses](#standard-responses).
 ## /host/storage/sectors/delete/:*merkleroot* [POST]
 > curl example  
 
-```go
+```sh
 curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host/storage/sectors/delete/[merkleroot]"
 ```
 
@@ -1718,7 +1836,7 @@ responses](#standard-responses).
 ## /host/estimatescore [GET]
 > curl example  
 
-```go
+```sh
 curl -A "SiaPrime-Agent" "localhost:4280/host/estimatescore"
 ```
 
@@ -1740,12 +1858,15 @@ See [host internal settings](#internalsettings)
  - mincontractprice          
  - mindownloadbandwidthprice  
  - minstorageprice            
- - minuploadbandwidthprice    
+ - minuploadbandwidthprice
+ - ephemeralaccountexpiry    
+ - maxephemeralaccountbalance
+ - maxephemeralaccountrisk
 
 ### JSON Response
 > JSON Response Example
 
-```go
+```JSON
 {
   "estimatedscore": "123456786786786786786786786742133",  // big int
   "conversionrate": 95  // float64
@@ -1885,7 +2006,7 @@ Maximum size in bytes of a single batch of file contract revisions. Larger batch
 sizes allow for higher throughput as there is significant communication overhead
 associated with performing a batch upload.  
 
-**netaddress** | sting  
+**netaddress** | string  
 Remote address of the host. It can be an IPv4, IPv6, or hostname, along with the
 port. IPv6 addresses are enclosed in square brackets.  
 
@@ -2236,7 +2357,7 @@ had its chain extended first.
 ## /miner/start [GET]
 > curl example  
 
-```go
+```sh
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/miner/start"
 ```
 
@@ -2251,7 +2372,7 @@ responses](#standard-responses).
 ## /miner/stop [GET]
 > curl example  
 
-```go
+```sh
 curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/miner/stop"
 ```
 
@@ -2265,7 +2386,7 @@ responses](#standard-responses).
 ## /miner/block [POST]
 > curl example  
 
-```
+```sh
 curl -A "SiaPrime-Agent" -data "<byte-encoded-block>" -u "":<apipassword> "localhost:4280/miner/block"
 ```
 
@@ -2441,7 +2562,7 @@ period is over, the contracts will be renewed and the spending will be reset.
 
 **renewwindow** | blocks  
 The renew window is how long the user has to renew their contracts. At the end
-of the period, all of the contracts expire. The contracts need to be renewewd
+of the period, all of the contracts expire. The contracts need to be renewed
 before they expire, otherwise the user will lose all of their files. The renew
 window is the window of time at the end of the period during which the renter
 will renew the users contracts. For example, if the renew window is 1 week long,
@@ -2958,7 +3079,7 @@ New maximum churn per period.
 standard success or error response. See [standard responses](#standard-responses).
 
 
-## /renter/dir/*siapath [GET]
+## /renter/dir/*siapath* [GET]
 > curl example  
 
 > The root siadir path is "" so submitting the API call without an empty siapath
@@ -3045,7 +3166,7 @@ The path to the directory on the sia network
 
 **files** Same response as [files](#files)
 
-## /renter/dir/*siapath [POST]
+## /renter/dir/*siapath* [POST]
 > curl example  
 
 ```go
@@ -3060,6 +3181,11 @@ performs various functions on the renter's directories
 Location where the directory will reside in the renter on the network. The path
 must be non-empty, may not include any path traversal strings ("./", "../"), and
 may not begin with a forward-slash character.  
+
+**root** | bool
+Whether or not to treat the siapath as being relative to the user's home
+directory. If this field is not set, the siapath will be interpreted as
+relative to 'home/user/'.  
 
 ### Query String Parameters
 ### REQUIRED
@@ -3084,7 +3210,7 @@ Action can be either `create`, `delete` or `rename`.
 standard success or error response. See [standard
 responses](#standard-responses).
 
-## /renter/downloadinfo/*uid [GET]
+## /renter/downloadinfo/*uid* [GET]
 > curl example  
 
 ```go
@@ -3516,6 +3642,12 @@ only the entry in the renter. Will return an error if the target is a folder.
 **siapath** | string  
 Path to the file in the renter on the network.
 
+### OPTIONAL
+ **root** | bool
+ Whether or not to treat the siapath as being relative to the user's home
+ directory. If this field is not set, the siapath will be interpreted as
+ relative to 'home/user/'.  
+
 ### Response
 
 standard success or error response. See [standard
@@ -3783,13 +3915,14 @@ responses](#standard-responses).
 
 > Stream the whole file.  
 
-```go
+```sh
 curl -A "SiaPrime-Agent" "localhost:4280/renter/stream/myfile"
 ```  
+
 > The file can be streamed partially by using standard partial http requests
 > which means setting the "Range" field in the http header.  
 
-```go
+```sh
 curl -A "SiaPrime-Agent" -H "Range: bytes=0-1023" "localhost:4280/renter/stream/myfile"
 ```
 
@@ -3919,6 +4052,7 @@ The number of parity pieces to use when erasure coding the file.
 
 ### JSON Response
 > JSON Response Example
+
 ```go
 {
 "ready":false,            // bool
@@ -4003,6 +4137,302 @@ siapath to test.
 ### Response
 standard success or error response, a successful response means a valid siapath.
 See [standard responses](#standard-responses).
+
+# Skynet
+
+## /skynet/blacklist [GET]
+> curl example
+
+```go
+curl -A "SiaPrime-Agent" "localhost:9980/skynet/blacklist"
+```
+
+returns the list of merkleroots that are blacklisted.
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+  "blacklist": {
+    "QAf9Q7dBSbMarLvyeE6HTQmwhr7RX9VMrP9xIMzpU3I" // hash
+    "QAf9Q7dBSbMarLvyeE6HTQmwhr7RX9VMrP9xIMzpU3I" // hash
+    "QAf9Q7dBSbMarLvyeE6HTQmwhr7RX9VMrP9xIMzpU3I" // hash
+  }
+}
+```
+**blacklist** | Hashes  
+The blacklist is a list of merkle roots, which are hashes, that are blacklisted.
+
+## /skynet/blacklist [POST]
+> curl example
+
+```go
+curl -A "SiaPrime-Agent" --user "":<apipassword> --data '{"add" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:9980/skynet/blacklist"
+
+curl -A "SiaPrime-Agent" --user "":<apipassword> --data '{"remove" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:9980/skynet/blacklist"
+```
+
+updates the list of skylinks that should be blacklisted from Skynet. This
+endpoint can be used to both add and remove skylinks from the blacklist.
+
+### Path Parameters
+### REQUIRED
+At least one of the following fields needs to be non empty.
+
+**add** | array of strings  
+add is an array of skylinks that should be added to the blacklisted
+
+**remove** | array of strings  
+remove is an array of skylinks that should be removed from the blacklist
+
+### Response
+
+standard success or error response. See [standard
+responses](#standard-responses).
+
+## /skynet/skylink/*skylink* [HEAD]
+> curl example
+
+```bash
+curl -I -A "SiaPrime-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
+```
+
+This curl command performs a HEAD request that fetches the headers for
+the given skylink. These headers are identical to the ones that would be
+returned if the request had been a GET request.
+
+### Path Parameters
+See [/skynet/skylink/skylink](#skynetskylinkskylink-get)
+
+### Query String Parameters
+See [/skynet/skylink/skylink](#skynetskylinkskylink-get)
+
+### Response Header
+See [/skynet/skylink/skylink](#skynetskylinkskylink-get)
+
+### Response Body
+
+This request has an empty response body.
+
+## /skynet/skylink/*skylink* [GET]
+> curl example  
+
+> Stream the whole file.  
+
+```bash
+# entire file
+curl -A "SiaPrime-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
+
+# directory
+curl -A "SiaPrime-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder"
+
+# sub file
+curl -A "SiaPrime-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder/file.txt"
+```  
+
+downloads a skylink using http streaming. This call blocks until the data is
+received. There is a 30s default timeout applied to downloading a skylink. If
+the data can not be found within this 30s time constraint, a 404 will be
+returned. This timeout is configurable through the query string parameters.
+
+### Path Parameters 
+### Required
+**skylink** | string  
+The skylink that should be downloaded. The skylink can contain an optional path.
+This path can specify a directory or a particular file. If specified, only that
+file or directory will be returned.
+
+### Query String Parameters
+### OPTIONAL
+
+**attachment** | bool  
+If 'attachment' is set to true, the Content-Disposition http header will be set
+to 'attachment' instead of 'inline'. This will cause web browsers to download
+the file as though it is an attachment instead of rendering it.
+
+**format** | string  
+If 'format' is set, the skylink can point to a directory and it will return the
+data inside that directory. Format will decide the format in which it is
+returned. Currently we only support 'concat', which will return the concatenated
+data of all subfiles in that directory.
+
+**timeout** | int  
+If 'timeout' is set, the download will fail if the Skyfile can not be retrieved 
+before it expires. Note that this timeout does not cover the actual download 
+time, but rather covers the TTFB. Timeout is specified in seconds, a timeout 
+value of 0 will be ignored. If no timeout is given, the default will be used,
+which is a 30 second timeout. The maximum allowed timeout is 900s (15 minutes).
+
+### Response Header
+
+**Skynet-File-Metadata** | SkyfileMetadata
+
+The header field "Skynet-FileMetadata" will be set such that it has an encoded
+json object which matches the modules.SkyfileMetadata struct. If a path was
+supplied, this metadata will be relative to the given path.
+
+> Skynet-File-Metadata Response Header Example 
+
+```go
+{
+"mode":               // os.FileMode
+"filename": "folder", // string
+"subfiles": [         // []SkyfileSubfileMetadata | null
+  {
+  "mode":         640                 // os.FileMode
+  "filename":     "folder/file1.txt", // string
+  "contenttype":  "text/plain",       // string
+  "offset":       0,                  // uint64
+  "len":          6                   // uint64
+  }
+]
+}
+```
+
+### Response Body
+
+The response body is the raw data for the file.
+
+## /skynet/skyfile/*siapath* [POST]
+> curl example  
+
+```go
+// This command uploads the file 'myImage.png' to the Sia folder
+// 'var/skynet/images/myImage.png'. Users who download the file will see the name
+// 'image.png'.
+curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:9980/skynet/skyfile/images/myImage.png?filename=image.png" --data-binary @myImage.png
+```
+
+uploads a file to the network using a stream. If the upload stream POST call
+fails or quits before the file is fully uploaded, the file can be repaired by a
+subsequent call to the upload stream endpoint using the `repair` flag.
+
+### Path Parameters
+### REQUIRED
+**siapath** | string  
+Location where the file will reside in the renter on the network. The path must
+be non-empty, may not include any path traversal strings ("./", "../"), and may
+not begin with a forward-slash character. If the 'root' flag is not set, the
+path will be prefixed with 'var/skynet/', placing the skyfile into the Sia
+system's default skynet folder.
+
+### Query String Parameters
+### OPTIONAL
+**basechunkredundancy** | uint8  
+The amount of redundancy to use when uploading the base chunk. The base chunk is
+the first chunk of the file, and is always uploaded using 1-of-N redundancy.
+
+**convertpath** string  
+The siapath of an existing siafile that should be converted to a skylink. A new
+skyfile will be created. Both the new skyfile and the existing siafile are
+required to be maintained on the network in order for the skylink to remain
+active. This field is mutually exclusive with uploading streaming.
+
+**filename** | string  
+The name of the file. This name will be encoded into the skyfile metadata, and
+will be a part of the skylink. If the name changes, the skylink will change as
+well.
+
+**dryrun** | bool  
+If dryrun is set to true, the request will return the Skylink of the file
+without uploading the actual file to the Sia network.
+
+**force** | bool  
+If there is already a file that exists at the provided siapath, setting this
+flag will cause the new file to overwrite/delete the existing file. If this flag
+is not set, an error will be returned preventing the user from destroying
+existing data.
+
+**mode** | uint32  
+The file mode / permissions of the file. Users who download this file will be
+presented a file with this mode. If no mode is set, the default of 0644 will be
+used.
+
+**root** | bool  
+Whether or not to treat the siapath as being relative to the root directory. If
+this field is not set, the siapath will be interpreted as relative to
+'var/skynet'.
+
+### Http Headers
+### OPTIONAL
+**Content-Disposition** | string  
+If the filename is set in the Content-Disposition field, that filename will be
+used as the filename of the object being uploaded. Note that this header is only
+taken into consideration when using a multipart form upload.
+
+For more details on setting Content-Disposition:
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
+
+**Skynet-Disable-Force** | bool  
+This request header allows overruling the behaviour of the `force` parameter
+that can be passed in through the query string parameters. This header is useful
+for Skynet portal operators that would like to have some control over the
+requests that are being passed to siad. To avoid having to parse query string
+parameters and overrule them that way, this header can be set to disable the
+force flag and disallow overwriting the file at the given siapath.
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+"skylink":    "CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg" // string
+"merkleroot": "QAf9Q7dBSbMarLvyeE6HTQmwhr7RX9VMrP9xIMzpU3I" // hash
+"bitfield":   2048 // int
+}
+```
+**skylink** | string  
+This is the skylink that can be used with the `/skynet/skylink` GET endpoint to
+retrieve the file that has been uploaded.
+
+**merkleroot** | hash  
+This is the hash that is encoded into the skylink.
+
+**bitfield** | int  
+This is the bitfield that gets encoded into the skylink. The bitfield contains a
+version, an offset and a length in a heavily compressed and optimized format.
+
+## /skynet/stats [GET]
+> curl example
+
+```go
+curl -A "SiaPrime-Agent" "localhost:9980/skynet/stats"
+```
+
+returns statistical information about Skynet, e.g. number of files uploaded
+
+### JSON Response
+```json
+{
+  "uploadstats": {
+    "numfiles": 2,         // int
+    "totalsize": 44527895  // int
+  },
+  "versioninfo": {
+    "version":     "1.4.3-master", // string
+    "gitrevision": "cd5a83712"     // string
+  }
+}
+```
+
+**uploadstats** | object
+Uploadstats is an object with statistics about the data uploaded to Skynet.
+
+**numfiles** | int  
+Numfiles is the total number of files uploaded to Skynet.
+
+**totalsize** | int  
+Totalsize is the total amount of data in bytes uploaded to Skynet.
+
+**versioninfo** | object  
+Versioninfo is an object that contains the node's version information.
+
+**version** | string  
+Version is the siad version the node is running.
+
+**gitrevision** | string  
+Gitrevision refers to the commit hash used to build said.
 
 # Transaction Pool
 
@@ -4559,8 +4989,8 @@ curl -A "SiaPrime-Agent" -u "":<apipassword> --data "amount=1000&destination=c13
 ```
 
 Sends siacoins to an address or set of addresses. The outputs are arbitrarily
-selected from addresses in the wallet. If 'outputs' is supplied, 'amount' and
-'destination' must be empty.  
+selected from addresses in the wallet. If 'outputs' is supplied, 'amount',
+'destination' and 'feeIncluded' must be empty.
 
 ### Query String Parameters
 ### REQUIRED
@@ -4577,7 +5007,11 @@ Address that is receiving the coins.
 
 **outputs**  
 JSON array of outputs. The structure of each output is: {"unlockhash":
-"<destination>", "value": "<amount>"}  
+"<destination>", "value": "<amount>"}
+
+### OPTIONAL
+**feeIncluded** | boolean  
+Take the transaction fee out of the balance being submitted instead of the fee being additional.
 
 ### JSON Response
 > JSON Response Example
@@ -4888,7 +5322,8 @@ Name of the dictionary that should be used when decoding the seed. 'english' is
 the most common choice when picking a dictionary.  
 
 ### JSON Response
- > JSON  Response Example
+> JSON  Response Example
+
 ```go
 {
 "coins": "123456", // hastings, big int
@@ -4940,7 +5375,7 @@ ID of the transaction being requested.
 {
   "transaction": {
     "transaction": {
-      // See types.Transaction in https://gitlab.com/NebulousLabs/Sia/blob/master/types/transactions.go
+      // See types.Transaction in https://gitlab.com/scpcorp/ScPrime/blob/master/types/transactions.go
     },
     "transactionid":         "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "confirmationheight":    50000,
@@ -4973,7 +5408,7 @@ raw transaction. It is left undocumented here as the processed transaction (the
 rest of the fields in this object) are usually what is desired.  
 
 See types.Transaction in
-https://gitlab.com/NebulousLabs/Sia/blob/master/types/transactions.go  
+https://gitlab.com/scpcorp/ScPrime/blob/master/types/transactions.go  
 
 **transactionid**  
 ID of the transaction from which the wallet transaction was derived.  
@@ -4996,7 +5431,7 @@ The id of the output being spent.
 Type of fund represented by the input. Possible values are 'siacoin input' and
 'siafund input'.  
 
-**walletaddress** | Boolean  
+**walletaddress** | boolean  
 true if the address is owned by the wallet.  
 
 **relatedaddress**  
@@ -5341,3 +5776,5 @@ addresses have never appeared in the blockchain.
 ### Response
 
 standard success or error response. See [standard responses](#standard-responses).
+
+# Versions

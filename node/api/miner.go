@@ -3,10 +3,10 @@ package api
 import (
 	"net/http"
 
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-
 	"github.com/julienschmidt/httprouter"
+
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 type (

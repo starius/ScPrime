@@ -3,8 +3,8 @@ package miner
 import (
 	"os"
 
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/siatest"
 )
 
 // minerTestDir creates a temporary testing directory for a miner test. This

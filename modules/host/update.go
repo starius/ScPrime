@@ -7,11 +7,11 @@ import (
 	"encoding/binary"
 	"encoding/json"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-
 	bolt "go.etcd.io/bbolt"
+
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // initRescan is a helper function of initConsensusSubscribe, and is called when
@@ -119,11 +119,18 @@ func (h *Host) initConsensusSubscription() error {
 // ProcessConsensusChange will be called by the consensus set every time there
 // is a change to the blockchain.
 func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
+	var oldHeight, newHeight types.BlockHeight
+
 	// Add is called at the beginning of the function, but Done cannot be
 	// called until all of the threads spawned by this function have also
 	// terminated. This function should not block while these threads wait to
 	// terminate.
 	h.mu.Lock()
+	// Notify the account manager of an update to the consensus.
+	oldHeight = h.blockHeight
+	defer func() {
+		h.staticAccountManager.callConsensusChanged(cc, oldHeight, newHeight)
+	}()
 	defer h.mu.Unlock()
 
 	// Wrap the whole parsing into a single large database tx to keep things
@@ -137,7 +144,7 @@ func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
 				if len(txn.FileContracts) > 0 {
 					for j := range txn.FileContracts {
 						fcid := txn.FileContractID(uint64(j))
-						so, err := getStorageObligation(tx, fcid)
+						so, err := h.getStorageObligation(tx, fcid)
 						if err != nil {
 							// The storage folder may not exist, or the disk
 							// may be having trouble. Either way, we ignore the
@@ -156,7 +163,7 @@ func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
 				// Check for file contract revisions.
 				if len(txn.FileContractRevisions) > 0 {
 					for _, fcr := range txn.FileContractRevisions {
-						so, err := getStorageObligation(tx, fcr.ParentID)
+						so, err := h.getStorageObligation(tx, fcr.ParentID)
 						if err != nil {
 							// The storage folder may not exist, or the disk
 							// may be having trouble. Either way, we ignore the
@@ -176,7 +183,7 @@ func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
 				if len(txn.StorageProofs) > 0 {
 					for _, sp := range txn.StorageProofs {
 						// Check database for relevant storage proofs.
-						so, err := getStorageObligation(tx, sp.ParentID)
+						so, err := h.getStorageObligation(tx, sp.ParentID)
 						if err != nil {
 							// The storage folder may not exist, or the disk
 							// may be having trouble. Either way, we ignore the
@@ -208,7 +215,7 @@ func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
 				if len(txn.FileContracts) > 0 {
 					for i := range txn.FileContracts {
 						fcid := txn.FileContractID(uint64(i))
-						so, err := getStorageObligation(tx, fcid)
+						so, err := h.getStorageObligation(tx, fcid)
 						if err != nil {
 							// The storage folder may not exist, or the disk
 							// may be having trouble. Either way, we ignore the
@@ -227,7 +234,7 @@ func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
 				// Check for file contract revisions.
 				if len(txn.FileContractRevisions) > 0 {
 					for _, fcr := range txn.FileContractRevisions {
-						so, err := getStorageObligation(tx, fcr.ParentID)
+						so, err := h.getStorageObligation(tx, fcr.ParentID)
 						if err != nil {
 							// The storage folder may not exist, or the disk
 							// may be having trouble. Either way, we ignore the
@@ -246,7 +253,7 @@ func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
 				// Check for storage proofs.
 				if len(txn.StorageProofs) > 0 {
 					for _, sp := range txn.StorageProofs {
-						so, err := getStorageObligation(tx, sp.ParentID)
+						so, err := h.getStorageObligation(tx, sp.ParentID)
 						if err != nil {
 							// The storage folder may not exist, or the disk
 							// may be having trouble. Either way, we ignore the
@@ -309,4 +316,6 @@ func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
 	if err != nil {
 		h.log.Println("ERROR: could not save during ProcessConsensusChange:", err)
 	}
+
+	newHeight = h.blockHeight
 }

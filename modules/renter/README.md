@@ -1,5 +1,4 @@
 # Renter
-
 The Renter is responsible for tracking and actively maintaining all of the files
 that a user has uploaded to Sia. This includes the location and health of these
 files. The Renter, via the HostDB and the Contractor, is also responsible for
@@ -19,16 +18,22 @@ Renter. This README will provide brief overviews of the submodules, but for more
 detailed descriptions of the inner workings of the submodules the respective
 README files should be reviewed.
  - Contractor
+ - Filesystem
  - HostDB
  - Proto
- - SiaDir
- - SiaFile
+ - Skynet Blacklist
 
 ### Contractor
 The Contractor manages the Renter's contracts and is responsible for all
 contract actions such as new contract formation and contract renewals. The
 Contractor determines which contracts are GoodForUpload and GoodForRenew and
 marks them accordingly.
+
+### Filesystem
+The Filesystem is responsible for ensuring that all of its supported file
+formats can be accessed in a threadsafe manner. It doesn't handle any
+persistence directly but instead relies on the underlying format's package to
+handle that itself.
 
 ### HostDB
 The HostDB curates and manages a list of hosts that may be useful for the renter
@@ -42,27 +47,25 @@ including contract formation and renewal RPCs, uploading and downloading,
 verifying Merkle proofs, and synchronizing revision states. It is a low-level
 module whose functionality is largely wrapped by the Contractor.
 
-### SiaDir
-The SiaDir module is the code that defines what a directory is on the Sia
-network. It also manages accesses and updates to the file, ensuring safety and
-ACIDity when performing file operations.
-
-### SiaFile
-The SiaFile module is the code that defines what a file is on the Sia network.
-It also manages accesses and updates to the file, ensuring safety and ACIDity
-when performing file operations.
+### Skynet Blacklist
+The Skynet Blacklist module manages the list of skylinks that the Renter wants
+blacklisted. It also manages persisting the blacklist in a ACID and performant
+manner.
 
 ## Subsystems
 The Renter has the following subsystems that help carry out its
 responsibilities.
  - [Filesystem Controllers](#filesystem-controllers)
  - [Fuse Subsystem](#fuse-subsystem)
- - [Fuse Manager Subsystem](#fuse-manager)
+ - [Fuse Manager Subsystem](#fuse-manager-subsystem)
  - [Persistence Subsystem](#persistence-subsystem)
  - [Memory Subsystem](#memory-subsystem)
  - [Worker Subsystem](#worker-subsystem)
  - [Download Subsystem](#download-subsystem)
  - [Download Streaming Subsystem](#download-streaming-subsystem)
+ - [Download By Root Subsystem](#download-by-root-subsystem)
+ - [Skyfile Subsystem](#skyfile-subsystem)
+ - [Stream Buffer Subsystem](#stream-buffer-subsystem)
  - [Upload Subsystem](#upload-subsystem)
  - [Upload Streaming Subsystem](#upload-streaming-subsystem)
  - [Health and Repair Subsystem](#health-and-repair-subsystem)
@@ -404,6 +407,43 @@ price and total throughput.
 *TODO* 
   - fill out subsystem explanation
 
+### Skyfile Subsystem
+**Key Files**
+ - [skyfile.go](./skyfile.go)
+ - [skyfilefanout.go](./skyfilefanout.go)
+ - [skyfilefanoutfetch.go](./skyfilefanoutfetch.go)
+
+The skyfile system contains methods for encoding, decoding, uploading, and
+downloading skyfiles using Skylinks, and is one of the foundations underpinning
+Skynet.
+
+The skyfile format is a custom format which prepends metadata to a file such
+that the entire file and all associated metadata can be recovered knowing
+nothing more than a single sector root. That single sector root can be encoded
+alongside some compressed fetch offset and length information to create a
+skylink.
+
+**Outbound Complexities**
+ - callUploadStreamFromReader is used to upload new data to the Sia network when
+   creating skyfiles. This call appears three times in
+   [skyfile.go](./skyfile.go)
+
+### Stream Buffer Subsystem
+**Key Files**
+ - [streambuffer.go](./streambuffer.go)
+ - [streambufferlru.go](./streambufferlru.go)
+
+The stream buffer subsystem coordinates buffering for a set of streams. Each
+stream has an LRU which includes both the recently visited data as well as data
+that is being buffered in front of the current read position. The LRU is
+implemented in [streambufferlru.go](./streambufferlru.go).
+
+If there are multiple streams open from the same data source at once, they will
+share their cache. Each stream will maintain its own LRU, but the data is stored
+in a common stream buffer. The stream buffers draw their data from a data source
+interface, which allows multiple different types of data sources to use the
+stream buffer.
+
 ### Upload Subsystem
 **Key Files**
  - [directoryheap.go](./directoryheap.go)
@@ -436,12 +476,33 @@ merkle root and the contract revision.
    `uploadHeap` and then signals the heap's `newUploads` channel so that the
    Repair Loop will work through the heap and upload the chunks
 
+### Download By Root Subsystem
+**Key Files**
+ - [projectdownloadbyroot.go](./projectdownloadbyroot.go)
+ - [workerdownloadbyroot.go](./workerdownloadbyroot.go)
+
+The download by root subsystem exports a single method that allows a caller to
+download or partially download a sector from the Sia network knowing only the
+Merkle root of that sector, and not necessarily knowing which host on the
+network has that sector. The single exported method is 'DownloadByRoot'.
+
+This subsystem was created primarily as a facilitator for the skylinks of
+Skynet. Skylinks provide a merkle root and some offset+length information, but
+do not provide any information about which hosts are storing the sectors. The
+exported method of this subsystem will primarily be called by skylink methods,
+as opposed to being used directly by external users.
+
 ### Upload Streaming Subsystem
 **Key Files**
  - [uploadstreamer.go](./uploadstreamer.go)
 
 *TODO* 
   - fill out subsystem explanation
+
+**Inbound Complexities**
+ - The skyfile subsystem makes three calls to `callUploadStreamFromReader()` in
+   [skyfile.go](./skyfile.go)
+ - The snapshot subsystem makes a call to `callUploadStreamFromReader()`
 
 ### Health and Repair Subsystem
 **Key Files**

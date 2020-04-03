@@ -3,8 +3,19 @@ package dependencies
 import (
 	"sync"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
+
+// DependencyTimeoutProjectDownloadByRoot immediately times out projects that
+// try to download a sector by its root.
+type DependencyTimeoutProjectDownloadByRoot struct {
+	modules.ProductionDependencies
+}
+
+// Disrupt forces an immediate timeout for DownloadByRoot projects.
+func (d *DependencyTimeoutProjectDownloadByRoot) Disrupt(s string) bool {
+	return s == "timeoutProjectDownloadByRoot"
+}
 
 // DependencyDisableCloseUploadEntry prevents SiaFileEntries in the upload code
 // from being closed.
@@ -38,6 +49,16 @@ type DependencyFailUploadStreamFromReader struct {
 // Disrupt prevents SiafileEntries in the upload code from being closed.
 func (d *DependencyFailUploadStreamFromReader) Disrupt(s string) bool {
 	return s == "failUploadStreamFromReader"
+}
+
+// DependencyDisableUploadGougingCheck ignores the upload gouging check
+type DependencyDisableUploadGougingCheck struct {
+	modules.ProductionDependencies
+}
+
+// Disrupt will prevent the uploads to fail due to upload gouging
+func (d *DependencyDisableUploadGougingCheck) Disrupt(s string) bool {
+	return s == "DisableUploadGouging"
 }
 
 // DependencyToggleWatchdogBroadcast can toggle the watchdog's ability to

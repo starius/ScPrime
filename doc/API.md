@@ -1678,7 +1678,7 @@ gets the transaction associated with a specific transaction id.
 {
   "transaction": {
     "transaction": {
-      // See types.Transaction in https://gitlab.com/SiaPrime/SiaPrime/blob/master/types/transactions.go
+      // See types.Transaction in https://gitlab.com/scpcorp/ScPrime/blob/master/types/transactions.go
     },
     "transactionid":         "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "confirmationheight":    50000,
@@ -1853,3 +1853,4 @@ standard success or error response. See
 
 The Sia API documentation can be found here:
 [Sia API](https://sia.tech/docs/ "Sia API")
+

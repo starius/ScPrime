@@ -29,10 +29,10 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -234,6 +234,6 @@ func NewCustomContractManager(dependencies modules.Dependencies, persistDir stri
 }
 
 // Alerts implements the modules.Alerter interface for the contract manager
-func (cm *ContractManager) Alerts() []modules.Alert {
+func (cm *ContractManager) Alerts() (crit, err, warn []modules.Alert) {
 	return cm.staticAlerter.Alerts()
 }

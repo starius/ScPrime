@@ -2,11 +2,10 @@ package explorer
 
 import (
 	"gitlab.com/NebulousLabs/errors"
-
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-
 	bolt "go.etcd.io/bbolt"
+
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 var (

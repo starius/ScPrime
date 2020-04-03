@@ -15,10 +15,11 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -163,7 +164,11 @@ func TestHostAndRentVanilla(t *testing.T) {
 		t.SkipNow()
 	}
 	t.Parallel()
-	st, err := createServerTester(t.Name())
+	// Inject a dependency that forces legacy contract renewal without clearing
+	// the contract.
+	pd := modules.ProdDependencies
+	csDeps := &dependencies.DependencyRenewWithoutClear{}
+	st, err := createServerTesterWithDeps(t.Name(), pd, pd, pd, pd, pd, pd, pd, pd, csDeps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -394,21 +399,6 @@ func TestHostAndRentVanilla(t *testing.T) {
 	err = st.getAPI("/host/contracts", &cts)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	success := false
-	for _, contract := range cts.Contracts {
-		if contract.ProofConfirmed {
-			// Sector roots should be removed from storage obligation
-			if contract.SectorRootsCount > 0 {
-				t.Error("There are sector roots on completed storage obligation.")
-			}
-			success = true
-			break
-		}
-	}
-	if !success {
-		t.Error("does not seem like the host has submitted a storage proof successfully to the network")
 	}
 }
 
@@ -988,12 +978,12 @@ func TestRenterParallelDelete(t *testing.T) {
 	// Wait for the second upload to complete.
 	var file RenterFile
 	uploadStart := time.Now()
-	for file.File.UploadProgress < 10 && time.Since(uploadStart) < 60*time.Second {
+	for file.File.UploadProgress < 10 && time.Since(uploadStart) < 40*time.Second {
 		time.Sleep(time.Second)
 		st.getAPI("/renter/file/test2", &file)
 	}
 	if file.File.UploadProgress < 10 {
-		t.Fatal("File does not upload. After 60s expected upload progress to be >=10 but was", file.File.UploadProgress)
+		t.Fatal("File does not upload. After 40s expected upload progress to be >=10 but was", file.File.UploadProgress)
 	}
 
 	// In parallel, download and delete the second file.
@@ -1112,6 +1102,11 @@ func TestRenterRenew(t *testing.T) {
 	contractID := rc.Contracts[0].ID
 	contractEndHeight := rc.Contracts[0].EndHeight
 
+	// Contract size should be == 0 since contract was cleared.
+	if rc.Contracts[0].Size == 0 {
+		t.Fatalf("contract size should be 0 but was %v", rc.Contracts[0].Size)
+	}
+
 	// Mine enough blocks to enter the renewal window.
 	testWin, _ := strconv.Atoi(allowanceValues.Get("renewwindow"))
 	renewBlock := contractEndHeight - types.BlockHeight(testWin) + 1
@@ -1123,11 +1118,14 @@ func TestRenterRenew(t *testing.T) {
 	}
 	// Wait for the contract to be renewed.
 	for i := 0; i < 200 && (len(rc.Contracts) != 1 || rc.Contracts[0].ID == contractID); i++ {
-		st.getAPI("/renter/contracts", &rc)
+		st.getAPI("/renter/contracts?expired=true", &rc)
 		time.Sleep(100 * time.Millisecond)
 	}
 	if rc.Contracts[0].ID == contractID {
 		t.Fatal("contract was not renewed:", rc.Contracts[0])
+	}
+	if rc.ExpiredContracts[0].Size != 0 {
+		t.Fatalf("contract size after renewal should be 0 but was %v", rc.Contracts[0].Size)
 	}
 
 	// Try downloading the file.
@@ -1714,7 +1712,6 @@ func TestUploadedBytesReporting(t *testing.T) {
 		t.Fatalf("api reports having uploaded %v bytes when upload progress is 100%%, but the actual fully redundant file size is %v\n",
 			rf.File.UploadedBytes, fullyRedundantSize(rf.File.CipherType))
 	}
-
 }
 
 // TestRepairLoopBlocking checks if the repair loop blocks operations while a

@@ -4,15 +4,15 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siadir"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-	"gitlab.com/SiaPrime/writeaheadlog"
-
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/writeaheadlog"
+
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siadir"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (
@@ -216,6 +216,10 @@ func (r *Renter) managedInitPersist() error {
 		return err
 	}
 	err = fs.NewSiaDir(modules.SnapshotsSiaPath(), modules.DefaultDirPerm)
+	if err != nil && err != filesystem.ErrExists {
+		return err
+	}
+	err = fs.NewSiaDir(modules.SkynetFolder, modules.DefaultDirPerm)
 	if err != nil && err != filesystem.ErrExists {
 		return err
 	}

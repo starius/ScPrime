@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 func TestBlockForWork(t *testing.T) {
@@ -31,5 +31,4 @@ func TestBlockForWork(t *testing.T) {
 	if len(b.Transactions) != 0 {
 		t.Fatal(errors.New(fmt.Sprintf("wrong tx number %d", len(b.Transactions))))
 	}
-
 }

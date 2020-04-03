@@ -1,7 +1,7 @@
 package dependencies
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 // DependencyDisableAutoOnline will disable the gateway always being online

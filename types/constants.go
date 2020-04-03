@@ -11,7 +11,7 @@ import (
 	"math/big"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 var (
@@ -108,6 +108,10 @@ var (
 	// GenesisAirdropAllocation is the output creating the initial coins allocated
 	// for the airdrop at network launch
 	GenesisAirdropAllocation []SiacoinOutput
+
+	// GenesisSiacoinAllocation is the set of SiacoinOutputs created in the Genesis
+	// block
+	GenesisSiacoinAllocation []SiacoinOutput
 	// GenesisSiafundAllocation is the set of SiafundOutputs created in the Genesis
 	// block.
 	GenesisSiafundAllocation []SiafundOutput
