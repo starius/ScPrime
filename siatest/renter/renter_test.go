@@ -3102,6 +3102,14 @@ func TestSetFileTrackingPath(t *testing.T) {
 	if len(tg.Hosts()) < 2 {
 		t.Fatal("This test requires at least 2 hosts")
 	}
+	//increase allowance
+	rs, rserr := renter.RenterSettings()
+	if rserr != nil {
+		t.Fatal(errors.AddContext(rserr, "Could not get RenterSettings"))
+	}
+	allowance := rs.Allowance
+	allowance.Funds = rs.Allowance.Funds.Mul64(3)
+	renter.RenterPostAllowance(allowance)
 	// Set fileSize and redundancy for upload
 	fileSize := int(modules.SectorSize)
 	dataPieces := uint64(1)
@@ -3134,6 +3142,7 @@ func TestSetFileTrackingPath(t *testing.T) {
 	// Create new hosts.
 	_, err = tg.AddNodeN(node.HostTemplate, numHosts)
 	if err != nil {
+		renter.PrintDebugInfo(t, true, true, true)
 		t.Fatal("Failed to create a new host", err)
 	}
 	// We should reach full health again.
