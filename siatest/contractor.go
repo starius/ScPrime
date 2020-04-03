@@ -275,7 +275,7 @@ func DrainContractsByUploading(renter *TestNode, tg *TestGroup) (startingUploadS
 		}
 		err = h.HostModifySettingPost(client.HostParamMinStoragePrice, maxStoragePrice)
 		if err != nil {
-			return types.ZeroCurrency, errors.AddContext(err, "could not set Host Upload Price")
+			return types.ZeroCurrency, errors.AddContext(err, "could not set Host Storage Price")
 		}
 	}
 

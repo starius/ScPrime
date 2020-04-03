@@ -2288,9 +2288,9 @@ func testOverspendAllowance(t *testing.T, tg *siatest.TestGroup) {
 	}
 	renter := nodes[0]
 
-	// Set the allowance with only 4SC
+	// Set the allowance with only 1SCP
 	allowance := siatest.DefaultAllowance
-	allowance.Funds = types.SiacoinPrecision.Mul64(4)
+	allowance.Funds = types.ScPrimecoinPrecision.Mul64(1)
 	if err := renter.RenterPostAllowance(allowance); err != nil {
 		t.Fatal(err)
 	}
