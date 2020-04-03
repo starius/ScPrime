@@ -2165,7 +2165,6 @@ func TestFailedContractRenewalAlert(t *testing.T) {
 	// Add a renter which won't be able to renew a contract.
 	renterParams := node.Renter(filepath.Join(testDir, "renter"))
 	renterParams.Allowance = siatest.DefaultAllowance
-	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(3)
 	renterParams.Allowance.Period = 10
 	renterParams.Allowance.RenewWindow = 5
 	renterParams.RenterDeps = &dependencies.DependencyDisableUploadGougingCheck{}
