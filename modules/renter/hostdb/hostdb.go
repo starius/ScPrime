@@ -621,7 +621,7 @@ func (hdb *HostDB) InitialScanComplete() (complete bool, err error) {
 // subnet or zero if the IPRestriction check is disabled.
 func (hdb *HostDB) IPRestriction() (int, error) {
 	if err := hdb.tg.Add(); err != nil {
-		return 0, errors.AddContext(err, "error adding hostdb threadgroup:")
+		return 0, errors.AddContext(err, "IPRestriction")
 	}
 	defer hdb.tg.Done()
 	return hdb.staticHostTree.IPRestriction(), nil
@@ -656,7 +656,7 @@ func (hdb *HostDB) SetAllowance(allowance modules.Allowance) error {
 // subnet. Set to zero to disable the IPRestriction check.
 func (hdb *HostDB) SetIPRestriction(numhosts int) error {
 	if err := hdb.tg.Add(); err != nil {
-		return errors.AddContext(err, "error adding hostdb threadgroup:")
+		return errors.AddContext(err, "SetIPRestriction")
 	}
 	defer hdb.tg.Done()
 	hdb.staticHostTree.SetIPRestriction(numhosts)
