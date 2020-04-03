@@ -221,6 +221,15 @@ func testStreamRepair(t *testing.T, tg *siatest.TestGroup) {
 	// Grab the first of the group's renters
 	r := tg.Renters()[0]
 
+	//increase allowance
+	rs, rserr := renter.RenterSettings()
+	if rserr != nil {
+		t.Fatal(errors.AddContext(rserr, "Could not get RenterSettings"))
+	}
+	allowance := rs.Allowance
+	allowance.Funds = rs.Allowance.Funds.Mul64(3)
+	renter.RenterPostAllowance(allowance)
+
 	// Check that we have enough hosts for this test.
 	if len(tg.Hosts()) < 2 {
 		t.Fatal("This test requires at least 2 hosts")
