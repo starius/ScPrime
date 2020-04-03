@@ -2347,6 +2347,7 @@ func testOverspendAllowance(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 	if len(rc.ActiveContracts) == 0 && len(rc.InactiveContracts) == 0 {
+		renter.PrintDebugInfo(t, true, true, true)
 		t.Fatal("No Contracts formed")
 	}
 

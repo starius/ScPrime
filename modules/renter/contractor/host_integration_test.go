@@ -244,7 +244,7 @@ func TestIntegrationFormContract(t *testing.T) {
 	c.mu.Unlock()
 
 	// form a contract with the host
-	_, _, err = c.managedNewContract(hostEntry, types.SiacoinPrecision.Mul64(50), c.blockHeight+100)
+	_, _, err = c.managedNewContract(hostEntry, types.ScPrimecoinPrecision.Mul64(50), c.blockHeight+100)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -278,7 +278,7 @@ func TestFormContractSmallAllowance(t *testing.T) {
 	// Using production number of hosts as well
 	c.mu.Lock()
 	c.allowance = modules.DefaultAllowance
-	c.allowance.Funds = types.SiacoinPrecision.Mul64(1)
+	c.allowance.Funds = types.ScPrimecoinPrecision.Mul64(1)
 	c.allowance.Hosts = uint64(50)
 	initialContractFunds := c.allowance.Funds.Div64(c.allowance.Hosts).Div64(3)
 	c.mu.Unlock()
@@ -326,7 +326,7 @@ func TestIntegrationReviseContract(t *testing.T) {
 	c.mu.Unlock()
 
 	// form a contract with the host
-	_, contract, err := c.managedNewContract(hostEntry, types.SiacoinPrecision.Mul64(50), c.blockHeight+100)
+	_, contract, err := c.managedNewContract(hostEntry, types.ScPrimecoinPrecision.Mul64(50), c.blockHeight+100)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -378,7 +378,7 @@ func TestIntegrationUploadDownload(t *testing.T) {
 	c.mu.Unlock()
 
 	// form a contract with the host
-	_, contract, err := c.managedNewContract(hostEntry, types.SiacoinPrecision.Mul64(50), c.blockHeight+100)
+	_, contract, err := c.managedNewContract(hostEntry, types.ScPrimecoinPrecision.Mul64(50), c.blockHeight+100)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -479,7 +479,7 @@ func TestIntegrationRenew(t *testing.T) {
 	if !ok {
 		t.Fatal("failed to acquire contract")
 	}
-	contract, err = c.managedRenew(oldContract, types.SiacoinPrecision.Mul64(50), c.blockHeight+200)
+	contract, err = c.managedRenew(oldContract, types.ScPrimecoinPrecision.Mul64(50), c.blockHeight+200)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -513,7 +513,7 @@ func TestIntegrationRenew(t *testing.T) {
 		t.Fatal(err)
 	}
 	oldContract, _ = c.staticContracts.Acquire(contract.ID)
-	contract, err = c.managedRenew(oldContract, types.SiacoinPrecision.Mul64(50), c.blockHeight+100)
+	contract, err = c.managedRenew(oldContract, types.ScPrimecoinPrecision.Mul64(50), c.blockHeight+100)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -775,7 +775,7 @@ func TestContractPresenceLeak(t *testing.T) {
 	c.mu.Unlock()
 
 	// form a contract with the host
-	_, contract, err := c.managedNewContract(hostEntry, types.SiacoinPrecision.Mul64(10), c.blockHeight+100)
+	_, contract, err := c.managedNewContract(hostEntry, types.ScPrimecoinPrecision.Mul64(10), c.blockHeight+100)
 	if err != nil {
 		t.Fatal(err)
 	}
