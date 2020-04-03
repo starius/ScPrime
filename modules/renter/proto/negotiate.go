@@ -5,14 +5,14 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-
 	"gitlab.com/NebulousLabs/errors"
 	"golang.org/x/crypto/chacha20poly1305"
+
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // extendDeadline is a helper function for extending the connection timeout.
@@ -201,50 +201,40 @@ func negotiateRevision(conn net.Conn, rev types.FileContractRevision, secretKey 
 	return signedTxn, responseErr
 }
 
-// newRevision creates a copy of current with its revision number incremented,
-// and with cost transferred from the renter to the host.
-func newRevision(current types.FileContractRevision, cost types.Currency) types.FileContractRevision {
-	rev := current
-
-	// need to manually copy slice memory
-	rev.NewValidProofOutputs = make([]types.SiacoinOutput, 2)
-	rev.NewMissedProofOutputs = make([]types.SiacoinOutput, 3)
-	copy(rev.NewValidProofOutputs, current.NewValidProofOutputs)
-	copy(rev.NewMissedProofOutputs, current.NewMissedProofOutputs)
-
-	// move valid payout from renter to host
-	rev.NewValidProofOutputs[0].Value = current.NewValidProofOutputs[0].Value.Sub(cost)
-	rev.NewValidProofOutputs[1].Value = current.NewValidProofOutputs[1].Value.Add(cost)
-
-	// move missed payout from renter to void
-	rev.NewMissedProofOutputs[0].Value = current.NewMissedProofOutputs[0].Value.Sub(cost)
-	rev.NewMissedProofOutputs[2].Value = current.NewMissedProofOutputs[2].Value.Add(cost)
-
-	// increment revision number
-	rev.NewRevisionNumber++
-
-	return rev
-}
-
 // newDownloadRevision revises the current revision to cover the cost of
 // downloading data.
-func newDownloadRevision(current types.FileContractRevision, downloadCost types.Currency) types.FileContractRevision {
-	return newRevision(current, downloadCost)
+func newDownloadRevision(current types.FileContractRevision, downloadCost types.Currency) (types.FileContractRevision, error) {
+	return current.PaymentRevision(downloadCost)
 }
 
 // newUploadRevision revises the current revision to cover the cost of
 // uploading a sector.
-func newUploadRevision(current types.FileContractRevision, merkleRoot crypto.Hash, price, collateral types.Currency) types.FileContractRevision {
-	rev := newRevision(current, price)
+func newUploadRevision(current types.FileContractRevision, merkleRoot crypto.Hash, price, collateral types.Currency) (types.FileContractRevision, error) {
+	rev, err := current.PaymentRevision(price)
+	if err != nil {
+		return types.FileContractRevision{}, err
+	}
+
+	// Check that there is enough collateral to cover the cost.
+	if rev.MissedHostOutput().Value.Cmp(collateral) < 0 {
+		return types.FileContractRevision{}, types.ErrRevisionCollateralTooLow
+	}
 
 	// move collateral from host to void
-	rev.NewMissedProofOutputs[1].Value = rev.NewMissedProofOutputs[1].Value.Sub(collateral)
-	rev.NewMissedProofOutputs[2].Value = rev.NewMissedProofOutputs[2].Value.Add(collateral)
+	rev.SetMissedHostPayout(rev.MissedHostOutput().Value.Sub(collateral))
+	voidOutput, err := rev.MissedVoidOutput()
+	if err != nil {
+		return types.FileContractRevision{}, errors.AddContext(err, "failed to get void output")
+	}
+	err = rev.SetMissedVoidPayout(voidOutput.Value.Add(collateral))
+	if err != nil {
+		return types.FileContractRevision{}, errors.AddContext(err, "failed to set void output")
+	}
 
 	// set new filesize and Merkle root
 	rev.NewFileSize += modules.SectorSize
 	rev.NewFileMerkleRoot = merkleRoot
-	return rev
+	return rev, nil
 }
 
 // performSessionHandshake conducts the initial handshake exchange of the

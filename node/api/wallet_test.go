@@ -12,15 +12,15 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/consensus"
-	"gitlab.com/SiaPrime/SiaPrime/modules/gateway"
-	"gitlab.com/SiaPrime/SiaPrime/modules/miner"
-	"gitlab.com/SiaPrime/SiaPrime/modules/transactionpool"
-	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/consensus"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/modules/miner"
+	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
+	"gitlab.com/scpcorp/ScPrime/modules/wallet"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestWalletGETEncrypted probes the GET call to /wallet when the
@@ -48,7 +48,7 @@ func TestWalletGETEncrypted(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to create wallet:", err)
 	}
-	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +187,7 @@ func TestWalletBlankEncrypt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -255,7 +255,7 @@ func TestIntegrationWalletInitSeed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

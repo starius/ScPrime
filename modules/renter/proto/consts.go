@@ -3,17 +3,28 @@ package proto
 import (
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-
 	"gitlab.com/NebulousLabs/errors"
+
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (
-	// contractExtension is the extension given to contract files.
-	contractExtension = ".contract"
+	// v146ContractExtension is the extension given to contract files pre v147.
+	v146ContractExtension = ".contract"
+
+	// contractHeaderExtension is the extension given to the header file of a
+	// contract.
+	contractHeaderExtension = ".header"
+
+	// contractRootsExtension is the extension given to the file that contains
+	// the contract's roots.
+	contractRootsExtension = ".roots"
+
+	// refCounterExtension is the extension given to reference counter files.
+	refCounterExtension = ".rc"
 
 	// rootsDiskLoadBulkSize is the max number of roots we read from disk at
 	// once to avoid using up all the ram.

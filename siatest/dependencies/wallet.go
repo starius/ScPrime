@@ -1,7 +1,7 @@
 package dependencies
 
 import (
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 // DependencyUnsyncedConsensus makes the consensus set appear unsynced

@@ -15,16 +15,26 @@ package host
 // have to keep all the files following a renew in order to get the money.
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"sync/atomic"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/NebulousLabs/errors"
+	connmonitor "gitlab.com/NebulousLabs/monitor"
+	"gitlab.com/scpcorp/siamux"
+
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
+
+// defaultConnectionDeadline is the default read and write deadline which is set
+// on a connection or stream. This ensures it times out if I/O exceeds this
+// deadline.
+const defaultConnectionDeadline = 5 * time.Minute
 
 // rpcSettingsDeprecated is a specifier for a deprecated settings request.
 var rpcSettingsDeprecated = types.NewSpecifier("Settings")
@@ -194,7 +204,7 @@ func (h *Host) initNetworking(address string) (err error) {
 	// thread.
 	go func() {
 		// Add this function to the threadgroup, so that the logger will not
-		// disappear before port closing can be registered to the threadgrourp
+		// disappear before port closing can be registered to the threadgroup
 		// OnStop functions.
 		err := h.tg.Add()
 		if err != nil {
@@ -230,6 +240,17 @@ func (h *Host) initNetworking(address string) (err error) {
 
 	// Launch the listener.
 	go h.threadedListen(threadedListenerClosedChan)
+
+	// Create a listener for the SiaMux.
+	err = h.staticMux.NewListener(modules.HostSiaMuxSubscriberName, h.threadedHandleStream)
+	if err != nil {
+		return errors.AddContext(err, "Failed to subscribe to the SiaMux")
+	}
+	// Close the listener when h.tg.OnStop is called.
+	h.tg.OnStop(func() {
+		h.staticMux.CloseListener(modules.HostSiaMuxSubscriberName)
+	})
+
 	return nil
 }
 
@@ -242,8 +263,8 @@ func (h *Host) threadedHandleConn(conn net.Conn) {
 	}
 	defer h.tg.Done()
 
-	// Close the conn on host.Close or when the method terminates, whichever comes
-	// first.
+	// Close the conn on host.Close or when the method terminates, whichever
+	// comes first.
 	connCloseChan := make(chan struct{})
 	defer close(connCloseChan)
 	go func() {
@@ -256,7 +277,7 @@ func (h *Host) threadedHandleConn(conn net.Conn) {
 
 	// Set an initial duration that is generous, but finite. RPCs can extend
 	// this if desired.
-	err = conn.SetDeadline(time.Now().Add(5 * time.Minute))
+	err = conn.SetDeadline(time.Now().Add(defaultConnectionDeadline))
 	if err != nil {
 		h.log.Println("WARN: could not set deadline on connection:", err)
 		return
@@ -321,6 +342,66 @@ func (h *Host) threadedHandleConn(conn net.Conn) {
 	}
 }
 
+// threadedHandleStream handles incoming SiaMux streams.
+func (h *Host) threadedHandleStream(stream siamux.Stream) {
+	// close the stream when the method terminates
+	defer stream.Close()
+
+	err := h.tg.Add()
+	if err != nil {
+		return
+	}
+	defer h.tg.Done()
+
+	// set an initial duration that is generous, but finite. RPCs can extend
+	// this if desired
+	err = stream.SetDeadline(time.Now().Add(defaultConnectionDeadline))
+	if err != nil {
+		h.log.Println("WARN: could not set deadline on stream:", err)
+		return
+	}
+
+	// read the RPC id
+	var rpcID types.Specifier
+	err = modules.RPCRead(stream, &rpcID)
+	if err != nil {
+		if wErr := modules.RPCWriteError(stream, errors.New("Failed to read RPC id")); wErr != nil {
+			h.managedLogError(err)
+		}
+		atomic.AddUint64(&h.atomicUnrecognizedCalls, 1)
+		return
+	}
+
+	// read the price table, the renter will send its pricetable UUID by means
+	// of identification, except for when it is updating its price table
+	if rpcID != modules.RPCUpdatePriceTable {
+		var ptID types.Specifier
+		err = modules.RPCRead(stream, &ptID)
+		if err != nil {
+			if wErr := modules.RPCWriteError(stream, errors.New("Failed to read price table UUID")); wErr != nil {
+				h.managedLogError(err)
+			}
+			atomic.AddUint64(&h.atomicErroredCalls, 1)
+			return
+		}
+	}
+
+	switch rpcID {
+	default:
+		// TODO log stream.RemoteAddr().String() when it is implemented on the
+		// SiaMux
+		h.log.Debugf("WARN: incoming stream requested unknown RPC \"%v\"", rpcID)
+		err = errors.New(fmt.Sprintf("Unrecognized RPC id %v", rpcID))
+		atomic.AddUint64(&h.atomicUnrecognizedCalls, 1)
+	}
+
+	if err != nil {
+		err = errors.Compose(err, modules.RPCWriteError(stream, err))
+		atomic.AddUint64(&h.atomicErroredCalls, 1)
+		h.managedLogError(err)
+	}
+}
+
 // threadedListen listens for incoming RPCs and spawns an appropriate handler for each.
 func (h *Host) threadedListen(closeChan chan struct{}) {
 	defer close(closeChan)
@@ -333,6 +414,8 @@ func (h *Host) threadedListen(closeChan chan struct{}) {
 		if err != nil {
 			return
 		}
+
+		conn = connmonitor.NewMonitoredConn(conn, h.staticMonitor)
 
 		go h.threadedHandleConn(conn)
 

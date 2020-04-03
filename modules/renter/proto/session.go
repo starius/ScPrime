@@ -14,10 +14,10 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/ratelimit"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // A Session is an ongoing exchange of RPCs via the renter-host protocol.
@@ -223,7 +223,7 @@ func (s *Session) write(sc *SafeContract, actions []modules.LoopWriteAction) (_ 
 	if contract.RenterFunds().Cmp(cost) < 0 {
 		return modules.RenterContract{}, errors.New("contract has insufficient funds to support upload")
 	}
-	if contract.LastRevision().NewMissedProofOutputs[1].Value.Cmp(collateral) < 0 {
+	if contract.LastRevision().MissedHostOutput().Value.Cmp(collateral) < 0 {
 		// The contract doesn't have enough value in it to supply the
 		// collateral. Instead of giving up, have the host put up everything
 		// that remains, even if that is zero. The renter was aware when the
@@ -242,13 +242,18 @@ func (s *Session) write(sc *SafeContract, actions []modules.LoopWriteAction) (_ 
 		// this contract, the renter is aware that there isn't enough collateral
 		// remaining and is happy to use the contract anyway. Therefore this
 		// TODO should be moved to a different part of the codebase.
-		collateral = contract.LastRevision().NewMissedProofOutputs[1].Value
+		collateral = contract.LastRevision().MissedHostOutput().Value
 	}
 
 	// create the revision; we will update the Merkle root later
-	rev := newRevision(contract.LastRevision(), cost)
-	rev.NewMissedProofOutputs[1].Value = rev.NewMissedProofOutputs[1].Value.Sub(collateral)
-	rev.NewMissedProofOutputs[2].Value = rev.NewMissedProofOutputs[2].Value.Add(collateral)
+	rev, err := contract.LastRevision().PaymentRevision(cost)
+	if err != nil {
+		return modules.RenterContract{}, errors.AddContext(err, "Error creating new write revision")
+	}
+
+	rev.SetMissedHostPayout(rev.MissedHostOutput().Value.Sub(collateral))
+	voidOutput, err := rev.MissedVoidOutput()
+	rev.SetMissedVoidPayout(voidOutput.Value.Add(collateral))
 	rev.NewFileSize = newFileSize
 
 	// create the request
@@ -435,7 +440,11 @@ func (s *Session) Read(w io.Writer, req modules.LoopReadRequest, cancel <-chan s
 	price = price.MulFloat(1 + hostPriceLeeway)
 
 	// create the download revision and sign it
-	rev := newDownloadRevision(contract.LastRevision(), price)
+	rev, err := newDownloadRevision(contract.LastRevision(), price)
+	if err != nil {
+		return modules.RenterContract{}, errors.AddContext(err, "Error creating new download revision")
+	}
+
 	txn := types.Transaction{
 		FileContractRevisions: []types.FileContractRevision{rev},
 		TransactionSignatures: []types.TransactionSignature{
@@ -614,7 +623,11 @@ func (s *Session) SectorRoots(req modules.LoopSectorRootsRequest) (_ modules.Ren
 	price = price.MulFloat(1 + hostPriceLeeway)
 
 	// create the download revision and sign it
-	rev := newDownloadRevision(contract.LastRevision(), price)
+	rev, err := newDownloadRevision(contract.LastRevision(), price)
+	if err != nil {
+		return modules.RenterContract{}, nil, errors.AddContext(err, "Error creating new download revision")
+	}
+
 	txn := types.Transaction{
 		FileContractRevisions: []types.FileContractRevision{rev},
 		TransactionSignatures: []types.TransactionSignature{
@@ -715,7 +728,7 @@ func (s *Session) RecoverSectorRoots(lastRev types.FileContractRevision, sk cryp
 	}
 	bandwidthPrice := s.host.DownloadBandwidthPrice.Mul64(estBandwidth)
 	price := s.host.BaseRPCPrice.Add(bandwidthPrice)
-	if lastRev.RenterFunds().Cmp(price) < 0 {
+	if lastRev.ValidRenterPayout().Cmp(price) < 0 {
 		return types.Transaction{}, nil, errors.New("contract has insufficient funds to support sector roots download")
 	}
 	// To mitigate small errors (e.g. differing block heights), fudge the
@@ -723,7 +736,11 @@ func (s *Session) RecoverSectorRoots(lastRev types.FileContractRevision, sk cryp
 	price = price.MulFloat(1 + hostPriceLeeway)
 
 	// create the download revision and sign it
-	rev := newDownloadRevision(lastRev, price)
+	rev, err := newDownloadRevision(lastRev, price)
+	if err != nil {
+		return types.Transaction{}, nil, errors.AddContext(err, "Error creating new download revision")
+	}
+
 	txn := types.Transaction{
 		FileContractRevisions: []types.FileContractRevision{rev},
 		TransactionSignatures: []types.TransactionSignature{

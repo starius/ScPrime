@@ -6,7 +6,7 @@ import (
 
 	"github.com/sasha-s/go-deadlock"
 
-	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
 // A WorkerRecord is used to track worker information in memory

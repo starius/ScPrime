@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 
 	"gitlab.com/NebulousLabs/fastrand"
 )
@@ -102,7 +102,7 @@ func TestRenterSaveLoad(t *testing.T) {
 
 	// load should now load the files into memory.
 	var errChan <-chan error
-	rt.renter, errChan = New(rt.gateway, rt.cs, rt.wallet, rt.tpool, filepath.Join(rt.dir, modules.RenterDir))
+	rt.renter, errChan = New(rt.gateway, rt.cs, rt.wallet, rt.tpool, rt.mux, filepath.Join(rt.dir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +183,7 @@ func TestRenterPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	var errChan <-chan error
-	rt.renter, errChan = New(rt.gateway, rt.cs, rt.wallet, rt.tpool, filepath.Join(rt.dir, modules.RenterDir))
+	rt.renter, errChan = New(rt.gateway, rt.cs, rt.wallet, rt.tpool, rt.mux, filepath.Join(rt.dir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}

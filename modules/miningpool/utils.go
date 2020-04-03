@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"strconv"
 
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 func interfaceify(strs []string) []interface{} {

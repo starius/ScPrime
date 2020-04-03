@@ -6,10 +6,23 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
+
+// emptyBlockForWork creates an empty block without any transactions.
+func emptyBlockForWork(currentBlockHeight types.BlockHeight, address types.UnlockHash, parentID types.BlockID) types.Block {
+	devSubsidy := types.CalculateDevSubsidy(currentBlockHeight + 1)
+	minerReward := types.CalculateCoinbase(currentBlockHeight + 1).Sub(devSubsidy)
+	var b types.Block
+	b.ParentID = parentID
+	b.Timestamp = types.CurrentTimestamp()
+	b.MinerPayouts = []types.SiacoinOutput{
+		{Value: minerReward, UnlockHash: address},
+		{Value: devSubsidy, UnlockHash: types.DevFundUnlockHash}}
+	return b
+}
 
 // solveHeader solves the header by finding a nonce for the target
 func solveHeader(target types.Target, bh types.BlockHeader) (types.BlockHeader, error) {
@@ -79,17 +92,4 @@ func (tn *TestNode) MineEmptyBlock() error {
 	b.Nonce = header.Nonce
 	// Submit block.
 	return errors.AddContext(tn.MinerBlockPost(b), "failed to submit block")
-}
-
-// emptyBlockForWork creates an empty block without any transactions.
-func emptyBlockForWork(currentBlockHeight types.BlockHeight, address types.UnlockHash, parentID types.BlockID) types.Block {
-	devSubsidy := types.CalculateDevSubsidy(currentBlockHeight + 1)
-	minerReward := types.CalculateCoinbase(currentBlockHeight + 1).Sub(devSubsidy)
-	var b types.Block
-	b.ParentID = parentID
-	b.Timestamp = types.CurrentTimestamp()
-	b.MinerPayouts = []types.SiacoinOutput{
-		{Value: minerReward, UnlockHash: address},
-		{Value: devSubsidy, UnlockHash: types.DevFundUnlockHash}}
-	return b
 }

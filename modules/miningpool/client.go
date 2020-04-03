@@ -5,8 +5,8 @@ import (
 
 	"github.com/sasha-s/go-deadlock"
 
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 //
@@ -77,7 +77,6 @@ func (c *Client) SetName(n string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.cr.name = n
-
 }
 
 // Wallet returns the unlockhash associated with the client

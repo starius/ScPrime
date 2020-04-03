@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	// "math/big"
+
 	"net"
 	"strconv"
 	"strings"
@@ -17,10 +17,10 @@ import (
 
 	"github.com/sasha-s/go-deadlock"
 
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (
@@ -593,7 +593,7 @@ func (h *Handler) sendStratumNotify(cleanJobs bool) error {
 	h.p.persist.mu.Unlock()
 	encoding.Unmarshal(job.MarshalledBlock, &b)
 	job.MerkleRoot = b.MerkleRoot()
-	mbj := b.MerkleBranches()
+	mbj := ReadMerkleBranches(b)
 	h.log.Debugf("merkleBranch: %s\n", mbj)
 
 	version := ""

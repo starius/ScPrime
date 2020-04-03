@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/siatest"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/siatest"
 )
 
 // copyFile is a helper function to copy a file to a destination.
@@ -77,7 +77,6 @@ func deleteDuringDownloadAndStream(r *siatest.TestNode, rf *siatest.RemoteFile, 
 
 	// Wait for the method's go routines to finish
 	wgDelete.Wait()
-
 }
 
 // renameDuringDownloadAndStream will download and stream a file in parallel, it

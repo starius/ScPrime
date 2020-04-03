@@ -3,7 +3,7 @@ package pool
 import (
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 var (
@@ -52,7 +52,6 @@ func (s *Session) newVardiff() *Vardiff {
 }
 
 func (s *Session) checkDiffOnNewShare() bool {
-
 	s.lastVardiffTimestamp = time.Now()
 	if time.Now().Sub(s.lastVardiffRetarget).Seconds() < retargetDuration {
 		return false

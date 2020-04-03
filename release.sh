@@ -26,7 +26,7 @@ if [ $keysum != "92269cd84af7dabdf3aa358ff3d154ad68bcfd837e29d32356eda13eb977108
 fi
 
 # setup build-time vars
-ldflags="-s -w -X 'gitlab.com/SiaPrime/SiaPrime/build.GitRevision=`git rev-parse --short HEAD`' -X 'gitlab.com/SiaPrime/SiaPrime/build.BuildTime=`date`' -X 'gitlab.com/SiaPrime/SiaPrime/build.ReleaseTag=${rc}'"
+ldflags="-s -w -X 'gitlab.com/scpcorp/ScPrime/build.GitRevision=`git rev-parse --short HEAD`' -X 'gitlab.com/scpcorp/ScPrime/build.BuildTime=`date`' -X 'gitlab.com/scpcorp/ScPrime/build.ReleaseTag=${rc}'"
 
 for arch in amd64 arm; do
 	for os in darwin linux windows; do

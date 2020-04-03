@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/crypto"
 
 	"gitlab.com/NebulousLabs/fastrand"
 )
@@ -115,7 +115,6 @@ func TestSigHash(t *testing.T) {
 
 	_ = txn.SigHash(0, 0)
 	_ = txn.SigHash(1, 0)
-
 }
 
 // TestSortedUnique probes the sortedUnique function.

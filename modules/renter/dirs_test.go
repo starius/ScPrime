@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siadir"
-	"gitlab.com/SiaPrime/SiaPrime/siatest/dependencies"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siadir"
+	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
 )
 
 // TestRenterCreateDirectories checks that the renter properly created metadata files
@@ -204,8 +204,8 @@ func TestRenterListDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(directories) != 4 {
-		t.Fatal("Expected 4 DirectoryInfos but got", len(directories))
+	if len(directories) != 5 {
+		t.Fatal("Expected 5 DirectoryInfos but got", len(directories))
 	}
 	files, err := rt.renter.FileList(modules.RootSiaPath(), false, false)
 	if len(files) != 1 {

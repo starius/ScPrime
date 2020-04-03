@@ -6,10 +6,10 @@ import (
 	"net/url"
 	"strconv"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
 )
@@ -127,10 +127,11 @@ func (c *Client) WalletSiacoinsMultiPost(outputs []types.SiacoinOutput) (wsp api
 
 // WalletSiacoinsPost uses the /wallet/siacoins api endpoint to send money to a
 // single address
-func (c *Client) WalletSiacoinsPost(amount types.Currency, destination types.UnlockHash) (wsp api.WalletSiacoinsPOST, err error) {
+func (c *Client) WalletSiacoinsPost(amount types.Currency, destination types.UnlockHash, feeIncluded bool) (wsp api.WalletSiacoinsPOST, err error) {
 	values := url.Values{}
 	values.Set("amount", amount.String())
 	values.Set("destination", destination.String())
+	values.Set("feeIncluded", strconv.FormatBool(feeIncluded))
 	err = c.post("/wallet/siacoins", values.Encode(), &wsp)
 	return
 }

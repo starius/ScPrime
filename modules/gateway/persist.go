@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/persist"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
 
 	"gitlab.com/NebulousLabs/errors"
 )

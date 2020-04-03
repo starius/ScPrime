@@ -12,11 +12,11 @@ import (
 	"fmt"
 	"os"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -80,8 +80,17 @@ func (r *Renter) Upload(up modules.FileUploadParams) error {
 		return err
 	}
 
+	// Determine what type of encryption key to use. If no cipher type has been
+	// set, the default renter type will be used.
+	var ct crypto.CipherType
+	if up.CipherType == ct {
+		up.CipherType = crypto.TypeDefaultRenter
+	}
+	// Generate a key using the cipher type.
+	cipherKey := crypto.GenerateSiaKey(up.CipherType)
+
 	// Create the Siafile and add to renter
-	err = r.staticFileSystem.NewSiaFile(up.SiaPath, up.Source, up.ErasureCode, crypto.GenerateSiaKey(crypto.TypeDefaultRenter), uint64(sourceInfo.Size()), sourceInfo.Mode(), up.DisablePartialChunk)
+	err = r.staticFileSystem.NewSiaFile(up.SiaPath, up.Source, up.ErasureCode, cipherKey, uint64(sourceInfo.Size()), sourceInfo.Mode(), up.DisablePartialChunk)
 	if err != nil {
 		return errors.AddContext(err, "could not create a new sia file")
 	}

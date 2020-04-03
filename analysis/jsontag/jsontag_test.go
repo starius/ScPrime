@@ -3,7 +3,8 @@ package jsontag_test
 import (
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/analysis/jsontag"
+	"gitlab.com/scpcorp/ScPrime/analysis/jsontag"
+
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 

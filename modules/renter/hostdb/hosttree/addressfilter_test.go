@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"gitlab.com/SiaPrime/SiaPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
 var (

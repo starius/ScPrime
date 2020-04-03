@@ -5,16 +5,17 @@ import (
 	"log"
 	"math/big"
 	"reflect"
+
 	//"strconv"
 	"sync"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/types"
 
-	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
 )
 
 type stratumJob struct {
@@ -193,7 +194,6 @@ func (sc *StratumClient) Start() {
 	// In case of an error, drop the current tcpclient and restart
 	sc.tcpclient.ErrorCallback = sc.RestartOnError
 	sc.SubscribeAndAuthorize()
-
 }
 
 func (sc *StratumClient) subscribeToStratumDifficultyChanges() {

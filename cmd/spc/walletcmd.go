@@ -12,12 +12,13 @@ import (
 	"syscall"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/wallet"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/cmd"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/wallet"
+	"gitlab.com/scpcorp/ScPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"github.com/spf13/cobra"
 	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
@@ -395,7 +396,7 @@ func walletsendsiacoinscmd(amount, dest string) {
 	if _, err := fmt.Sscan(dest, &hash); err != nil {
 		die("Failed to parse destination address", err)
 	}
-	_, err = httpClient.WalletSiacoinsPost(value, hash)
+	_, err = httpClient.WalletSiacoinsPost(value, hash, walletTxnFeeIncluded)
 	if err != nil {
 		die("Could not send scprimecoins:", err)
 	}
@@ -635,9 +636,9 @@ func wallettransactionscmd() {
 func walletunlockcmd() {
 	// try reading from environment variable first, then fallback to
 	// interactive method. Also allow overriding auto-unlock via -p
-	password := os.Getenv("SCPRIME_WALLET_PASSWORD")
+	password := os.Getenv(cmd.SiaWalletPassword)
 	if password != "" && !initPassword {
-		fmt.Println("Using SCPRIME_WALLET_PASSWORD environment variable")
+		fmt.Printf("Using %v environment variable", cmd.SiaWalletPassword)
 		err := httpClient.WalletUnlockPost(password)
 		if err != nil {
 			fmt.Println("Automatic unlock failed!")

@@ -9,10 +9,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
-	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/cmd"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/node/api/client"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -27,31 +28,45 @@ var (
 	initForce                 bool   // destroy and re-encrypt the wallet on init if it already exists
 	initPassword              bool   // supply a custom password when creating a wallet
 	renterAllContracts        bool   // Show all active and expired contracts
+	renterDeleteRoot          bool   // Delete path start from root instead of the user homedir.
 	renterDownloadAsync       bool   // Downloads files asynchronously
 	renterDownloadRecursive   bool   // Downloads folders recursively.
 	renterFuseMountAllowOther bool   // Mount fuse with 'AllowOther' set to true.
 	renterListVerbose         bool   // Show additional info about uploaded files.
 	renterListRecursive       bool   // List files of folder recursively.
+	renterListRoot            bool   // List path start from root instead of the user homedir.
 	renterShowHistory         bool   // Show download history in addition to download queue.
 	renterVerbose             bool   // Show additional info about the renter
-	siaDir                    string // Path to node metadata dir
-	statusVerbose             bool   // Display additional spc information
+	dataDir                   string // Path to metadata dir
+	skynetBlacklistRemove     bool   // Remove a skylink from the Skynet Blacklist.
+	skynetUnpinRoot           bool   // Use root as the base instead of the Skynet folder.
+	skynetDownloadPortal      string // Portal to use when trying to download a skylink.
+	skynetLsRecursive         bool   // List files of folder recursively.
+	skynetLsRoot              bool   // Use root as the base instead of the Skynet folder.
+	skynetUploadRoot          bool   // Use root as the base instead of the Skynet folder.
+	skynetUploadDryRun        bool   // Perform a dry-run of the upload. This returns the skylink without actually uploading the file to the network.
+	statusVerbose             bool   // Display additional siac information
 	walletRawTxn              bool   // Encode/decode transactions in base64-encoded binary.
+	walletTxnFeeIncluded      bool   // include the fee in the balance being sent
 
-	allowanceFunds                     string // amount of money to be used within a period
-	allowancePeriod                    string // length of period
-	allowanceHosts                     string // number of hosts to form contracts with
-	allowanceRenewWindow               string // renew window of allowance
-	allowanceExpectedStorage           string // expected storage stored on hosts before redundancy
-	allowanceExpectedUpload            string // expected data uploaded within period
-	allowanceExpectedDownload          string // expected data downloaded within period
-	allowanceExpectedRedundancy        string // expected redundancy of most uploaded files
-	allowanceMaxRPCPrice               string // maximum allowed base price for RPCs
-	allowanceMaxContractPrice          string // maximum allowed price to form a contract
-	allowanceMaxDownloadBandwidthPrice string // max allowed price to download data from a host
-	allowanceMaxSectorAccessPrice      string // max allowed price to access a sector on a host
-	allowanceMaxStoragePrice           string // max allowed price to store data on a host
-	allowanceMaxUploadBandwidthPrice   string // max allowed price to upload data to a host
+	dataPieces   string // the number of data pieces a files should be uploaded with
+	parityPieces string // the number of parity pieces a files should be uploaded with
+
+	allowanceFunds                         string // amount of money to be used within a period
+	allowancePeriod                        string // length of period
+	allowanceHosts                         string // number of hosts to form contracts with
+	allowanceRenewWindow                   string // renew window of allowance
+	allowancePaymentContractInitialFunding string // initial price to pay to create a payment contract
+	allowanceExpectedStorage               string // expected storage stored on hosts before redundancy
+	allowanceExpectedUpload                string // expected data uploaded within period
+	allowanceExpectedDownload              string // expected data downloaded within period
+	allowanceExpectedRedundancy            string // expected redundancy of most uploaded files
+	allowanceMaxRPCPrice                   string // maximum allowed base price for RPCs
+	allowanceMaxContractPrice              string // maximum allowed price to form a contract
+	allowanceMaxDownloadBandwidthPrice     string // max allowed price to download data from a host
+	allowanceMaxSectorAccessPrice          string // max allowed price to access a sector on a host
+	allowanceMaxStoragePrice               string // max allowed price to store data on a host
+	allowanceMaxUploadBandwidthPrice       string // max allowed price to upload data to a host
 )
 
 var (
@@ -133,7 +148,7 @@ func statuscmd() {
 	} else if walletStatus.Unlocked {
 		fmt.Printf(`Wallet:
   Status:    unlocked
-  scprimecoin Balance: %v
+  Scprimecoin Balance: %v
 
 `, currencyUnits(walletStatus.ConfirmedSiacoinBalance))
 	} else {
@@ -211,17 +226,18 @@ func main() {
 		Run:   wrap(statuscmd),
 	}
 
+	// create command tree (alphabetized by root command)
 	rootCmd = root
 
-	// create command tree
-	root.AddCommand(versionCmd, stopCmd, globalRatelimitCmd, alertsCmd)
-	root.Flags().BoolVarP(&statusVerbose, "verbose", "v", false, "Display additional spc information")
+	root.AddCommand(consensusCmd)
+	consensusCmd.Flags().BoolVarP(&consensusCmdVerbose, "verbose", "v", false, "Display full consensus information")
 
-	root.AddCommand(updateCmd)
-	updateCmd.AddCommand(updateCheckCmd)
+	root.AddCommand(gatewayCmd)
+	gatewayCmd.AddCommand(gatewayAddressCmd, gatewayBandwidthCmd, gatewayBlacklistCmd, gatewayConnectCmd, gatewayDisconnectCmd, gatewayListCmd, gatewayRatelimitCmd)
+	gatewayBlacklistCmd.AddCommand(gatewayBlacklistAppendCmd, gatewayBlacklistClearCmd, gatewayBlacklistRemoveCmd, gatewayBlacklistSetCmd)
 
 	root.AddCommand(hostCmd)
-	hostCmd.AddCommand(hostConfigCmd, hostAnnounceCmd, hostFolderCmd, hostContractCmd, hostSectorCmd)
+	hostCmd.AddCommand(hostAnnounceCmd, hostConfigCmd, hostContractCmd, hostFolderCmd, hostSectorCmd)
 	hostFolderCmd.AddCommand(hostFolderAddCmd, hostFolderRemoveCmd, hostFolderResizeCmd)
 	hostSectorCmd.AddCommand(hostSectorDeleteCmd)
 	hostCmd.Flags().BoolVarP(&hostVerbose, "verbose", "v", false, "Display detailed host info")
@@ -229,7 +245,7 @@ func main() {
 	hostFolderRemoveCmd.Flags().BoolVarP(&hostFolderRemoveForce, "force", "f", false, "Force the removal of the folder and its data")
 
 	root.AddCommand(hostdbCmd)
-	hostdbCmd.AddCommand(hostdbViewCmd, hostdbFiltermodeCmd, hostdbSetFiltermodeCmd)
+	hostdbCmd.AddCommand(hostdbFiltermodeCmd, hostdbSetFiltermodeCmd, hostdbViewCmd)
 	hostdbCmd.Flags().IntVarP(&hostdbNumHosts, "numhosts", "n", 0, "Number of hosts to display from the hostdb")
 	hostdbCmd.Flags().BoolVarP(&hostdbVerbose, "verbose", "v", false, "Display full hostdb information")
 
@@ -239,48 +255,36 @@ func main() {
 	root.AddCommand(poolCmd)
 	poolCmd.AddCommand(poolConfigCmd, poolClientsCmd)
 
-	root.AddCommand(stratumminerCmd)
-	stratumminerCmd.AddCommand(stratumminerStartCmd, stratumminerStopCmd)
-
-	root.AddCommand(walletCmd)
-	walletCmd.AddCommand(walletAddressCmd, walletAddressesCmd, walletChangepasswordCmd, walletInitCmd, walletInitSeedCmd,
-		walletLoadCmd, walletLockCmd, walletSeedsCmd, walletSendCmd, walletSweepCmd, walletSignCmd,
-		walletBalanceCmd, walletBroadcastCmd, walletTransactionsCmd, walletUnlockCmd)
-	walletInitCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Prompt for a custom password")
-	walletInitCmd.Flags().BoolVarP(&initForce, "force", "", false, "destroy the existing wallet and re-encrypt")
-	walletInitSeedCmd.Flags().BoolVarP(&initForce, "force", "", false, "destroy the existing wallet")
-	walletSendCmd.AddCommand(walletSendSiacoinsCmd, walletSendSiafundsCmd)
-	walletUnlockCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Display interactive password prompt even if SCPRIME_WALLET_PASSWORD is set")
-	walletBroadcastCmd.Flags().BoolVarP(&walletRawTxn, "raw", "", false, "Decode transaction as base64 instead of JSON")
-	walletSignCmd.Flags().BoolVarP(&walletRawTxn, "raw", "", false, "Encode signed transaction as base64 instead of JSON")
-
 	root.AddCommand(renterCmd)
-	renterCmd.AddCommand(renterFilesDeleteCmd, renterFilesDownloadCmd,
-		renterDownloadsCmd, renterAllowanceCmd, renterSetAllowanceCmd,
-		renterContractsCmd, renterFilesListCmd, renterFilesRenameCmd,
-		renterSetLocalPathCmd, renterFilesUploadCmd, renterUploadsCmd,
-		renterExportCmd, renterPricesCmd, renterBackupCreateCmd, renterBackupLoadCmd,
-		renterBackupListCmd, renterTriggerContractRecoveryScanCmd, renterFilesUnstuckCmd,
-		renterContractsRecoveryScanProgressCmd, renterDownloadCancelCmd, renterRatelimitCmd,
-		renterFuseCmd, renterSetIPRestrictionCmd)
+	renterCmd.AddCommand(renterAllowanceCmd, renterBackupCreateCmd, renterBackupListCmd, renterBackupLoadCmd,
+		renterContractsCmd, renterContractsRecoveryScanProgressCmd, renterDownloadCancelCmd,
+		renterDownloadsCmd, renterExportCmd, renterFilesDeleteCmd, renterFilesDownloadCmd,
+		renterFilesListCmd, renterFilesRenameCmd, renterFilesUnstuckCmd, renterFilesUploadCmd,
+		renterFuseCmd, renterPricesCmd, renterRatelimitCmd, renterSetAllowanceCmd, renterSetIPRestrictionCmd,
+		renterSetLocalPathCmd, renterTriggerContractRecoveryScanCmd, renterUploadsCmd)
 
-	renterContractsCmd.AddCommand(renterContractsViewCmd)
 	renterAllowanceCmd.AddCommand(renterAllowanceCancelCmd)
+	renterContractsCmd.AddCommand(renterContractsViewCmd)
+	renterFilesUploadCmd.AddCommand(renterFilesUploadPauseCmd, renterFilesUploadResumeCmd)
 
 	renterCmd.Flags().BoolVarP(&renterVerbose, "verbose", "v", false, "Show additional renter info such as allowance details")
 	renterContractsCmd.Flags().BoolVarP(&renterAllContracts, "all", "A", false, "Show all expired contracts in addition to active contracts")
 	renterDownloadsCmd.Flags().BoolVarP(&renterShowHistory, "history", "H", false, "Show download history in addition to the download queue")
+	renterFilesDeleteCmd.Flags().BoolVar(&renterDeleteRoot, "root", false, "Delete files and folders from root instead of from the user home directory")
 	renterFilesDownloadCmd.Flags().BoolVarP(&renterDownloadAsync, "async", "A", false, "Download file asynchronously")
 	renterFilesDownloadCmd.Flags().BoolVarP(&renterDownloadRecursive, "recursive", "R", false, "Download folder recursively")
 	renterFilesListCmd.Flags().BoolVarP(&renterListVerbose, "verbose", "v", false, "Show additional file info such as redundancy")
 	renterFilesListCmd.Flags().BoolVarP(&renterListRecursive, "recursive", "R", false, "Recursively list files and folders")
+	renterFilesListCmd.Flags().BoolVar(&renterListRoot, "root", false, "List files and folders from root instead of from the user home directory")
+	renterFilesUploadCmd.Flags().StringVar(&dataPieces, "data-pieces", "", "the number of data pieces a files should be uploaded with")
+	renterFilesUploadCmd.Flags().StringVar(&parityPieces, "parity-pieces", "", "the number of parity pieces a files should be uploaded with")
 	renterExportCmd.AddCommand(renterExportContractTxnsCmd)
-	// TODO: filtersubnet is not in Allowance but RenterSettings
-	//renterSetAllowanceCmd.Flags().BoolVarP(&renterFilterHostsSubnet, "filter-subnet", "", false, "Filter hosts from same subnet")
+
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceFunds, "amount", "", "amount of money in allowance, specified in currency units")
 	renterSetAllowanceCmd.Flags().StringVar(&allowancePeriod, "period", "", "period of allowance in blocks (b), hours (h), days (d) or weeks (w)")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceHosts, "hosts", "", "number of hosts the renter will spread the uploaded data across")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceRenewWindow, "renew-window", "", "renew window in blocks (b), hours (h), days (d) or weeks (w)")
+	renterSetAllowanceCmd.Flags().StringVar(&allowancePaymentContractInitialFunding, "payment-contract-initial-funding", "", "Setting this will cause the renter to form payment contracts, making it a Skynet portal.")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceExpectedStorage, "expected-storage", "", "expected storage in bytes (B), kilobytes (KB), megabytes (MB) etc. up to yottabytes (YB)")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceExpectedUpload, "expected-upload", "", "expected upload in period in bytes (B), kilobytes (KB), megabytes (MB) etc. up to yottabytes (YB)")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceExpectedDownload, "expected-download", "", "expected download in period in bytes (B), kilobytes (KB), megabytes (MB) etc. up to yottabytes (YB)")
@@ -295,31 +299,71 @@ func main() {
 	renterFuseCmd.AddCommand(renterFuseMountCmd, renterFuseUnmountCmd)
 	renterFuseMountCmd.Flags().BoolVarP(&renterFuseMountAllowOther, "allow-other", "", false, "Allow users other than the user that mounted the fuse directory to access and use the fuse directory")
 
-	root.AddCommand(gatewayCmd)
-	gatewayCmd.AddCommand(gatewayConnectCmd, gatewayDisconnectCmd, gatewayAddressCmd, gatewayListCmd, gatewayRatelimitCmd, gatewayBlacklistCmd)
-	gatewayBlacklistCmd.AddCommand(gatewayBlacklistAppendCmd, gatewayBlacklistClearCmd, gatewayBlacklistRemoveCmd, gatewayBlacklistSetCmd)
+	root.AddCommand(skynetCmd)
+	skynetCmd.AddCommand(skynetBlacklistCmd, skynetConvertCmd, skynetDownloadCmd, skynetLsCmd, skynetPinCmd, skynetUnpinCmd, skynetUploadCmd)
+	skynetUploadCmd.Flags().BoolVar(&skynetUploadRoot, "root", false, "Use the root folder as the base instead of the Skynet folder")
+	skynetUploadCmd.Flags().BoolVar(&skynetUploadDryRun, "dry-run", false, "Perform a dry-run of the upload, returning the skylink without actually uploading the file")
+	skynetUnpinCmd.Flags().BoolVar(&skynetUnpinRoot, "root", false, "Use the root folder as the base instead of the Skynet folder")
+	skynetDownloadCmd.Flags().StringVar(&skynetDownloadPortal, "portal", "", "Use a Skynet portal to complete the download")
+	skynetLsCmd.Flags().BoolVarP(&skynetLsRecursive, "recursive", "R", false, "Recursively list skyfiles and folders")
+	skynetLsCmd.Flags().BoolVar(&skynetLsRoot, "root", false, "Use the root folder as the base instead of the Skynet folder")
+	skynetBlacklistCmd.Flags().BoolVar(&skynetBlacklistRemove, "remove", false, "Remove the skylink from the blacklist")
 
-	root.AddCommand(consensusCmd)
-	consensusCmd.Flags().BoolVarP(&consensusCmdVerbose, "verbose", "v", false, "Display full consensus information")
+	root.AddCommand(stratumminerCmd)
+	stratumminerCmd.AddCommand(stratumminerStartCmd, stratumminerStopCmd)
 
-	utilsCmd.AddCommand(bashcomplCmd, mangenCmd, utilsHastingsCmd, utilsEncodeRawTxnCmd, utilsDecodeRawTxnCmd,
-		utilsSigHashCmd, utilsCheckSigCmd, utilsVerifySeedCmd, utilsDisplayAPIPasswordCmd, utilsBruteForceSeedCmd,
-		utilsUploadedsizeCmd)
+	root.AddCommand(updateCmd)
+	updateCmd.AddCommand(updateCheckCmd)
+
+	root.AddCommand(utilsCmd)
+	utilsCmd.AddCommand(bashcomplCmd, mangenCmd, utilsBruteForceSeedCmd, utilsCheckSigCmd,
+		utilsDecodeRawTxnCmd, utilsDisplayAPIPasswordCmd, utilsEncodeRawTxnCmd, utilsHastingsCmd,
+		utilsSigHashCmd, utilsUploadedsizeCmd, utilsVerifySeedCmd)
+
 	utilsVerifySeedCmd.Flags().StringVarP(&dictionaryLanguage, "language", "l", "english", "which dictionary you want to use")
 	utilsUploadedsizeCmd.Flags().BoolVarP(&uploadedsizeUtilVerbose, "verbose", "v", false, "Display more information")
-	root.AddCommand(utilsCmd)
+
+	root.AddCommand(alertsCmd, globalRatelimitCmd, stopCmd, versionCmd)
+
+	root.AddCommand(walletCmd)
+	walletCmd.AddCommand(walletAddressCmd, walletAddressesCmd, walletBalanceCmd, walletBroadcastCmd, walletChangepasswordCmd,
+		walletInitCmd, walletInitSeedCmd, walletLoadCmd, walletLockCmd, walletSeedsCmd, walletSendCmd,
+		walletSignCmd, walletSweepCmd, walletTransactionsCmd, walletUnlockCmd)
+	walletInitCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Prompt for a custom password")
+	walletInitCmd.Flags().BoolVarP(&initForce, "force", "", false, "destroy the existing wallet and re-encrypt")
+	walletInitSeedCmd.Flags().BoolVarP(&initForce, "force", "", false, "destroy the existing wallet")
+
+	//TODO: chech WalletLoadCMD
+	//walletLoadCmd.AddCommand(walletLoad033xCmd, walletLoadSeedCmd, walletLoadSiagCmd)
+
+	walletSendCmd.AddCommand(walletSendSiacoinsCmd, walletSendSiafundsCmd)
+	walletSendSiacoinsCmd.Flags().BoolVarP(&walletTxnFeeIncluded, "fee-included", "", false, "Take the transaction fee out of the balance being submitted instead of the fee being additional")
+	walletUnlockCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Display interactive password prompt even if SCPRIME_WALLET_PASSWORD is set")
+	walletBroadcastCmd.Flags().BoolVarP(&walletRawTxn, "raw", "", false, "Decode transaction as base64 instead of JSON")
+	walletSignCmd.Flags().BoolVarP(&walletRawTxn, "raw", "", false, "Encode signed transaction as base64 instead of JSON")
 
 	// initialize client
+	root.Flags().BoolVarP(&statusVerbose, "verbose", "v", false, "Display additional siac information")
 	root.PersistentFlags().StringVarP(&httpClient.Address, "addr", "a", "localhost:4280", "which host/port to communicate with (i.e. the host/port spd is listening on)")
 	root.PersistentFlags().StringVarP(&httpClient.Password, "apipassword", "", "", "the password for the API's http authentication")
-	root.PersistentFlags().StringVarP(&siaDir, "scprime-directory", "d", build.DefaultSiaDir(), "location of the metadata directory")
+	root.PersistentFlags().StringVarP(&dataDir, "scprime-directory", "d", build.DefaultSiaDir(), "location of the metadata directory")
 	root.PersistentFlags().StringVarP(&httpClient.UserAgent, "useragent", "", "SiaPrime-Agent", "the useragent used by spc to connect to the daemon's API")
 
 	// Check if the api password environment variable is set.
-	apiPassword := os.Getenv("SCPRIME_API_PASSWORD")
+	apiPassword := os.Getenv(cmd.SiaAPIPassword)
 	if apiPassword != "" {
 		httpClient.Password = apiPassword
 		fmt.Println("Using SCPRIME_API_PASSWORD environment variable")
+	}
+
+	// If dataDir is not set, use the environment variable provided.
+	if dataDir == "" {
+		dataDir = os.Getenv("SCPRIME_DATA_DIR")
+		if dataDir != "" {
+			fmt.Println("Using SCPRIME_DATA_DIR environment variable")
+		} else {
+			dataDir = build.DefaultSiaDir()
+		}
 	}
 
 	// If the API password wasn't set we try to read it from the file. This must
@@ -327,14 +371,13 @@ func main() {
 	// it inside OnInitialize.
 	cobra.OnInitialize(func() {
 		if httpClient.Password == "" {
-			pw, err := ioutil.ReadFile(build.APIPasswordFile(siaDir))
+			pw, err := ioutil.ReadFile(build.APIPasswordFile(dataDir))
 			if err != nil {
 				fmt.Println("Could not read API password file:", err)
 				httpClient.Password = ""
 			} else {
 				httpClient.Password = strings.TrimSpace(string(pw))
 			}
-
 		}
 	})
 

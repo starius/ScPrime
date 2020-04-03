@@ -3,7 +3,7 @@ package hostdb
 import (
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 const (
@@ -31,7 +31,8 @@ const (
 
 	// maxHostDowntime specifies the maximum amount of time that a host is
 	// allowed to be offline while still being in the hostdb.
-	maxHostDowntime = 10 * 24 * time.Hour
+	maxHostDowntime       = maxHostDownTimeInDays * 24 * time.Hour
+	maxHostDownTimeInDays = 20
 
 	// maxSettingsLen indicates how long in bytes the host settings field is
 	// allowed to be before being ignored as a DoS attempt.

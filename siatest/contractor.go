@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"math/big"
 
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/node/api"
-	"gitlab.com/SiaPrime/SiaPrime/node/api/client"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
+	"gitlab.com/scpcorp/ScPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/node/api/client"
+	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -44,32 +45,6 @@ func CheckBalanceVsSpending(r *TestNode, initialBalance types.Currency) error {
 		}
 		err := details + diff
 		return errors.New(err)
-	}
-	return nil
-}
-
-// CheckRenewedContractIDs confirms that contracts are renewed as expected with
-// hosts and no duplicate IDs
-func CheckRenewedContractIDs(oldContracts, renewedContracts []api.RenterContract) error {
-	// Create Maps for comparison
-	initialContractIDMap := make(map[types.FileContractID]struct{})
-	initialContractKeyMap := make(map[crypto.Hash]struct{})
-	for _, c := range oldContracts {
-		initialContractIDMap[c.ID] = struct{}{}
-		initialContractKeyMap[crypto.HashBytes(c.HostPublicKey.Key)] = struct{}{}
-	}
-
-	for _, c := range renewedContracts {
-		// Verify that all the contracts marked as GoodForRenew
-		// were renewed
-		if _, ok := initialContractIDMap[c.ID]; ok {
-			return errors.New("ID from renewedContracts found in oldContracts")
-		}
-		// Verifying that Renewed Contracts have the same HostPublicKey
-		// as an initial contract
-		if _, ok := initialContractKeyMap[crypto.HashBytes(c.HostPublicKey.Key)]; !ok {
-			return errors.New("Host Public Key from renewedContracts not found in oldContracts")
-		}
 	}
 	return nil
 }
@@ -236,6 +211,32 @@ func CheckExpectedNumberOfContracts(r *TestNode, numActive, numPassive, numRefre
 	return combinedError
 }
 
+// CheckRenewedContractIDs confirms that contracts are renewed as expected with
+// hosts and no duplicate IDs
+func CheckRenewedContractIDs(oldContracts, renewedContracts []api.RenterContract) error {
+	// Create Maps for comparison
+	initialContractIDMap := make(map[types.FileContractID]struct{})
+	initialContractKeyMap := make(map[crypto.Hash]struct{})
+	for _, c := range oldContracts {
+		initialContractIDMap[c.ID] = struct{}{}
+		initialContractKeyMap[crypto.HashBytes(c.HostPublicKey.Key)] = struct{}{}
+	}
+
+	for _, c := range renewedContracts {
+		// Verify that all the contracts marked as GoodForRenew
+		// were renewed
+		if _, ok := initialContractIDMap[c.ID]; ok {
+			return errors.New("ID from renewedContracts found in oldContracts")
+		}
+		// Verifying that Renewed Contracts have the same HostPublicKey
+		// as an initial contract
+		if _, ok := initialContractKeyMap[crypto.HashBytes(c.HostPublicKey.Key)]; !ok {
+			return errors.New("Host Public Key from renewedContracts not found in oldContracts")
+		}
+	}
+	return nil
+}
+
 // CheckRenewedContractsSpending confirms that renewed contracts have zero
 // upload and download spending. Renewed contracts should be the renter's active
 // contracts
@@ -253,16 +254,28 @@ func CheckRenewedContractsSpending(renewedContracts []api.RenterContract) error 
 
 // DrainContractsByUploading uploads files until the contracts renew due to
 // running out of funds
-func DrainContractsByUploading(renter *TestNode, tg *TestGroup, maxPercentageRemaining float64) (startingUploadSpend types.Currency, err error) {
+//
+// NOTE: in order to use this helper method the renter must use the dependency
+// DependencyDisableUploadGougingCheck so that the uploads succeed
+func DrainContractsByUploading(renter *TestNode, tg *TestGroup) (startingUploadSpend types.Currency, err error) {
+	// Sanity check
+	if len(tg.Hosts()) < 2 {
+		return types.ZeroCurrency, errors.New("uploads will fail with less than 2 hosts")
+	}
+
 	// Renew contracts by running out of funds
 	// Set upload price to max price
-	maxStoragePrice := types.SiacoinPrecision.Mul64(3e6).Div(modules.BlockBytesPerMonthTerabyte)
+	maxStoragePrice := types.ScPrimecoinPrecision.Mul64(100).Div(modules.BlockBytesPerMonthTerabyte)
 	maxUploadPrice := maxStoragePrice.Mul64(100 * uint64(types.BlocksPerMonth))
 	hosts := tg.Hosts()
 	for _, h := range hosts {
 		err := h.HostModifySettingPost(client.HostParamMinUploadBandwidthPrice, maxUploadPrice)
 		if err != nil {
 			return types.ZeroCurrency, errors.AddContext(err, "could not set Host Upload Price")
+		}
+		err = h.HostModifySettingPost(client.HostParamMinStoragePrice, maxStoragePrice)
+		if err != nil {
+			return types.ZeroCurrency, errors.AddContext(err, "could not set Host Storage Price")
 		}
 	}
 
@@ -283,7 +296,7 @@ func DrainContractsByUploading(renter *TestNode, tg *TestGroup, maxPercentageRem
 	// Upload once to show upload spending
 	_, _, err = renter.UploadNewFileBlocking(int(chunkSize), dataPieces, parityPieces, false)
 	if err != nil {
-		return types.ZeroCurrency, errors.AddContext(err, "failed to upload first file in renewContractsBySpending")
+		return types.ZeroCurrency, errors.AddContext(err, "failed to upload first file in DrainContractsByUploading")
 	}
 
 	// Get current upload spend, previously contracts had zero upload spend
@@ -299,7 +312,7 @@ LOOP:
 		// To protect against contracts not renewing during uploads
 		for _, c := range rc.ActiveContracts {
 			percentRemaining, _ := big.NewRat(0, 1).SetFrac(c.RenterFunds.Big(), c.TotalCost.Big()).Float64()
-			if percentRemaining < maxPercentageRemaining {
+			if percentRemaining < contractor.MinContractFundRenewalThreshold {
 				break LOOP
 			}
 		}
@@ -338,6 +351,10 @@ func RenewContractsByRenewWindow(renter *TestNode, tg *TestGroup) error {
 	if err != nil {
 		return err
 	}
+	if len(rc.ActiveContracts) == 0 {
+		return errors.New("No Active Contracts")
+	}
+
 	blocksToMine := rc.ActiveContracts[0].EndHeight - rg.Settings.Allowance.RenewWindow - cg.Height
 	m := tg.Miners()[0]
 	for i := 0; i < int(blocksToMine); i++ {

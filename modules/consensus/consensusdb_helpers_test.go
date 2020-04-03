@@ -6,8 +6,8 @@ package consensus
 import (
 	bolt "go.etcd.io/bbolt"
 
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // dbBlockHeight is a convenience function allowing blockHeight to be called

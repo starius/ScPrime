@@ -7,12 +7,12 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/filesystem"
-	"gitlab.com/SiaPrime/SiaPrime/modules/renter/siafile"
-	"gitlab.com/SiaPrime/SiaPrime/types"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // Upload Streaming Overview:
@@ -127,7 +127,7 @@ func (r *Renter) UploadStreamFromReader(up modules.FileUploadParams, reader io.R
 	defer r.tg.Done()
 
 	// Perform the upload, close the filenode, and return.
-	fileNode, err := r.managedUploadStreamFromReader(up, reader, false)
+	fileNode, err := r.callUploadStreamFromReader(up, reader, false)
 	if err != nil {
 		return errors.AddContext(err, "unable to stream an upload from a reader")
 	}
@@ -188,16 +188,16 @@ func (r *Renter) managedInitUploadStream(up modules.FileUploadParams, backup boo
 	return r.staticFileSystem.OpenSiaFile(siaPath)
 }
 
-// managedUploadStreamFromReader reads from the provided reader until io.EOF is
+// callUploadStreamFromReader reads from the provided reader until io.EOF is
 // reached and upload the data to the Sia network. Depending on whether backup
 // is true or false, the siafile for the upload will be stored in the siafileset
 // or backupfileset.
 //
-// managedUploadStreamFromReader will return as soon as the data is available on
+// callUploadStreamFromReader will return as soon as the data is available on
 // the Sia network, this will happen faster than the entire upload is complete -
 // the streamer may continue uploading in the background after returning while
 // it is boosting redundancy.
-func (r *Renter) managedUploadStreamFromReader(up modules.FileUploadParams, reader io.Reader, backup bool) (fileNode *filesystem.FileNode, err error) {
+func (r *Renter) callUploadStreamFromReader(up modules.FileUploadParams, reader io.Reader, backup bool) (fileNode *filesystem.FileNode, err error) {
 	// Check the upload params first.
 	fileNode, err = r.managedInitUploadStream(up, backup)
 	if err != nil {
@@ -229,8 +229,7 @@ func (r *Renter) managedUploadStreamFromReader(up modules.FileUploadParams, read
 	availableWorkers := len(r.staticWorkerPool.workers)
 	r.staticWorkerPool.mu.RUnlock()
 	if availableWorkers < minWorkers {
-		return nil, fmt.Errorf("Need at least %v workers for upload but got only %v",
-			minWorkers, availableWorkers)
+		return nil, fmt.Errorf("Need at least %v workers for upload but got only %v", minWorkers, availableWorkers)
 	}
 
 	// Read the chunks we want to upload one by one from the input stream using
@@ -239,8 +238,8 @@ func (r *Renter) managedUploadStreamFromReader(up modules.FileUploadParams, read
 	var peek []byte
 	var chunks []*unfinishedUploadChunk
 	for chunkIndex := uint64(0); ; chunkIndex++ {
-		// Disrupt the upload by closing the reader and simulating losing connectivity
-		// during the upload.
+		// Disrupt the upload by closing the reader and simulating losing
+		// connectivity during the upload.
 		if r.deps.Disrupt("DisruptUploadStream") {
 			c, ok := reader.(io.Closer)
 			if ok {

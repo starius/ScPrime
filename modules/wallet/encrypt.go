@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/crypto"
-	"gitlab.com/SiaPrime/SiaPrime/encoding"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	"gitlab.com/SiaPrime/SiaPrime/types"
-
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 	bolt "go.etcd.io/bbolt"
 	"golang.org/x/crypto/pbkdf2"
+
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 var (
@@ -61,7 +61,8 @@ func verifyEncryption(key crypto.CipherKey, encrypted crypto.Ciphertext) error {
 	return nil
 }
 
-// checkMasterKey verifies that the masterKey is the key used to encrypt the wallet.
+// checkMasterKey verifies that the masterKey is the key used to encrypt the
+// wallet.
 func checkMasterKey(tx *bolt.Tx, masterKey crypto.CipherKey) error {
 	if masterKey == nil {
 		return modules.ErrBadEncryptionKey
@@ -565,7 +566,6 @@ func (w *Wallet) IsMasterKey(masterKey crypto.CipherKey) (bool, error) {
 		return false, err
 	}
 	return true, nil
-
 }
 
 // UnlockAsync will decrypt the wallet seed and load all of the addresses into
@@ -725,7 +725,6 @@ func (w *Wallet) managedChangeKey(masterKey crypto.CipherKey, newKey crypto.Ciph
 		if err != nil {
 			return errors.AddContext(err, "unable to put key encryption verification into db")
 		}
-
 		wpk := walletPasswordEncryptionKey(primarySeed, dbGetWalletSalt(w.dbTx))
 		mkt := newKey.Type()
 		mke := newKey.Key()

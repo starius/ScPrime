@@ -4,9 +4,9 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.com/SiaPrime/SiaPrime/build"
-	"gitlab.com/SiaPrime/SiaPrime/modules"
-	siasync "gitlab.com/SiaPrime/SiaPrime/sync"
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/modules"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -135,7 +135,6 @@ func (cs *ConsensusSet) updateSubscribers(ce changeEntry) {
 // sent to the modules starting with the genesis block.
 func (cs *ConsensusSet) managedInitializeSubscribe(subscriber modules.ConsensusSetSubscriber, start modules.ConsensusChangeID,
 	cancel <-chan struct{}) (modules.ConsensusChangeID, error) {
-
 	if start == modules.ConsensusChangeRecent {
 		cs.mu.Lock()
 		defer cs.mu.Unlock()
@@ -237,7 +236,6 @@ func (cs *ConsensusSet) recentConsensusChangeID() (cid modules.ConsensusChangeID
 // sent to the modules starting with the genesis block.
 func (cs *ConsensusSet) ConsensusSetSubscribe(subscriber modules.ConsensusSetSubscriber, start modules.ConsensusChangeID,
 	cancel <-chan struct{}) error {
-
 	err := cs.tg.Add()
 	if err != nil {
 		return err
