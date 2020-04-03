@@ -70,7 +70,8 @@ var (
 	// defaultBaseRPCPrice is the default price of talking to the host. It is
 	// roughly equal to the default bandwidth cost of exchanging a pair of
 	// 4096-byte messages.
-	defaultBaseRPCPrice = types.ScPrimecoinPrecision.Mul64(10).Div64(1e9) // 10 nS
+	// defaultBaseRPCPrice = types.ScPrimecoinPrecision.Mul64(10).Div64(1e9) // 10 nS
+	defaultBaseRPCPrice = defaultDownloadBandwidthPrice.Mul64(modules.MaxBaseRPCPriceVsBandwidth).Div64(2)
 
 	// defaultCollateral defines the amount of money that the host puts up as
 	// collateral per-byte by default. The collateral should be considered as
@@ -131,12 +132,13 @@ var (
 
 	// defaultSectorAccessPrice defines the default price of a sector access. It
 	// is roughly equal to the cost of downloading 64 KiB.
-	defaultSectorAccessPrice = types.ScPrimecoinPrecision.Mul64(2).Div64(1e9) // 2 uS
+	// defaultSectorAccessPrice = defaultDownloadBandwidthPrice.Mul64(modules.MaxSectorAccessPriceVsBandwidth).Div64(2)
+	defaultSectorAccessPrice = defaultDownloadBandwidthPrice.Mul64(modules.MaxSectorAccessPriceVsBandwidth).Div64(2)
 
 	// defaultStoragePrice defines the starting price for hosts selling
 	// storage. We try to match a number that is both reasonably profitable and
 	// reasonably competitive.
-	defaultStoragePrice = types.ScPrimecoinPrecision.Mul64(20e3).Div(modules.BlockBytesPerMonthTerabyte) // 20 SCP / TB / Month
+	defaultStoragePrice = types.ScPrimecoinPrecision.Mul64(20).Div(modules.BlockBytesPerMonthTerabyte) // 20 SCP / TB / Month
 
 	// defaultUploadBandwidthPrice defines the default price of upload
 	// bandwidth. The default is set to 250 SCP per GB, because the host is

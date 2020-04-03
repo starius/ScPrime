@@ -98,12 +98,12 @@ var (
 // Constants related to the safety values for when the contractor is forming
 // contracts.
 var (
-	maxCollateral    = types.ScPrimecoinPrecision.Mul64(90) // 90 SCP
+	maxCollateral    = types.ScPrimecoinPrecision.Mul64(200) // 200 SCP
 	maxDownloadPrice = maxStoragePrice.Mul64(3 * uint64(types.BlocksPerMonth))
 	maxStoragePrice  = build.Select(build.Var{
-		Dev:      types.ScPrimecoinPrecision.Mul64(500).Div(modules.BlockBytesPerMonthTerabyte), // 1 order of magnitude greater
-		Standard: types.ScPrimecoinPrecision.Mul64(50).Div(modules.BlockBytesPerMonthTerabyte),  // 50SCP / TB / Month
-		Testing:  types.ScPrimecoinPrecision.Mul64(1e4).Div(modules.BlockBytesPerMonthTerabyte), // 2 orders of magnitude greater
+		Dev:      types.ScPrimecoinPrecision.Mul64(1000).Div(modules.BlockBytesPerMonthTerabyte),  // 1 order of magnitude greater
+		Standard: types.ScPrimecoinPrecision.Mul64(100).Div(modules.BlockBytesPerMonthTerabyte),   // 100SCP / TB / Month
+		Testing:  types.ScPrimecoinPrecision.Mul64(10000).Div(modules.BlockBytesPerMonthTerabyte), // 2 orders of magnitude greater
 	}).(types.Currency)
 	maxUploadPrice = build.Select(build.Var{
 		Dev:      maxStoragePrice.Mul64(30 * uint64(types.BlocksPerMonth)),  // 1 order of magnitude greater

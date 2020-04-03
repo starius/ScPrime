@@ -4000,6 +4000,7 @@ func TestOutOfStorageHandling(t *testing.T) {
 		return nil
 	})
 	if err != nil {
+		renter.PrintDebugInfo(t, true, true, true)
 		t.Fatal(err)
 	}
 
