@@ -415,6 +415,10 @@ var (
 )
 
 var (
+	ErrNotEnoughTokenResources = types.NewSpecifier("TokenResources")
+)
+
+var (
 	// RPCChallengePrefix is the prefix prepended to the challenge data
 	// supplied by the host when proving ownership of a contract's secret key.
 	RPCChallengePrefix = types.NewSpecifier("challenge")

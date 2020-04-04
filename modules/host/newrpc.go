@@ -1024,18 +1024,28 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 	sectorAccesses := estimateSectorsAccesses(req.Sections)
 	tokenResources, err := h.tokenStor.tokenRecord(&id)
 	if err != nil {
+		err := &modules.RPCError{
+			Description: "unknown token",
+			Type:        modules.ErrNotEnoughTokenResources,
+		}
 		s.writeError(err)
 		return err
 	}
 	availableBandwidth := tokenResources.downloadBytes
 	if availableBandwidth < estBandwidth {
-		err := errors.New("Token does not have enough download bytes available to handle the requested amount of downloading")
+		err := &modules.RPCError{
+			Description: "token does not have enough download bytes available to handle the requested amount of downloading",
+			Type:        modules.ErrNotEnoughTokenResources,
+		}
 		s.writeError(err)
 		return err
 	}
 	availableSectors := tokenResources.sectorAccesses
 	if availableSectors < sectorAccesses {
-		err := errors.New("Token does not have enough sector accesses available to handle this request")
+		err := &modules.RPCError{
+			Description: "token does not have enough sector accesses available to handle this request",
+			Type:        modules.ErrNotEnoughTokenResources,
+		}
 		s.writeError(err)
 		return err
 	}
