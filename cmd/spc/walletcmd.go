@@ -233,11 +233,18 @@ func confirmPassword(prev string) error {
 // walletaddresscmd fetches a new address from the wallet that will be able to
 // receive coins.
 func walletaddresscmd() {
-	addr, err := httpClient.WalletAddressGet()
+	resp, err := httpClient.WalletAddressGet()
 	if err != nil {
 		die("Could not generate new address:", err)
 	}
-	fmt.Printf("Created new address: %s\n", addr.Address)
+	fmt.Printf("Created new address: %s\n", resp.Address)
+	if resp.UnlockConditions.Timelock != 0 {
+		unlockConditions, err := json.MarshalIndent(resp.UnlockConditions, "", "  ")
+		if err != nil {
+			die("Could not encode UnlockConditions to JSON:", err)
+		}
+		fmt.Printf("Unlock conditions:\n%s\n", string(unlockConditions))
+	}
 }
 
 // walletaddressescmd fetches the list of addresses that the wallet knows.
