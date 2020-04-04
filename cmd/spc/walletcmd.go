@@ -33,6 +33,13 @@ var (
 		Run:   wrap(walletaddresscmd),
 	}
 
+	walletHashCmd = &cobra.Command{
+		Use:   "hash",
+		Short: "Hash unlock conditions",
+		Long:  "Take unlock conditions from stdin, calculate address and print it.",
+		Run:   wrap(wallethashcmd),
+	}
+
 	walletAddressesCmd = &cobra.Command{
 		Use:   "addresses",
 		Short: "List all addresses",
@@ -233,11 +240,27 @@ func confirmPassword(prev string) error {
 // walletaddresscmd fetches a new address from the wallet that will be able to
 // receive coins.
 func walletaddresscmd() {
-	addr, err := httpClient.WalletAddressGet()
+	resp, err := httpClient.WalletAddressGet()
 	if err != nil {
 		die("Could not generate new address:", err)
 	}
-	fmt.Printf("Created new address: %s\n", addr.Address)
+	fmt.Printf("Created new address: %s\n", resp.Address)
+	if resp.UnlockConditions.Timelock != 0 {
+		unlockConditions, err := json.MarshalIndent(resp.UnlockConditions, "", "  ")
+		if err != nil {
+			die("Could not encode UnlockConditions to JSON:", err)
+		}
+		fmt.Printf("Unlock conditions:\n%s\n", string(unlockConditions))
+	}
+}
+
+// wallethashcmd hashes unlock conditions passed in stdin.
+func wallethashcmd() {
+	var uc types.UnlockConditions
+	if err := json.NewDecoder(os.Stdin).Decode(&uc); err != nil {
+		die("Could not parse unlock conditions:", err)
+	}
+	fmt.Printf("Address: %s\n", uc.UnlockHash())
 }
 
 // walletaddressescmd fetches the list of addresses that the wallet knows.

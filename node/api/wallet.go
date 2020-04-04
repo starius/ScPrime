@@ -39,7 +39,8 @@ type (
 	// WalletAddressGET contains an address returned by a GET call to
 	// /wallet/address.
 	WalletAddressGET struct {
-		Address types.UnlockHash `json:"address"`
+		Address          types.UnlockHash       `json:"address"`
+		UnlockConditions types.UnlockConditions `json:"unlock_conditions"`
 	}
 
 	// WalletAddressesGET contains the list of wallet addresses returned by a
@@ -261,7 +262,8 @@ func (api *API) walletAddressHandler(w http.ResponseWriter, req *http.Request, _
 		return
 	}
 	WriteJSON(w, WalletAddressGET{
-		Address: unlockConditions.UnlockHash(),
+		Address:          unlockConditions.UnlockHash(),
+		UnlockConditions: unlockConditions,
 	})
 }
 
