@@ -71,7 +71,7 @@ var (
 	// roughly equal to the default bandwidth cost of exchanging a pair of
 	// 4096-byte messages.
 	// defaultBaseRPCPrice = types.ScPrimecoinPrecision.Mul64(10).Div64(1e9) // 10 nS
-	defaultBaseRPCPrice = defaultDownloadBandwidthPrice.Mul64(modules.MaxBaseRPCPriceVsBandwidth).Div64(2)
+	defaultBaseRPCPrice = defaultDownloadBandwidthPrice.Mul64(modules.MaxBaseRPCPriceVsBandwidth).Div64(5)
 
 	// defaultCollateral defines the amount of money that the host puts up as
 	// collateral per-byte by default. The collateral should be considered as
@@ -96,7 +96,7 @@ var (
 	// with the host. The current default is 0.1. This was chosen since it is
 	// the minimum fee estimation of the transactionpool for a filecontract
 	// transaction..
-	defaultContractPrice = types.ScPrimecoinPrecision.Div64(100).Div64(1e3).Mul64(modules.EstimatedFileContractRevisionAndProofTransactionSetSize)
+	defaultContractPrice = types.ScPrimecoinPrecision.Div64(1e6).Mul64(modules.EstimatedFileContractRevisionAndProofTransactionSetSize)
 
 	// defaultDownloadBandwidthPrice defines the default price of upload
 	// bandwidth. The default is set to 500 SCP per gigabyte, because
