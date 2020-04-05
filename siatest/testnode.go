@@ -118,7 +118,7 @@ func NewCleanNodeAsync(nodeParams node.NodeParams) (*TestNode, error) {
 
 // newCleanNode creates a new TestNode that's not yet funded
 func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error) {
-	userAgent := "SiaPrime-Agent"
+	userAgent := "ScPrime-Agent"
 	password := "password"
 
 	// Check if an RPC address is set
@@ -248,6 +248,7 @@ func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterI
 			t.Log("    GoodForUpload", c.GoodForUpload)
 			t.Log("    GoodForRenew", c.GoodForRenew)
 			t.Log("    EndHeight", c.EndHeight)
+			t.Log("    Size", c.Size)
 		}
 		t.Log()
 		t.Log("Passive Contracts")
@@ -257,6 +258,7 @@ func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterI
 			t.Log("    GoodForUpload", c.GoodForUpload)
 			t.Log("    GoodForRenew", c.GoodForRenew)
 			t.Log("    EndHeight", c.EndHeight)
+			t.Log("    Size", c.Size)
 		}
 		t.Log()
 		t.Log("Refreshed Contracts")
@@ -266,6 +268,7 @@ func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterI
 			t.Log("    GoodForUpload", c.GoodForUpload)
 			t.Log("    GoodForRenew", c.GoodForRenew)
 			t.Log("    EndHeight", c.EndHeight)
+			t.Log("    Size", c.Size)
 		}
 		t.Log()
 		t.Log("Disabled Contracts")
@@ -275,6 +278,7 @@ func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterI
 			t.Log("    GoodForUpload", c.GoodForUpload)
 			t.Log("    GoodForRenew", c.GoodForRenew)
 			t.Log("    EndHeight", c.EndHeight)
+			t.Log("    Size", c.Size)
 		}
 		t.Log()
 		t.Log("Expired Contracts")
@@ -284,6 +288,7 @@ func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterI
 			t.Log("    GoodForUpload", c.GoodForUpload)
 			t.Log("    GoodForRenew", c.GoodForRenew)
 			t.Log("    EndHeight", c.EndHeight)
+			t.Log("    Size", c.Size)
 		}
 		t.Log()
 		t.Log("Expired Refreshed Contracts")
@@ -293,6 +298,7 @@ func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterI
 			t.Log("    GoodForUpload", c.GoodForUpload)
 			t.Log("    GoodForRenew", c.GoodForRenew)
 			t.Log("    EndHeight", c.EndHeight)
+			t.Log("    Size", c.Size)
 		}
 		t.Log()
 	}
@@ -320,6 +326,7 @@ func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterI
 				t.Log("            ", subnet)
 			}
 			t.Log()
+			t.Log("        TotalStorage", host.TotalStorage)
 			t.Log("        RemainingStorage", host.RemainingStorage)
 			t.Log("        StoragePrice", host.StoragePrice)
 			t.Log("        UploadPrice", host.UploadBandwidthPrice)

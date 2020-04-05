@@ -104,9 +104,15 @@ func testContractFunding(t *testing.T, tg *siatest.TestGroup) {
 	// Get Contract Price from host and determine contract funding based on the
 	// transaction fees
 	contractPrice := hg.ExternalSettings.ContractPrice
-	tpoolMaxFee := contractPrice.Div64(modules.EstimatedFileContractRevisionAndProofTransactionSetSize)
+	tpfe, err := r.TransactionPoolFeeGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tpoolMaxFee := tpfe.Maximum
+	//tpoolMaxFee := contractPrice.Div64(modules.EstimatedFileContractRevisionAndProofTransactionSetSize)
 	txnFee := tpoolMaxFee.Mul64(modules.EstimatedFileContractTransactionSetSize)
 	contractFunding := contractPrice.Add(txnFee).Mul64(contractor.ContractFeeFundingMulFactor)
+	calculatedFunding := contractFunding
 
 	// Sanity checks on funding
 	if contractFunding.Cmp(maxInitialContractFunding) > 0 {
@@ -125,6 +131,8 @@ func testContractFunding(t *testing.T, tg *siatest.TestGroup) {
 
 	// The funds put into the contract should equal the contract funding
 	if !contractFunds.Equals(contractFunding) {
+		t.Logf("allowance: %+v\n maxInitialContractFunding: %v minInitialContractFunding: %v", allowance, maxInitialContractFunding, minInitialContractFunding)
+		t.Logf("contractPrice: %v tpoolMaxFee: %v txnFee: %v calculatedFunding: %v", contractPrice, tpoolMaxFee, txnFee, calculatedFunding)
 		t.Errorf("Contract Funds %v does not equal the Contract Funding %v", contractFunds.HumanString(), contractFunding.HumanString())
 	}
 }
@@ -1178,7 +1186,7 @@ func TestLowAllowanceAlert(t *testing.T) {
 	// Add a renter which won't be able to renew a contract due to low funds.
 	renterParams := node.Renter(filepath.Join(testDir, "renter_renew"))
 	renterParams.Allowance = siatest.DefaultAllowance
-	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(3)
+	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(60)
 	renterParams.Allowance.Period = 10
 	renterParams.Allowance.RenewWindow = 5
 	renterParams.ContractorDeps = &dependencies.DependencyLowFundsRenewalFail{}
@@ -1211,6 +1219,7 @@ func TestLowAllowanceAlert(t *testing.T) {
 	renterParams = node.Renter(filepath.Join(testDir, "renter_refresh"))
 	renterParams.Allowance = siatest.DefaultAllowance
 	renterParams.Allowance.Hosts = 2
+	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(100)
 	renterParams.RenterDeps = &dependencies.DependencyDisableUploadGougingCheck{}
 	renterParams.ContractorDeps = &dependencies.DependencyLowFundsRefreshFail{}
 	nodes, err = tg.AddNodes(renterParams)
@@ -1221,7 +1230,7 @@ func TestLowAllowanceAlert(t *testing.T) {
 	// Drain contracts to force refresh
 	_, err = siatest.DrainContractsByUploading(renter, tg)
 	if err != nil {
-		renter.PrintDebugInfo(t, true, false, true)
+		renter.PrintDebugInfo(t, true, true, true)
 		t.Fatal(err)
 	}
 	// Wait for the alert to be registered.
@@ -2166,9 +2175,10 @@ func TestFailedContractRenewalAlert(t *testing.T) {
 	// Add a renter which won't be able to renew a contract.
 	renterParams := node.Renter(filepath.Join(testDir, "renter"))
 	renterParams.Allowance = siatest.DefaultAllowance
-	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(3)
+	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(40)
 	renterParams.Allowance.Period = 10
 	renterParams.Allowance.RenewWindow = 5
+	//renterParams.Allowance.ExpectedStorage =
 	renterParams.RenterDeps = &dependencies.DependencyDisableUploadGougingCheck{}
 	deps := dependencies.NewDependencyContractRenewalFail()
 	renterParams.ContractorDeps = deps

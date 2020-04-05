@@ -48,16 +48,16 @@ var (
 	// the host default settings are that price gouging protection does not kick
 	// in.
 	DefaultAllowance = modules.Allowance{
-		Funds:       types.ScPrimecoinPrecision.Mul64(5),
+		Funds:       types.ScPrimecoinPrecision.Mul64(6),
 		Hosts:       5,
 		Period:      50,
 		RenewWindow: 24,
-
-		ExpectedStorage:    modules.SectorSize * 4096, //=16 MiB in testing
-		ExpectedUpload:     modules.SectorSize * 512,  //=2MiB in testing
-		ExpectedDownload:   modules.SectorSize * 512,  //=2MiB in testing
+		// testing SectorSize=4KiB (4096 bytes)
+		ExpectedStorage:    modules.SectorSize * 256, //=1MiB in testing
+		ExpectedUpload:     modules.SectorSize * 128, //=512KiB in testing
+		ExpectedDownload:   modules.SectorSize * 128, //=512KiB in testing
 		ExpectedRedundancy: 5.0,
-		MaxPeriodChurn:     modules.SectorSize * 500,
+		MaxPeriodChurn:     modules.SectorSize * 192,
 	}
 
 	// testGroupBuffer is a buffer channel to control the number of testgroups
@@ -217,7 +217,9 @@ func addStorageFolderToHosts(hosts map[*TestNode]struct{}) error {
 	for host := range hosts {
 		wg.Add(1)
 		go func(i int, host *TestNode) {
-			storage := 4 * contractmanager.MinimumSectorsPerStorageFolder * modules.SectorSize
+			//DefaultAllowance.ExpectedStorage:= modules.SectorSize * 512 //=8 MiB in testing where SectorSize=4KiB (4096 bytes)
+			storage := 8 * contractmanager.MinimumSectorsPerStorageFolder * modules.SectorSize //same as renters expected
+
 			if host.params.HostStorage > 0 {
 				storage = host.params.HostStorage
 			}

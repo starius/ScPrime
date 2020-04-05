@@ -278,7 +278,7 @@ func TestFormContractSmallAllowance(t *testing.T) {
 	// Using production number of hosts as well
 	c.mu.Lock()
 	c.allowance = modules.DefaultAllowance
-	c.allowance.Funds = types.ScPrimecoinPrecision.Mul64(1)
+	c.allowance.Funds = types.ScPrimecoinPrecision.Div64(20)
 	c.allowance.Hosts = uint64(50)
 	initialContractFunds := c.allowance.Funds.Div64(c.allowance.Hosts).Div64(3)
 	c.mu.Unlock()
