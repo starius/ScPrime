@@ -414,6 +414,7 @@ var (
 	RPCLoopDownloadWithTokenStop = types.NewSpecifier("DownloadStop")
 )
 
+// Error returned by host when token runs out of resources
 var (
 	ErrNotEnoughTokenResources = types.NewSpecifier("TokenResources")
 )
