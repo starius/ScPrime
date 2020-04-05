@@ -26,7 +26,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/host"
 	"gitlab.com/scpcorp/ScPrime/modules/index"
 	"gitlab.com/scpcorp/ScPrime/modules/miner"
-	"gitlab.com/scpcorp/ScPrime/modules/miningpool"
+	pool "gitlab.com/scpcorp/ScPrime/modules/miningpool"
 	"gitlab.com/scpcorp/ScPrime/modules/renter"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
@@ -229,7 +229,7 @@ func assembleServerTesterWithDeps(key crypto.CipherKey, testdir string, gDeps, c
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
-	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, nil, g, h, m, r, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "ScPrime-Agent", "", cs, nil, nil, g, h, m, r, tp, w, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +338,7 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 			return nil, err
 		}
 	}
-	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", requiredPassword, cs, nil, nil, g, h, m, r, tp, w, mp, nil, idx)
+	srv, err := NewServer(testdir, "localhost:0", "ScPrime-Agent", requiredPassword, cs, nil, nil, g, h, m, r, tp, w, mp, nil, idx)
 	if err != nil {
 		return nil, err
 	}
