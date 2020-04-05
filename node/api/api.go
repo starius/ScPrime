@@ -49,7 +49,7 @@ func HttpGET(url string) (resp *http.Response, err error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "SiaPrime-Agent")
+	req.Header.Set("User-Agent", "ScPrime-Agent")
 	return http.DefaultClient.Do(req)
 }
 
@@ -61,7 +61,7 @@ func HttpGETAuthenticated(url string, password string) (resp *http.Response, err
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "SiaPrime-Agent")
+	req.Header.Set("User-Agent", "ScPrime-Agent")
 	req.SetBasicAuth("", password)
 	return http.DefaultClient.Do(req)
 }
@@ -73,7 +73,7 @@ func HttpPOST(url string, data string) (resp *http.Response, err error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "SiaPrime-Agent")
+	req.Header.Set("User-Agent", "ScPrime-Agent")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	return http.DefaultClient.Do(req)
 }
@@ -86,7 +86,7 @@ func HttpPOSTAuthenticated(url string, data string, password string) (resp *http
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "SiaPrime-Agent")
+	req.Header.Set("User-Agent", "ScPrime-Agent")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth("", password)
 	return http.DefaultClient.Do(req)

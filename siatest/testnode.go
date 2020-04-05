@@ -118,7 +118,7 @@ func NewCleanNodeAsync(nodeParams node.NodeParams) (*TestNode, error) {
 
 // newCleanNode creates a new TestNode that's not yet funded
 func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error) {
-	userAgent := "SiaPrime-Agent"
+	userAgent := "ScPrime-Agent"
 	password := "password"
 
 	// Check if an RPC address is set
