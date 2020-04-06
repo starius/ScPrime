@@ -9,10 +9,28 @@ import (
 // DefaultSiaDir returns the default data directory of siad. The values for
 // supported operating systems are:
 //
+// Linux:   $HOME/.scprime
+// MacOS:   $HOME/Library/Application Support/ScPrime
+// Windows: %LOCALAPPDATA%\ScPrime
+func DefaultSiaDir() string {
+	switch runtime.GOOS {
+	case "windows":
+		return filepath.Join(os.Getenv("LOCALAPPDATA"), "ScPrime")
+	case "darwin":
+		return filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "ScPrime")
+	default:
+		return filepath.Join(os.Getenv("HOME"), ".scprime")
+	}
+}
+
+// DefaultSiaPrimeDir returns the default data directory of older ScPrime nodes.
+// This method is used to migrate the metadata to the new default location.
+// The values for supported operating systems are:
+//
 // Linux:   $HOME/.siaprime
 // MacOS:   $HOME/Library/Application Support/SiaPrime
 // Windows: %LOCALAPPDATA%\SiaPrime
-func DefaultSiaDir() string {
+func DefaultSiaPrimeDir() string {
 	switch runtime.GOOS {
 	case "windows":
 		return filepath.Join(os.Getenv("LOCALAPPDATA"), "SiaPrime")
