@@ -109,7 +109,7 @@ $ git remote add <remote name> git@gitlab.com:<username>/SiaPrime.git
 
 Right now your git local repository only has one branch (called 'master' by 
 default). If you want to make changes, add a new branch and make your changes 
-there. You should maintain master as an up-to-date copy of the SiaPrime/SiaPrime 
+there. You should maintain master as an up-to-date copy of the scpcorp/ScPrime
 repository's master branch.
 
 To create and checkout a new branch:

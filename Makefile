@@ -4,7 +4,7 @@ GIT_REVISION=$(shell git rev-parse --short HEAD)
 GIT_DIRTY=$(shell git diff-index --quiet HEAD -- || echo "modified-")
 
 ldflags= -X gitlab.com/scpcorp/ScPrime/build.GitRevision=${GIT_DIRTY}${GIT_REVISION} \
--X "gitlab.com/SiaPrime/SiaPrime/build.BuildTime=${BUILD_TIME}"
+-X "gitlab.com/scpcorp/ScPrime/build.BuildTime=${BUILD_TIME}"
 
 GO111MODULE=on
 

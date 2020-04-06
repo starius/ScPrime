@@ -11,13 +11,9 @@ require (
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/klauspost/reedsolomon v1.9.3
-	github.com/kr/pretty v0.2.0 // indirect
-	github.com/kr/text v0.2.0 // indirect
-	github.com/mitchellh/mapstructure v1.2.2 // indirect
 	github.com/sasha-s/go-deadlock v0.2.0
-	github.com/spf13/cobra v0.0.6
+	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.6.2
-	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/xtaci/smux v1.5.12
 	gitlab.com/NebulousLabs/demotemutex v0.0.0-20151003192217-235395f71c40
 	gitlab.com/NebulousLabs/entropy-mnemonics v0.0.0-20181018051301-7532f67e3500

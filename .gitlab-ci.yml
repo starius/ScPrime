@@ -197,9 +197,14 @@ siatest-renter-tests-nightly:
     - apt-get install -y fuse
     - make test-vlong run=. pkgs="$siatest_renter_pkgs"
 
-siatest-renter-sub-tests-nightly:
-  <<: *default_nightly_params
+deploy:
+  stage: deploy
+  only:
+    refs:
+      - master@scpcorp/ScPrime
+  artifacts:
+    name: "Binaries"
+    paths:
+      - $CI_PROJECT_DIR/artifacts
   script:
-    - apt-get update
-    - apt-get install -y fuse
-    - make test-vlong run=. pkgs="$siatest_renter_sub_pkgs"
+    - ./build.sh "$NIGHTLY_SIGNING_KEY"
