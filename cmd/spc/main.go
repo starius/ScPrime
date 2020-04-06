@@ -346,7 +346,7 @@ func main() {
 	root.Flags().BoolVarP(&statusVerbose, "verbose", "v", false, "Display additional siac information")
 	root.PersistentFlags().StringVarP(&httpClient.Address, "addr", "a", "localhost:4280", "which host/port to communicate with (i.e. the host/port spd is listening on)")
 	root.PersistentFlags().StringVarP(&httpClient.Password, "apipassword", "", "", "the password for the API's http authentication")
-	root.PersistentFlags().StringVarP(&dataDir, "scprime-directory", "d", build.DefaultSiaDir(), "location of the metadata directory")
+	root.PersistentFlags().StringVarP(&dataDir, "scprime-directory", "d", build.DefaultMetadataDir(), "location of the metadata directory")
 	root.PersistentFlags().StringVarP(&httpClient.UserAgent, "useragent", "", "ScPrime-Agent", "the useragent used by spc to connect to the daemon's API")
 
 	// Check if the api password environment variable is set.
@@ -362,13 +362,13 @@ func main() {
 		if dataDir != "" {
 			fmt.Println("Using SCPRIME_DATA_DIR environment variable")
 		} else {
-			dataDir = build.DefaultSiaDir()
+			dataDir = build.DefaultMetadataDir()
 		}
 	}
 
 	// If the API password wasn't set we try to read it from the file. This must
-	// be done only *after* we parse the sia-directory flag, which is why we do
-	// it inside OnInitialize.
+	// be done only *after* we parse the scprime-directory flag, which is why we
+	// do it inside OnInitialize.
 	cobra.OnInitialize(func() {
 		if httpClient.Password == "" {
 			pw, err := ioutil.ReadFile(build.APIPasswordFile(dataDir))
