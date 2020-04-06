@@ -6,7 +6,7 @@ import (
 	"runtime"
 )
 
-// DefaultSiaDir returns the default data directory of siad. The values for
+// DefaultMetadataDir returns the default data directory of siad. The values for
 // supported operating systems are:
 //
 // Linux:   $HOME/.scprime
