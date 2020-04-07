@@ -42,7 +42,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/skynetblacklist"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/pubaccessblacklist"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
@@ -172,7 +172,7 @@ type Renter struct {
 	staticFileSystem *filesystem.FileSystem
 
 	// Pubaccess Management
-	staticSkynetBlacklist *skynetblacklist.SkynetBlacklist
+	staticSkynetBlacklist *pubaccessblacklist.SkynetBlacklist
 
 	// Download management. The heap has a separate mutex because it is always
 	// accessed in isolation.
@@ -921,7 +921,7 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	r.stuckStack = callNewStuckStack()
 
 	// Add SkynetBlacklist
-	sb, err := skynetblacklist.New(r.persistDir)
+	sb, err := pubaccessblacklist.New(r.persistDir)
 	if err != nil {
 		return nil, errors.AddContext(err, "unable to create new pubaccess blacklist")
 	}

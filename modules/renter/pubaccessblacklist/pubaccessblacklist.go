@@ -1,4 +1,4 @@
-package skynetblacklist
+package pubaccessblacklist
 
 import (
 	"sync"

@@ -1,4 +1,4 @@
-package skynetblacklist
+package pubaccessblacklist
 
 import (
 	"bytes"
@@ -24,7 +24,7 @@ const (
 	metadataPageSize int64 = 4096
 
 	// persistFile is the name of the persist file
-	persistFile string = "skynetblacklist"
+	persistFile string = "pubaccessblacklist"
 
 	// persistMerkleRootSize is the size of a persisted merkleroot in the
 	// blacklist

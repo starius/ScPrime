@@ -47,7 +47,7 @@ pkgs = ./build \
 	./modules/renter/hostdb \
 	./modules/renter/hostdb/hosttree \
 	./modules/renter/proto \
-	./modules/renter/skynetblacklist \
+	./modules/renter/pubaccessblacklist \
 	./modules/transactionpool \
 	./modules/wallet \
 	./node \

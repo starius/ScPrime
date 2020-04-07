@@ -1,4 +1,4 @@
-package skynetblacklist
+package pubaccessblacklist
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 
 // testDir is a helper function for creating the testing directory
 func testDir(name string) string {
-	return build.TempDir("skynetblacklist", name)
+	return build.TempDir("pubaccessblacklist", name)
 }
 
 // checkNumPersistedLinks checks that the expected number of links has been

@@ -275,7 +275,7 @@ on top of ScPrime.`,
 		Short: "Blacklist a publink from pubaccess.",
 		Long: `Blacklist a publink from pubaccess. Use the --remove flag to
 remove a publink from the blacklist.`,
-		Run: skynetblacklistcmd,
+		Run: pubaccessblacklistcmd,
 	}
 
 	skynetDownloadCmd = &cobra.Command{
@@ -2524,9 +2524,9 @@ func skynetcmd(cmd *cobra.Command, args []string) {
 	os.Exit(exitCodeUsage)
 }
 
-// skynetblacklistcmd handles adding and removing a publink from the Pubaccess
+// pubaccessblacklistcmd handles adding and removing a publink from the Pubaccess
 // Blacklist
-func skynetblacklistcmd(cmd *cobra.Command, args []string) {
+func pubaccessblacklistcmd(cmd *cobra.Command, args []string) {
 	if len(args) != 1 {
 		cmd.UsageFunc()(cmd)
 		os.Exit(exitCodeUsage)
