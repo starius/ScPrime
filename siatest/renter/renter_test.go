@@ -2094,6 +2094,7 @@ func testRenterAllowanceCancel(t *testing.T, tg *siatest.TestGroup) {
 	parityPieces := uint64(len(tg.Hosts()) - 1)
 	_, rf, err := renter.UploadNewFileBlocking(100, dataPieces, parityPieces, false)
 	if err != nil {
+		renter.PrintDebugInfo(t, true, true, true)
 		t.Fatal(err)
 	}
 
