@@ -31,14 +31,14 @@ import (
 	"gitlab.com/scpcorp/ScPrime/node"
 	"gitlab.com/scpcorp/ScPrime/node/api"
 	"gitlab.com/scpcorp/ScPrime/node/api/client"
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 	"gitlab.com/scpcorp/ScPrime/siatest"
 	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
-	"gitlab.com/scpcorp/ScPrime/skykey"
 )
 
-// TestSkynet verifies the functionality of Skynet, a decentralized CDN and
+// TestPubAccess verifies the functionality of Pubaccess, a decentralized CDN and
 // sharing platform.
-func TestSkynet(t *testing.T) {
+func TestPubAccess(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -54,20 +54,20 @@ func TestSkynet(t *testing.T) {
 
 	// Specify subtests to run
 	subTests := []siatest.SubTest{
-		{Name: "TestSkynetBasic", Test: testSkynetBasic},
-		{Name: "TestSkynetSkykey", Test: testSkynetSkykey},
-		{Name: "TestSkynetLargeMetadata", Test: testSkynetLargeMetadata},
-		{Name: "TestSkynetMultipartUpload", Test: testSkynetMultipartUpload},
-		{Name: "TestSkynetNoFilename", Test: testSkynetNoFilename},
-		{Name: "TestSkynetSubDirDownload", Test: testSkynetSubDirDownload},
-		{Name: "TestSkynetDisableForce", Test: testSkynetDisableForce},
-		{Name: "TestSkynetBlacklist", Test: testSkynetBlacklist},
-		{Name: "TestSkynetHeadRequest", Test: testSkynetHeadRequest},
-		{Name: "TestSkynetStats", Test: testSkynetStats},
-		{Name: "TestSkynetRequestTimeout", Test: testSkynetRequestTimeout},
-		{Name: "TestSkynetDryRunUpload", Test: testSkynetDryRunUpload},
+		{Name: "TestPubAccessBasic", Test: testPubaccessBasic},
+		{Name: "TestPubAccessSkykey", Test: testPubaccessSkykey},
+		{Name: "TestPubAccessLargeMetadata", Test: testPubaccessLargeMetadata},
+		{Name: "TestPubAccessMultipartUpload", Test: testPubaccessMultipartUpload},
+		{Name: "TestPubAccessNoFilename", Test: testPubaccessNoFilename},
+		{Name: "TestPubAccessSubDirDownload", Test: testPubaccessSubDirDownload},
+		{Name: "TestPubAccessDisableForce", Test: testPubaccessDisableForce},
+		{Name: "TestPubAccessBlacklist", Test: testPubaccessBlacklist},
+		{Name: "TestPubAccessHeadRequest", Test: testPubaccessHeadRequest},
+		{Name: "TestPubAccessStats", Test: testPubaccessStats},
+		{Name: "TestPubAccessRequestTimeout", Test: testPubaccessRequestTimeout},
+		{Name: "TestPubAccessDryRunUpload", Test: testPubaccessDryRunUpload},
 		{Name: "TestRegressionTimeoutPanic", Test: testRegressionTimeoutPanic},
-		{Name: "TestSkynetNoWorkers", Test: testSkynetNoWorkers},
+		{Name: "TestPubAccessNoWorkers", Test: testPubaccessNoWorkers},
 	}
 
 	// Run tests
@@ -76,16 +76,16 @@ func TestSkynet(t *testing.T) {
 	}
 }
 
-// testSkynetBasic provides basic end-to-end testing for uploading skyfiles and
-// downloading the resulting skylinks.
-func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
+// testPubaccessBasic provides basic end-to-end testing for uploading pubfiles and
+// downloading the resulting publinks.
+func testPubaccessBasic(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Create some data to upload as a skyfile.
+	// Create some data to upload as a pubfile.
 	data := fastrand.Bytes(100 + siatest.Fuzz())
 	// Need it to be a reader.
 	reader := bytes.NewReader(data)
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	filename := "testSmall"
 	uploadSiaPath, err := modules.NewSiaPath("testSmallPath")
 	if err != nil {
@@ -108,19 +108,19 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		},
 		Reader: reader,
 	}
-	skylink, rshp, err := r.SkynetSkyfilePost(sup)
+	publink, rshp, err := r.SkynetSkyfilePost(sup)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var realSkylink modules.Skylink
-	err = realSkylink.LoadString(skylink)
+	var realPublink modules.Publink
+	err = realPublink.LoadString(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rshp.MerkleRoot != realSkylink.MerkleRoot() {
+	if rshp.MerkleRoot != realPublink.MerkleRoot() {
 		t.Fatal("mismatch")
 	}
-	if rshp.Bitfield != realSkylink.Bitfield() {
+	if rshp.Bitfield != realPublink.Bitfield() {
 		t.Fatal("mismatch")
 	}
 
@@ -143,8 +143,8 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Try to download the file behind the skylink.
-	fetchedData, metadata, err := r.SkynetSkylinkGet(skylink)
+	// Try to download the file behind the publink.
+	fetchedData, metadata, err := r.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,16 +161,16 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// Try to download the file using the ReaderGet method.
-	skylinkReader, err := r.SkynetSkylinkReaderGet(skylink)
+	publinkReader, err := r.SkynetPublinkReaderGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
-	readerData, err := ioutil.ReadAll(skylinkReader)
+	readerData, err := ioutil.ReadAll(publinkReader)
 	if err != nil {
-		err = errors.Compose(err, skylinkReader.Close())
+		err = errors.Compose(err, publinkReader.Close())
 		t.Fatal(err)
 	}
-	err = skylinkReader.Close()
+	err = publinkReader.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,16 +180,16 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 
 	// Try to download the file explicitly using the ReaderGet method with the
 	// no formatter.
-	skylinkReader, err = r.SkynetSkylinkReaderGet(skylink)
+	publinkReader, err = r.SkynetPublinkReaderGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
-	readerData, err = ioutil.ReadAll(skylinkReader)
+	readerData, err = ioutil.ReadAll(publinkReader)
 	if err != nil {
-		err = errors.Compose(err, skylinkReader.Close())
+		err = errors.Compose(err, publinkReader.Close())
 		t.Fatal(err)
 	}
-	err = skylinkReader.Close()
+	err = publinkReader.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,30 +199,30 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 
 	// Try to download the file using the ReaderGet method with the concat
 	// formatter.
-	skylinkReader, err = r.SkynetSkylinkConcatReaderGet(skylink)
+	publinkReader, err = r.SkynetPublinkConcatReaderGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
-	readerData, err = ioutil.ReadAll(skylinkReader)
+	readerData, err = ioutil.ReadAll(publinkReader)
 	if err != nil {
-		err = errors.Compose(err, skylinkReader.Close())
+		err = errors.Compose(err, publinkReader.Close())
 		t.Fatal(err)
 	}
 	if !bytes.Equal(readerData, data) {
 		t.Fatal("reader data doesn't match data")
 	}
-	err = skylinkReader.Close()
+	err = publinkReader.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Try to download the file using the ReaderGet method with the tar
 	// formatter.
-	skylinkReader, err = r.SkynetSkylinkTarReaderGet(skylink)
+	publinkReader, err = r.SkynetPublinkTarReaderGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
-	tr := tar.NewReader(skylinkReader)
+	tr := tar.NewReader(publinkReader)
 	header, err := tr.Next()
 	if err != nil {
 		t.Fatal(err)
@@ -232,7 +232,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	}
 	readerData, err = ioutil.ReadAll(tr)
 	if err != nil {
-		err = errors.Compose(err, skylinkReader.Close())
+		err = errors.Compose(err, publinkReader.Close())
 		t.Fatal(err)
 	}
 	if !bytes.Equal(readerData, data) {
@@ -242,18 +242,18 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	if err != io.EOF {
 		t.Fatal("expected error to be EOF but was", err)
 	}
-	err = skylinkReader.Close()
+	err = publinkReader.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Try to download the file using the ReaderGet method with the targz
 	// formatter.
-	skylinkReader, err = r.SkynetSkylinkTarGzReaderGet(skylink)
+	publinkReader, err = r.SkynetPublinkTarGzReaderGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
-	gzr, err := gzip.NewReader(skylinkReader)
+	gzr, err := gzip.NewReader(publinkReader)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -268,7 +268,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	}
 	readerData, err = ioutil.ReadAll(tr)
 	if err != nil {
-		err = errors.Compose(err, skylinkReader.Close())
+		err = errors.Compose(err, publinkReader.Close())
 		t.Fatal(err)
 	}
 	if !bytes.Equal(readerData, data) {
@@ -278,12 +278,12 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	if err != io.EOF {
 		t.Fatal("expected error to be EOF but was", err)
 	}
-	err = skylinkReader.Close()
+	err = publinkReader.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Get the list of files in the skynet directory and see if the file is
+	// Get the list of files in the pubaccess directory and see if the file is
 	// present.
 	rdg, err := r.RenterDirRootGet(modules.SkynetFolder)
 	if err != nil {
@@ -293,11 +293,11 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal("expecting a file to be in the SkynetFolder after uploading")
 	}
 
-	// Create some data to upload as a skyfile.
+	// Create some data to upload as a pubfile.
 	rootData := fastrand.Bytes(100 + siatest.Fuzz())
 	// Need it to be a reader.
 	rootReader := bytes.NewReader(rootData)
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	rootFilename := "rootTestSmall"
 	rootUploadSiaPath, err := modules.NewSiaPath("rootTestSmallPath")
 	if err != nil {
@@ -326,7 +326,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Get the list of files in the skynet directory and see if the file is
+	// Get the list of files in the pubaccess directory and see if the file is
 	// present.
 	rootRdg, err := r.RenterDirRootGet(modules.RootSiaPath())
 	if err != nil {
@@ -349,7 +349,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Upload another skyfile, this time ensure that the skyfile is more than
+	// Upload another pubfile, this time ensure that the pubfile is more than
 	// one sector.
 	largeData := fastrand.Bytes(int(modules.SectorSize*2) + siatest.Fuzz())
 	largeReader := bytes.NewReader(largeData)
@@ -375,11 +375,11 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 
 		Reader: largeReader,
 	}
-	largeSkylink, _, err := r.SkynetSkyfilePost(largeLup)
+	largePublink, _, err := r.SkynetSkyfilePost(largeLup)
 	if err != nil {
 		t.Fatal(err)
 	}
-	largeFetchedData, _, err := r.SkynetSkylinkGet(largeSkylink)
+	largeFetchedData, _, err := r.SkynetPublinkGet(largePublink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -388,7 +388,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// Check the metadata of the siafile, see that the metadata of the siafile
-	// has the skylink referenced.
+	// has the publink referenced.
 	largeUploadPath, err := modules.NewSiaPath("testLargePath")
 	if err != nil {
 		t.Fatal(err)
@@ -401,13 +401,13 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(largeRenterFile.File.Skylinks) != 1 {
-		t.Fatal("expecting one skylink:", len(largeRenterFile.File.Skylinks))
+	if len(largeRenterFile.File.Publinks) != 1 {
+		t.Fatal("expecting one publink:", len(largeRenterFile.File.Publinks))
 	}
-	if largeRenterFile.File.Skylinks[0] != largeSkylink {
-		t.Error("skylinks should match")
-		t.Log(largeRenterFile.File.Skylinks[0])
-		t.Log(largeSkylink)
+	if largeRenterFile.File.Publinks[0] != largePublink {
+		t.Error("publinks should match")
+		t.Log(largeRenterFile.File.Publinks[0])
+		t.Log(largePublink)
 	}
 
 	// TODO: Need to verify the mode, name, and create-time. At this time, I'm
@@ -421,7 +421,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 
 	// Pinning test.
 	//
-	// Try to download the file behind the skylink.
+	// Try to download the file behind the publink.
 	pinSiaPath, err := modules.NewSiaPath("testSmallPinPath")
 	if err != nil {
 		t.Fatal(err)
@@ -432,11 +432,11 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		Root:                false,
 		BaseChunkRedundancy: 2,
 	}
-	err = r.SkynetSkylinkPinPost(skylink, pinLUP)
+	err = r.SkynetPublinkPinPost(publink, pinLUP)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Get the list of files in the skynet directory and see if the file is
+	// Get the list of files in the pubaccess directory and see if the file is
 	// present.
 	fullPinSiaPath, err := modules.SkynetFolder.Join(pinSiaPath.String())
 	if err != nil {
@@ -447,11 +447,11 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(pinnedFile.File.Skylinks) != 1 {
-		t.Fatal("expecting 1 skylink")
+	if len(pinnedFile.File.Publinks) != 1 {
+		t.Fatal("expecting 1 publink")
 	}
-	if pinnedFile.File.Skylinks[0] != skylink {
-		t.Fatal("skylink mismatch")
+	if pinnedFile.File.Publinks[0] != publink {
+		t.Fatal("publink mismatch")
 	}
 
 	// Unpinning test.
@@ -464,10 +464,10 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	// Make sure the file is no longer present.
 	_, err = r.RenterFileRootGet(fullPinSiaPath)
 	if !strings.Contains(err.Error(), filesystem.ErrNotExist.Error()) {
-		t.Fatal("skyfile still present after deletion")
+		t.Fatal("pubfile still present after deletion")
 	}
 
-	// Try another pin test, this time with the large skylink.
+	// Try another pin test, this time with the large publink.
 	largePinSiaPath, err := modules.NewSiaPath("testLargePinPath")
 	if err != nil {
 		t.Fatal(err)
@@ -478,7 +478,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		Root:                false,
 		BaseChunkRedundancy: 2,
 	}
-	err = r.SkynetSkylinkPinPost(largeSkylink, largePinLUP)
+	err = r.SkynetPublinkPinPost(largePublink, largePinLUP)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -493,7 +493,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		Force:   force,
 		Root:    false,
 	}
-	err = r.SkynetSkylinkPinPost(largeSkylink, largePinLUP)
+	err = r.SkynetPublinkPinPost(largePublink, largePinLUP)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -506,11 +506,11 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(pinnedFile.File.Skylinks) != 1 {
-		t.Fatal("expecting 1 skylink")
+	if len(pinnedFile.File.Publinks) != 1 {
+		t.Fatal("expecting 1 publink")
 	}
-	if pinnedFile.File.Skylinks[0] != largeSkylink {
-		t.Fatal("skylink mismatch")
+	if pinnedFile.File.Publinks[0] != largePublink {
+		t.Fatal("publink mismatch")
 	}
 	// Try deleting the file.
 	err = r.RenterFileDeleteRootPost(fullLargePinSiaPath)
@@ -520,15 +520,15 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	// Make sure the file is no longer present.
 	_, err = r.RenterFileRootGet(fullLargePinSiaPath)
 	if !strings.Contains(err.Error(), filesystem.ErrNotExist.Error()) {
-		t.Fatal("skyfile still present after deletion")
+		t.Fatal("pubfile still present after deletion")
 	}
 
 	// TODO: We don't actually check at all whether the presence of the new
-	// skylinks is going to keep the file online. We could do that by deleting
+	// publinks is going to keep the file online. We could do that by deleting
 	// the old files and then churning the hosts over, and checking that the
 	// renter does a repair operation to keep everyone alive.
 
-	// Upload a siafile that will then be converted to a skyfile. The siafile
+	// Upload a siafile that will then be converted to a pubfile. The siafile
 	// needs at least 2 sectors.
 	/*
 		localFile, remoteFile, err := r.UploadNewFileBlocking(int(modules.SectorSize*2)+siatest.Fuzz(), 2, 1, false)
@@ -555,12 +555,12 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 			},
 		}
 
-		skylink2, err := r.RenterConvertSiafileToSkyfilePost(sup, remoteFile.SiaPath())
+		publink2, err := r.RenterConvertSiafileToSkyfilePost(sup, remoteFile.SiaPath())
 		if err != nil {
 			t.Fatal(err)
 		}
-		// Try to download the skylink.
-		fetchedData, err = r.RenterSkylinkGet(skylink2)
+		// Try to download the publink.
+		fetchedData, err = r.RenterPublinkGet(publink2)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -569,8 +569,8 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		}
 	*/
 
-	// TODO: Fetch both the skyfile and the siafile that was uploaded, make sure
-	// that they both have the new skylink added to their metadata.
+	// TODO: Fetch both the pubfile and the siafile that was uploaded, make sure
+	// that they both have the new publink added to their metadata.
 
 	// TODO: Need to verify the mode, name, and create-time. At this time, I'm
 	// not sure how we can feed those out of the API. They aren't going to be
@@ -582,11 +582,11 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	// easier way.
 }
 
-// testSkynetMultipartUpload tests you can perform a multipart upload. It will
+// testPubaccessMultipartUpload tests you can perform a multipart upload. It will
 // verify the upload without any subfiles, with small subfiles and with large
 // subfiles. Small files are files which are smaller than one sector, and thus
 // don't need a fanout. Large files are files what span multiple sectors
-func testSkynetMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
+func testPubaccessMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	// create a multipart upload that without any files
@@ -641,7 +641,7 @@ func testSkynetMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 	}
 	reader = bytes.NewReader(body.Bytes())
 
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	uploadSiaPath, err = modules.NewSiaPath("TestFolderUpload")
 	if err != nil {
 		t.Fatal(err)
@@ -657,18 +657,18 @@ func testSkynetMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 		Filename:            "TestFolderUpload",
 	}
 
-	skylink, _, err := r.SkynetSkyfileMultiPartPost(sup)
+	publink, _, err := r.SkynetSkyfileMultiPartPost(sup)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var realSkylink modules.Skylink
-	err = realSkylink.LoadString(skylink)
+	var realPublink modules.Publink
+	err = realPublink.LoadString(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Try to download the file behind the skylink.
-	_, fileMetadata, err := r.SkynetSkylinkConcatGet(skylink)
+	// Try to download the file behind the publink.
+	_, fileMetadata, err := r.SkynetPublinkConcatGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -681,7 +681,7 @@ func testSkynetMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// Download the second file
-	nestedfile, _, err := r.SkynetSkylinkGet(fmt.Sprintf("%s/%s", skylink, "nested/file2"))
+	nestedfile, _, err := r.SkynetPublinkGet(fmt.Sprintf("%s/%s", publink, "nested/file2"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -713,7 +713,7 @@ func testSkynetMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 	allData := body.Bytes()
 	reader = bytes.NewReader(allData)
 
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	uploadSiaPath, err = modules.NewSiaPath("TestFolderUploadLarge")
 	if err != nil {
 		t.Fatal(err)
@@ -729,12 +729,12 @@ func testSkynetMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 		ContentType:         writer.FormDataContentType(),
 	}
 
-	largeSkylink, _, err := r.SkynetSkyfileMultiPartPost(sup)
+	largePublink, _, err := r.SkynetSkyfileMultiPartPost(sup)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	largeFetchedData, _, err := r.SkynetSkylinkConcatGet(largeSkylink)
+	largeFetchedData, _, err := r.SkynetPublinkConcatGet(largePublink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -743,7 +743,7 @@ func testSkynetMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// Check the metadata of the siafile, see that the metadata of the siafile
-	// has the skylink referenced.
+	// has the publink referenced.
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -755,33 +755,33 @@ func testSkynetMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(largeRenterFile.File.Skylinks) != 1 {
-		t.Fatal("expecting one skylink:", len(largeRenterFile.File.Skylinks))
+	if len(largeRenterFile.File.Publinks) != 1 {
+		t.Fatal("expecting one publink:", len(largeRenterFile.File.Publinks))
 	}
-	if largeRenterFile.File.Skylinks[0] != largeSkylink {
-		t.Fatal("skylinks should match")
-		t.Log(largeRenterFile.File.Skylinks[0])
-		t.Log(largeSkylink)
+	if largeRenterFile.File.Publinks[0] != largePublink {
+		t.Fatal("publinks should match")
+		t.Log(largeRenterFile.File.Publinks[0])
+		t.Log(largePublink)
 	}
 
 	// Test the small download
-	smallFetchedData, _, err := r.SkynetSkylinkGet(fmt.Sprintf("%s/%s", largeSkylink, "smallfile1.txt"))
+	smallFetchedData, _, err := r.SkynetPublinkGet(fmt.Sprintf("%s/%s", largePublink, "smallfile1.txt"))
 
 	if !bytes.Equal(smallFetchedData, smallData) {
 		t.Fatal("upload and download data does not match for large siafiles with subfiles", len(smallFetchedData), len(smallData))
 	}
 
-	largeFetchedData, _, err = r.SkynetSkylinkGet(fmt.Sprintf("%s/%s", largeSkylink, "nested/largefile2.txt"))
+	largeFetchedData, _, err = r.SkynetPublinkGet(fmt.Sprintf("%s/%s", largePublink, "nested/largefile2.txt"))
 
 	if !bytes.Equal(largeFetchedData, largeData) {
 		t.Fatal("upload and download data does not match for large siafiles with subfiles", len(largeFetchedData), len(largeData))
 	}
 }
 
-// testSkynetStats tests the validity of the response of /skynet/stats endpoint
+// testPubaccessStats tests the validity of the response of /pubaccess/stats endpoint
 // by uploading some test files and verifying that the reported statistics
 // change proportionally
-func testSkynetStats(t *testing.T, tg *siatest.TestGroup) {
+func testPubaccessStats(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	// get the stats
@@ -858,16 +858,16 @@ func testSkynetStats(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// TestSkynetNoFilename verifies that posting a Skyfile without providing a
+// TestPubAccessNoFilename verifies that posting a Pubfile without providing a
 // filename fails.
-func testSkynetNoFilename(t *testing.T, tg *siatest.TestGroup) {
+func testPubaccessNoFilename(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Create some data to upload as a skyfile.
+	// Create some data to upload as a pubfile.
 	data := fastrand.Bytes(100 + siatest.Fuzz())
 	reader := bytes.NewReader(data)
 
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	uploadSiaPath, err := modules.NewSiaPath("testNoFilename")
 	if err != nil {
 		t.Fatal(err)
@@ -886,7 +886,7 @@ func testSkynetNoFilename(t *testing.T, tg *siatest.TestGroup) {
 		Reader: reader,
 	}
 
-	// Try posting the skyfile without providing a filename
+	// Try posting the pubfile without providing a filename
 	_, _, err = r.SkynetSkyfilePost(sup)
 	if err == nil || !strings.Contains(err.Error(), "no filename provided") {
 		t.Log("Error:", err)
@@ -912,7 +912,7 @@ func testSkynetNoFilename(t *testing.T, tg *siatest.TestGroup) {
 	}
 	reader = bytes.NewReader(body.Bytes())
 
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	uploadSiaPath, err = modules.NewSiaPath("testNoFilenameMultipart")
 	if err != nil {
 		t.Fatal(err)
@@ -971,8 +971,8 @@ func testSkynetNoFilename(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetSubDirDownload verifies downloading data from a skyfile using a path to download single subfiles or subdirectories
-func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
+// testPubaccessSubDirDownload verifies downloading data from a pubfile using a path to download single subfiles or subdirectories
+func testPubaccessSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	body := new(bytes.Buffer)
@@ -993,7 +993,7 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	}
 	reader := bytes.NewReader(body.Bytes())
 
-	uploadSiaPath, err := modules.NewSiaPath("testSkynetSubfileDownload")
+	uploadSiaPath, err := modules.NewSiaPath("testPubaccessSubfileDownload")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1005,23 +1005,23 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 		BaseChunkRedundancy: 2,
 		Reader:              reader,
 		ContentType:         writer.FormDataContentType(),
-		Filename:            "testSkynetSubfileDownload",
+		Filename:            "testPubaccessSubfileDownload",
 	}
 
-	skylink, _, err := r.SkynetSkyfileMultiPartPost(mup)
+	publink, _, err := r.SkynetSkyfileMultiPartPost(mup)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// get all data without specifying format, since the file contains multiple
 	// subfiles, this should fail
-	_, _, err = r.SkynetSkylinkGet(skylink)
+	_, _, err = r.SkynetPublinkGet(publink)
 	if err == nil || !strings.Contains(err.Error(), "format must be specified") {
 		t.Fatal("Expected download to fail because we are downloading a directory and format was not provided, err:", err)
 	}
 
 	// now specify a correct format
-	allData, _, err := r.SkynetSkylinkConcatGet(skylink)
+	allData, _, err := r.SkynetPublinkConcatGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1034,7 +1034,7 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// now specify the tar format
-	skyfileReader, err := r.SkynetSkylinkTarReaderGet(skylink)
+	skyfileReader, err := r.SkynetPublinkTarReaderGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1088,7 +1088,7 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	skyfileReader.Close()
 
 	// now specify the targz format
-	skyfileReader, err = r.SkynetSkylinkTarGzReaderGet(skylink)
+	skyfileReader, err = r.SkynetPublinkTarGzReaderGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1148,7 +1148,7 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	skyfileReader.Close()
 
 	// get all data for path "a" using the concat format
-	dataDirA, _, err := r.SkynetSkylinkConcatGet(fmt.Sprintf("%s/a", skylink))
+	dataDirA, _, err := r.SkynetPublinkConcatGet(fmt.Sprintf("%s/a", publink))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1160,7 +1160,7 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// now specify the tar format
-	skyfileReader, err = r.SkynetSkylinkTarReaderGet(fmt.Sprintf("%s/a", skylink))
+	skyfileReader, err = r.SkynetPublinkTarReaderGet(fmt.Sprintf("%s/a", publink))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1200,7 +1200,7 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	skyfileReader.Close()
 
 	// now specify the targz format
-	skyfileReader, err = r.SkynetSkylinkTarGzReaderGet(fmt.Sprintf("%s/a", skylink))
+	skyfileReader, err = r.SkynetPublinkTarGzReaderGet(fmt.Sprintf("%s/a", publink))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1246,7 +1246,7 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	skyfileReader.Close()
 
 	// get all data for path "b"
-	dataDirB, metadataDirB, err := r.SkynetSkylinkConcatGet(fmt.Sprintf("%s/b", skylink))
+	dataDirB, metadataDirB, err := r.SkynetPublinkConcatGet(fmt.Sprintf("%s/b", publink))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1279,7 +1279,7 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// get a single sub file
-	downloadFile2, _, err := r.SkynetSkylinkGet(fmt.Sprintf("%s/a/5.f4f.chunk.js.map", skylink))
+	downloadFile2, _, err := r.SkynetPublinkGet(fmt.Sprintf("%s/a/5.f4f.chunk.js.map", publink))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1290,21 +1290,21 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// verify we get a 400 if we don't supply the format parameter
-	_, _, err = r.SkynetSkylinkGet(fmt.Sprintf("%s/b", skylink))
+	_, _, err = r.SkynetPublinkGet(fmt.Sprintf("%s/b", publink))
 	if err == nil || !strings.Contains(err.Error(), "format must be specified") {
 		t.Fatal("Expected download to fail because we are downloading a directory and format was not provided, err:", err)
 	}
 
 	// verify we get a 400 if we supply an unsupported format parameter
-	_, _, err = r.SkynetSkylinkGet(fmt.Sprintf("%s/b?format=raw", skylink))
+	_, _, err = r.SkynetPublinkGet(fmt.Sprintf("%s/b?format=raw", publink))
 	if err == nil || !strings.Contains(err.Error(), "unable to parse 'format'") {
 		t.Fatal("Expected download to fail because we are downloading a directory and an invalid format was provided, err:", err)
 	}
 }
 
-// testSkynetDisableForce verifies the behavior of force and the header that
-// allows disabling forcefully uploading a Skyfile
-func testSkynetDisableForce(t *testing.T, tg *siatest.TestGroup) {
+// testPubaccessDisableForce verifies the behavior of force and the header that
+// allows disabling forcefully uploading a Pubfile
+func testPubaccessDisableForce(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	// Create some data to upload.
@@ -1329,16 +1329,16 @@ func testSkynetDisableForce(t *testing.T, tg *siatest.TestGroup) {
 		},
 		Reader: reader,
 	}
-	skylink, _, err := r.SkynetSkyfilePost(sup)
+	publink, _, err := r.SkynetSkyfilePost(sup)
 	if err != nil {
 		t.Fatal(err)
 	}
-	downloaded, _, err := r.SkynetSkylinkGet(skylink)
+	downloaded, _, err := r.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(downloaded, data) {
-		t.Fatal("Unexpected data returned for skylink")
+		t.Fatal("Unexpected data returned for publink")
 	}
 
 	// Upload data to that same siapath again, without setting the force
@@ -1355,20 +1355,20 @@ func testSkynetDisableForce(t *testing.T, tg *siatest.TestGroup) {
 	// overwrite the file at the existing path
 	sup.Force = true
 	sup.Reader = bytes.NewReader(data)
-	skylink, _, err = r.SkynetSkyfilePost(sup)
+	publink, _, err = r.SkynetSkyfilePost(sup)
 	if err != nil {
 		t.Fatal(err)
 	}
-	downloaded, _, err = r.SkynetSkylinkGet(skylink)
+	downloaded, _, err = r.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(downloaded, data) {
-		t.Fatal("Unexpected data returned for skylink")
+		t.Fatal("Unexpected data returned for publink")
 	}
 
 	// Upload using the force flag again, however now we set the
-	// Skynet-Disable-Force to true, which should prevent us from uploading.
+	// Pubaccess-Disable-Force to true, which should prevent us from uploading.
 	// Because we have to pass in a custom header, we have to setup the request
 	// ourselves and can not use the client.
 	_, _, err = r.SkynetSkyfilePostDisableForce(sup, true)
@@ -1381,15 +1381,15 @@ func testSkynetDisableForce(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetBlacklist tests the skynet blacklist module
-func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
+// testPubaccessBlacklist tests the pubaccess blacklist module
+func testPubaccessBlacklist(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Create skyfile upload params, data should be larger than a sector size to
+	// Create pubfile upload params, data should be larger than a sector size to
 	// test large file uploads and the deletion of their extended data.
 	data := fastrand.Bytes(int(modules.SectorSize) + 100 + siatest.Fuzz())
 	reader := bytes.NewReader(data)
-	filename := "skyfile"
+	filename := "pubfile"
 	uploadSiaPath, err := modules.NewSiaPath("testskyfile")
 	if err != nil {
 		t.Fatal(err)
@@ -1405,13 +1405,13 @@ func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
 		Reader: reader,
 	}
 
-	// Upload and create a skylink
-	skylink, sshp, err := r.SkynetSkyfilePost(lup)
+	// Upload and create a publink
+	publink, sshp, err := r.SkynetSkyfilePost(lup)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Confirm that the skyfile and its extended info are registered with the
+	// Confirm that the pubfile and its extended info are registered with the
 	// renter
 	sp, err := modules.SkynetFolder.Join(uploadSiaPath.String())
 	if err != nil {
@@ -1430,15 +1430,15 @@ func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Blacklist the skylink
-	add := []string{skylink}
+	// Blacklist the publink
+	add := []string{publink}
 	remove := []string{}
 	err = r.SkynetBlacklistPost(add, remove)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Confirm that the Skylink is blacklisted by verifying the merkleroot is in
+	// Confirm that the Publink is blacklisted by verifying the merkleroot is in
 	// the blacklist
 	sbg, err := r.SkynetBlacklistGet()
 	if err != nil {
@@ -1451,14 +1451,14 @@ func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatalf("Merkleroots don't match, expected %v got %v", sshp.MerkleRoot, sbg.Blacklist[0])
 	}
 
-	// Try to download the file behind the skylink, this should fail because of
+	// Try to download the file behind the publink, this should fail because of
 	// the blacklist.
-	_, _, err = r.SkynetSkylinkGet(skylink)
+	_, _, err = r.SkynetPublinkGet(publink)
 	if err == nil {
 		t.Fatal("Download should have failed")
 	}
-	if !strings.Contains(err.Error(), renter.ErrSkylinkBlacklisted.Error()) {
-		t.Fatalf("Expected error %v but got %v", renter.ErrSkylinkBlacklisted, err)
+	if !strings.Contains(err.Error(), renter.ErrPublinkBlacklisted.Error()) {
+		t.Fatalf("Expected error %v but got %v", renter.ErrPublinkBlacklisted, err)
 	}
 
 	// Try and upload again with force as true to avoid error of path already
@@ -1470,8 +1470,8 @@ func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
 	if err == nil {
 		t.Fatal("Expected upload to fail")
 	}
-	if !strings.Contains(err.Error(), renter.ErrSkylinkBlacklisted.Error()) {
-		t.Fatalf("Expected error %v but got %v", renter.ErrSkylinkBlacklisted, err)
+	if !strings.Contains(err.Error(), renter.ErrPublinkBlacklisted.Error()) {
+		t.Fatalf("Expected error %v but got %v", renter.ErrPublinkBlacklisted, err)
 	}
 
 	// Verify that the SiaPath and Extended SiaPath were removed from the renter
@@ -1497,23 +1497,23 @@ func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
 		BaseChunkRedundancy: 2,
 		Force:               true,
 	}
-	err = r.SkynetSkylinkPinPost(skylink, pinlup)
+	err = r.SkynetPublinkPinPost(publink, pinlup)
 	if err == nil {
 		t.Fatal("Expected pin to fail")
 	}
-	if !strings.Contains(err.Error(), renter.ErrSkylinkBlacklisted.Error()) {
-		t.Fatalf("Expected error %v but got %v", renter.ErrSkylinkBlacklisted, err)
+	if !strings.Contains(err.Error(), renter.ErrPublinkBlacklisted.Error()) {
+		t.Fatalf("Expected error %v but got %v", renter.ErrPublinkBlacklisted, err)
 	}
 
-	// Remove skylink from blacklist
+	// Remove publink from blacklist
 	add = []string{}
-	remove = []string{skylink}
+	remove = []string{publink}
 	err = r.SkynetBlacklistPost(add, remove)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Verify that the skylink is removed from the Blacklist
+	// Verify that the publink is removed from the Blacklist
 	sbg, err = r.SkynetBlacklistGet()
 	if err != nil {
 		t.Fatal(err)
@@ -1522,10 +1522,10 @@ func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatalf("Incorrect number of blacklisted merkleroots, expected %v got %v", 0, len(sbg.Blacklist))
 	}
 
-	// Try to download the file behind the skylink. Even though the file was
+	// Try to download the file behind the publink. Even though the file was
 	// removed from the renter node that uploaded it, it should still be
 	// downloadable.
-	fetchedData, _, err := r.SkynetSkylinkGet(skylink)
+	fetchedData, _, err := r.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1535,29 +1535,29 @@ func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
 		t.Log(fetchedData)
 	}
 
-	// Pinning the skylink should also work now
-	err = r.SkynetSkylinkPinPost(skylink, pinlup)
+	// Pinning the publink should also work now
+	err = r.SkynetPublinkPinPost(publink, pinlup)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-// testSkynetHeadRequest verifies the functionality of sending a HEAD request to
-// the skylink GET route.
-func testSkynetHeadRequest(t *testing.T, tg *siatest.TestGroup) {
+// testPubaccessHeadRequest verifies the functionality of sending a HEAD request to
+// the publink GET route.
+func testPubaccessHeadRequest(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Upload a skyfile
+	// Upload a pubfile
 	reader := bytes.NewReader(fastrand.Bytes(100))
 	uploadSiaPath, err := modules.NewSiaPath(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	skylink, _, err := r.SkynetSkyfilePost(modules.SkyfileUploadParameters{
+	publink, _, err := r.SkynetSkyfilePost(modules.SkyfileUploadParameters{
 		SiaPath:             uploadSiaPath,
 		BaseChunkRedundancy: 2,
 		FileMetadata: modules.SkyfileMetadata{
-			Filename: "TestSkynetHeadRequest",
+			Filename: "TestPubAccessHeadRequest",
 			Mode:     0640,
 		},
 		Reader: reader,
@@ -1568,11 +1568,11 @@ func testSkynetHeadRequest(t *testing.T, tg *siatest.TestGroup) {
 
 	// Perform a GET and HEAD request and compare the response headers and
 	// content length.
-	data, metadata, err := r.SkynetSkylinkGet(skylink)
+	data, metadata, err := r.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
-	status, header, err := r.SkynetSkylinkHead(skylink, 0)
+	status, header, err := r.SkynetPublinkHead(publink, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1580,10 +1580,10 @@ func testSkynetHeadRequest(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatalf("Unexpected status for HEAD request, expected %v but received %v", http.StatusOK, status)
 	}
 
-	// Verify Skynet-File-Metadata
-	strMetadata := header.Get("Skynet-File-Metadata")
+	// Verify Pubaccess-File-Metadata
+	strMetadata := header.Get("Pubaccess-File-Metadata")
 	if strMetadata == "" {
-		t.Fatal("Expected 'Skynet-File-Metadata' response header to be present")
+		t.Fatal("Expected 'Pubaccess-File-Metadata' response header to be present")
 	}
 	var sm modules.SkyfileMetadata
 	err = json.Unmarshal([]byte(strMetadata), &sm)
@@ -1620,26 +1620,26 @@ func testSkynetHeadRequest(t *testing.T, tg *siatest.TestGroup) {
 	if strContentDisposition == "" {
 		t.Fatal("Expected 'Content-Disposition' response header to be present")
 	}
-	if strContentDisposition != "inline; filename=\"TestSkynetHeadRequest\"" {
+	if strContentDisposition != "inline; filename=\"TestPubAccessHeadRequest\"" {
 		t.Fatal("Unexpected 'Content-Disposition' header")
 	}
 
 	// Perform a HEAD request with a timeout that exceeds the max timeout
-	status, _, _ = r.SkynetSkylinkHead(skylink, 901)
+	status, _, _ = r.SkynetPublinkHead(publink, 901)
 	if status != http.StatusBadRequest {
 		t.Fatalf("Expected StatusBadRequest for a request with a timeout that exceeds the MaxSkynetRequestTimeout, instead received %v", status)
 	}
 
-	// Perform a HEAD request for a skylink that does not exist
-	status, header, err = r.SkynetSkylinkHead(skylink[:len(skylink)-3]+"abc", 0)
+	// Perform a HEAD request for a publink that does not exist
+	status, header, err = r.SkynetPublinkHead(publink[:len(publink)-3]+"abc", 0)
 	if status != http.StatusNotFound {
-		t.Fatalf("Expected http.StatusNotFound for random skylink but received %v", status)
+		t.Fatalf("Expected http.StatusNotFound for random publink but received %v", status)
 	}
 }
 
-// testSkynetNoWorkers verifies that SkynetSkylinkGet returns an error and does
+// testPubaccessNoWorkers verifies that SkynetPublinkGet returns an error and does
 // not deadlock if there are no workers.
-func testSkynetNoWorkers(t *testing.T, tg *siatest.TestGroup) {
+func testPubaccessNoWorkers(t *testing.T, tg *siatest.TestGroup) {
 	// Create renter, skip setting the allowance so that we can ensure there are
 	// no contracts created and therefore no workers in the worker pool
 	testDir := renterTestDir(t.Name())
@@ -1653,9 +1653,9 @@ func testSkynetNoWorkers(t *testing.T, tg *siatest.TestGroup) {
 
 	// Since the renter doesn't have an allowance, we know the renter doesn't
 	// have any contracts and therefore the worker pool will be empty. Confirm
-	// that attempting to download a skylink will return an error and not dead
+	// that attempting to download a publink will return an error and not dead
 	// lock.
-	_, _, err = r.SkynetSkylinkGet(modules.Skylink{}.String())
+	_, _, err = r.SkynetPublinkGet(modules.Publink{}.String())
 	if err == nil {
 		t.Fatal("Error is nil, expected error due to no worker")
 	} else if !strings.Contains(err.Error(), "no workers") {
@@ -1663,27 +1663,27 @@ func testSkynetNoWorkers(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetDryRunUpload verifies the --dry-run flag when uploading a Skyfile.
-func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
+// testPubaccessDryRunUpload verifies the --dry-run flag when uploading a Pubfile.
+func testPubaccessDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 	siaPath, err := modules.NewSiaPath(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// verify we can perform a skyfile upload (note that we need this to trigger
+	// verify we can perform a pubfile upload (note that we need this to trigger
 	// contracts being created, this issue only surfaces when commenting out all
-	// other skynet tets)
+	// other pubaccess tets)
 	_, _, err = r.SkynetSkyfilePost(modules.SkyfileUploadParameters{
 		SiaPath:             siaPath,
 		BaseChunkRedundancy: 2,
 		FileMetadata: modules.SkyfileMetadata{
-			Filename: "testSkynetDryRun",
+			Filename: "testPubaccessDryRun",
 			Mode:     0640,
 		},
 	})
 	if err != nil {
-		t.Fatal("Expected skynet upload to be successful, instead received err:", err)
+		t.Fatal("Expected pubaccess upload to be successful, instead received err:", err)
 	}
 
 	// verify you can't perform a dry-run using the force parameter
@@ -1691,7 +1691,7 @@ func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 		SiaPath:             siaPath,
 		BaseChunkRedundancy: 2,
 		FileMetadata: modules.SkyfileMetadata{
-			Filename: "testSkynetDryRun",
+			Filename: "testPubaccessDryRun",
 			Mode:     0640,
 		},
 		Force:  true,
@@ -1706,15 +1706,15 @@ func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 
 		sup.DryRun = true
 		sup.Reader = bytes.NewReader(data)
-		skylinkDry, _, err := r.SkynetSkyfilePost(sup)
+		publinkDry, _, err := r.SkynetSkyfilePost(sup)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		// verify the skylink can't be found after a dry run
-		status, _, _ := r.SkynetSkylinkHead(skylinkDry, 0)
+		// verify the publink can't be found after a dry run
+		status, _, _ := r.SkynetPublinkHead(publinkDry, 0)
 		if status != http.StatusNotFound {
-			t.Fatal(fmt.Errorf("Expected 404 not found when trying to fetch a skylink retrieved from a dry run, instead received status %d", status))
+			t.Fatal(fmt.Errorf("Expected 404 not found when trying to fetch a publink retrieved from a dry run, instead received status %d", status))
 		}
 
 		// verify the skfyile got deleted properly
@@ -1724,20 +1724,20 @@ func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 		}
 		_, err = r.RenterFileRootGet(skyfilePath)
 		if err == nil || !strings.Contains(err.Error(), "path does not exist") {
-			t.Fatal(errors.New("Skyfile not deleted after dry run."))
+			t.Fatal(errors.New("Pubfile not deleted after dry run."))
 		}
 
 		sup.DryRun = false
 		sup.Reader = bytes.NewReader(data)
-		skylink, _, err := r.SkynetSkyfilePost(sup)
+		publink, _, err := r.SkynetSkyfilePost(sup)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if skylinkDry != skylink {
-			t.Log("Expected:", skylink)
-			t.Log("Actual:  ", skylinkDry)
-			t.Fatalf("VerifyDryRun failed for data size %db, skylink received during the dry-run is not identical to the skylink received when performing the actual upload.", dataSize)
+		if publinkDry != publink {
+			t.Log("Expected:", publink)
+			t.Log("Actual:  ", publinkDry)
+			t.Fatalf("VerifyDryRun failed for data size %db, publink received during the dry-run is not identical to the publink received when performing the actual upload.", dataSize)
 		}
 	}
 
@@ -1750,7 +1750,7 @@ func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 		SiaPath:             uploadSiaPath,
 		BaseChunkRedundancy: 2,
 		FileMetadata: modules.SkyfileMetadata{
-			Filename: "testSkynetDryRunUploadSmall",
+			Filename: "testPubaccessDryRunUploadSmall",
 			Mode:     0640,
 		},
 	}, 100)
@@ -1764,15 +1764,15 @@ func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 		SiaPath:             uploadSiaPath,
 		BaseChunkRedundancy: 2,
 		FileMetadata: modules.SkyfileMetadata{
-			Filename: "testSkynetDryRunUploadLarge",
+			Filename: "testPubaccessDryRunUploadLarge",
 			Mode:     0640,
 		},
 	}, int(modules.SectorSize*2)+siatest.Fuzz())
 }
 
-// testSkynetRequestTimeout verifies that the Skylink routes timeout when a
+// testPubaccessRequestTimeout verifies that the Publink routes timeout when a
 // timeout query string parameter has been passed.
-func testSkynetRequestTimeout(t *testing.T, tg *siatest.TestGroup) {
+func testPubaccessRequestTimeout(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	reader := bytes.NewReader(fastrand.Bytes(100))
@@ -1784,20 +1784,20 @@ func testSkynetRequestTimeout(t *testing.T, tg *siatest.TestGroup) {
 		SiaPath:             uploadSiaPath,
 		BaseChunkRedundancy: 2,
 		FileMetadata: modules.SkyfileMetadata{
-			Filename: "testSkynetRequestTimeout",
+			Filename: "testPubaccessRequestTimeout",
 			Mode:     0640,
 		},
 		Reader: reader,
 		Force:  true,
 	}
-	// Upload a skyfile
-	skylink, _, err := r.SkynetSkyfilePost(sup)
+	// Upload a pubfile
+	publink, _, err := r.SkynetSkyfilePost(sup)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Verify it was uploaded properly
-	_, _, err = r.SkynetSkylinkGet(skylink)
+	_, _, err = r.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1813,7 +1813,7 @@ func testSkynetRequestTimeout(t *testing.T, tg *siatest.TestGroup) {
 		Root:                false,
 		BaseChunkRedundancy: 2,
 	}
-	err = r.SkynetSkylinkPinPost(skylink, pinLUP)
+	err = r.SkynetPublinkPinPost(publink, pinLUP)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1829,21 +1829,21 @@ func testSkynetRequestTimeout(t *testing.T, tg *siatest.TestGroup) {
 	r = nodes[0]
 	defer tg.RemoveNode(r)
 
-	// Upload a skyfile
+	// Upload a pubfile
 	sup.Reader = bytes.NewReader(fastrand.Bytes(100))
-	skylink, _, err = r.SkynetSkyfilePost(sup)
+	publink, _, err = r.SkynetSkyfilePost(sup)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Verify timeout on head request
-	status, _, err := r.SkynetSkylinkHead(skylink, 1)
+	status, _, err := r.SkynetPublinkHead(publink, 1)
 	if status != http.StatusNotFound {
-		t.Fatalf("Expected http.StatusNotFound for random skylink but received %v", status)
+		t.Fatalf("Expected http.StatusNotFound for random publink but received %v", status)
 	}
 
 	// Verify timeout on download request
-	_, _, err = r.SkynetSkylinkGetWithTimeout(skylink, 1)
+	_, _, err = r.SkynetPublinkGetWithTimeout(publink, 1)
 	if errors.Contains(err, renter.ErrProjectTimedOut) {
 		t.Fatal("Expected download request to time out")
 	}
@@ -1853,7 +1853,7 @@ func testSkynetRequestTimeout(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// Verify timeout on pin request
-	err = r.SkynetSkylinkPinPostWithTimeout(skylink, pinLUP, 2)
+	err = r.SkynetPublinkPinPostWithTimeout(publink, pinLUP, 2)
 	if errors.Contains(err, renter.ErrProjectTimedOut) {
 		t.Fatal("Expected pin request to time out")
 	}
@@ -1893,25 +1893,25 @@ func testRegressionTimeoutPanic(t *testing.T, tg *siatest.TestGroup) {
 	r := nodes[0]
 	defer tg.RemoveNode(r)
 
-	// Upload a skyfile
+	// Upload a pubfile
 	sup.Reader = bytes.NewReader(fastrand.Bytes(100))
-	skylink, _, err := r.SkynetSkyfilePost(sup)
+	publink, _, err := r.SkynetSkyfilePost(sup)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Verify timeout on download request doesn't panic.
-	_, _, err = r.SkynetSkylinkGetWithTimeout(skylink, 1)
+	_, _, err = r.SkynetPublinkGetWithTimeout(publink, 1)
 	if errors.Contains(err, renter.ErrProjectTimedOut) {
 		t.Fatal("Expected download request to time out")
 	}
 }
 
-// testSkynetLargeMetadata makes sure that
-func testSkynetLargeMetadata(t *testing.T, tg *siatest.TestGroup) {
+// testPubaccessLargeMetadata makes sure that
+func testPubaccessLargeMetadata(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Create some data to upload as a skyfile.
+	// Create some data to upload as a pubfile.
 	data := fastrand.Bytes(100 + siatest.Fuzz())
 	// Need it to be a reader.
 	reader := bytes.NewReader(data)
@@ -1941,8 +1941,8 @@ func testSkynetLargeMetadata(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetSkykey tests basic Skykey manager functionality.
-func testSkynetSkykey(t *testing.T, tg *siatest.TestGroup) {
+// testPubaccessSkykey tests basic Pubaccesskey manager functionality.
+func testPubaccessSkykey(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	sk, err := r.SkykeyCreateKeyPost("testkey1", crypto.TypeXChaCha20)
@@ -1956,9 +1956,9 @@ func testSkynetSkykey(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal("Expected error", err)
 	}
 
-	// Create a testkey from a hard-coded skykey string.
+	// Create a testkey from a hard-coded pubaccesskey string.
 	testSkykeyString := "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
-	var testSkykey skykey.Skykey
+	var testSkykey pubaccesskey.Pubaccesskey
 	err = testSkykey.FromString(testSkykeyString)
 	if err != nil {
 		t.Fatal(err)
@@ -1984,7 +1984,7 @@ func testSkynetSkykey(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 	if skStr != sk2Str {
-		t.Fatal("Expected same Skykey string")
+		t.Fatal("Expected same Pubaccesskey string")
 	}
 
 	// Check byte equality and string equality.
@@ -2007,14 +2007,14 @@ func testSkynetSkykey(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 	if skStr != sk3Str {
-		t.Fatal("Expected same Skykey string")
+		t.Fatal("Expected same Pubaccesskey string")
 	}
 
-	// Test misuse of the /skynet/skykey endpoint using an UnsafeClient.
+	// Test misuse of the /pubaccess/pubaccesskey endpoint using an UnsafeClient.
 	uc := client.NewUnsafeClient(r.Client)
 
 	// Passing in 0 params shouild return an error.
-	baseQuery := "/skynet/skykey"
+	baseQuery := "/pubaccess/pubaccesskey"
 	var skykeyGet api.SkykeyGET
 	err = uc.Get(baseQuery, &skykeyGet)
 	if err == nil {
@@ -2038,7 +2038,7 @@ func testSkynetSkykey(t *testing.T, tg *siatest.TestGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if skykeyGet.Skykey != sk2Str {
+	if skykeyGet.Pubaccesskey != sk2Str {
 		t.Fatal("Expected same result from  unsafe client")
 	}
 }

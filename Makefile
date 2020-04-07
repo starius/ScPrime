@@ -47,7 +47,7 @@ pkgs = ./build \
 	./modules/renter/hostdb \
 	./modules/renter/hostdb/hosttree \
 	./modules/renter/proto \
-	./modules/renter/skynetblacklist \
+	./modules/renter/pubaccessblacklist \
 	./modules/transactionpool \
 	./modules/wallet \
 	./node \
@@ -70,7 +70,7 @@ pkgs = ./build \
 	./siatest/renterhost \
 	./siatest/transactionpool \
 	./siatest/wallet \
-	./skykey \
+	./pubaccesskey \
 	./sync \
 	./types \
 	./types/typesutil

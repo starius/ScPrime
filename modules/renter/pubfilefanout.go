@@ -1,6 +1,6 @@
 package renter
 
-// skyfilefanout.go implements the encoding and decoding of skyfile fanouts. A
+// skyfilefanout.go implements the encoding and decoding of pubfile fanouts. A
 // fanout is a description of all of the Merkle roots in a file, organized by
 // chunk. Each chunk has N pieces, and each piece has a Merkle root which is a
 // 32 byte hash.
@@ -22,7 +22,7 @@ import (
 )
 
 // fanoutStreamBufferDataSource implements streamBufferDataSource with the
-// skyfile so that it can be used to open a stream from the streamBufferSet.
+// pubfile so that it can be used to open a stream from the streamBufferSet.
 type fanoutStreamBufferDataSource struct {
 	// Each chunk is an array of sector hashes that correspond to pieces which
 	// can be fetched.
@@ -42,9 +42,9 @@ type fanoutStreamBufferDataSource struct {
 }
 
 // newFanoutStreamer will create a modules.Streamer from the fanout of a
-// skyfile. The streamer is created by implementing the streamBufferDataSource
-// interface on the skyfile, and then passing that to the stream buffer set.
-func (r *Renter) newFanoutStreamer(link modules.Skylink, ll skyfileLayout, fanoutBytes []byte, timeout time.Duration) (modules.Streamer, error) {
+// pubfile. The streamer is created by implementing the streamBufferDataSource
+// interface on the pubfile, and then passing that to the stream buffer set.
+func (r *Renter) newFanoutStreamer(link modules.Publink, ll skyfileLayout, fanoutBytes []byte, timeout time.Duration) (modules.Streamer, error) {
 	// Create the erasure coder and the master key.
 	masterKey, err := crypto.NewSiaKey(ll.cipherType, ll.cipherKey[:])
 	if err != nil {
@@ -67,7 +67,7 @@ func (r *Renter) newFanoutStreamer(link modules.Skylink, ll skyfileLayout, fanou
 	}
 	err = fs.decodeFanout(fanoutBytes)
 	if err != nil {
-		return nil, errors.AddContext(err, "unable to decode fanout of skyfile")
+		return nil, errors.AddContext(err, "unable to decode fanout of pubfile")
 	}
 
 	// Grab and return the stream.
@@ -75,7 +75,7 @@ func (r *Renter) newFanoutStreamer(link modules.Skylink, ll skyfileLayout, fanou
 	return stream, nil
 }
 
-// decodeFanout will take the fanout bytes from a skyfile and decode them in to
+// decodeFanout will take the fanout bytes from a pubfile and decode them in to
 // the staticChunks filed of the fanoutStreamBufferDataSource.
 func (fs *fanoutStreamBufferDataSource) decodeFanout(fanoutBytes []byte) error {
 	// Special case: if the data of the file is using 1-of-N erasure coding,
@@ -180,13 +180,13 @@ func skyfileEncodeFanout(fileNode *filesystem.FileNode) ([]byte, error) {
 	return fanout, nil
 }
 
-// DataSize returns the amount of file data in the underlying skyfile.
+// DataSize returns the amount of file data in the underlying pubfile.
 func (fs *fanoutStreamBufferDataSource) DataSize() uint64 {
 	return fs.staticLayout.filesize
 }
 
-// ID returns the id of the skylink being fetched, this is just the hash of the
-// skylink.
+// ID returns the id of the publink being fetched, this is just the hash of the
+// publink.
 func (fs *fanoutStreamBufferDataSource) ID() streamDataSourceID {
 	return fs.staticStreamID
 }

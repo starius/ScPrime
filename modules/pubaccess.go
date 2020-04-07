@@ -11,9 +11,9 @@ import (
 )
 
 // SkyfileMetadata is all of the metadata that gets placed into the first 4096
-// bytes of the skyfile, and is used to set the metadata of the file when
+// bytes of the pubfile, and is used to set the metadata of the file when
 // writing back to disk. The data is json-encoded when it is placed into the
-// leading bytes of the skyfile, meaning that this struct can be extended
+// leading bytes of the pubfile, meaning that this struct can be extended
 // without breaking compatibility.
 type SkyfileMetadata struct {
 	Mode     os.FileMode     `json:"mode,omitempty"`
@@ -21,7 +21,7 @@ type SkyfileMetadata struct {
 	Subfiles SkyfileSubfiles `json:"subfiles,omitempty"`
 }
 
-// SkyfileSubfiles contains the subfiles of a skyfile, indexed by their
+// SkyfileSubfiles contains the subfiles of a pubfile, indexed by their
 // filename.
 type SkyfileSubfiles map[string]SkyfileSubfileMetadata
 
@@ -112,9 +112,9 @@ func (sm SkyfileMetadata) offset() uint64 {
 }
 
 // SkyfileSubfileMetadata is all of the metadata that belongs to a subfile in a
-// skyfile. Most importantly it contains the offset at which the subfile is
+// pubfile. Most importantly it contains the offset at which the subfile is
 // written and its length. Its filename can potentially include a '/' character
-// as nested files and directories are allowed within a single Skyfile
+// as nested files and directories are allowed within a single Pubfile
 type SkyfileSubfileMetadata struct {
 	FileMode    os.FileMode `json:"mode,omitempty,siamismatch"` // different json name for compat reasons
 	Filename    string      `json:"filename,omitempty"`
@@ -153,29 +153,29 @@ func (sm SkyfileSubfileMetadata) Sys() interface{} {
 	return nil
 }
 
-// SkyfileFormat is the file format the API uses to return a Skyfile as.
+// SkyfileFormat is the file format the API uses to return a Pubfile as.
 type SkyfileFormat string
 
 var (
 	// SkyfileFormatNotSpecified is the default format for the endpoint when the
 	// format isn't specified explicitly.
 	SkyfileFormatNotSpecified = SkyfileFormat("")
-	// SkyfileFormatConcat returns the skyfiles in a concatenated manner.
+	// SkyfileFormatConcat returns the pubfiles in a concatenated manner.
 	SkyfileFormatConcat = SkyfileFormat("concat")
-	// SkyfileFormatTar returns the skyfiles as a .tar.
+	// SkyfileFormatTar returns the pubfiles as a .tar.
 	SkyfileFormatTar = SkyfileFormat("tar")
-	// SkyfileFormatTarGz returns the skyfiles as a .tar.gz.
+	// SkyfileFormatTarGz returns the pubfiles as a .tar.gz.
 	SkyfileFormatTarGz = SkyfileFormat("targz")
 )
 
 // SkyfileUploadParameters establishes the parameters such as the intra-root
 // erasure coding.
 type SkyfileUploadParameters struct {
-	// SiaPath defines the siapath that the skyfile is going to be uploaded to.
-	// Recommended that the skyfile is placed in /var/skynet
+	// SiaPath defines the siapath that the pubfile is going to be uploaded to.
+	// Recommended that the pubfile is placed in /var/pubaccess
 	SiaPath SiaPath `json:"siapath"`
 
-	// DryRun allows to retrieve the skylink without actually uploading the file
+	// DryRun allows to retrieve the publink without actually uploading the file
 	// to the Sia network.
 	DryRun bool `json:"dryrun"`
 
@@ -186,7 +186,7 @@ type SkyfileUploadParameters struct {
 	Force bool `json:"force"`
 
 	// Root determines whether the upload should treat the filepath as a path
-	// from system root, or if the path should be from /var/skynet.
+	// from system root, or if the path should be from /var/pubaccess.
 	Root bool `json:"root"`
 
 	// The base chunk is always uploaded with a 1-of-N erasure coding setting,
@@ -198,7 +198,7 @@ type SkyfileUploadParameters struct {
 	// visible.
 	FileMetadata SkyfileMetadata `json:"filemetadata"`
 
-	// Reader supplies the file data for the skyfile.
+	// Reader supplies the file data for the pubfile.
 	Reader io.Reader `json:"reader"`
 }
 
@@ -212,14 +212,14 @@ type SkyfileMultipartUploadParameters struct {
 	BaseChunkRedundancy uint8     `json:"basechunkredundancy"`
 	Reader              io.Reader `json:"reader"`
 
-	// Filename indicates the filename of the skyfile.
+	// Filename indicates the filename of the pubfile.
 	Filename string `json:"filename"`
 
 	// ContentType indicates the media type of the data supplied by the reader.
 	ContentType string `json:"contenttype"`
 }
 
-// SkyfilePinParameters defines the parameters specific to pinning a skylink.
+// SkyfilePinParameters defines the parameters specific to pinning a publink.
 // See SkyfileUploadParameters for a detailed description of the fields.
 type SkyfilePinParameters struct {
 	SiaPath             SiaPath `json:"siapath"`

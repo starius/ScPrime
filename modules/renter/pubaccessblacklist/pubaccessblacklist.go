@@ -1,4 +1,4 @@
-package skynetblacklist
+package pubaccessblacklist
 
 import (
 	"sync"
@@ -9,7 +9,7 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 )
 
-// SkynetBlacklist manages a set of blacklisted skylinks by tracking the
+// SkynetBlacklist manages a set of blacklisted publinks by tracking the
 // merkleroots and persists the list to disk
 type SkynetBlacklist struct {
 	merkleroots      map[crypto.Hash]struct{}
@@ -29,7 +29,7 @@ func New(persistDir string) (*SkynetBlacklist, error) {
 	// Initialize the persistence of the blacklist
 	err := sb.callInitPersist()
 	if err != nil {
-		return nil, errors.AddContext(err, "unable to initialize the skynet blacklist persistence")
+		return nil, errors.AddContext(err, "unable to initialize the pubaccess blacklist persistence")
 	}
 
 	return sb, nil
@@ -46,15 +46,15 @@ func (sb *SkynetBlacklist) Blacklist() []crypto.Hash {
 	return blacklist
 }
 
-// IsBlacklisted indicates if a skylink is currently blacklisted
-func (sb *SkynetBlacklist) IsBlacklisted(skylink modules.Skylink) bool {
+// IsBlacklisted indicates if a publink is currently blacklisted
+func (sb *SkynetBlacklist) IsBlacklisted(publink modules.Publink) bool {
 	sb.mu.Lock()
 	defer sb.mu.Unlock()
-	_, ok := sb.merkleroots[skylink.MerkleRoot()]
+	_, ok := sb.merkleroots[publink.MerkleRoot()]
 	return ok
 }
 
-// UpdateSkynetBlacklist updates the list of skylinks that are blacklisted
-func (sb *SkynetBlacklist) UpdateSkynetBlacklist(additions, removals []modules.Skylink) error {
+// UpdateSkynetBlacklist updates the list of publinks that are blacklisted
+func (sb *SkynetBlacklist) UpdateSkynetBlacklist(additions, removals []modules.Publink) error {
 	return sb.callUpdateAndAppend(additions, removals)
 }

@@ -4138,13 +4138,13 @@ siapath to test.
 standard success or error response, a successful response means a valid siapath.
 See [standard responses](#standard-responses).
 
-# Skynet
+# Pubaccess
 
-## /skynet/blacklist [GET]
+## /pubaccess/blacklist [GET]
 > curl example
 
 ```go
-curl -A "ScPrime-Agent" "localhost:9980/skynet/blacklist"
+curl -A "ScPrime-Agent" "localhost:9980/pubaccess/blacklist"
 ```
 
 returns the list of merkleroots that are blacklisted.
@@ -4164,82 +4164,82 @@ returns the list of merkleroots that are blacklisted.
 **blacklist** | Hashes  
 The blacklist is a list of merkle roots, which are hashes, that are blacklisted.
 
-## /skynet/blacklist [POST]
+## /pubaccess/blacklist [POST]
 > curl example
 
 ```go
-curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"add" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:9980/skynet/blacklist"
+curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"add" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:9980/pubaccess/blacklist"
 
-curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"remove" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:9980/skynet/blacklist"
+curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"remove" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:9980/pubaccess/blacklist"
 ```
 
-updates the list of skylinks that should be blacklisted from Skynet. This
-endpoint can be used to both add and remove skylinks from the blacklist.
+updates the list of publinks that should be blacklisted from Pubaccess. This
+endpoint can be used to both add and remove publinks from the blacklist.
 
 ### Path Parameters
 ### REQUIRED
 At least one of the following fields needs to be non empty.
 
 **add** | array of strings  
-add is an array of skylinks that should be added to the blacklisted
+add is an array of publinks that should be added to the blacklisted
 
 **remove** | array of strings  
-remove is an array of skylinks that should be removed from the blacklist
+remove is an array of publinks that should be removed from the blacklist
 
 ### Response
 
 standard success or error response. See [standard
 responses](#standard-responses).
 
-## /skynet/skylink/*skylink* [HEAD]
+## /pubaccess/publink/*publink* [HEAD]
 > curl example
 
 ```bash
-curl -I -A "ScPrime-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
+curl -I -A "ScPrime-Agent" "localhost:9980/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
 ```
 
 This curl command performs a HEAD request that fetches the headers for
-the given skylink. These headers are identical to the ones that would be
+the given publink. These headers are identical to the ones that would be
 returned if the request had been a GET request.
 
 ### Path Parameters
-See [/skynet/skylink/skylink](#skynetskylinkskylink-get)
+See [/pubaccess/publink/publink](#pubaccesspublinkpublink-get)
 
 ### Query String Parameters
-See [/skynet/skylink/skylink](#skynetskylinkskylink-get)
+See [/pubaccess/publink/publink](#pubaccesspublinkpublink-get)
 
 ### Response Header
-See [/skynet/skylink/skylink](#skynetskylinkskylink-get)
+See [/pubaccess/publink/publink](#pubaccesspublinkpublink-get)
 
 ### Response Body
 
 This request has an empty response body.
 
-## /skynet/skylink/*skylink* [GET]
+## /pubaccess/publink/*publink* [GET]
 > curl example  
 
 > Stream the whole file.  
 
 ```bash
 # entire file
-curl -A "ScPrime-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
+curl -A "ScPrime-Agent" "localhost:9980/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
 
 # directory
-curl -A "ScPrime-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder"
+curl -A "ScPrime-Agent" "localhost:9980/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder"
 
 # sub file
-curl -A "ScPrime-Agent" "localhost:9980/skynet/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder/file.txt"
+curl -A "ScPrime-Agent" "localhost:9980/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder/file.txt"
 ```  
 
-downloads a skylink using http streaming. This call blocks until the data is
-received. There is a 30s default timeout applied to downloading a skylink. If
+downloads a publink using http streaming. This call blocks until the data is
+received. There is a 30s default timeout applied to downloading a publink. If
 the data can not be found within this 30s time constraint, a 404 will be
 returned. This timeout is configurable through the query string parameters.
 
 ### Path Parameters 
 ### Required
-**skylink** | string  
-The skylink that should be downloaded. The skylink can contain an optional path.
+**publink** | string  
+The publink that should be downloaded. The publink can contain an optional path.
 This path can specify a directory or a particular file. If specified, only that
 file or directory will be returned.
 
@@ -4252,13 +4252,13 @@ to 'attachment' instead of 'inline'. This will cause web browsers to download
 the file as though it is an attachment instead of rendering it.
 
 **format** | string  
-If 'format' is set, the skylink can point to a directory and it will return the
+If 'format' is set, the publink can point to a directory and it will return the
 data inside that directory. Format will decide the format in which it is
 returned. Currently we only support 'concat', which will return the concatenated
 data of all subfiles in that directory.
 
 **timeout** | int  
-If 'timeout' is set, the download will fail if the Skyfile can not be retrieved 
+If 'timeout' is set, the download will fail if the Pubfile can not be retrieved 
 before it expires. Note that this timeout does not cover the actual download 
 time, but rather covers the TTFB. Timeout is specified in seconds, a timeout 
 value of 0 will be ignored. If no timeout is given, the default will be used,
@@ -4266,13 +4266,13 @@ which is a 30 second timeout. The maximum allowed timeout is 900s (15 minutes).
 
 ### Response Header
 
-**Skynet-File-Metadata** | SkyfileMetadata
+**Pubaccess-File-Metadata** | SkyfileMetadata
 
-The header field "Skynet-FileMetadata" will be set such that it has an encoded
+The header field "Pubaccess-FileMetadata" will be set such that it has an encoded
 json object which matches the modules.SkyfileMetadata struct. If a path was
 supplied, this metadata will be relative to the given path.
 
-> Skynet-File-Metadata Response Header Example 
+> Pubaccess-File-Metadata Response Header Example 
 
 ```go
 {
@@ -4294,14 +4294,14 @@ supplied, this metadata will be relative to the given path.
 
 The response body is the raw data for the file.
 
-## /skynet/skyfile/*siapath* [POST]
+## /pubaccess/pubfile/*siapath* [POST]
 > curl example  
 
 ```go
 // This command uploads the file 'myImage.png' to the Sia folder
-// 'var/skynet/images/myImage.png'. Users who download the file will see the name
+// 'var/pubaccess/images/myImage.png'. Users who download the file will see the name
 // 'image.png'.
-curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:9980/skynet/skyfile/images/myImage.png?filename=image.png" --data-binary @myImage.png
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:9980/pubaccess/pubfile/images/myImage.png?filename=image.png" --data-binary @myImage.png
 ```
 
 uploads a file to the network using a stream. If the upload stream POST call
@@ -4314,8 +4314,8 @@ subsequent call to the upload stream endpoint using the `repair` flag.
 Location where the file will reside in the renter on the network. The path must
 be non-empty, may not include any path traversal strings ("./", "../"), and may
 not begin with a forward-slash character. If the 'root' flag is not set, the
-path will be prefixed with 'var/skynet/', placing the skyfile into the Sia
-system's default skynet folder.
+path will be prefixed with 'var/pubaccess/', placing the pubfile into the Sia
+system's default pubaccess folder.
 
 ### Query String Parameters
 ### OPTIONAL
@@ -4324,18 +4324,18 @@ The amount of redundancy to use when uploading the base chunk. The base chunk is
 the first chunk of the file, and is always uploaded using 1-of-N redundancy.
 
 **convertpath** string  
-The siapath of an existing siafile that should be converted to a skylink. A new
-skyfile will be created. Both the new skyfile and the existing siafile are
-required to be maintained on the network in order for the skylink to remain
+The siapath of an existing siafile that should be converted to a publink. A new
+pubfile will be created. Both the new pubfile and the existing siafile are
+required to be maintained on the network in order for the publink to remain
 active. This field is mutually exclusive with uploading streaming.
 
 **filename** | string  
-The name of the file. This name will be encoded into the skyfile metadata, and
-will be a part of the skylink. If the name changes, the skylink will change as
+The name of the file. This name will be encoded into the pubfile metadata, and
+will be a part of the publink. If the name changes, the publink will change as
 well.
 
 **dryrun** | bool  
-If dryrun is set to true, the request will return the Skylink of the file
+If dryrun is set to true, the request will return the Publink of the file
 without uploading the actual file to the Sia network.
 
 **force** | bool  
@@ -4352,7 +4352,7 @@ used.
 **root** | bool  
 Whether or not to treat the siapath as being relative to the root directory. If
 this field is not set, the siapath will be interpreted as relative to
-'var/skynet'.
+'var/pubaccess'.
 
 ### Http Headers
 ### OPTIONAL
@@ -4364,10 +4364,10 @@ taken into consideration when using a multipart form upload.
 For more details on setting Content-Disposition:
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
 
-**Skynet-Disable-Force** | bool  
+**Pubaccess-Disable-Force** | bool  
 This request header allows overruling the behaviour of the `force` parameter
 that can be passed in through the query string parameters. This header is useful
-for Skynet portal operators that would like to have some control over the
+for Pubaccess portal operators that would like to have some control over the
 requests that are being passed to siad. To avoid having to parse query string
 parameters and overrule them that way, this header can be set to disable the
 force flag and disallow overwriting the file at the given siapath.
@@ -4377,31 +4377,31 @@ force flag and disallow overwriting the file at the given siapath.
 
 ```go
 {
-"skylink":    "CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg" // string
+"publink":    "CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg" // string
 "merkleroot": "QAf9Q7dBSbMarLvyeE6HTQmwhr7RX9VMrP9xIMzpU3I" // hash
 "bitfield":   2048 // int
 }
 ```
-**skylink** | string  
-This is the skylink that can be used with the `/skynet/skylink` GET endpoint to
+**publink** | string  
+This is the publink that can be used with the `/pubaccess/publink` GET endpoint to
 retrieve the file that has been uploaded.
 
 **merkleroot** | hash  
-This is the hash that is encoded into the skylink.
+This is the hash that is encoded into the publink.
 
 **bitfield** | int  
-This is the bitfield that gets encoded into the skylink. The bitfield contains a
+This is the bitfield that gets encoded into the publink. The bitfield contains a
 version, an offset and a length in a heavily compressed and optimized format.
 
 
-## /skynet/stats [GET]
+## /pubaccess/stats [GET]
 > curl example
 
 ```go
-curl -A "ScPrime-Agent" "localhost:9980/skynet/stats"
+curl -A "ScPrime-Agent" "localhost:9980/pubaccess/stats"
 ```
 
-returns statistical information about Skynet, e.g. number of files uploaded
+returns statistical information about Pubaccess, e.g. number of files uploaded
 
 ### JSON Response
 ```json
@@ -4418,13 +4418,13 @@ returns statistical information about Skynet, e.g. number of files uploaded
 ```
 
 **uploadstats** | object
-Uploadstats is an object with statistics about the data uploaded to Skynet.
+Uploadstats is an object with statistics about the data uploaded to Pubaccess.
 
 **numfiles** | int  
-Numfiles is the total number of files uploaded to Skynet.
+Numfiles is the total number of files uploaded to Pubaccess.
 
 **totalsize** | int  
-Totalsize is the total amount of data in bytes uploaded to Skynet.
+Totalsize is the total amount of data in bytes uploaded to Pubaccess.
 
 **versioninfo** | object  
 Versioninfo is an object that contains the node's version information.
@@ -4436,19 +4436,19 @@ Version is the siad version the node is running.
 Gitrevision refers to the commit hash used to build said.
 
 
-## /skynet/addskykey [POST]
+## /pubaccess/addskykey [POST]
 > curl example
 
 ```go
-curl -A "Sia-Agent"  -u "":<apipassword> --data "skykey=BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a" "localhost:9980/skynet/addskykey"
+curl -A "Sia-Agent"  -u "":<apipassword> --data "pubaccesskey=BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a" "localhost:9980/pubaccess/addskykey"
 ```
 
-Stores the given skykey with the renter's skykey manager.
+Stores the given pubaccesskey with the renter's pubaccesskey manager.
 
 ### Path Parameters
 ### REQUIRED
-**skykey** | string  
-base-64 encoded skykey
+**pubaccesskey** | string  
+base-64 encoded pubaccesskey
 
 ### Response
 
@@ -4456,19 +4456,19 @@ standard success or error response. See [standard
 responses](#standard-responses).
 
 
-## /skynet/createskykey [POST]
+## /pubaccess/createskykey [POST]
 > curl example
 
 ```go
-curl -A "Sia-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/skynet/createskykey"
+curl -A "Sia-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/createskykey"
 ```
 
-Returns a new skykey created and stored under that name.
+Returns a new pubaccesskey created and stored under that name.
 
 ### Path Parameters
 ### REQUIRED
 **name** | string  
-desired name of the skykey
+desired name of the pubaccesskey
 
 ### JSON Response
 > JSON Response Example
@@ -4476,59 +4476,59 @@ desired name of the skykey
  
 ```go
 {
-  "skykey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
+  "pubaccesskey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
 }
 ```
 
-**skykey** | string  
-base-64 encoded skykey
+**pubaccesskey** | string  
+base-64 encoded pubaccesskey
 
 
-## /skynet/skykey [GET]
+## /pubaccess/pubaccesskey [GET]
 > curl example
 
 ```go
-curl -A "Sia-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/skynet/skykey"
-curl -A "Sia-Agent"  -u "":<apipassword> --data "id=gi5z8cf5NWbcvPBaBn0DFQ==" "localhost:9980/skynet/skykey"
+curl -A "Sia-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/pubaccesskey"
+curl -A "Sia-Agent"  -u "":<apipassword> --data "id=gi5z8cf5NWbcvPBaBn0DFQ==" "localhost:9980/pubaccess/pubaccesskey"
 ```
 
-Returns the base-64 encoded skykey stored under that name, or with that ID.
+Returns the base-64 encoded pubaccesskey stored under that name, or with that ID.
 
 
 ### Path Parameters
 ### REQUIRED
 **name** | string  
-name of the skykey being queried
+name of the pubaccesskey being queried
 
 or
 
 **id** | string  
-base-64 encoded ID of the skykey being queried
+base-64 encoded ID of the pubaccesskey being queried
 
 
 ### JSON Response ```json
 {
-  "skykey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
+  "pubaccesskey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
 }
 ```
 
-**skykey** | string  
-base-64 encoded skykey
+**pubaccesskey** | string  
+base-64 encoded pubaccesskey
 
 
-## /skynet/skykeyid [GET]
+## /pubaccess/skykeyid [GET]
 > curl example
 
 ```go
-curl -A "Sia-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/skynet/skykeyid"
+curl -A "Sia-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/skykeyid"
 ```
 
-Returns the base-64 encoded ID of the skykey stored under that name.
+Returns the base-64 encoded ID of the pubaccesskey stored under that name.
 
 ### Path Parameters
 ### REQUIRED
 **name** | string  
-name of the skykey being queried
+name of the pubaccesskey being queried
 
 
 ### JSON Response
@@ -4542,7 +4542,7 @@ name of the skykey being queried
 ```
 
 **skykeyid** | string  
-base-64 encoded skykey ID
+base-64 encoded pubaccesskey ID
 
 
 

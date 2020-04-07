@@ -9,7 +9,7 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/skykey"
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
@@ -243,9 +243,9 @@ type Allowance struct {
 	RenewWindow types.BlockHeight `json:"renewwindow"`
 
 	// PaymentContractInitialFunding establishes the amount of money that the a
-	// Skynet portal will put into a brand new payment contract. If this value
-	// is set to zero, this node will not act as a Skynet portal. When this
-	// value is non-zero, this node will act as a Skynet portal, and form
+	// Pubaccess portal will put into a brand new payment contract. If this value
+	// is set to zero, this node will not act as a Pubaccess portal. When this
+	// value is non-zero, this node will act as a Pubaccess portal, and form
 	// contracts with every reasonably priced host.
 	PaymentContractInitialFunding types.Currency `json:"paymentcontractinitialfunding"`
 
@@ -434,7 +434,7 @@ type FileInfo struct {
 	Recoverable      bool              `json:"recoverable"`
 	Redundancy       float64           `json:"redundancy"`
 	Renewing         bool              `json:"renewing"`
-	Skylinks         []string          `json:"skylinks"`
+	Publinks         []string          `json:"publinks"`
 	SiaPath          SiaPath           `json:"siapath"`
 	Stuck            bool              `json:"stuck"`
 	StuckHealth      float64           `json:"stuckhealth"`
@@ -935,52 +935,52 @@ type Renter interface {
 	// DirList lists the directories in a siadir
 	DirList(siaPath SiaPath) ([]DirectoryInfo, error)
 
-	// AddSkykey adds the skykey to the renter's skykey manager.
-	AddSkykey(skykey.Skykey) error
+	// AddSkykey adds the pubaccesskey to the renter's pubaccesskey manager.
+	AddSkykey(pubaccesskey.Pubaccesskey) error
 
-	// CreateSkykey creates a new Skykey with the given name and ciphertype.
-	CreateSkykey(string, crypto.CipherType) (skykey.Skykey, error)
+	// CreateSkykey creates a new Pubaccesskey with the given name and ciphertype.
+	CreateSkykey(string, crypto.CipherType) (pubaccesskey.Pubaccesskey, error)
 
-	// SkykeyByName gets the Skykey with the given name from the renter's skykey
+	// SkykeyByName gets the Pubaccesskey with the given name from the renter's pubaccesskey
 	// manager if it exists.
-	SkykeyByName(string) (skykey.Skykey, error)
+	SkykeyByName(string) (pubaccesskey.Pubaccesskey, error)
 
-	// SkykeyByID gets the Skykey with the given ID from the renter's skykey
+	// SkykeyByID gets the Pubaccesskey with the given ID from the renter's pubaccesskey
 	// manager if it exists.
-	SkykeyByID(skykey.SkykeyID) (skykey.Skykey, error)
+	SkykeyByID(pubaccesskey.SkykeyID) (pubaccesskey.Pubaccesskey, error)
 
 	// SkykeyIDByName gets the SkykeyID of the key with the given name if it
 	// exists.
-	SkykeyIDByName(string) (skykey.SkykeyID, error)
+	SkykeyIDByName(string) (pubaccesskey.SkykeyID, error)
 
-	// CreateSkylinkFromSiafile will create a skylink from a siafile. This will
-	// result in some uploading - the base sector skyfile needs to be uploaded
+	// CreatePublinkFromSiafile will create a publink from a siafile. This will
+	// result in some uploading - the base sector pubfile needs to be uploaded
 	// separately, and if there is a fanout expansion that needs to be uploaded
 	// separately as well.
-	CreateSkylinkFromSiafile(SkyfileUploadParameters, SiaPath) (Skylink, error)
+	CreatePublinkFromSiafile(SkyfileUploadParameters, SiaPath) (Publink, error)
 
-	// DownloadSkylink will fetch a file from the Sia network using the skylink.
-	DownloadSkylink(Skylink, time.Duration) (SkyfileMetadata, Streamer, error)
+	// DownloadPublink will fetch a file from the Sia network using the publink.
+	DownloadPublink(Publink, time.Duration) (SkyfileMetadata, Streamer, error)
 
 	// UploadSkyfile will upload data to the Sia network from a reader and
-	// create a skyfile, returning the skylink that can be used to access the
+	// create a pubfile, returning the publink that can be used to access the
 	// file.
 	//
-	// NOTE: A skyfile is a file that is tracked and repaired by the renter.  A
-	// skyfile contains more than just the file data, it also contains metadata
+	// NOTE: A pubfile is a file that is tracked and repaired by the renter.  A
+	// pubfile contains more than just the file data, it also contains metadata
 	// about the file and other information which is useful in fetching the
 	// file.
-	UploadSkyfile(SkyfileUploadParameters) (Skylink, error)
+	UploadSkyfile(SkyfileUploadParameters) (Publink, error)
 
 	// Blacklist returns the merkleroots that are blacklisted
 	Blacklist() ([]crypto.Hash, error)
 
-	// UpdateSkynetBlacklist updates the list of skylinks that are blacklisted
-	UpdateSkynetBlacklist(additions, removals []Skylink) error
+	// UpdateSkynetBlacklist updates the list of publinks that are blacklisted
+	UpdateSkynetBlacklist(additions, removals []Publink) error
 
-	// PinSkylink re-uploads the data stored at the file under that skylink with
+	// PinPublink re-uploads the data stored at the file under that publink with
 	// the given parameters.
-	PinSkylink(Skylink, SkyfileUploadParameters, time.Duration) error
+	PinPublink(Publink, SkyfileUploadParameters, time.Duration) error
 }
 
 // Streamer is the interface implemented by the Renter's streamer type which

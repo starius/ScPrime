@@ -1,4 +1,4 @@
-package skynetblacklist
+package pubaccessblacklist
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 
 // testDir is a helper function for creating the testing directory
 func testDir(name string) string {
-	return build.TempDir("skynetblacklist", name)
+	return build.TempDir("pubaccessblacklist", name)
 }
 
 // checkNumPersistedLinks checks that the expected number of links has been
@@ -49,7 +49,7 @@ func TestPersist(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// There should be no skylinks in the blacklist
+	// There should be no publinks in the blacklist
 	if len(sb.merkleroots) != 0 {
 		t.Fatal("Expected blacklist to be empty but found:", len(sb.merkleroots))
 	}
@@ -72,22 +72,22 @@ func TestPersist(t *testing.T) {
 	}
 
 	// Update blacklist
-	var skylink modules.Skylink
-	add := []modules.Skylink{skylink}
-	remove := []modules.Skylink{skylink}
+	var publink modules.Publink
+	add := []modules.Publink{publink}
+	remove := []modules.Publink{publink}
 	err = sb.UpdateSkynetBlacklist(add, remove)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Blacklist should be empty because we added and then removed the same
-	// skylink
+	// publink
 	if len(sb.merkleroots) != 0 {
 		t.Fatal("Expected blacklist to be empty but found:", len(sb.merkleroots))
 	}
 
-	// Add the skylink again
-	err = sb.UpdateSkynetBlacklist(add, []modules.Skylink{})
+	// Add the publink again
+	err = sb.UpdateSkynetBlacklist(add, []modules.Publink{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,12 +96,12 @@ func TestPersist(t *testing.T) {
 	if len(sb.merkleroots) != 1 {
 		t.Fatal("Expected 1 element in the blacklist but found:", len(sb.merkleroots))
 	}
-	mr, ok := sb.merkleroots[skylink.MerkleRoot()]
+	mr, ok := sb.merkleroots[publink.MerkleRoot()]
 	if !ok {
-		t.Fatalf("Expected merkleroot listed in blacklist to be %v but found %v", skylink.MerkleRoot(), mr)
+		t.Fatalf("Expected merkleroot listed in blacklist to be %v but found %v", publink.MerkleRoot(), mr)
 	}
 
-	// Load a new Skynet Blacklist to verify the contents from disk get loaded
+	// Load a new Pubaccess Blacklist to verify the contents from disk get loaded
 	// properly
 	sb2, err := New(testdir)
 	if err != nil {
@@ -118,13 +118,13 @@ func TestPersist(t *testing.T) {
 	if len(sb2.merkleroots) != 1 {
 		t.Fatal("Expected 1 element in the blacklist but found:", len(sb2.merkleroots))
 	}
-	mr, ok = sb2.merkleroots[skylink.MerkleRoot()]
+	mr, ok = sb2.merkleroots[publink.MerkleRoot()]
 	if !ok {
-		t.Fatalf("Expected merkleroot listed in blacklist to be %v but found %v", skylink.MerkleRoot(), mr)
+		t.Fatalf("Expected merkleroot listed in blacklist to be %v but found %v", publink.MerkleRoot(), mr)
 	}
 
-	// Add the skylink again
-	err = sb2.UpdateSkynetBlacklist(add, []modules.Skylink{})
+	// Add the publink again
+	err = sb2.UpdateSkynetBlacklist(add, []modules.Publink{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,12 +133,12 @@ func TestPersist(t *testing.T) {
 	if len(sb2.merkleroots) != 1 {
 		t.Fatal("Expected 1 element in the blacklist but found:", len(sb2.merkleroots))
 	}
-	mr, ok = sb2.merkleroots[skylink.MerkleRoot()]
+	mr, ok = sb2.merkleroots[publink.MerkleRoot()]
 	if !ok {
-		t.Fatalf("Expected merkleroot listed in blacklist to be %v but found %v", skylink.MerkleRoot(), mr)
+		t.Fatalf("Expected merkleroot listed in blacklist to be %v but found %v", publink.MerkleRoot(), mr)
 	}
 
-	// Load another new Skynet Blacklist to verify the contents from disk get loaded
+	// Load another new Pubaccess Blacklist to verify the contents from disk get loaded
 	// properly
 	sb3, err := New(testdir)
 	if err != nil {
@@ -155,18 +155,18 @@ func TestPersist(t *testing.T) {
 	if len(sb3.merkleroots) != 1 {
 		t.Fatal("Expected 1 element in the blacklist but found:", len(sb3.merkleroots))
 	}
-	mr, ok = sb3.merkleroots[skylink.MerkleRoot()]
+	mr, ok = sb3.merkleroots[publink.MerkleRoot()]
 	if !ok {
-		t.Fatalf("Expected merkleroot listed in blacklist to be %v but found %v", skylink.MerkleRoot(), mr)
+		t.Fatalf("Expected merkleroot listed in blacklist to be %v but found %v", publink.MerkleRoot(), mr)
 	}
 }
 
 // TestMarshalSia probes the marshalSia and unmarshalSia methods
 func TestMarshalSia(t *testing.T) {
 	// Test MarshalSia
-	var skylink modules.Skylink
+	var publink modules.Publink
 	var buf bytes.Buffer
-	merkleRoot := skylink.MerkleRoot()
+	merkleRoot := publink.MerkleRoot()
 	blacklisted := false
 	err := marshalSia(&buf, merkleRoot, blacklisted)
 	if err != nil {
@@ -246,7 +246,7 @@ func TestMarshalMetadata(t *testing.T) {
 	}
 	defer f.Close()
 
-	// Create empty struct of a skynet blacklist and set the length. Not using
+	// Create empty struct of a pubaccess blacklist and set the length. Not using
 	// the New method to avoid overwritten persist file on disk
 	sb := SkynetBlacklist{}
 	sb.persistLength = metadataPageSize

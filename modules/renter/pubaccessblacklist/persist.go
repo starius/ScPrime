@@ -1,4 +1,4 @@
-package skynetblacklist
+package pubaccessblacklist
 
 import (
 	"bytes"
@@ -24,7 +24,7 @@ const (
 	metadataPageSize int64 = 4096
 
 	// persistFile is the name of the persist file
-	persistFile string = "skynetblacklist"
+	persistFile string = "pubaccessblacklist"
 
 	// persistMerkleRootSize is the size of a persisted merkleroot in the
 	// blacklist
@@ -43,7 +43,7 @@ var (
 	metadataVersion = types.NewSpecifier("v1.4.3\n")
 )
 
-// marshalMetadata marshals the Skynet Blacklist's metadata and returns the byte
+// marshalMetadata marshals the Pubaccess Blacklist's metadata and returns the byte
 // slice
 func (sb *SkynetBlacklist) marshalMetadata() ([]byte, error) {
 	headerBytes, headerErr := metadataHeader.MarshalText()
@@ -142,16 +142,16 @@ func (sb *SkynetBlacklist) callInitPersist() error {
 // removals and append the changes to the persist file on disk
 //
 // NOTE: this method does not check for duplicate additions or removals
-func (sb *SkynetBlacklist) callUpdateAndAppend(additions, removals []modules.Skylink) error {
+func (sb *SkynetBlacklist) callUpdateAndAppend(additions, removals []modules.Publink) error {
 	sb.mu.Lock()
 	defer sb.mu.Unlock()
 
 	// Create buffer for encoder
 	var buf bytes.Buffer
 	// Create and encode the persist links
-	for _, skylink := range additions {
-		// Add skylink merkleroot to map
-		mr := skylink.MerkleRoot()
+	for _, publink := range additions {
+		// Add publink merkleroot to map
+		mr := publink.MerkleRoot()
 		sb.merkleroots[mr] = struct{}{}
 
 		// Marshal the update
@@ -160,9 +160,9 @@ func (sb *SkynetBlacklist) callUpdateAndAppend(additions, removals []modules.Sky
 			return errors.AddContext(err, "unable to encode persistLink")
 		}
 	}
-	for _, skylink := range removals {
-		// Remove skylink merkleroot from map
-		mr := skylink.MerkleRoot()
+	for _, publink := range removals {
+		// Remove publink merkleroot from map
+		mr := publink.MerkleRoot()
 		delete(sb.merkleroots, mr)
 
 		// Marshal the update
@@ -245,13 +245,13 @@ func (sb *SkynetBlacklist) load() error {
 		return errors.AddContext(err, "unable to unmarshal persistLinks")
 	}
 
-	// Add to Skynet Blacklist
+	// Add to Pubaccess Blacklist
 	sb.merkleroots = blacklist
 
 	return nil
 }
 
-// unmarshalMetadata ummarshals the Skynet Blacklist's metadata from the
+// unmarshalMetadata ummarshals the Pubaccess Blacklist's metadata from the
 // provided byte slice
 func (sb *SkynetBlacklist) unmarshalMetadata(raw []byte) error {
 	// Define offsets for reading from provided byte slice

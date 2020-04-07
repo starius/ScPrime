@@ -23,14 +23,14 @@ import (
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter"
-	"gitlab.com/scpcorp/ScPrime/skykey"
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 )
 
 const (
 	// DefaultSkynetRequestTimeout is the default request timeout for routes
 	// that have a timeout query string parameter. If the request can not be
 	// resolved within the given amount of time, it times out. This is used for
-	// Skynet routes where a request times out if the DownloadByRoot project
+	// Pubaccess routes where a request times out if the DownloadByRoot project
 	// does not finish in due time.
 	DefaultSkynetRequestTimeout = 30 * time.Second
 
@@ -43,34 +43,34 @@ const (
 
 type (
 	// SkynetSkyfileHandlerPOST is the response that the api returns after the
-	// /skynet/ POST endpoint has been used.
+	// /pubaccess/ POST endpoint has been used.
 	SkynetSkyfileHandlerPOST struct {
-		Skylink    string      `json:"skylink"`
+		Publink    string      `json:"publink"`
 		MerkleRoot crypto.Hash `json:"merkleroot"`
 		Bitfield   uint16      `json:"bitfield"`
 	}
 
 	// SkynetBlacklistGET contains the information queried for the
-	// /skynet/blacklist GET endpoint
+	// /pubaccess/blacklist GET endpoint
 	SkynetBlacklistGET struct {
 		Blacklist []crypto.Hash `json:"blacklist"`
 	}
 
 	// SkynetBlacklistPOST contains the information needed for the
-	// /skynet/blacklist POST endpoint to be called
+	// /pubaccess/blacklist POST endpoint to be called
 	SkynetBlacklistPOST struct {
 		Add    []string `json:"add"`
 		Remove []string `json:"remove"`
 	}
 
-	// SkynetStatsGET contains the information queried for the /skynet/stats
+	// SkynetStatsGET contains the information queried for the /pubaccess/stats
 	// GET endpoint
 	SkynetStatsGET struct {
 		UploadStats SkynetStats   `json:"uploadstats"`
 		VersionInfo SkynetVersion `json:"versioninfo"`
 	}
 
-	// SkynetStats contains statistical data about skynet
+	// SkynetStats contains statistical data about pubaccess
 	SkynetStats struct {
 		NumFiles  int    `json:"numfiles"`
 		TotalSize uint64 `json:"totalsize"`
@@ -82,14 +82,14 @@ type (
 		GitRevision string `json:"gitrevision"`
 	}
 
-	// SkykeyGET contains a base64 encoded Skykey.
+	// SkykeyGET contains a base64 encoded Pubaccesskey.
 	SkykeyGET struct {
-		Skykey string `json:"skykey"` // base64 encoded Skykey
+		Pubaccesskey string `json:"pubaccesskey"` // base64 encoded Pubaccesskey
 	}
 )
 
 // skynetBlacklistHandlerGET handles the API call to get the list of
-// blacklisted skylinks
+// blacklisted publinks
 func (api *API) skynetBlacklistHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	// Get the Blacklist
 	blacklist, err := api.renter.Blacklist()
@@ -103,7 +103,7 @@ func (api *API) skynetBlacklistHandlerGET(w http.ResponseWriter, _ *http.Request
 	})
 }
 
-// skynetBlacklistHandlerPOST handles the API call to blacklist certain skylinks
+// skynetBlacklistHandlerPOST handles the API call to blacklist certain publinks
 func (api *API) skynetBlacklistHandlerPOST(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	// Parse parameters
 	var params SkynetBlacklistPOST
@@ -115,46 +115,46 @@ func (api *API) skynetBlacklistHandlerPOST(w http.ResponseWriter, req *http.Requ
 
 	// Check for nil input
 	if len(append(params.Add, params.Remove...)) == 0 {
-		WriteError(w, Error{"no skylinks submitted"}, http.StatusBadRequest)
+		WriteError(w, Error{"no publinks submitted"}, http.StatusBadRequest)
 		return
 	}
 
-	// Convert to Skylinks
-	addSkylinks := make([]modules.Skylink, len(params.Add))
+	// Convert to Publinks
+	addPublinks := make([]modules.Publink, len(params.Add))
 	for i, addStr := range params.Add {
-		var skylink modules.Skylink
-		err := skylink.LoadString(addStr)
+		var publink modules.Publink
+		err := publink.LoadString(addStr)
 		if err != nil {
-			WriteError(w, Error{fmt.Sprintf("error parsing skylink: %v", err)}, http.StatusBadRequest)
+			WriteError(w, Error{fmt.Sprintf("error parsing publink: %v", err)}, http.StatusBadRequest)
 			return
 		}
-		addSkylinks[i] = skylink
+		addPublinks[i] = publink
 	}
-	removeSkylinks := make([]modules.Skylink, len(params.Remove))
+	removePublinks := make([]modules.Publink, len(params.Remove))
 	for i, removeStr := range params.Remove {
-		var skylink modules.Skylink
-		err := skylink.LoadString(removeStr)
+		var publink modules.Publink
+		err := publink.LoadString(removeStr)
 		if err != nil {
-			WriteError(w, Error{fmt.Sprintf("error parsing skylink: %v", err)}, http.StatusBadRequest)
+			WriteError(w, Error{fmt.Sprintf("error parsing publink: %v", err)}, http.StatusBadRequest)
 			return
 		}
-		removeSkylinks[i] = skylink
+		removePublinks[i] = publink
 	}
 
-	// Update the Skynet Blacklist
-	err = api.renter.UpdateSkynetBlacklist(addSkylinks, removeSkylinks)
+	// Update the Pubaccess Blacklist
+	err = api.renter.UpdateSkynetBlacklist(addPublinks, removePublinks)
 	if err != nil {
-		WriteError(w, Error{"unable to update the skynet blacklist: " + err.Error()}, http.StatusBadRequest)
+		WriteError(w, Error{"unable to update the pubaccess blacklist: " + err.Error()}, http.StatusBadRequest)
 		return
 	}
 
 	WriteSuccess(w)
 }
 
-// skynetSkylinkHandlerGET accepts a skylink as input and will stream the data
-// from the skylink out of the response body as output.
-func (api *API) skynetSkylinkHandlerGET(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	strLink := ps.ByName("skylink")
+// skynetPublinkHandlerGET accepts a publink as input and will stream the data
+// from the publink out of the response body as output.
+func (api *API) skynetPublinkHandlerGET(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	strLink := ps.ByName("publink")
 	strLink = strings.TrimPrefix(strLink, "/")
 
 	// Parse out optional path to a subfile
@@ -165,11 +165,11 @@ func (api *API) skynetSkylinkHandlerGET(w http.ResponseWriter, req *http.Request
 		path = fmt.Sprintf("/%s", splits[1])
 	}
 
-	// Parse skylink
-	var skylink modules.Skylink
-	err := skylink.LoadString(strLink)
+	// Parse publink
+	var publink modules.Publink
+	err := publink.LoadString(strLink)
 	if err != nil {
-		WriteError(w, Error{fmt.Sprintf("error parsing skylink: %v", err)}, http.StatusBadRequest)
+		WriteError(w, Error{fmt.Sprintf("error parsing publink: %v", err)}, http.StatusBadRequest)
 		return
 	}
 
@@ -218,13 +218,13 @@ func (api *API) skynetSkylinkHandlerGET(w http.ResponseWriter, req *http.Request
 		timeout = time.Duration(timeoutInt) * time.Second
 	}
 
-	// Fetch the skyfile's metadata and a streamer to download the file
-	metadata, streamer, err := api.renter.DownloadSkylink(skylink, timeout)
+	// Fetch the pubfile's metadata and a streamer to download the file
+	metadata, streamer, err := api.renter.DownloadPublink(publink, timeout)
 	if errors.Contains(err, renter.ErrRootNotFound) {
-		WriteError(w, Error{fmt.Sprintf("failed to fetch skylink: %v", err)}, http.StatusNotFound)
+		WriteError(w, Error{fmt.Sprintf("failed to fetch publink: %v", err)}, http.StatusNotFound)
 		return
 	} else if err != nil {
-		WriteError(w, Error{fmt.Sprintf("failed to fetch skylink: %v", err)}, http.StatusInternalServerError)
+		WriteError(w, Error{fmt.Sprintf("failed to fetch publink: %v", err)}, http.StatusInternalServerError)
 		return
 	}
 	defer streamer.Close()
@@ -270,14 +270,14 @@ func (api *API) skynetSkylinkHandlerGET(w http.ResponseWriter, req *http.Request
 		return
 	}
 	if err != nil {
-		WriteError(w, Error{fmt.Sprintf("failed to serve skyfile as archive: %v", err)}, http.StatusInternalServerError)
+		WriteError(w, Error{fmt.Sprintf("failed to serve pubfile as archive: %v", err)}, http.StatusInternalServerError)
 		return
 	}
 
 	// Encode the metadata
 	encMetadata, err := json.Marshal(metadata)
 	if err != nil {
-		WriteError(w, Error{fmt.Sprintf("failed to write skylink metadata: %v", err)}, http.StatusInternalServerError)
+		WriteError(w, Error{fmt.Sprintf("failed to write publink metadata: %v", err)}, http.StatusInternalServerError)
 		return
 	}
 
@@ -297,15 +297,15 @@ func (api *API) skynetSkylinkHandlerGET(w http.ResponseWriter, req *http.Request
 		cdh = fmt.Sprintf("inline; filename=%s", strconv.Quote(filepath.Base(metadata.Filename)))
 	}
 	w.Header().Set("Content-Disposition", cdh)
-	w.Header().Set("Skynet-File-Metadata", string(encMetadata))
+	w.Header().Set("Pubaccess-File-Metadata", string(encMetadata))
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	http.ServeContent(w, req, metadata.Filename, time.Time{}, streamer)
 }
 
-// skynetSkylinkPinHandlerPOST will pin a skylink to this Sia node, ensuring
+// skynetPublinkPinHandlerPOST will pin a publink to this Sia node, ensuring
 // uptime even if the original uploader stops paying for the file.
-func (api *API) skynetSkylinkPinHandlerPOST(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func (api *API) skynetPublinkPinHandlerPOST(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	// Parse the query params.
 	queryForm, err := url.ParseQuery(req.URL.RawQuery)
 	if err != nil {
@@ -313,15 +313,15 @@ func (api *API) skynetSkylinkPinHandlerPOST(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	strLink := ps.ByName("skylink")
-	var skylink modules.Skylink
-	err = skylink.LoadString(strLink)
+	strLink := ps.ByName("publink")
+	var publink modules.Publink
+	err = publink.LoadString(strLink)
 	if err != nil {
-		WriteError(w, Error{fmt.Sprintf("error parsing skylink: %v", err)}, http.StatusBadRequest)
+		WriteError(w, Error{fmt.Sprintf("error parsing publink: %v", err)}, http.StatusBadRequest)
 		return
 	}
 
-	// Parse whether the siapath should be from root or from the skynet folder.
+	// Parse whether the siapath should be from root or from the pubaccess folder.
 	var root bool
 	rootStr := queryForm.Get("root")
 	if rootStr != "" {
@@ -352,15 +352,15 @@ func (api *API) skynetSkylinkPinHandlerPOST(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	// Check whether force upload is allowed. Skynet portals might disallow
+	// Check whether force upload is allowed. Pubaccess portals might disallow
 	// passing the force flag, if they want to they can set overrule the force
-	// flag by passing in the 'Skynet-Disable-Force' header
+	// flag by passing in the 'Pubaccess-Disable-Force' header
 	allowForce := true
-	strDisableForce := req.Header.Get("Skynet-Disable-Force")
+	strDisableForce := req.Header.Get("Pubaccess-Disable-Force")
 	if strDisableForce != "" {
 		disableForce, err := strconv.ParseBool(strDisableForce)
 		if err != nil {
-			WriteError(w, Error{"unable to parse 'Skynet-Disable-Force' header: " + err.Error()}, http.StatusBadRequest)
+			WriteError(w, Error{"unable to parse 'Pubaccess-Disable-Force' header: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
 		allowForce = !disableForce
@@ -393,19 +393,19 @@ func (api *API) skynetSkylinkPinHandlerPOST(w http.ResponseWriter, req *http.Req
 
 	// Create the upload parameters. Notably, the fanout redundancy, the file
 	// metadata and the filename are not included. Changing those would change
-	// the skylink, which is not the goal.
+	// the publink, which is not the goal.
 	lup := modules.SkyfileUploadParameters{
 		SiaPath:             siaPath,
 		Force:               force,
 		BaseChunkRedundancy: redundancy,
 	}
 
-	err = api.renter.PinSkylink(skylink, lup, timeout)
+	err = api.renter.PinPublink(publink, lup, timeout)
 	if errors.Contains(err, renter.ErrRootNotFound) {
-		WriteError(w, Error{fmt.Sprintf("Failed to pin file to Skynet: %v", err)}, http.StatusNotFound)
+		WriteError(w, Error{fmt.Sprintf("Failed to pin file to Pubaccess: %v", err)}, http.StatusNotFound)
 		return
 	} else if err != nil {
-		WriteError(w, Error{fmt.Sprintf("Failed to pin file to Skynet: %v", err)}, http.StatusInternalServerError)
+		WriteError(w, Error{fmt.Sprintf("Failed to pin file to Pubaccess: %v", err)}, http.StatusInternalServerError)
 		return
 	}
 
@@ -413,11 +413,11 @@ func (api *API) skynetSkylinkPinHandlerPOST(w http.ResponseWriter, req *http.Req
 }
 
 // skynetSkyfileHandlerPOST is a dual purpose endpoint. If the 'convertpath'
-// field is set, this endpoint will create a skyfile using an existing siafile.
-// The original siafile and the skyfile will both need to be kept in order for
-// the file to remain available on Skynet. If the 'convertpath' field is not
-// set, this is essentially an upload streaming endpoint for Skynet which
-// returns a skylink.
+// field is set, this endpoint will create a pubfile using an existing siafile.
+// The original siafile and the pubfile will both need to be kept in order for
+// the file to remain available on Pubaccess. If the 'convertpath' field is not
+// set, this is essentially an upload streaming endpoint for Pubaccess which
+// returns a publink.
 func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	// Parse the query params.
 	queryForm, err := url.ParseQuery(req.URL.RawQuery)
@@ -437,7 +437,7 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 		}
 	}
 
-	// Parse whether the siapath should be from root or from the skynet folder.
+	// Parse whether the siapath should be from root or from the pubaccess folder.
 	var root bool
 	rootStr := queryForm.Get("root")
 	if rootStr != "" {
@@ -461,15 +461,15 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	// Check whether force upload is allowed. Skynet portals might disallow
+	// Check whether force upload is allowed. Pubaccess portals might disallow
 	// passing the force flag, if they want to they can set overrule the force
-	// flag by passing in the 'Skynet-Disable-Force' header
+	// flag by passing in the 'Pubaccess-Disable-Force' header
 	allowForce := true
-	strDisableForce := req.Header.Get("Skynet-Disable-Force")
+	strDisableForce := req.Header.Get("Pubaccess-Disable-Force")
 	if strDisableForce != "" {
 		disableForce, err := strconv.ParseBool(strDisableForce)
 		if err != nil {
-			WriteError(w, Error{"unable to parse 'Skynet-Disable-Force' header: " + err.Error()}, http.StatusBadRequest)
+			WriteError(w, Error{"unable to parse 'Pubaccess-Disable-Force' header: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
 		allowForce = !disableForce
@@ -525,7 +525,7 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 		BaseChunkRedundancy: redundancy,
 	}
 
-	// Build the Skyfile metadata from the request
+	// Build the Pubfile metadata from the request
 	if strings.HasPrefix(mediaType, "multipart/form-data") {
 		subfiles, reader, err := skyfileParseMultiPartRequest(req)
 		if err != nil {
@@ -580,15 +580,15 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 	// streaming upload.
 	convertPathStr := queryForm.Get("convertpath")
 	if convertPathStr == "" {
-		skylink, err := api.renter.UploadSkyfile(lup)
+		publink, err := api.renter.UploadSkyfile(lup)
 		if err != nil {
-			WriteError(w, Error{fmt.Sprintf("failed to upload file to Skynet: %v", err)}, http.StatusBadRequest)
+			WriteError(w, Error{fmt.Sprintf("failed to upload file to Pubaccess: %v", err)}, http.StatusBadRequest)
 			return
 		}
 		WriteJSON(w, SkynetSkyfileHandlerPOST{
-			Skylink:    skylink.String(),
-			MerkleRoot: skylink.MerkleRoot(),
-			Bitfield:   skylink.Bitfield(),
+			Publink:    publink.String(),
+			MerkleRoot: publink.MerkleRoot(),
+			Bitfield:   publink.Bitfield(),
 		})
 		return
 	}
@@ -604,21 +604,21 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 		WriteError(w, Error{"invalid convertpath provided - can't rebase: " + err.Error()}, http.StatusBadRequest)
 		return
 	}
-	skylink, err := api.renter.CreateSkylinkFromSiafile(lup, convertPath)
+	publink, err := api.renter.CreatePublinkFromSiafile(lup, convertPath)
 	if err != nil {
-		WriteError(w, Error{fmt.Sprintf("failed to convert siafile to skyfile: %v", err)}, http.StatusBadRequest)
+		WriteError(w, Error{fmt.Sprintf("failed to convert siafile to pubfile: %v", err)}, http.StatusBadRequest)
 		return
 	}
 
 	WriteJSON(w, SkynetSkyfileHandlerPOST{
-		Skylink:    skylink.String(),
-		MerkleRoot: skylink.MerkleRoot(),
-		Bitfield:   skylink.Bitfield(),
+		Publink:    publink.String(),
+		MerkleRoot: publink.MerkleRoot(),
+		Bitfield:   publink.Bitfield(),
 	})
 }
 
 // skynetStatsHandlerGET responds with a JSON with statistical data about
-// skynet, e.g. number of files uploaded, total size, etc.
+// pubaccess, e.g. number of files uploaded, total size, etc.
 func (api *API) skynetStatsHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	files, err := api.renter.FileList(modules.SkynetFolder, true, true)
 	if err != nil {
@@ -646,7 +646,7 @@ func (api *API) skynetStatsHandlerGET(w http.ResponseWriter, _ *http.Request, _ 
 	WriteJSON(w, SkynetStatsGET{UploadStats: stats, VersionInfo: SkynetVersion{Version: version, GitRevision: build.GitRevision}})
 }
 
-// serveTar serves skyfiles as a tar by reading them from r and writing the
+// serveTar serves pubfiles as a tar by reading them from r and writing the
 // archive to dst.
 func serveTar(dst io.Writer, md modules.SkyfileMetadata, streamer modules.Streamer) error {
 	tw := tar.NewWriter(dst)
@@ -665,11 +665,11 @@ func serveTar(dst io.Writer, md modules.SkyfileMetadata, streamer modules.Stream
 		// the start.
 		length, err := streamer.Seek(0, io.SeekEnd)
 		if err != nil {
-			return errors.AddContext(err, "serveTar: failed to seek to end of skyfile")
+			return errors.AddContext(err, "serveTar: failed to seek to end of pubfile")
 		}
 		_, err = streamer.Seek(0, io.SeekStart)
 		if err != nil {
-			return errors.AddContext(err, "serveTar: failed to seek to start of skyfile")
+			return errors.AddContext(err, "serveTar: failed to seek to start of pubfile")
 		}
 		// Construct the SkyfileSubfileMetadata.
 		files = append(files, modules.SkyfileSubfileMetadata{
@@ -685,7 +685,7 @@ func serveTar(dst io.Writer, md modules.SkyfileMetadata, streamer modules.Stream
 		if err != nil {
 			return err
 		}
-		// Modify name to match path within skyfile.
+		// Modify name to match path within pubfile.
 		header.Name = file.Filename
 		// Write header.
 		if err := tw.WriteHeader(header); err != nil {
@@ -736,7 +736,7 @@ func skyfileParseMultiPartRequest(req *http.Request) (modules.SkyfileSubfiles, i
 	}
 
 	// If there are multiple, treat the entire upload as one with all separate
-	// files being subfiles. This is used for uploading a directory to Skynet.
+	// files being subfiles. This is used for uploading a directory to Pubaccess.
 	readers := make([]io.Reader, len(mpfHeaders))
 	var offset uint64
 	for i, fh := range mpfHeaders {
@@ -777,28 +777,28 @@ func skyfileParseMultiPartRequest(req *http.Request) (modules.SkyfileSubfiles, i
 	return subfiles, io.MultiReader(readers...), nil
 }
 
-// skykeyHandlerGET handles the API call to get a Skykey and its ID using its
+// skykeyHandlerGET handles the API call to get a Pubaccesskey and its ID using its
 // name or ID.
 func (api *API) skykeyHandlerGET(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	// Parse Skykey id and name.
+	// Parse Pubaccesskey id and name.
 	name := req.FormValue("name")
 	idString := req.FormValue("id")
 
 	if idString == "" && name == "" {
-		WriteError(w, Error{"you must specify the name or ID of the skykey"}, http.StatusInternalServerError)
+		WriteError(w, Error{"you must specify the name or ID of the pubaccesskey"}, http.StatusInternalServerError)
 		return
 	}
 	if idString != "" && name != "" {
-		WriteError(w, Error{"you must specify either the name or ID of the skykey, not both"}, http.StatusInternalServerError)
+		WriteError(w, Error{"you must specify either the name or ID of the pubaccesskey, not both"}, http.StatusInternalServerError)
 		return
 	}
 
-	var sk skykey.Skykey
+	var sk pubaccesskey.Pubaccesskey
 	var err error
 	if name != "" {
 		sk, err = api.renter.SkykeyByName(name)
 	} else if idString != "" {
-		var id skykey.SkykeyID
+		var id pubaccesskey.SkykeyID
 		err = id.FromString(idString)
 		if err != nil {
 			WriteError(w, Error{"failed to decode ID string: "}, http.StatusInternalServerError)
@@ -807,34 +807,34 @@ func (api *API) skykeyHandlerGET(w http.ResponseWriter, req *http.Request, ps ht
 		sk, err = api.renter.SkykeyByID(id)
 	}
 	if err != nil {
-		WriteError(w, Error{"failed to retrieve skykey: " + err.Error()}, http.StatusInternalServerError)
+		WriteError(w, Error{"failed to retrieve pubaccesskey: " + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
 	skString, err := sk.ToString()
 	if err != nil {
-		WriteError(w, Error{"failed to decode skykey: " + err.Error()}, http.StatusInternalServerError)
+		WriteError(w, Error{"failed to decode pubaccesskey: " + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 	WriteJSON(w, SkykeyGET{
-		Skykey: skString,
+		Pubaccesskey: skString,
 	})
 }
 
-// skykeyCreateKeyHandlerPost handles the API call to create a skykey using the renter's
-// skykey manager.
+// skykeyCreateKeyHandlerPost handles the API call to create a pubaccesskey using the renter's
+// pubaccesskey manager.
 func (api *API) skykeyCreateKeyHandlerPOST(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	// Parse skykey name and ciphertype
+	// Parse pubaccesskey name and ciphertype
 	name := req.FormValue("name")
 	ctString := req.FormValue("ciphertype")
 
 	if name == "" {
-		WriteError(w, Error{"you must specify the name the skykey"}, http.StatusInternalServerError)
+		WriteError(w, Error{"you must specify the name the pubaccesskey"}, http.StatusInternalServerError)
 		return
 	}
 
 	if ctString == "" {
-		WriteError(w, Error{"you must specify the desited ciphertype for the skykey"}, http.StatusInternalServerError)
+		WriteError(w, Error{"you must specify the desited ciphertype for the pubaccesskey"}, http.StatusInternalServerError)
 		return
 	}
 
@@ -847,41 +847,41 @@ func (api *API) skykeyCreateKeyHandlerPOST(w http.ResponseWriter, req *http.Requ
 
 	sk, err := api.renter.CreateSkykey(name, ct)
 	if err != nil {
-		WriteError(w, Error{"failed to create skykey" + err.Error()}, http.StatusInternalServerError)
+		WriteError(w, Error{"failed to create pubaccesskey" + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
 	keyString, err := sk.ToString()
 	if err != nil {
-		WriteError(w, Error{"failed to decode skykey" + err.Error()}, http.StatusInternalServerError)
+		WriteError(w, Error{"failed to decode pubaccesskey" + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
 	WriteJSON(w, SkykeyGET{
-		Skykey: keyString,
+		Pubaccesskey: keyString,
 	})
 }
 
-// skykeyAddKeyHandlerPost handles the API call to add a skykey to the renter's
-// skykey manager.
+// skykeyAddKeyHandlerPost handles the API call to add a pubaccesskey to the renter's
+// pubaccesskey manager.
 func (api *API) skykeyAddKeyHandlerPOST(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	// Parse skykey.
-	skString := req.FormValue("skykey")
+	// Parse pubaccesskey.
+	skString := req.FormValue("pubaccesskey")
 	if skString == "" {
-		WriteError(w, Error{"you must specify the name the Skykey"}, http.StatusInternalServerError)
+		WriteError(w, Error{"you must specify the name the Pubaccesskey"}, http.StatusInternalServerError)
 		return
 	}
 
-	var sk skykey.Skykey
+	var sk pubaccesskey.Pubaccesskey
 	err := sk.FromString(skString)
 	if err != nil {
-		WriteError(w, Error{"failed to decode skykey" + err.Error()}, http.StatusInternalServerError)
+		WriteError(w, Error{"failed to decode pubaccesskey" + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
 	err = api.renter.AddSkykey(sk)
 	if err != nil {
-		WriteError(w, Error{"failed to add skykey" + err.Error()}, http.StatusInternalServerError)
+		WriteError(w, Error{"failed to add pubaccesskey" + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 

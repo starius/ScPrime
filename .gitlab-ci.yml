@@ -32,13 +32,13 @@ variables:
     ./modules/renter/hostdb
     ./modules/renter/hostdb/hosttree
     ./modules/renter/proto
-    ./modules/renter/skynetblacklist
+    ./modules/renter/pubaccessblacklist
     ./modules/miner
     ./modules/wallet
     ./modules/transactionpool
     ./persist
     ./sync
-    ./skykey
+    ./pubaccesskey
     ./types
   siatest_pkgs: >-
     ./siatest

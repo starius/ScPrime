@@ -10,7 +10,7 @@ import (
 	"gitlab.com/NebulousLabs/fastrand"
 )
 
-// TestSkyfileLayoutEncoding checks that encoding and decoding a skyfile
+// TestSkyfileLayoutEncoding checks that encoding and decoding a pubfile
 // layout always results in the same struct.
 func TestSkyfileLayoutEncoding(t *testing.T) {
 	// Try encoding an decoding a simple example.
@@ -33,14 +33,14 @@ func TestSkyfileLayoutEncoding(t *testing.T) {
 	}
 }
 
-// TestParseSkyfileMetadata checks that the skyfile metadata parser correctly
-// catches malformed skyfile layout data.
+// TestParseSkyfileMetadata checks that the pubfile metadata parser correctly
+// catches malformed pubfile layout data.
 //
-// NOTE: this test will become invalid once the skyfile metadata parser is able
+// NOTE: this test will become invalid once the pubfile metadata parser is able
 // to fetch larger fanouts and larger metadata than what can fit in the base
 // chunk.
 func TestParseSkyfileMetadata(t *testing.T) {
-	// Try some chosen skyfile layouts.
+	// Try some chosen pubfile layouts.
 	//
 	// Standard layout, nothing tricky.
 	layout := skyfileLayout{

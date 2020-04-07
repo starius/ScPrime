@@ -1,1 +1,1 @@
-- Fix curl example for `/skynet/skyfile/` post
+- Fix curl example for `/pubaccess/pubfile/` post

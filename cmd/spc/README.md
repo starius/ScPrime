@@ -178,36 +178,36 @@ if you have multiple downloads happening simultaneously.
 * `spc renter allowance` views the current allowance, which controls how much
   money is spent on file contracts.
 
-#### Skynet tasks
-* `spc skynet upload [source filepath] [destination siapath]` uploads a file or
-  directory to Skynet. A skylink will be produced for each file. The link can be
+#### Pubaccess tasks
+* `spc pubaccess upload [source filepath] [destination siapath]` uploads a file or
+  directory to Pubaccess. A publink will be produced for each file. The link can be
   shared and used to retrieve the file. The file(s) that get uploaded will be
   pinned to this Sia node, meaning that this node will pay for storage and 
   repairs until the file(s) are manually deleted.
 
-* `spc skynet ls` lists all skyfiles that the user has pinned along with the
-  corresponding skylinks. By default, only files in var/skynet/ will be
+* `spc pubaccess ls` lists all pubfiles that the user has pinned along with the
+  corresponding publinks. By default, only files in var/pubaccess/ will be
   displayed.
 
-* `spc skynet download [skylink] [destination]` downloads a file from Skynet
-  using a skylink.
+* `spc pubaccess download [publink] [destination]` downloads a file from Pubaccess
+  using a publink.
 
-* `spc skynet pin [skylink] [destination siapath]` pins the file associated
-  with this skylink by re-uploading an exact copy. This ensures that the file
-  will still be available on skynet as long as you continue maintaining the file
+* `spc pubaccess pin [publink] [destination siapath]` pins the file associated
+  with this publink by re-uploading an exact copy. This ensures that the file
+  will still be available on pubaccess as long as you continue maintaining the file
   in your renter.
 
-* `spc skynet unpin [siapath]` unpins a skyfile, deleting it from your list of
+* `spc pubaccess unpin [siapath]` unpins a pubfile, deleting it from your list of
   stored files.
 
-* `spc skynet convert [source siaPath] [destination siaPath]` converts a
-  siafile to a skyfile and then generates its skylink. A new skylink will be
-  created in the user's skyfile directory. The skyfile and the original siafile
-  are both necessary to pin the file and keep the skylink active. The skyfile
+* `spc pubaccess convert [source siaPath] [destination siaPath]` converts a
+  siafile to a pubfile and then generates its publink. A new publink will be
+  created in the user's pubfile directory. The pubfile and the original siafile
+  are both necessary to pin the file and keep the publink active. The pubfile
   will consume an additional 40 MiB of storage.
 
-* `spc skynet blacklist [skylink]` will add or remove a skylink from the
-  Renter's Skynet Blacklist
+* `spc pubaccess blacklist [publink]` will add or remove a publink from the
+  Renter's Pubaccess Blacklist
 
 
 

@@ -38,16 +38,16 @@ var (
 	renterShowHistory         bool   // Show download history in addition to download queue.
 	renterVerbose             bool   // Show additional info about the renter
 	dataDir                   string // Path to metadata dir
-	skykeyCipherType          string // CipherType used to create a Skykey.
-	skykeyName                string // Name used to identify a Skykey.
-	skykeyID                  string // ID used to identify a Skykey.
-	skynetBlacklistRemove     bool   // Remove a skylink from the Skynet Blacklist.
-	skynetUnpinRoot           bool   // Use root as the base instead of the Skynet folder.
-	skynetDownloadPortal      string // Portal to use when trying to download a skylink.
+	skykeyCipherType          string // CipherType used to create a Pubaccesskey.
+	skykeyName                string // Name used to identify a Pubaccesskey.
+	skykeyID                  string // ID used to identify a Pubaccesskey.
+	skynetBlacklistRemove     bool   // Remove a publink from the Pubaccess Blacklist.
+	skynetUnpinRoot           bool   // Use root as the base instead of the Pubaccess folder.
+	skynetDownloadPortal      string // Portal to use when trying to download a publink.
 	skynetLsRecursive         bool   // List files of folder recursively.
-	skynetLsRoot              bool   // Use root as the base instead of the Skynet folder.
-	skynetUploadRoot          bool   // Use root as the base instead of the Skynet folder.
-	skynetUploadDryRun        bool   // Perform a dry-run of the upload. This returns the skylink without actually uploading the file to the network.
+	skynetLsRoot              bool   // Use root as the base instead of the Pubaccess folder.
+	skynetUploadRoot          bool   // Use root as the base instead of the Pubaccess folder.
+	skynetUploadDryRun        bool   // Perform a dry-run of the upload. This returns the publink without actually uploading the file to the network.
 	statusVerbose             bool   // Display additional siac information
 	walletRawTxn              bool   // Encode/decode transactions in base64-encoded binary.
 	walletTxnFeeIncluded      bool   // include the fee in the balance being sent
@@ -287,7 +287,7 @@ func main() {
 	renterSetAllowanceCmd.Flags().StringVar(&allowancePeriod, "period", "", "period of allowance in blocks (b), hours (h), days (d) or weeks (w)")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceHosts, "hosts", "", "number of hosts the renter will spread the uploaded data across")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceRenewWindow, "renew-window", "", "renew window in blocks (b), hours (h), days (d) or weeks (w)")
-	renterSetAllowanceCmd.Flags().StringVar(&allowancePaymentContractInitialFunding, "payment-contract-initial-funding", "", "Setting this will cause the renter to form payment contracts, making it a Skynet portal.")
+	renterSetAllowanceCmd.Flags().StringVar(&allowancePaymentContractInitialFunding, "payment-contract-initial-funding", "", "Setting this will cause the renter to form payment contracts, making it a Pubaccess portal.")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceExpectedStorage, "expected-storage", "", "expected storage in bytes (B), kilobytes (KB), megabytes (MB) etc. up to yottabytes (YB)")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceExpectedUpload, "expected-upload", "", "expected upload in period in bytes (B), kilobytes (KB), megabytes (MB) etc. up to yottabytes (YB)")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceExpectedDownload, "expected-download", "", "expected download in period in bytes (B), kilobytes (KB), megabytes (MB) etc. up to yottabytes (YB)")
@@ -304,19 +304,19 @@ func main() {
 
 	root.AddCommand(skynetCmd)
 	skynetCmd.AddCommand(skynetBlacklistCmd, skynetConvertCmd, skynetDownloadCmd, skynetLsCmd, skynetPinCmd, skynetUnpinCmd, skynetUploadCmd)
-	skynetUploadCmd.Flags().BoolVar(&skynetUploadRoot, "root", false, "Use the root folder as the base instead of the Skynet folder")
-	skynetUploadCmd.Flags().BoolVar(&skynetUploadDryRun, "dry-run", false, "Perform a dry-run of the upload, returning the skylink without actually uploading the file")
-	skynetUnpinCmd.Flags().BoolVar(&skynetUnpinRoot, "root", false, "Use the root folder as the base instead of the Skynet folder")
-	skynetDownloadCmd.Flags().StringVar(&skynetDownloadPortal, "portal", "", "Use a Skynet portal to complete the download")
-	skynetLsCmd.Flags().BoolVarP(&skynetLsRecursive, "recursive", "R", false, "Recursively list skyfiles and folders")
-	skynetLsCmd.Flags().BoolVar(&skynetLsRoot, "root", false, "Use the root folder as the base instead of the Skynet folder")
-	skynetBlacklistCmd.Flags().BoolVar(&skynetBlacklistRemove, "remove", false, "Remove the skylink from the blacklist")
+	skynetUploadCmd.Flags().BoolVar(&skynetUploadRoot, "root", false, "Use the root folder as the base instead of the Pubaccess folder")
+	skynetUploadCmd.Flags().BoolVar(&skynetUploadDryRun, "dry-run", false, "Perform a dry-run of the upload, returning the publink without actually uploading the file")
+	skynetUnpinCmd.Flags().BoolVar(&skynetUnpinRoot, "root", false, "Use the root folder as the base instead of the Pubaccess folder")
+	skynetDownloadCmd.Flags().StringVar(&skynetDownloadPortal, "portal", "", "Use a Pubaccess portal to complete the download")
+	skynetLsCmd.Flags().BoolVarP(&skynetLsRecursive, "recursive", "R", false, "Recursively list pubfiles and folders")
+	skynetLsCmd.Flags().BoolVar(&skynetLsRoot, "root", false, "Use the root folder as the base instead of the Pubaccess folder")
+	skynetBlacklistCmd.Flags().BoolVar(&skynetBlacklistRemove, "remove", false, "Remove the publink from the blacklist")
 
 	root.AddCommand(skykeyCmd)
 	skykeyCmd.AddCommand(skykeyCreateCmd, skykeyAddCmd, skykeyGetCmd, skykeyGetIDCmd)
-	skykeyCreateCmd.Flags().StringVar(&skykeyCipherType, "cipher-type", "XChaCha20", "The cipher type of the skykey")
-	skykeyGetCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the skykey")
-	skykeyGetCmd.Flags().StringVar(&skykeyID, "id", "", "The base-64 encoded skykey ID")
+	skykeyCreateCmd.Flags().StringVar(&skykeyCipherType, "cipher-type", "XChaCha20", "The cipher type of the pubaccesskey")
+	skykeyGetCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the pubaccesskey")
+	skykeyGetCmd.Flags().StringVar(&skykeyID, "id", "", "The base-64 encoded pubaccesskey ID")
 
 	root.AddCommand(stratumminerCmd)
 	stratumminerCmd.AddCommand(stratumminerStartCmd, stratumminerStopCmd)
