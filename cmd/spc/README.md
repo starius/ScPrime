@@ -180,20 +180,20 @@ if you have multiple downloads happening simultaneously.
 
 #### Pubaccess tasks
 * `spc pubaccess upload [source filepath] [destination siapath]` uploads a file or
-  directory to Pubaccess. A skylink will be produced for each file. The link can be
+  directory to Pubaccess. A publink will be produced for each file. The link can be
   shared and used to retrieve the file. The file(s) that get uploaded will be
   pinned to this Sia node, meaning that this node will pay for storage and 
   repairs until the file(s) are manually deleted.
 
 * `spc pubaccess ls` lists all skyfiles that the user has pinned along with the
-  corresponding skylinks. By default, only files in var/pubaccess/ will be
+  corresponding publinks. By default, only files in var/pubaccess/ will be
   displayed.
 
-* `spc pubaccess download [skylink] [destination]` downloads a file from Pubaccess
-  using a skylink.
+* `spc pubaccess download [publink] [destination]` downloads a file from Pubaccess
+  using a publink.
 
-* `spc pubaccess pin [skylink] [destination siapath]` pins the file associated
-  with this skylink by re-uploading an exact copy. This ensures that the file
+* `spc pubaccess pin [publink] [destination siapath]` pins the file associated
+  with this publink by re-uploading an exact copy. This ensures that the file
   will still be available on pubaccess as long as you continue maintaining the file
   in your renter.
 
@@ -201,12 +201,12 @@ if you have multiple downloads happening simultaneously.
   stored files.
 
 * `spc pubaccess convert [source siaPath] [destination siaPath]` converts a
-  siafile to a pubfile and then generates its skylink. A new skylink will be
+  siafile to a pubfile and then generates its publink. A new publink will be
   created in the user's pubfile directory. The pubfile and the original siafile
-  are both necessary to pin the file and keep the skylink active. The pubfile
+  are both necessary to pin the file and keep the publink active. The pubfile
   will consume an additional 40 MiB of storage.
 
-* `spc pubaccess blacklist [skylink]` will add or remove a skylink from the
+* `spc pubaccess blacklist [publink]` will add or remove a publink from the
   Renter's Pubaccess Blacklist
 
 

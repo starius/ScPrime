@@ -1,2 +1,2 @@
-- Add timeout parameter to Skylink pin route
+- Add timeout parameter to Publink pin route
 - Also apply timeout when fetching the individual chunks

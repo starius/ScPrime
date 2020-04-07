@@ -175,7 +175,7 @@ type SkyfileUploadParameters struct {
 	// Recommended that the pubfile is placed in /var/pubaccess
 	SiaPath SiaPath `json:"siapath"`
 
-	// DryRun allows to retrieve the skylink without actually uploading the file
+	// DryRun allows to retrieve the publink without actually uploading the file
 	// to the Sia network.
 	DryRun bool `json:"dryrun"`
 
@@ -219,7 +219,7 @@ type SkyfileMultipartUploadParameters struct {
 	ContentType string `json:"contenttype"`
 }
 
-// SkyfilePinParameters defines the parameters specific to pinning a skylink.
+// SkyfilePinParameters defines the parameters specific to pinning a publink.
 // See SkyfileUploadParameters for a detailed description of the fields.
 type SkyfilePinParameters struct {
 	SiaPath             SiaPath `json:"siapath"`

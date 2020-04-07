@@ -41,13 +41,13 @@ var (
 	skykeyCipherType          string // CipherType used to create a Skykey.
 	skykeyName                string // Name used to identify a Skykey.
 	skykeyID                  string // ID used to identify a Skykey.
-	skynetBlacklistRemove     bool   // Remove a skylink from the Pubaccess Blacklist.
+	skynetBlacklistRemove     bool   // Remove a publink from the Pubaccess Blacklist.
 	skynetUnpinRoot           bool   // Use root as the base instead of the Pubaccess folder.
-	skynetDownloadPortal      string // Portal to use when trying to download a skylink.
+	skynetDownloadPortal      string // Portal to use when trying to download a publink.
 	skynetLsRecursive         bool   // List files of folder recursively.
 	skynetLsRoot              bool   // Use root as the base instead of the Pubaccess folder.
 	skynetUploadRoot          bool   // Use root as the base instead of the Pubaccess folder.
-	skynetUploadDryRun        bool   // Perform a dry-run of the upload. This returns the skylink without actually uploading the file to the network.
+	skynetUploadDryRun        bool   // Perform a dry-run of the upload. This returns the publink without actually uploading the file to the network.
 	statusVerbose             bool   // Display additional siac information
 	walletRawTxn              bool   // Encode/decode transactions in base64-encoded binary.
 	walletTxnFeeIncluded      bool   // include the fee in the balance being sent
@@ -305,12 +305,12 @@ func main() {
 	root.AddCommand(skynetCmd)
 	skynetCmd.AddCommand(skynetBlacklistCmd, skynetConvertCmd, skynetDownloadCmd, skynetLsCmd, skynetPinCmd, skynetUnpinCmd, skynetUploadCmd)
 	skynetUploadCmd.Flags().BoolVar(&skynetUploadRoot, "root", false, "Use the root folder as the base instead of the Pubaccess folder")
-	skynetUploadCmd.Flags().BoolVar(&skynetUploadDryRun, "dry-run", false, "Perform a dry-run of the upload, returning the skylink without actually uploading the file")
+	skynetUploadCmd.Flags().BoolVar(&skynetUploadDryRun, "dry-run", false, "Perform a dry-run of the upload, returning the publink without actually uploading the file")
 	skynetUnpinCmd.Flags().BoolVar(&skynetUnpinRoot, "root", false, "Use the root folder as the base instead of the Pubaccess folder")
 	skynetDownloadCmd.Flags().StringVar(&skynetDownloadPortal, "portal", "", "Use a Pubaccess portal to complete the download")
 	skynetLsCmd.Flags().BoolVarP(&skynetLsRecursive, "recursive", "R", false, "Recursively list skyfiles and folders")
 	skynetLsCmd.Flags().BoolVar(&skynetLsRoot, "root", false, "Use the root folder as the base instead of the Pubaccess folder")
-	skynetBlacklistCmd.Flags().BoolVar(&skynetBlacklistRemove, "remove", false, "Remove the skylink from the blacklist")
+	skynetBlacklistCmd.Flags().BoolVar(&skynetBlacklistRemove, "remove", false, "Remove the publink from the blacklist")
 
 	root.AddCommand(skykeyCmd)
 	skykeyCmd.AddCommand(skykeyCreateCmd, skykeyAddCmd, skykeyGetCmd, skykeyGetIDCmd)

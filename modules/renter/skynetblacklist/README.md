@@ -1,6 +1,6 @@
 # Pubaccess Blacklist
 
-The Pubaccess Blacklist modules manages a list of blacklisted Skylinks by tracking
+The Pubaccess Blacklist modules manages a list of blacklisted Publinks by tracking
 their merkleroots.
 
 ## Subsystems
@@ -33,7 +33,7 @@ Blacklist.
 
 **Exports**
  - `Blacklist` returns the list of blacklisted merkle roots
- - `IsBlacklisted` returns whether or not a skylink merkleroot is blacklisted
+ - `IsBlacklisted` returns whether or not a publink merkleroot is blacklisted
  - `New` creates and returns a new Pubaccess Blacklist
  - `Update` updates the blacklist
 

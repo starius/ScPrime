@@ -5,16 +5,16 @@
   becoming unresponsive due to massive disk i/o.
 - Add `--root` parameter to `siac renter delete` that allows passing absolute
   instead of relative file paths.
-- Add ability to blacklist skylinks by merkleroot.
+- Add ability to blacklist publinks by merkleroot.
 - Uploading resumes more quickly after restart.
-- Add `HEAD` request for skylink
+- Add `HEAD` request for publink
 - Add ability to pack many files into the same or adjacent sectors while
-  producing unique skylinks for each file.
+  producing unique publinks for each file.
 - Fix default expected upload/download values displaying 0 when setting an
   initial allowance.
 - `siac pubaccess upload` now supports uploading directories. All files are
-  uploaded individually and result in separate skylinks.
-- No user-agent needed for Skylink downloads.
+  uploaded individually and result in separate publinks.
+- No user-agent needed for Publink downloads.
 - Add `go get` command to `make dependencies`.
 - Add flags for tag and targz for pubfile streaming.
 - Add new endpoint `/pubaccess/stats` that provides statistical information about
@@ -42,9 +42,9 @@
 - Fixed `siac pubaccess ls` not working when files were passed as input. It is now
   able to access specific files in the Pubaccess folder.
 - Fixed a deadlock when performing a Pubaccess download with no workers
-- Fix a parsing bug for malformed skylinks
+- Fix a parsing bug for malformed publinks
 - fix siac update for new release verification
-- Fix parameter delimiter for skylinks
+- Fix parameter delimiter for publinks
 - Fixed race condition in host's `RPCLoopLock`
 - Fixed a bug which caused a call to `build.Critical` in the case that a
   contract in the renew set was marked `!GoodForRenew` while the contractor
@@ -54,7 +54,7 @@
 - Split out renter siatests into 2 groups for faster pipelines.
 - Add README to the `siatest` package 
 - Bump golangci-lint version to v1.23.8
-- Add timeout parameter to Skylink route - Add `go get` command to `make
+- Add timeout parameter to Publink route - Add `go get` command to `make
   dependencies`.
 - Update repair loop to use `uniqueRefreshPaths` to reduce unnecessary bubble
   calls
@@ -66,14 +66,14 @@
 ### v1.4.3
 **Key Updates**
 - Introduced Pubaccess with initial feature set for portals, web portals, skyfiles,
-  skylinks, uploads, downloads, and pinning
+  publinks, uploads, downloads, and pinning
 - Add `data-pieces` and `parity-pieces` flags to `siac renter upload`
 - Integrate SiaMux
 - Initialize defaults for the host's ephemeral account settings
 - Add SIA_DATA_DIR environment variable for setting the data directory for
   siad/siac
 - Made build process deterministic. Moved related scripts into `release-scripts`
-- Add directory support to Skylinks.
+- Add directory support to Publinks.
 - Enabled Lockcheck code anaylzer
 - Added Bandwidth monitoring to the host module
  

@@ -4173,73 +4173,73 @@ curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"add" : ["GAC38Gan6YHVp
 curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"remove" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:9980/pubaccess/blacklist"
 ```
 
-updates the list of skylinks that should be blacklisted from Pubaccess. This
-endpoint can be used to both add and remove skylinks from the blacklist.
+updates the list of publinks that should be blacklisted from Pubaccess. This
+endpoint can be used to both add and remove publinks from the blacklist.
 
 ### Path Parameters
 ### REQUIRED
 At least one of the following fields needs to be non empty.
 
 **add** | array of strings  
-add is an array of skylinks that should be added to the blacklisted
+add is an array of publinks that should be added to the blacklisted
 
 **remove** | array of strings  
-remove is an array of skylinks that should be removed from the blacklist
+remove is an array of publinks that should be removed from the blacklist
 
 ### Response
 
 standard success or error response. See [standard
 responses](#standard-responses).
 
-## /pubaccess/skylink/*skylink* [HEAD]
+## /pubaccess/publink/*publink* [HEAD]
 > curl example
 
 ```bash
-curl -I -A "ScPrime-Agent" "localhost:9980/pubaccess/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
+curl -I -A "ScPrime-Agent" "localhost:9980/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
 ```
 
 This curl command performs a HEAD request that fetches the headers for
-the given skylink. These headers are identical to the ones that would be
+the given publink. These headers are identical to the ones that would be
 returned if the request had been a GET request.
 
 ### Path Parameters
-See [/pubaccess/skylink/skylink](#skynetskylinkskylink-get)
+See [/pubaccess/publink/publink](#skynetpublinkpublink-get)
 
 ### Query String Parameters
-See [/pubaccess/skylink/skylink](#skynetskylinkskylink-get)
+See [/pubaccess/publink/publink](#skynetpublinkpublink-get)
 
 ### Response Header
-See [/pubaccess/skylink/skylink](#skynetskylinkskylink-get)
+See [/pubaccess/publink/publink](#skynetpublinkpublink-get)
 
 ### Response Body
 
 This request has an empty response body.
 
-## /pubaccess/skylink/*skylink* [GET]
+## /pubaccess/publink/*publink* [GET]
 > curl example  
 
 > Stream the whole file.  
 
 ```bash
 # entire file
-curl -A "ScPrime-Agent" "localhost:9980/pubaccess/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
+curl -A "ScPrime-Agent" "localhost:9980/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
 
 # directory
-curl -A "ScPrime-Agent" "localhost:9980/pubaccess/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder"
+curl -A "ScPrime-Agent" "localhost:9980/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder"
 
 # sub file
-curl -A "ScPrime-Agent" "localhost:9980/pubaccess/skylink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder/file.txt"
+curl -A "ScPrime-Agent" "localhost:9980/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder/file.txt"
 ```  
 
-downloads a skylink using http streaming. This call blocks until the data is
-received. There is a 30s default timeout applied to downloading a skylink. If
+downloads a publink using http streaming. This call blocks until the data is
+received. There is a 30s default timeout applied to downloading a publink. If
 the data can not be found within this 30s time constraint, a 404 will be
 returned. This timeout is configurable through the query string parameters.
 
 ### Path Parameters 
 ### Required
-**skylink** | string  
-The skylink that should be downloaded. The skylink can contain an optional path.
+**publink** | string  
+The publink that should be downloaded. The publink can contain an optional path.
 This path can specify a directory or a particular file. If specified, only that
 file or directory will be returned.
 
@@ -4252,7 +4252,7 @@ to 'attachment' instead of 'inline'. This will cause web browsers to download
 the file as though it is an attachment instead of rendering it.
 
 **format** | string  
-If 'format' is set, the skylink can point to a directory and it will return the
+If 'format' is set, the publink can point to a directory and it will return the
 data inside that directory. Format will decide the format in which it is
 returned. Currently we only support 'concat', which will return the concatenated
 data of all subfiles in that directory.
@@ -4324,18 +4324,18 @@ The amount of redundancy to use when uploading the base chunk. The base chunk is
 the first chunk of the file, and is always uploaded using 1-of-N redundancy.
 
 **convertpath** string  
-The siapath of an existing siafile that should be converted to a skylink. A new
+The siapath of an existing siafile that should be converted to a publink. A new
 pubfile will be created. Both the new pubfile and the existing siafile are
-required to be maintained on the network in order for the skylink to remain
+required to be maintained on the network in order for the publink to remain
 active. This field is mutually exclusive with uploading streaming.
 
 **filename** | string  
 The name of the file. This name will be encoded into the pubfile metadata, and
-will be a part of the skylink. If the name changes, the skylink will change as
+will be a part of the publink. If the name changes, the publink will change as
 well.
 
 **dryrun** | bool  
-If dryrun is set to true, the request will return the Skylink of the file
+If dryrun is set to true, the request will return the Publink of the file
 without uploading the actual file to the Sia network.
 
 **force** | bool  
@@ -4377,20 +4377,20 @@ force flag and disallow overwriting the file at the given siapath.
 
 ```go
 {
-"skylink":    "CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg" // string
+"publink":    "CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg" // string
 "merkleroot": "QAf9Q7dBSbMarLvyeE6HTQmwhr7RX9VMrP9xIMzpU3I" // hash
 "bitfield":   2048 // int
 }
 ```
-**skylink** | string  
-This is the skylink that can be used with the `/pubaccess/skylink` GET endpoint to
+**publink** | string  
+This is the publink that can be used with the `/pubaccess/publink` GET endpoint to
 retrieve the file that has been uploaded.
 
 **merkleroot** | hash  
-This is the hash that is encoded into the skylink.
+This is the hash that is encoded into the publink.
 
 **bitfield** | int  
-This is the bitfield that gets encoded into the skylink. The bitfield contains a
+This is the bitfield that gets encoded into the publink. The bitfield contains a
 version, an offset and a length in a heavily compressed and optimized format.
 
 

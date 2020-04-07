@@ -156,10 +156,10 @@ type (
 		StaticErasureCodeParams [8]byte              `json:"erasurecodeparams"`
 		staticErasureCode       modules.ErasureCoder // not persisted, exists for convenience
 
-		// Skylink tracking. If this siafile is known to have sectors of any
+		// Publink tracking. If this siafile is known to have sectors of any
 		// skyfiles, those skyfiles will be listed here. It should be noted that
 		// a single siafile can be responsible for tracking many skyfiles.
-		Skylinks []string `json:"skylinks"`
+		Publinks []string `json:"publinks"`
 	}
 
 	// BubbledMetadata is the metadata of a siafile that gets bubbled
@@ -190,11 +190,11 @@ func (sf *SiaFile) AccessTime() time.Time {
 	return sf.staticMetadata.AccessTime
 }
 
-// AddSkylink will add a skylink to the SiaFile.
-func (sf *SiaFile) AddSkylink(s modules.Skylink) error {
+// AddPublink will add a publink to the SiaFile.
+func (sf *SiaFile) AddPublink(s modules.Publink) error {
 	sf.mu.Lock()
 	defer sf.mu.Unlock()
-	sf.staticMetadata.Skylinks = append(sf.staticMetadata.Skylinks, s.String())
+	sf.staticMetadata.Publinks = append(sf.staticMetadata.Publinks, s.String())
 
 	// Save changes to metadata to disk.
 	updates, err := sf.saveMetadataUpdates()

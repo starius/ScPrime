@@ -1,7 +1,7 @@
 package modules
 
-// skylink.go creates links that can be used to reference data stored within a
-// sector on Sia. The skylinks can point to the full sector, as well as
+// publink.go creates links that can be used to reference data stored within a
+// sector on Sia. The publinks can point to the full sector, as well as
 // subsections of a sector.
 
 import (
@@ -15,45 +15,45 @@ import (
 )
 
 const (
-	// rawSkylinkSize is the raw size of the data that gets put into a link.
-	rawSkylinkSize = 34
+	// rawPublinkSize is the raw size of the data that gets put into a link.
+	rawPublinkSize = 34
 
-	// encodedSkylinkSize is the size of the Skylink after it has been encoded
+	// encodedPublinkSize is the size of the Publink after it has been encoded
 	// using base64.
-	encodedSkylinkSize = 46
+	encodedPublinkSize = 46
 )
 
 const (
-	// SkylinkMaxFetchSize defines the maximum fetch size that is supported by
-	// the skylink format. This is intentionally the same number as
+	// PublinkMaxFetchSize defines the maximum fetch size that is supported by
+	// the publink format. This is intentionally the same number as
 	// modules.SectorSize on the release build. We could not use
 	// modules.SectorSize directly because during testing that value is too
 	// small to properly test the link format.
-	SkylinkMaxFetchSize = 1 << 22
+	PublinkMaxFetchSize = 1 << 22
 )
 
-// Skylink contains all of the information that can be encoded into a skylink.
+// Publink contains all of the information that can be encoded into a publink.
 // This information consists of a 32 byte MerkleRoot and a 2 byte bitfield.
 //
 // The first two bits of the bitfield (values 1 and 2 in decimal) determine the
-// version of the skylink. The skylink version determines how the remaining bits
+// version of the publink. The publink version determines how the remaining bits
 // are used. Not all values of the bitfield are legal.
-type Skylink struct {
+type Publink struct {
 	bitfield   uint16
 	merkleRoot crypto.Hash
 }
 
-// NewSkylinkV1 will return a v1 Skylink object with the version set to 1 and
+// NewPublinkV1 will return a v1 Publink object with the version set to 1 and
 // the remaining fields set appropriately. Note that the offset needs to be
 // aligned correctly. Check OffsetAndFetchSize for a full list of rules on legal
 // offsets - the value of a legal offset depends on the provided length.
 //
 // The input length will automatically be converted to the nearest fetch size.
-func NewSkylinkV1(merkleRoot crypto.Hash, offset, length uint64) (Skylink, error) {
-	var sl Skylink
+func NewPublinkV1(merkleRoot crypto.Hash, offset, length uint64) (Publink, error) {
+	var sl Publink
 	err := sl.setOffsetAndFetchSize(offset, length)
 	if err != nil {
-		return Skylink{}, errors.AddContext(err, "Invalid Skylink")
+		return Publink{}, errors.AddContext(err, "Invalid Publink")
 	}
 	sl.merkleRoot = merkleRoot
 	return sl, nil
@@ -70,7 +70,7 @@ func validateAndParseV1Bitfield(bitfield uint16) (offset uint64, fetchSize uint6
 	// two bits are the version bits, and semantically are upshifted. So '00'
 	// corresponds to version 1, '01' corresponds to version 2, up to version 4.
 	if bitfield&3 != 0 {
-		return 0, SkylinkMaxFetchSize, errors.New("bitfield is not set to v1")
+		return 0, PublinkMaxFetchSize, errors.New("bitfield is not set to v1")
 	}
 	// Shift out the version bits.
 	bitfield >>= 2
@@ -81,14 +81,14 @@ func validateAndParseV1Bitfield(bitfield uint16) (offset uint64, fetchSize uint6
 	// 8 consecutive 1's, there are no more valid modes of the data structure
 	// available, and the bitfield is invalid.
 	if bitfield&255 == 255 {
-		return 0, SkylinkMaxFetchSize, errors.New("skylink is not valid, offset and fetch size are illegal")
+		return 0, PublinkMaxFetchSize, errors.New("publink is not valid, offset and fetch size are illegal")
 	}
 
 	// Determine how many mode bits are set.
 	modeBits := uint16(bits.TrailingZeros16(^bitfield))
 	// A number of 8 or larger is illegal.
 	if modeBits > 7 {
-		return 0, SkylinkMaxFetchSize, errors.New("bitfield has invalid mode bits")
+		return 0, PublinkMaxFetchSize, errors.New("bitfield has invalid mode bits")
 	}
 	// Shift the mode bits out. The mode bits is the number of trailing '1's
 	// plus an additional '0' which is necessary to signal the end of the mode
@@ -115,19 +115,19 @@ func validateAndParseV1Bitfield(bitfield uint16) (offset uint64, fetchSize uint6
 
 	// The remaining bits decide the offset.
 	offset = uint64(bitfield) * offsetAlign
-	if offset+fetchSize > SkylinkMaxFetchSize {
-		return 0, SkylinkMaxFetchSize, errors.New("invalid bitfield, fetching beyond the limits of the sector")
+	if offset+fetchSize > PublinkMaxFetchSize {
+		return 0, PublinkMaxFetchSize, errors.New("invalid bitfield, fetching beyond the limits of the sector")
 	}
 	return offset, fetchSize, nil
 }
 
-// Bitfield returns the bitfield of a skylink.
-func (sl *Skylink) Bitfield() uint16 {
+// Bitfield returns the bitfield of a publink.
+func (sl *Publink) Bitfield() uint16 {
 	return sl.bitfield
 }
 
 // LoadString converts from a string and loads the result into sl.
-func (sl *Skylink) LoadString(s string) error {
+func (sl *Publink) LoadString(s string) error {
 	// Trim any parameters that may exist after a question mark. Eventually, it
 	// will be possible to parse these separately as additional/optional
 	// arguments, for now anything after a question mark is just ignored.
@@ -138,30 +138,30 @@ func (sl *Skylink) LoadString(s string) error {
 	base := splits[0]
 
 	// The base can still contain a path to a nested file within the siafile.
-	// This is however not part of the skylink and gets trimmed.
+	// This is however not part of the publink and gets trimmed.
 	splits = strings.Split(base, "/")
 	if len(splits) > 1 {
 		base = splits[0]
 	}
 
 	// Input check, ensure that this string is the expected size.
-	if len(base) != encodedSkylinkSize {
-		return errors.New("not a skylink, skylinks are always 46 bytes")
+	if len(base) != encodedPublinkSize {
+		return errors.New("not a publink, publinks are always 46 bytes")
 	}
 
-	// Decode the skylink from base64 into raw.
+	// Decode the publink from base64 into raw.
 	raw, err := base64.RawURLEncoding.DecodeString(base)
 	if err != nil {
-		return errors.AddContext(err, "unable to decode skylink")
+		return errors.AddContext(err, "unable to decode publink")
 	}
 
 	// Load and check the bitfield. The bitfield is checked before modifying the
-	// Skylink so that the Skylink remains unchanged if there is any error
+	// Publink so that the Publink remains unchanged if there is any error
 	// parsing the string.
 	bitfield := binary.LittleEndian.Uint16(raw)
 	_, _, err = validateAndParseV1Bitfield(bitfield)
 	if err != nil {
-		return errors.AddContext(err, "skylink failed verification")
+		return errors.AddContext(err, "publink failed verification")
 	}
 
 	// Load the raw data.
@@ -170,23 +170,23 @@ func (sl *Skylink) LoadString(s string) error {
 	return nil
 }
 
-// MerkleRoot returns the merkle root of the Skylink.
-func (sl Skylink) MerkleRoot() crypto.Hash {
+// MerkleRoot returns the merkle root of the Publink.
+func (sl Publink) MerkleRoot() crypto.Hash {
 	return sl.merkleRoot
 }
 
 // OffsetAndFetchSize returns the offset and fetch size of a file that sits
-// within a skylink sector. All skylinks point to one sector of data. If the
+// within a publink sector. All publinks point to one sector of data. If the
 // file is large enough that more data is necessary, a "fanout" is used to point
 // to more sectors.
 //
-// NOTE: To fully understand the bitfield of the v1 Skylink, it is recommended
+// NOTE: To fully understand the bitfield of the v1 Publink, it is recommended
 // that the following documentation is read alongside the code.
 //
 // Sectors are 4 MiB large. To enable the support of efficiently storing and
-// downloading smaller files, the skylink allows an offset and a fetch size to
+// downloading smaller files, the publink allows an offset and a fetch size to
 // be specified for a file, which means many files can be stored within a single
-// sector root, and each file can get a unique 46 byte skylink.
+// sector root, and each file can get a unique 46 byte publink.
 //
 // Existing content addressing systems use 46 bytes, to maximize compatibility
 // we have also chosen to adhere to a 46 byte link size. 46 bytes of base64 is
@@ -194,7 +194,7 @@ func (sl Skylink) MerkleRoot() crypto.Hash {
 // storing extra information such as the version, offset, and fetch size of a
 // file. The tight data constraints resulted in this compact format.
 //
-// Skylinks are given 2 bits for a version. These bits are always the first 2
+// Publinks are given 2 bits for a version. These bits are always the first 2
 // bits of the bitfield, which correspond to the values '1' and '2' when the
 // bitfield is interpreted as a uint16. The version must be set to 1 to retrieve
 // an offset and a fetch size.
@@ -229,7 +229,7 @@ func (sl Skylink) MerkleRoot() crypto.Hash {
 //
 // This continues until the final mode, which indicates that the file is stored
 // on an offset that is aligned to 512 kib (1 << 19). This is where it stops,
-// larger offsets are unnecessary. Having 8 consecutive 1's in a v1 Skylink is
+// larger offsets are unnecessary. Having 8 consecutive 1's in a v1 Publink is
 // invalid, which means means there are 64 total unused states (all states where
 // the first 8 of 14 non-version bits are set to '1').
 //
@@ -274,20 +274,20 @@ func (sl Skylink) MerkleRoot() crypto.Hash {
 // Sia link.
 //
 // It's possible that these states will be repurposed in the future, extending
-// the functionality of the v1 skylink. More likely however, a transition to v2
+// the functionality of the v1 publink. More likely however, a transition to v2
 // will be made instead.
 //
 // NOTE: If there is an error, OffsetAndLen will return a signal to download the
 // entire sector. This means that any code which is ignoring the error will
 // still have mostly sane behavior.
-func (sl Skylink) OffsetAndFetchSize() (offset uint64, fetchSize uint64, err error) {
+func (sl Publink) OffsetAndFetchSize() (offset uint64, fetchSize uint64, err error) {
 	return validateAndParseV1Bitfield(sl.bitfield)
 }
 
-// String converts Skylink to a string.
-func (sl Skylink) String() string {
+// String converts Publink to a string.
+func (sl Publink) String() string {
 	// Build the raw string.
-	raw := make([]byte, rawSkylinkSize)
+	raw := make([]byte, rawPublinkSize)
 	binary.LittleEndian.PutUint16(raw, sl.bitfield)
 	copy(raw[2:], sl.merkleRoot[:])
 
@@ -299,15 +299,15 @@ func (sl Skylink) String() string {
 // is a 2 bit number, meaning there are 4 possible values. The bitwise values
 // cover the range [0, 3], however we want to return a value in the range
 // [1, 4], so we increment the bitwise result.
-func (sl Skylink) Version() uint16 {
+func (sl Publink) Version() uint16 {
 	return (sl.bitfield & 3) + 1
 }
 
 // setOffsetAndFetchSize will set the offset and fetch size of the data within
-// the skylink. Offset must be aligned correctly. setOffsetAndLen implies that
+// the publink. Offset must be aligned correctly. setOffsetAndLen implies that
 // the version is 1, so the version will also be set to 1.
-func (sl *Skylink) setOffsetAndFetchSize(offset, fetchSize uint64) error {
-	if offset+fetchSize > SkylinkMaxFetchSize {
+func (sl *Publink) setOffsetAndFetchSize(offset, fetchSize uint64) error {
+	if offset+fetchSize > PublinkMaxFetchSize {
 		return errors.New("offset plus fetch size cannot exceed the size of one sector - 4 MiB")
 	}
 

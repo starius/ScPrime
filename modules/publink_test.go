@@ -8,15 +8,15 @@ import (
 	"gitlab.com/NebulousLabs/fastrand"
 )
 
-// TestSkylinkManualExamples checks a pile of manual examples using table driven
+// TestPublinkManualExamples checks a pile of manual examples using table driven
 // tests.
-func TestSkylinkManualExamples(t *testing.T) {
+func TestPublinkManualExamples(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
 
 	// Good Examples.
-	var skylinkExamples = []struct {
+	var publinkExamples = []struct {
 		offset         uint64
 		length         uint64
 		expectedLength uint64
@@ -73,8 +73,8 @@ func TestSkylinkManualExamples(t *testing.T) {
 		{512 * 1024, 2050 * 1024, (2048 + 256) * 1024},
 	}
 	// Try each example.
-	for _, example := range skylinkExamples {
-		sl, err := NewSkylinkV1(crypto.Hash{}, example.offset, example.length)
+	for _, example := range publinkExamples {
+		sl, err := NewPublinkV1(crypto.Hash{}, example.offset, example.length)
 		if err != nil {
 			t.Error(err)
 		}
@@ -94,7 +94,7 @@ func TestSkylinkManualExamples(t *testing.T) {
 	}
 
 	// Invalid Examples.
-	var badSkylinkExamples = []struct {
+	var badPublinkExamples = []struct {
 		offset uint64
 		length uint64
 	}{
@@ -111,26 +111,26 @@ func TestSkylinkManualExamples(t *testing.T) {
 		{1024 * 1024 * 3, 1024 * 1024 * 2},
 	}
 	// Try each example.
-	for _, example := range badSkylinkExamples {
-		_, err := NewSkylinkV1(crypto.Hash{}, example.offset, example.length)
+	for _, example := range badPublinkExamples {
+		_, err := NewPublinkV1(crypto.Hash{}, example.offset, example.length)
 		if err == nil {
 			t.Error("expecting a failure:", example.offset, example.length)
 		}
 	}
 }
 
-// TestSkylink checks that the linkformat is correctly encoding to and decoding
+// TestPublink checks that the linkformat is correctly encoding to and decoding
 // from a string.
-func TestSkylink(t *testing.T) {
+func TestPublink(t *testing.T) {
 	// Create a linkdata struct that is all 0's, check that the resulting
-	// skylink is the right size, and check that the struct encodes and decodes
+	// publink is the right size, and check that the struct encodes and decodes
 	// without problems.
-	var slMin Skylink
+	var slMin Publink
 	str := slMin.String()
-	if len(str) != encodedSkylinkSize {
-		t.Error("skylink is not the right size")
+	if len(str) != encodedPublinkSize {
+		t.Error("publink is not the right size")
 	}
-	var slMinDecoded Skylink
+	var slMinDecoded Publink
 	err := slMinDecoded.LoadString(str)
 	if err != nil {
 		t.Fatal(err)
@@ -140,20 +140,20 @@ func TestSkylink(t *testing.T) {
 	}
 
 	// Create a linkdata struct that is all 1's, check that the resulting
-	// skylink is the right size, and check that the struct encodes and decodes
+	// publink is the right size, and check that the struct encodes and decodes
 	// without problems.
-	slMax := Skylink{
+	slMax := Publink{
 		bitfield: 65535,
 	}
-	slMax.bitfield -= 7175 // set the final three bits to 0, and also bits 10, 11, 12 to zer oto make this a valid skylink.
+	slMax.bitfield -= 7175 // set the final three bits to 0, and also bits 10, 11, 12 to zer oto make this a valid publink.
 	for i := 0; i < len(slMax.merkleRoot); i++ {
 		slMax.merkleRoot[i] = 255
 	}
 	str = slMax.String()
-	if len(str) != encodedSkylinkSize {
+	if len(str) != encodedPublinkSize {
 		t.Error("str is not the right size")
 	}
-	var slMaxDecoded Skylink
+	var slMaxDecoded Publink
 	err = slMaxDecoded.LoadString(str)
 	if err != nil {
 		t.Fatal(err)
@@ -163,9 +163,9 @@ func TestSkylink(t *testing.T) {
 	}
 
 	// Try loading an arbitrary string that is too small.
-	var sl Skylink
+	var sl Publink
 	var arb string
-	for i := 0; i < encodedSkylinkSize-1; i++ {
+	for i := 0; i < encodedPublinkSize-1; i++ {
 		arb = arb + "a"
 	}
 	err = sl.LoadString(arb)
@@ -188,21 +188,21 @@ func TestSkylink(t *testing.T) {
 	blank := ""
 	err = sl.LoadString(blank)
 	if err == nil {
-		t.Error("expecting an error when loading a blank skylink")
+		t.Error("expecting an error when loading a blank publink")
 	}
 
-	// Try giving a skylink extra params and loading that.
+	// Try giving a publink extra params and loading that.
 	slStr := sl.String()
 	params := slStr + "?fdsafdsafdsa"
 	err = sl.LoadString(params)
 	if err != nil {
-		t.Error("should be no issues loading a skylink with params")
+		t.Error("should be no issues loading a publink with params")
 	}
 	// Add more params, separated by ampersands, per URL standards
 	params = params + "&fffffdsafdsafdsa"
 	err = sl.LoadString(params)
 	if err != nil {
-		t.Error("should be no issues loading a skylink with params")
+		t.Error("should be no issues loading a publink with params")
 	}
 
 	// Try loading a non base64 string.
@@ -213,23 +213,23 @@ func TestSkylink(t *testing.T) {
 	}
 
 	// Try parsing a pubfile that's got a bad version.
-	var slBad Skylink
+	var slBad Publink
 	slBad.bitfield = 1
 	str = slBad.String()
 	_, _, err = slBad.OffsetAndFetchSize()
 	if err == nil {
-		t.Error("should not be able to get offset and fetch size of bad skylink")
+		t.Error("should not be able to get offset and fetch size of bad publink")
 	}
 	// Try setting invalid mode bits.
 	slBad.bitfield = ^uint16(0) - 3
 	_, _, err = slBad.OffsetAndFetchSize()
 	if err == nil {
-		t.Error("should not be able to get offset and fetch size of bad skylink")
+		t.Error("should not be able to get offset and fetch size of bad publink")
 	}
 
 	// Check the MerkleRoot() function.
 	mr := crypto.HashObject("fdsa")
-	sl, err = NewSkylinkV1(mr, 4096, 4096)
+	sl, err = NewPublinkV1(mr, 4096, 4096)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,16 +238,16 @@ func TestSkylink(t *testing.T) {
 	}
 }
 
-// TestSkylinkAutoExamples performs a brute force test over lots of values for
-// the skylink bitfield to ensure correctness.
-func TestSkylinkAutoExamples(t *testing.T) {
+// TestPublinkAutoExamples performs a brute force test over lots of values for
+// the publink bitfield to ensure correctness.
+func TestPublinkAutoExamples(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
 
 	// Helper function to try some values.
 	tryValues := func(offset, length, expectedLength uint64) {
-		sl, err := NewSkylinkV1(crypto.Hash{}, offset, length)
+		sl, err := NewPublinkV1(crypto.Hash{}, offset, length)
 		if err != nil {
 			t.Error(err)
 		}
@@ -262,10 +262,10 @@ func TestSkylinkAutoExamples(t *testing.T) {
 			t.Error("bad length:", offset, length, expectedLength, lengthOut)
 		}
 
-		// Encode the skylink and then decode the skylink. There should be no
+		// Encode the publink and then decode the publink. There should be no
 		// errors in doing so, and the result should equal the initial.
 		str := sl.String()
-		var slDecode Skylink
+		var slDecode Publink
 		err = slDecode.LoadString(str)
 		if err != nil {
 			t.Error(err)

@@ -142,16 +142,16 @@ func (sb *SkynetBlacklist) callInitPersist() error {
 // removals and append the changes to the persist file on disk
 //
 // NOTE: this method does not check for duplicate additions or removals
-func (sb *SkynetBlacklist) callUpdateAndAppend(additions, removals []modules.Skylink) error {
+func (sb *SkynetBlacklist) callUpdateAndAppend(additions, removals []modules.Publink) error {
 	sb.mu.Lock()
 	defer sb.mu.Unlock()
 
 	// Create buffer for encoder
 	var buf bytes.Buffer
 	// Create and encode the persist links
-	for _, skylink := range additions {
-		// Add skylink merkleroot to map
-		mr := skylink.MerkleRoot()
+	for _, publink := range additions {
+		// Add publink merkleroot to map
+		mr := publink.MerkleRoot()
 		sb.merkleroots[mr] = struct{}{}
 
 		// Marshal the update
@@ -160,9 +160,9 @@ func (sb *SkynetBlacklist) callUpdateAndAppend(additions, removals []modules.Sky
 			return errors.AddContext(err, "unable to encode persistLink")
 		}
 	}
-	for _, skylink := range removals {
-		// Remove skylink merkleroot from map
-		mr := skylink.MerkleRoot()
+	for _, publink := range removals {
+		// Remove publink merkleroot from map
+		mr := publink.MerkleRoot()
 		delete(sb.merkleroots, mr)
 
 		// Marshal the update

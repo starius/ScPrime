@@ -137,9 +137,9 @@ func (api *API) buildHTTPRoutes() {
 		// Pubaccess endpoints
 		router.GET("/pubaccess/blacklist", api.skynetBlacklistHandlerGET)
 		router.POST("/pubaccess/blacklist", RequirePassword(api.skynetBlacklistHandlerPOST, requiredPassword))
-		router.POST("/pubaccess/pin/:skylink", RequirePassword(api.skynetSkylinkPinHandlerPOST, requiredPassword))
-		router.GET("/pubaccess/skylink/*skylink", api.skynetSkylinkHandlerGET)
-		router.HEAD("/pubaccess/skylink/*skylink", api.skynetSkylinkHandlerGET)
+		router.POST("/pubaccess/pin/:publink", RequirePassword(api.skynetPublinkPinHandlerPOST, requiredPassword))
+		router.GET("/pubaccess/publink/*publink", api.skynetPublinkHandlerGET)
+		router.HEAD("/pubaccess/publink/*publink", api.skynetPublinkHandlerGET)
 		router.POST("/pubaccess/pubfile/*siapath", RequirePassword(api.skynetSkyfileHandlerPOST, requiredPassword))
 		router.GET("/pubaccess/stats", api.skynetStatsHandlerGET)
 		router.GET("/pubaccess/skykey", RequirePassword(api.skykeyHandlerGET, requiredPassword))
@@ -284,5 +284,5 @@ func RequirePassword(h httprouter.Handle, password string) httprouter.Handle {
 
 // isUnrestricted checks if a request may bypass the useragent check.
 func isUnrestricted(req *http.Request) bool {
-	return strings.HasPrefix(req.URL.Path, "/renter/stream/") || strings.HasPrefix(req.URL.Path, "/pubaccess/skylink")
+	return strings.HasPrefix(req.URL.Path, "/renter/stream/") || strings.HasPrefix(req.URL.Path, "/pubaccess/publink")
 }

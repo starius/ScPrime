@@ -18,7 +18,7 @@ The modules package is the top-level package for all modules. It contains the in
 - [Negotiate](#negotiate)
 - [Network Addresses](#network-addresses)
 - [Siad Configuration](#siad-configuration)
-- [Skylink](#skylink)
+- [Publink](#publink)
 - [SiaPath](#siapath)
 - [Storage Manager](#storage-manager)
 
@@ -129,7 +129,7 @@ The following levels of severity are currently available:
 **Key Files**
 - [packing.go](./packing.go)
 
-The smallest amount of data that can be uploaded to the Sia network is 4 MiB. This limitation can be overcome by packing multiple files together. The upload batching commands can pack a bunch of small files into the same sector, producing a unique skylink for each file.
+The smallest amount of data that can be uploaded to the Sia network is 4 MiB. This limitation can be overcome by packing multiple files together. The upload batching commands can pack a bunch of small files into the same sector, producing a unique publink for each file.
 
 Batch uploads work much the same as uploads, except that a JSON manifest is provided which pairs a list of source files to their destination siapaths. Every file in the manifest must be smaller than 4 MiB. The packing algorithm attempts to optimally pack the list of files into as few chunks as possible, where each chunk is 4 MiB in size.
 
@@ -140,21 +140,21 @@ Batch uploads work much the same as uploads, except that a JSON manifest is prov
 *TODO* 
   - fill out subsystem explanation
 
-### Skylink
+### Publink
 
 **Key Files**
--[skylink.go](./skylink.go)
+-[publink.go](./publink.go)
 
-The skylink is a format for linking to data sectors stored on the Sia network.
-In addition to pointing to a data sector, the skylink contains a lossy offset an
+The publink is a format for linking to data sectors stored on the Sia network.
+In addition to pointing to a data sector, the publink contains a lossy offset an
 length that point to a data segment within the sector, allowing multiple small
 files to be packed into a single sector.
 
-All told, there are 32 bytes in a skylink for encoding the Merkle root of the
+All told, there are 32 bytes in a publink for encoding the Merkle root of the
 sector being linked, and 2 bytes encoding a link version, the offset, and the
 length of the sector being fetched.
 
-For more information, check out the documentation in the [skylink.go](./skylink.go) file.
+For more information, check out the documentation in the [publink.go](./publink.go) file.
 
 ### SiaPath
 **Key Files**
