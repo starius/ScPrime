@@ -21,7 +21,7 @@ Latest:
 - Extended `siac renter` to include number of passive and disabled contracts
 - Add contract data to `siac renter`
 - Add getters and setter to `FileContract` and `FileContractRevision` types to prevent index-out-of-bounds panics after a `RenewAndClear`.
-- Add `--dry-run` parameter to Skynet upload
+- Add `--dry-run` parameter to Pubaccess upload
 - Set ratio for `MinBaseRPCPrice` and `MinSectorAccessPrice` with   `MinDownloadBandwidthPrice`
 
 **Bugs Fixed**
@@ -31,7 +31,7 @@ Latest:
 - Fix divide by zero panic in `renterFileHealthSummary` for `siac renter -v`
 - Fix negative currency panic in `siac renter contracts view`
 - Fix panic when metadata of skyfile upload exceeds modules.SectorSize
-- Fix curl example for `/skynet/skyfile/` post
+- Fix curl example for `/pubaccess/skyfile/` post
 - Don't delete hosts the renter has a contract with from hostdb 
 - Initiate a hostdb rescan on startup if a host the renter has a contract with isn't in the host tree 
 - Increase max host downtime in hostbd from 10 days to 20 days.
@@ -53,7 +53,7 @@ Latest:
 - Expand `SiaPath` unit testing to address more edge cases.
 
 **Key Updates**
- - Introduced Skynet with initial feature set for portals, web portals, skyfiles,
+ - Introduced Pubaccess with initial feature set for portals, web portals, skyfiles,
    skylinks, uploads, downloads, and pinning
  - Add `data-pieces` and `parity-pieces` flags to `siac renter upload`
  - Integrate SiaMux
@@ -76,20 +76,20 @@ Latest:
   producing unique skylinks for each file.
 - Fix default expected upload/download values displaying 0 when setting an
   initial allowance.
-- `siac skynet upload` now supports uploading directories. All files are
+- `siac pubaccess upload` now supports uploading directories. All files are
   uploaded individually and result in separate skylinks.
 - No user-agent needed for Skylink downloads.
 - Add `go get` command to `make dependencies`.
 - Add flags for tag and targz for skyfile streaming.
-- Add new endpoint `/skynet/stats` that provides statistical information about
-  skynet, how many files were uploaded and the combined size of said files.
+- Add new endpoint `/pubaccess/stats` that provides statistical information about
+  pubaccess, how many files were uploaded and the combined size of said files.
 - The `siac renter setallowance` UX is considerably improved.
 - Add XChaCha20 CipherKey.
 - Add Skykey Manager.
-- Add `siac skynet unpin` subcommand.
+- Add `siac pubaccess unpin` subcommand.
 - Extend `siac renter -v` to show breakdown of file health.
-- Add Skynet-Disable-Force header to allow disabling the force update feature
-  on Skynet uploads
+- Add Pubaccess-Disable-Force header to allow disabling the force update feature
+  on Pubaccess uploads
 - Add bandwidth usage to `siac gateway`
 
 **Bugs Fixed**
@@ -103,9 +103,9 @@ Latest:
   used.
 - Fixed bug in siafile snapshot code where the `hostKey()` method was not used
   to safely acquire the host pubkey.
-- Fixed `siac skynet ls` not working when files were passed as input. It is now
-  able to access specific files in the Skynet folder.
-- Fixed a deadlock when performing a Skynet download with no workers
+- Fixed `siac pubaccess ls` not working when files were passed as input. It is now
+  able to access specific files in the Pubaccess folder.
+- Fixed a deadlock when performing a Pubaccess download with no workers
 - Fix a parsing bug for malformed skylinks
 - fix siac update for new release verification
 - Fix parameter delimiter for skylinks
@@ -122,14 +122,14 @@ Latest:
   dependencies`.
 - Update repair loop to use `uniqueRefreshPaths` to reduce unnecessary bubble
   calls
-- Add Skynet-Disable-Force header to allow disabling the force update feature
-  on Skynet uploads
+- Add Pubaccess-Disable-Force header to allow disabling the force update feature
+  on Pubaccess uploads
 - Create generator for Changelog to improve changelog update process
 
 ## Feb 2020:
 ### v1.4.3
 **Key Updates**
-- Introduced Skynet with initial feature set for portals, web portals, skyfiles,
+- Introduced Pubaccess with initial feature set for portals, web portals, skyfiles,
   skylinks, uploads, downloads, and pinning
 - Add `data-pieces` and `parity-pieces` flags to `siac renter upload`
 - Integrate SiaMux

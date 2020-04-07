@@ -30,7 +30,7 @@ const (
 	// DefaultSkynetRequestTimeout is the default request timeout for routes
 	// that have a timeout query string parameter. If the request can not be
 	// resolved within the given amount of time, it times out. This is used for
-	// Skynet routes where a request times out if the DownloadByRoot project
+	// Pubaccess routes where a request times out if the DownloadByRoot project
 	// does not finish in due time.
 	DefaultSkynetRequestTimeout = 30 * time.Second
 
@@ -43,7 +43,7 @@ const (
 
 type (
 	// SkynetSkyfileHandlerPOST is the response that the api returns after the
-	// /skynet/ POST endpoint has been used.
+	// /pubaccess/ POST endpoint has been used.
 	SkynetSkyfileHandlerPOST struct {
 		Skylink    string      `json:"skylink"`
 		MerkleRoot crypto.Hash `json:"merkleroot"`
@@ -51,26 +51,26 @@ type (
 	}
 
 	// SkynetBlacklistGET contains the information queried for the
-	// /skynet/blacklist GET endpoint
+	// /pubaccess/blacklist GET endpoint
 	SkynetBlacklistGET struct {
 		Blacklist []crypto.Hash `json:"blacklist"`
 	}
 
 	// SkynetBlacklistPOST contains the information needed for the
-	// /skynet/blacklist POST endpoint to be called
+	// /pubaccess/blacklist POST endpoint to be called
 	SkynetBlacklistPOST struct {
 		Add    []string `json:"add"`
 		Remove []string `json:"remove"`
 	}
 
-	// SkynetStatsGET contains the information queried for the /skynet/stats
+	// SkynetStatsGET contains the information queried for the /pubaccess/stats
 	// GET endpoint
 	SkynetStatsGET struct {
 		UploadStats SkynetStats   `json:"uploadstats"`
 		VersionInfo SkynetVersion `json:"versioninfo"`
 	}
 
-	// SkynetStats contains statistical data about skynet
+	// SkynetStats contains statistical data about pubaccess
 	SkynetStats struct {
 		NumFiles  int    `json:"numfiles"`
 		TotalSize uint64 `json:"totalsize"`
@@ -141,10 +141,10 @@ func (api *API) skynetBlacklistHandlerPOST(w http.ResponseWriter, req *http.Requ
 		removeSkylinks[i] = skylink
 	}
 
-	// Update the Skynet Blacklist
+	// Update the Pubaccess Blacklist
 	err = api.renter.UpdateSkynetBlacklist(addSkylinks, removeSkylinks)
 	if err != nil {
-		WriteError(w, Error{"unable to update the skynet blacklist: " + err.Error()}, http.StatusBadRequest)
+		WriteError(w, Error{"unable to update the pubaccess blacklist: " + err.Error()}, http.StatusBadRequest)
 		return
 	}
 
@@ -297,7 +297,7 @@ func (api *API) skynetSkylinkHandlerGET(w http.ResponseWriter, req *http.Request
 		cdh = fmt.Sprintf("inline; filename=%s", strconv.Quote(filepath.Base(metadata.Filename)))
 	}
 	w.Header().Set("Content-Disposition", cdh)
-	w.Header().Set("Skynet-File-Metadata", string(encMetadata))
+	w.Header().Set("Pubaccess-File-Metadata", string(encMetadata))
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	http.ServeContent(w, req, metadata.Filename, time.Time{}, streamer)
@@ -321,7 +321,7 @@ func (api *API) skynetSkylinkPinHandlerPOST(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	// Parse whether the siapath should be from root or from the skynet folder.
+	// Parse whether the siapath should be from root or from the pubaccess folder.
 	var root bool
 	rootStr := queryForm.Get("root")
 	if rootStr != "" {
@@ -352,15 +352,15 @@ func (api *API) skynetSkylinkPinHandlerPOST(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	// Check whether force upload is allowed. Skynet portals might disallow
+	// Check whether force upload is allowed. Pubaccess portals might disallow
 	// passing the force flag, if they want to they can set overrule the force
-	// flag by passing in the 'Skynet-Disable-Force' header
+	// flag by passing in the 'Pubaccess-Disable-Force' header
 	allowForce := true
-	strDisableForce := req.Header.Get("Skynet-Disable-Force")
+	strDisableForce := req.Header.Get("Pubaccess-Disable-Force")
 	if strDisableForce != "" {
 		disableForce, err := strconv.ParseBool(strDisableForce)
 		if err != nil {
-			WriteError(w, Error{"unable to parse 'Skynet-Disable-Force' header: " + err.Error()}, http.StatusBadRequest)
+			WriteError(w, Error{"unable to parse 'Pubaccess-Disable-Force' header: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
 		allowForce = !disableForce
@@ -402,10 +402,10 @@ func (api *API) skynetSkylinkPinHandlerPOST(w http.ResponseWriter, req *http.Req
 
 	err = api.renter.PinSkylink(skylink, lup, timeout)
 	if errors.Contains(err, renter.ErrRootNotFound) {
-		WriteError(w, Error{fmt.Sprintf("Failed to pin file to Skynet: %v", err)}, http.StatusNotFound)
+		WriteError(w, Error{fmt.Sprintf("Failed to pin file to Pubaccess: %v", err)}, http.StatusNotFound)
 		return
 	} else if err != nil {
-		WriteError(w, Error{fmt.Sprintf("Failed to pin file to Skynet: %v", err)}, http.StatusInternalServerError)
+		WriteError(w, Error{fmt.Sprintf("Failed to pin file to Pubaccess: %v", err)}, http.StatusInternalServerError)
 		return
 	}
 
@@ -415,8 +415,8 @@ func (api *API) skynetSkylinkPinHandlerPOST(w http.ResponseWriter, req *http.Req
 // skynetSkyfileHandlerPOST is a dual purpose endpoint. If the 'convertpath'
 // field is set, this endpoint will create a skyfile using an existing siafile.
 // The original siafile and the skyfile will both need to be kept in order for
-// the file to remain available on Skynet. If the 'convertpath' field is not
-// set, this is essentially an upload streaming endpoint for Skynet which
+// the file to remain available on Pubaccess. If the 'convertpath' field is not
+// set, this is essentially an upload streaming endpoint for Pubaccess which
 // returns a skylink.
 func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	// Parse the query params.
@@ -437,7 +437,7 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 		}
 	}
 
-	// Parse whether the siapath should be from root or from the skynet folder.
+	// Parse whether the siapath should be from root or from the pubaccess folder.
 	var root bool
 	rootStr := queryForm.Get("root")
 	if rootStr != "" {
@@ -461,15 +461,15 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	// Check whether force upload is allowed. Skynet portals might disallow
+	// Check whether force upload is allowed. Pubaccess portals might disallow
 	// passing the force flag, if they want to they can set overrule the force
-	// flag by passing in the 'Skynet-Disable-Force' header
+	// flag by passing in the 'Pubaccess-Disable-Force' header
 	allowForce := true
-	strDisableForce := req.Header.Get("Skynet-Disable-Force")
+	strDisableForce := req.Header.Get("Pubaccess-Disable-Force")
 	if strDisableForce != "" {
 		disableForce, err := strconv.ParseBool(strDisableForce)
 		if err != nil {
-			WriteError(w, Error{"unable to parse 'Skynet-Disable-Force' header: " + err.Error()}, http.StatusBadRequest)
+			WriteError(w, Error{"unable to parse 'Pubaccess-Disable-Force' header: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
 		allowForce = !disableForce
@@ -582,7 +582,7 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 	if convertPathStr == "" {
 		skylink, err := api.renter.UploadSkyfile(lup)
 		if err != nil {
-			WriteError(w, Error{fmt.Sprintf("failed to upload file to Skynet: %v", err)}, http.StatusBadRequest)
+			WriteError(w, Error{fmt.Sprintf("failed to upload file to Pubaccess: %v", err)}, http.StatusBadRequest)
 			return
 		}
 		WriteJSON(w, SkynetSkyfileHandlerPOST{
@@ -618,7 +618,7 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 }
 
 // skynetStatsHandlerGET responds with a JSON with statistical data about
-// skynet, e.g. number of files uploaded, total size, etc.
+// pubaccess, e.g. number of files uploaded, total size, etc.
 func (api *API) skynetStatsHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	files, err := api.renter.FileList(modules.SkynetFolder, true, true)
 	if err != nil {
@@ -736,7 +736,7 @@ func skyfileParseMultiPartRequest(req *http.Request) (modules.SkyfileSubfiles, i
 	}
 
 	// If there are multiple, treat the entire upload as one with all separate
-	// files being subfiles. This is used for uploading a directory to Skynet.
+	// files being subfiles. This is used for uploading a directory to Pubaccess.
 	readers := make([]io.Reader, len(mpfHeaders))
 	var offset uint64
 	for i, fh := range mpfHeaders {

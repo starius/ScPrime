@@ -1,1 +1,1 @@
-- Add `--dry-run` parameter to Skynet upload
+- Add `--dry-run` parameter to Pubaccess upload

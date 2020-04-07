@@ -134,17 +134,17 @@ func (api *API) buildHTTPRoutes() {
 		router.POST("/renter/uploadstream/*siapath", RequirePassword(api.renterUploadStreamHandler, requiredPassword))
 		router.POST("/renter/validatesiapath/*siapath", RequirePassword(api.renterValidateSiaPathHandler, requiredPassword))
 
-		// Skynet endpoints
-		router.GET("/skynet/blacklist", api.skynetBlacklistHandlerGET)
-		router.POST("/skynet/blacklist", RequirePassword(api.skynetBlacklistHandlerPOST, requiredPassword))
-		router.POST("/skynet/pin/:skylink", RequirePassword(api.skynetSkylinkPinHandlerPOST, requiredPassword))
-		router.GET("/skynet/skylink/*skylink", api.skynetSkylinkHandlerGET)
-		router.HEAD("/skynet/skylink/*skylink", api.skynetSkylinkHandlerGET)
-		router.POST("/skynet/skyfile/*siapath", RequirePassword(api.skynetSkyfileHandlerPOST, requiredPassword))
-		router.GET("/skynet/stats", api.skynetStatsHandlerGET)
-		router.GET("/skynet/skykey", RequirePassword(api.skykeyHandlerGET, requiredPassword))
-		router.POST("/skynet/createskykey", RequirePassword(api.skykeyCreateKeyHandlerPOST, requiredPassword))
-		router.POST("/skynet/addskykey", RequirePassword(api.skykeyAddKeyHandlerPOST, requiredPassword))
+		// Pubaccess endpoints
+		router.GET("/pubaccess/blacklist", api.skynetBlacklistHandlerGET)
+		router.POST("/pubaccess/blacklist", RequirePassword(api.skynetBlacklistHandlerPOST, requiredPassword))
+		router.POST("/pubaccess/pin/:skylink", RequirePassword(api.skynetSkylinkPinHandlerPOST, requiredPassword))
+		router.GET("/pubaccess/skylink/*skylink", api.skynetSkylinkHandlerGET)
+		router.HEAD("/pubaccess/skylink/*skylink", api.skynetSkylinkHandlerGET)
+		router.POST("/pubaccess/skyfile/*siapath", RequirePassword(api.skynetSkyfileHandlerPOST, requiredPassword))
+		router.GET("/pubaccess/stats", api.skynetStatsHandlerGET)
+		router.GET("/pubaccess/skykey", RequirePassword(api.skykeyHandlerGET, requiredPassword))
+		router.POST("/pubaccess/createskykey", RequirePassword(api.skykeyCreateKeyHandlerPOST, requiredPassword))
+		router.POST("/pubaccess/addskykey", RequirePassword(api.skykeyAddKeyHandlerPOST, requiredPassword))
 
 		// Directory endpoints
 		router.POST("/renter/dir/*siapath", RequirePassword(api.renterDirHandlerPOST, requiredPassword))
@@ -284,5 +284,5 @@ func RequirePassword(h httprouter.Handle, password string) httprouter.Handle {
 
 // isUnrestricted checks if a request may bypass the useragent check.
 func isUnrestricted(req *http.Request) bool {
-	return strings.HasPrefix(req.URL.Path, "/renter/stream/") || strings.HasPrefix(req.URL.Path, "/skynet/skylink")
+	return strings.HasPrefix(req.URL.Path, "/renter/stream/") || strings.HasPrefix(req.URL.Path, "/pubaccess/skylink")
 }

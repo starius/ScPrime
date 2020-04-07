@@ -172,7 +172,7 @@ var (
 // erasure coding.
 type SkyfileUploadParameters struct {
 	// SiaPath defines the siapath that the skyfile is going to be uploaded to.
-	// Recommended that the skyfile is placed in /var/skynet
+	// Recommended that the skyfile is placed in /var/pubaccess
 	SiaPath SiaPath `json:"siapath"`
 
 	// DryRun allows to retrieve the skylink without actually uploading the file
@@ -186,7 +186,7 @@ type SkyfileUploadParameters struct {
 	Force bool `json:"force"`
 
 	// Root determines whether the upload should treat the filepath as a path
-	// from system root, or if the path should be from /var/skynet.
+	// from system root, or if the path should be from /var/pubaccess.
 	Root bool `json:"root"`
 
 	// The base chunk is always uploaded with a 1-of-N erasure coding setting,

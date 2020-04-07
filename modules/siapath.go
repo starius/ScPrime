@@ -44,7 +44,7 @@ var (
 var (
 	// SkynetFolder is the Sia folder where all of the skyfiles are stored by
 	// default.
-	SkynetFolder = NewGlobalSiaPath("/var/skynet")
+	SkynetFolder = NewGlobalSiaPath("/var/pubaccess")
 )
 
 type (

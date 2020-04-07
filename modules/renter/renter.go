@@ -171,7 +171,7 @@ type Renter struct {
 	// File management.
 	staticFileSystem *filesystem.FileSystem
 
-	// Skynet Management
+	// Pubaccess Management
 	staticSkynetBlacklist *skynetblacklist.SkynetBlacklist
 
 	// Download management. The heap has a separate mutex because it is always
@@ -923,7 +923,7 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	// Add SkynetBlacklist
 	sb, err := skynetblacklist.New(r.persistDir)
 	if err != nil {
-		return nil, errors.AddContext(err, "unable to create new skynet blacklist")
+		return nil, errors.AddContext(err, "unable to create new pubaccess blacklist")
 	}
 	r.staticSkynetBlacklist = sb
 

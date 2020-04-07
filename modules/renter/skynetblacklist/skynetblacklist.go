@@ -29,7 +29,7 @@ func New(persistDir string) (*SkynetBlacklist, error) {
 	// Initialize the persistence of the blacklist
 	err := sb.callInitPersist()
 	if err != nil {
-		return nil, errors.AddContext(err, "unable to initialize the skynet blacklist persistence")
+		return nil, errors.AddContext(err, "unable to initialize the pubaccess blacklist persistence")
 	}
 
 	return sb, nil

@@ -263,35 +263,35 @@ have a reasonable number (>30) of hosts in your hostdb.`,
 	}
 
 	skynetCmd = &cobra.Command{
-		Use:   "skynet",
-		Short: "Perform actions related to Skynet",
-		Long: `Perform actions related to Skynet, a file sharing and data publication platform
+		Use:   "pubaccess",
+		Short: "Perform actions related to Pubaccess",
+		Long: `Perform actions related to Pubaccess, a file sharing and data publication platform
 on top of ScPrime.`,
 		Run: skynetcmd,
 	}
 
 	skynetBlacklistCmd = &cobra.Command{
 		Use:   "blacklist [skylink]",
-		Short: "Blacklist a skylink from skynet.",
-		Long: `Blacklist a skylink from skynet. Use the --remove flag to
+		Short: "Blacklist a skylink from pubaccess.",
+		Long: `Blacklist a skylink from pubaccess. Use the --remove flag to
 remove a skylink from the blacklist.`,
 		Run: skynetblacklistcmd,
 	}
 
 	skynetDownloadCmd = &cobra.Command{
 		Use:   "download [skylink] [destination]",
-		Short: "Download a skylink from skynet.",
-		Long: `Download a file from skynet using a skylink. The download may fail unless this
-node is configured as a skynet portal. Use the --portal flag to fetch a skylink
-file from a chosen skynet portal.`,
+		Short: "Download a skylink from pubaccess.",
+		Long: `Download a file from pubaccess using a skylink. The download may fail unless this
+node is configured as a pubaccess portal. Use the --portal flag to fetch a skylink
+file from a chosen pubaccess portal.`,
 		Run: skynetdownloadcmd,
 	}
 
 	skynetPinCmd = &cobra.Command{
 		Use:   "pin [skylink] [destination siapath]",
-		Short: "Pin a skylink from skynet by re-uploading it yourself.",
+		Short: "Pin a skylink from pubaccess by re-uploading it yourself.",
 		Long: `Pin the file associated with this skylink by re-uploading an exact copy. This
-ensures that the file will still be available on skynet as long as you continue
+ensures that the file will still be available on pubaccess as long as you continue
 maintaining the file in your renter.`,
 		Run: wrap(skynetpincmd),
 	}
@@ -300,7 +300,7 @@ maintaining the file in your renter.`,
 		Use:   "unpin [siapath]",
 		Short: "Unpin a pinned skyfile.",
 		Long: `Unpin the pinned skyfile at the given siapath. The file will continue to be
-available on Skynet if other nodes have pinned the file.`,
+available on Pubaccess if other nodes have pinned the file.`,
 		Run: wrap(skynetunpincmd),
 	}
 
@@ -308,15 +308,15 @@ available on Skynet if other nodes have pinned the file.`,
 		Use:   "ls",
 		Short: "List all skyfiles that the user has pinned.",
 		Long: `List all skyfiles that the user has pinned along with the corresponding
-skylinks. By default, only files in var/skynet/ will be displayed. The --root
+skylinks. By default, only files in var/pubaccess/ will be displayed. The --root
 flag can be used to view skyfiles pinned in other folders.`,
 		Run: skynetlscmd,
 	}
 
 	skynetUploadCmd = &cobra.Command{
 		Use:   "upload [source path] [destination siapath]",
-		Short: "Upload a file or a directory to Skynet.",
-		Long: `Upload a file or a directory to Skynet. A skylink will be produced which can be
+		Short: "Upload a file or a directory to Pubaccess.",
+		Long: `Upload a file or a directory to Pubaccess. A skylink will be produced which can be
 shared and used to retrieve the file. If the given path is a directory all files under that directory will
 be uploaded individually and an individual skylink will be produced for each. All files that get uploaded
 will be pinned to this Sia node, meaning that this node will pay for storage and repairs until the files 
@@ -643,7 +643,7 @@ func renterallowancecmd() {
   Renew Window:         %v blocks
   Hosts:                %v
 
-Skynet Portal Per-Contract Budget: %v
+Pubaccess Portal Per-Contract Budget: %v
 
 Expectations for period:
   Expected Storage:     %v
@@ -2524,7 +2524,7 @@ func skynetcmd(cmd *cobra.Command, args []string) {
 	os.Exit(exitCodeUsage)
 }
 
-// skynetblacklistcmd handles adding and removing a skylink from the Skynet
+// skynetblacklistcmd handles adding and removing a skylink from the Pubaccess
 // Blacklist
 func skynetblacklistcmd(cmd *cobra.Command, args []string) {
 	if len(args) != 1 {
@@ -2544,12 +2544,12 @@ func skynetblacklistcmd(cmd *cobra.Command, args []string) {
 		add = append(add, skylink)
 	}
 
-	// Try to update the Skynet Blacklist.
+	// Try to update the Pubaccess Blacklist.
 	err := httpClient.SkynetBlacklistPost(add, remove)
 	if err != nil {
-		die("Unable to update skynet blacklist:", err)
+		die("Unable to update pubaccess blacklist:", err)
 	}
-	fmt.Println("Skynet Blacklist updated")
+	fmt.Println("Pubaccess Blacklist updated")
 }
 
 // skynetdownloadcmd will perform the download of a skylink.
@@ -2595,7 +2595,7 @@ func skynetdownloadcmd(cmd *cobra.Command, args []string) {
 	}
 }
 
-// skynetlscmd is the handler for the command `siac skynet ls`. Works very
+// skynetlscmd is the handler for the command `siac pubaccess ls`. Works very
 // similar to 'siac renter ls' but defaults to the SkynetFolder and only
 // displays files that are pinning skylinks.
 func skynetlscmd(cmd *cobra.Command, args []string) {
@@ -2621,7 +2621,7 @@ func skynetlscmd(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	// Check whether the command is based in root or based in the skynet folder.
+	// Check whether the command is based in root or based in the pubaccess folder.
 	if !skynetLsRoot {
 		if sp.IsRoot() {
 			sp = modules.SkynetFolder
@@ -2727,13 +2727,13 @@ func skynetpincmd(sourceSkylink, destSiaPath string) {
 
 	err = httpClient.SkynetSkylinkPinPost(skylink, spp)
 	if err != nil {
-		die("could not pin file to Skynet:", err)
+		die("could not pin file to Pubaccess:", err)
 	}
 
 	fmt.Printf("Skyfile pinned successfully \nSkylink: sia://%v\n", skylink)
 }
 
-// skynetuploadcmd will upload a file to Skynet.
+// skynetuploadcmd will upload a file to Pubaccess.
 func skynetuploadcmd(sourcePath, destSiaPath string) {
 	// Open the source file.
 	file, err := os.Open(sourcePath)
@@ -2818,7 +2818,7 @@ func skynetuploadfile(sourcePath, destSiaPath string) {
 	}
 	skylink, _, err := httpClient.SkynetSkyfilePost(sup)
 	if err != nil {
-		die("could not upload file to Skynet:", err)
+		die("could not upload file to Pubaccess:", err)
 	}
 
 	// Calculate the siapath that was used for the upload.

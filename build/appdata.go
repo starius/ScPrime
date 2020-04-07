@@ -23,20 +23,20 @@ func DefaultMetadataDir() string {
 	}
 }
 
-// DefaultSkynetDir returns default data directory for miscellaneous Skynet data,
+// DefaultSkynetDir returns default data directory for miscellaneous Pubaccess data,
 // e.g. skykeys. The values for supported operating systems are:
 //
-// Linux:   $HOME/.skynet
-// MacOS:   $HOME/Library/Application Support/Skynet
-// Windows: %LOCALAPPDATA%\Skynet
+// Linux:   $HOME/.pubaccess
+// MacOS:   $HOME/Library/Application Support/Pubaccess
+// Windows: %LOCALAPPDATA%\Pubaccess
 func DefaultSkynetDir() string {
 	switch runtime.GOOS {
 	case "windows":
-		return filepath.Join(os.Getenv("LOCALAPPDATA"), "Skynet")
+		return filepath.Join(os.Getenv("LOCALAPPDATA"), "Pubaccess")
 	case "darwin":
-		return filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "Skynet")
+		return filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "Pubaccess")
 	default:
-		return filepath.Join(os.Getenv("HOME"), ".skynet")
+		return filepath.Join(os.Getenv("HOME"), ".pubaccess")
 	}
 }
 

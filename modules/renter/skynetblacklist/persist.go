@@ -43,7 +43,7 @@ var (
 	metadataVersion = types.NewSpecifier("v1.4.3\n")
 )
 
-// marshalMetadata marshals the Skynet Blacklist's metadata and returns the byte
+// marshalMetadata marshals the Pubaccess Blacklist's metadata and returns the byte
 // slice
 func (sb *SkynetBlacklist) marshalMetadata() ([]byte, error) {
 	headerBytes, headerErr := metadataHeader.MarshalText()
@@ -245,13 +245,13 @@ func (sb *SkynetBlacklist) load() error {
 		return errors.AddContext(err, "unable to unmarshal persistLinks")
 	}
 
-	// Add to Skynet Blacklist
+	// Add to Pubaccess Blacklist
 	sb.merkleroots = blacklist
 
 	return nil
 }
 
-// unmarshalMetadata ummarshals the Skynet Blacklist's metadata from the
+// unmarshalMetadata ummarshals the Pubaccess Blacklist's metadata from the
 // provided byte slice
 func (sb *SkynetBlacklist) unmarshalMetadata(raw []byte) error {
 	// Define offsets for reading from provided byte slice

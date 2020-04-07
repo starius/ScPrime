@@ -2,7 +2,7 @@ package renter
 
 // skyfile.go provides the tools for creating and uploading skyfiles, and then
 // receiving the associated skylinks to recover the files. The skyfile is the
-// fundamental data structure underpinning Skynet.
+// fundamental data structure underpinning Pubaccess.
 //
 // The primary trick of the skyfile is that the initial data is stored entirely
 // in a single sector which is put on the Sia network using 1-of-N redundancy.

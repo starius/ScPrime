@@ -101,7 +101,7 @@ func TestPersist(t *testing.T) {
 		t.Fatalf("Expected merkleroot listed in blacklist to be %v but found %v", skylink.MerkleRoot(), mr)
 	}
 
-	// Load a new Skynet Blacklist to verify the contents from disk get loaded
+	// Load a new Pubaccess Blacklist to verify the contents from disk get loaded
 	// properly
 	sb2, err := New(testdir)
 	if err != nil {
@@ -138,7 +138,7 @@ func TestPersist(t *testing.T) {
 		t.Fatalf("Expected merkleroot listed in blacklist to be %v but found %v", skylink.MerkleRoot(), mr)
 	}
 
-	// Load another new Skynet Blacklist to verify the contents from disk get loaded
+	// Load another new Pubaccess Blacklist to verify the contents from disk get loaded
 	// properly
 	sb3, err := New(testdir)
 	if err != nil {
@@ -246,7 +246,7 @@ func TestMarshalMetadata(t *testing.T) {
 	}
 	defer f.Close()
 
-	// Create empty struct of a skynet blacklist and set the length. Not using
+	// Create empty struct of a pubaccess blacklist and set the length. Not using
 	// the New method to avoid overwritten persist file on disk
 	sb := SkynetBlacklist{}
 	sb.persistLength = metadataPageSize

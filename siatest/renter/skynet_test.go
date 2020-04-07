@@ -36,7 +36,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/skykey"
 )
 
-// TestSkynet verifies the functionality of Skynet, a decentralized CDN and
+// TestSkynet verifies the functionality of Pubaccess, a decentralized CDN and
 // sharing platform.
 func TestSkynet(t *testing.T) {
 	if testing.Short() {
@@ -283,7 +283,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Get the list of files in the skynet directory and see if the file is
+	// Get the list of files in the pubaccess directory and see if the file is
 	// present.
 	rdg, err := r.RenterDirRootGet(modules.SkynetFolder)
 	if err != nil {
@@ -326,7 +326,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Get the list of files in the skynet directory and see if the file is
+	// Get the list of files in the pubaccess directory and see if the file is
 	// present.
 	rootRdg, err := r.RenterDirRootGet(modules.RootSiaPath())
 	if err != nil {
@@ -436,7 +436,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Get the list of files in the skynet directory and see if the file is
+	// Get the list of files in the pubaccess directory and see if the file is
 	// present.
 	fullPinSiaPath, err := modules.SkynetFolder.Join(pinSiaPath.String())
 	if err != nil {
@@ -778,7 +778,7 @@ func testSkynetMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetStats tests the validity of the response of /skynet/stats endpoint
+// testSkynetStats tests the validity of the response of /pubaccess/stats endpoint
 // by uploading some test files and verifying that the reported statistics
 // change proportionally
 func testSkynetStats(t *testing.T, tg *siatest.TestGroup) {
@@ -1368,7 +1368,7 @@ func testSkynetDisableForce(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// Upload using the force flag again, however now we set the
-	// Skynet-Disable-Force to true, which should prevent us from uploading.
+	// Pubaccess-Disable-Force to true, which should prevent us from uploading.
 	// Because we have to pass in a custom header, we have to setup the request
 	// ourselves and can not use the client.
 	_, _, err = r.SkynetSkyfilePostDisableForce(sup, true)
@@ -1381,7 +1381,7 @@ func testSkynetDisableForce(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetBlacklist tests the skynet blacklist module
+// testSkynetBlacklist tests the pubaccess blacklist module
 func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
@@ -1580,10 +1580,10 @@ func testSkynetHeadRequest(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatalf("Unexpected status for HEAD request, expected %v but received %v", http.StatusOK, status)
 	}
 
-	// Verify Skynet-File-Metadata
-	strMetadata := header.Get("Skynet-File-Metadata")
+	// Verify Pubaccess-File-Metadata
+	strMetadata := header.Get("Pubaccess-File-Metadata")
 	if strMetadata == "" {
-		t.Fatal("Expected 'Skynet-File-Metadata' response header to be present")
+		t.Fatal("Expected 'Pubaccess-File-Metadata' response header to be present")
 	}
 	var sm modules.SkyfileMetadata
 	err = json.Unmarshal([]byte(strMetadata), &sm)
@@ -1673,7 +1673,7 @@ func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 
 	// verify we can perform a skyfile upload (note that we need this to trigger
 	// contracts being created, this issue only surfaces when commenting out all
-	// other skynet tets)
+	// other pubaccess tets)
 	_, _, err = r.SkynetSkyfilePost(modules.SkyfileUploadParameters{
 		SiaPath:             siaPath,
 		BaseChunkRedundancy: 2,
@@ -1683,7 +1683,7 @@ func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 		},
 	})
 	if err != nil {
-		t.Fatal("Expected skynet upload to be successful, instead received err:", err)
+		t.Fatal("Expected pubaccess upload to be successful, instead received err:", err)
 	}
 
 	// verify you can't perform a dry-run using the force parameter
@@ -2010,11 +2010,11 @@ func testSkynetSkykey(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal("Expected same Skykey string")
 	}
 
-	// Test misuse of the /skynet/skykey endpoint using an UnsafeClient.
+	// Test misuse of the /pubaccess/skykey endpoint using an UnsafeClient.
 	uc := client.NewUnsafeClient(r.Client)
 
 	// Passing in 0 params shouild return an error.
-	baseQuery := "/skynet/skykey"
+	baseQuery := "/pubaccess/skykey"
 	var skykeyGet api.SkykeyGET
 	err = uc.Get(baseQuery, &skykeyGet)
 	if err == nil {

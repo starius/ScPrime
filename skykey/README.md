@@ -1,5 +1,5 @@
 # Skykey Manager
-The `skykey` package defines Skykeys used for encrypting files in Skynet and
+The `skykey` package defines Skykeys used for encrypting files in Pubaccess and
 provides a way to persist Skykeys using a `SkykeyManager` that manages these
 keys in a file on-disk.
 
@@ -16,5 +16,5 @@ header is updated to indicate the newly written bytes and the file is synced
 once again.
 
 ## Skykeys
-A `Skykey` is a key associated with a name to be used in Skynet to share
+A `Skykey` is a key associated with a name to be used in Pubaccess to share
 encrypted files. Each key has a name and a unique identifier.
