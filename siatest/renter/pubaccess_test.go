@@ -31,9 +31,9 @@ import (
 	"gitlab.com/scpcorp/ScPrime/node"
 	"gitlab.com/scpcorp/ScPrime/node/api"
 	"gitlab.com/scpcorp/ScPrime/node/api/client"
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 	"gitlab.com/scpcorp/ScPrime/siatest"
 	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
-	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 )
 
 // TestPubAccess verifies the functionality of Pubaccess, a decentralized CDN and
