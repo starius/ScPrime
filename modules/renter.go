@@ -9,7 +9,7 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/skykey"
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
@@ -935,23 +935,23 @@ type Renter interface {
 	// DirList lists the directories in a siadir
 	DirList(siaPath SiaPath) ([]DirectoryInfo, error)
 
-	// AddSkykey adds the skykey to the renter's skykey manager.
-	AddSkykey(skykey.Skykey) error
+	// AddSkykey adds the pubaccesskey to the renter's pubaccesskey manager.
+	AddSkykey(pubaccesskey.Pubaccesskey) error
 
-	// CreateSkykey creates a new Skykey with the given name and ciphertype.
-	CreateSkykey(string, crypto.CipherType) (skykey.Skykey, error)
+	// CreateSkykey creates a new Pubaccesskey with the given name and ciphertype.
+	CreateSkykey(string, crypto.CipherType) (pubaccesskey.Pubaccesskey, error)
 
-	// SkykeyByName gets the Skykey with the given name from the renter's skykey
+	// SkykeyByName gets the Pubaccesskey with the given name from the renter's pubaccesskey
 	// manager if it exists.
-	SkykeyByName(string) (skykey.Skykey, error)
+	SkykeyByName(string) (pubaccesskey.Pubaccesskey, error)
 
-	// SkykeyByID gets the Skykey with the given ID from the renter's skykey
+	// SkykeyByID gets the Pubaccesskey with the given ID from the renter's pubaccesskey
 	// manager if it exists.
-	SkykeyByID(skykey.SkykeyID) (skykey.Skykey, error)
+	SkykeyByID(pubaccesskey.SkykeyID) (pubaccesskey.Pubaccesskey, error)
 
 	// SkykeyIDByName gets the SkykeyID of the key with the given name if it
 	// exists.
-	SkykeyIDByName(string) (skykey.SkykeyID, error)
+	SkykeyIDByName(string) (pubaccesskey.SkykeyID, error)
 
 	// CreatePublinkFromSiafile will create a publink from a siafile. This will
 	// result in some uploading - the base sector pubfile needs to be uploaded

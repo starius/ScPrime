@@ -157,8 +157,8 @@ type (
 		staticErasureCode       modules.ErasureCoder // not persisted, exists for convenience
 
 		// Publink tracking. If this siafile is known to have sectors of any
-		// skyfiles, those skyfiles will be listed here. It should be noted that
-		// a single siafile can be responsible for tracking many skyfiles.
+		// pubfiles, those pubfiles will be listed here. It should be noted that
+		// a single siafile can be responsible for tracking many pubfiles.
 		Publinks []string `json:"publinks"`
 	}
 

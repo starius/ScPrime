@@ -70,7 +70,7 @@ pkgs = ./build \
 	./siatest/renterhost \
 	./siatest/transactionpool \
 	./siatest/wallet \
-	./skykey \
+	./pubaccesskey \
 	./sync \
 	./types \
 	./types/typesutil

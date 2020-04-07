@@ -414,7 +414,7 @@ price and total throughput.
  - [pubfilefanoutfetch.go](./pubfilefanoutfetch.go)
 
 The pubfile system contains methods for encoding, decoding, uploading, and
-downloading skyfiles using Publinks, and is one of the foundations underpinning
+downloading pubfiles using Publinks, and is one of the foundations underpinning
 Pubaccess.
 
 The pubfile format is a custom format which prepends metadata to a file such
@@ -425,7 +425,7 @@ publink.
 
 **Outbound Complexities**
  - callUploadStreamFromReader is used to upload new data to the Sia network when
-   creating skyfiles. This call appears three times in
+   creating pubfiles. This call appears three times in
    [pubfile.go](./pubfile.go)
 
 ### Stream Buffer Subsystem

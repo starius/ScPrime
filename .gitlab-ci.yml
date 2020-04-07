@@ -38,7 +38,7 @@ variables:
     ./modules/transactionpool
     ./persist
     ./sync
-    ./skykey
+    ./pubaccesskey
     ./types
   siatest_pkgs: >-
     ./siatest

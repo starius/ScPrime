@@ -38,9 +38,9 @@ var (
 	renterShowHistory         bool   // Show download history in addition to download queue.
 	renterVerbose             bool   // Show additional info about the renter
 	dataDir                   string // Path to metadata dir
-	skykeyCipherType          string // CipherType used to create a Skykey.
-	skykeyName                string // Name used to identify a Skykey.
-	skykeyID                  string // ID used to identify a Skykey.
+	skykeyCipherType          string // CipherType used to create a Pubaccesskey.
+	skykeyName                string // Name used to identify a Pubaccesskey.
+	skykeyID                  string // ID used to identify a Pubaccesskey.
 	skynetBlacklistRemove     bool   // Remove a publink from the Pubaccess Blacklist.
 	skynetUnpinRoot           bool   // Use root as the base instead of the Pubaccess folder.
 	skynetDownloadPortal      string // Portal to use when trying to download a publink.
@@ -308,15 +308,15 @@ func main() {
 	skynetUploadCmd.Flags().BoolVar(&skynetUploadDryRun, "dry-run", false, "Perform a dry-run of the upload, returning the publink without actually uploading the file")
 	skynetUnpinCmd.Flags().BoolVar(&skynetUnpinRoot, "root", false, "Use the root folder as the base instead of the Pubaccess folder")
 	skynetDownloadCmd.Flags().StringVar(&skynetDownloadPortal, "portal", "", "Use a Pubaccess portal to complete the download")
-	skynetLsCmd.Flags().BoolVarP(&skynetLsRecursive, "recursive", "R", false, "Recursively list skyfiles and folders")
+	skynetLsCmd.Flags().BoolVarP(&skynetLsRecursive, "recursive", "R", false, "Recursively list pubfiles and folders")
 	skynetLsCmd.Flags().BoolVar(&skynetLsRoot, "root", false, "Use the root folder as the base instead of the Pubaccess folder")
 	skynetBlacklistCmd.Flags().BoolVar(&skynetBlacklistRemove, "remove", false, "Remove the publink from the blacklist")
 
 	root.AddCommand(skykeyCmd)
 	skykeyCmd.AddCommand(skykeyCreateCmd, skykeyAddCmd, skykeyGetCmd, skykeyGetIDCmd)
-	skykeyCreateCmd.Flags().StringVar(&skykeyCipherType, "cipher-type", "XChaCha20", "The cipher type of the skykey")
-	skykeyGetCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the skykey")
-	skykeyGetCmd.Flags().StringVar(&skykeyID, "id", "", "The base-64 encoded skykey ID")
+	skykeyCreateCmd.Flags().StringVar(&skykeyCipherType, "cipher-type", "XChaCha20", "The cipher type of the pubaccesskey")
+	skykeyGetCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the pubaccesskey")
+	skykeyGetCmd.Flags().StringVar(&skykeyID, "id", "", "The base-64 encoded pubaccesskey ID")
 
 	root.AddCommand(stratumminerCmd)
 	stratumminerCmd.AddCommand(stratumminerStartCmd, stratumminerStopCmd)

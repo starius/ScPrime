@@ -23,7 +23,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter"
-	"gitlab.com/scpcorp/ScPrime/skykey"
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 )
 
 const (
@@ -82,9 +82,9 @@ type (
 		GitRevision string `json:"gitrevision"`
 	}
 
-	// SkykeyGET contains a base64 encoded Skykey.
+	// SkykeyGET contains a base64 encoded Pubaccesskey.
 	SkykeyGET struct {
-		Skykey string `json:"skykey"` // base64 encoded Skykey
+		Pubaccesskey string `json:"pubaccesskey"` // base64 encoded Pubaccesskey
 	}
 )
 
@@ -646,7 +646,7 @@ func (api *API) skynetStatsHandlerGET(w http.ResponseWriter, _ *http.Request, _ 
 	WriteJSON(w, SkynetStatsGET{UploadStats: stats, VersionInfo: SkynetVersion{Version: version, GitRevision: build.GitRevision}})
 }
 
-// serveTar serves skyfiles as a tar by reading them from r and writing the
+// serveTar serves pubfiles as a tar by reading them from r and writing the
 // archive to dst.
 func serveTar(dst io.Writer, md modules.SkyfileMetadata, streamer modules.Streamer) error {
 	tw := tar.NewWriter(dst)
@@ -777,28 +777,28 @@ func skyfileParseMultiPartRequest(req *http.Request) (modules.SkyfileSubfiles, i
 	return subfiles, io.MultiReader(readers...), nil
 }
 
-// skykeyHandlerGET handles the API call to get a Skykey and its ID using its
+// skykeyHandlerGET handles the API call to get a Pubaccesskey and its ID using its
 // name or ID.
 func (api *API) skykeyHandlerGET(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	// Parse Skykey id and name.
+	// Parse Pubaccesskey id and name.
 	name := req.FormValue("name")
 	idString := req.FormValue("id")
 
 	if idString == "" && name == "" {
-		WriteError(w, Error{"you must specify the name or ID of the skykey"}, http.StatusInternalServerError)
+		WriteError(w, Error{"you must specify the name or ID of the pubaccesskey"}, http.StatusInternalServerError)
 		return
 	}
 	if idString != "" && name != "" {
-		WriteError(w, Error{"you must specify either the name or ID of the skykey, not both"}, http.StatusInternalServerError)
+		WriteError(w, Error{"you must specify either the name or ID of the pubaccesskey, not both"}, http.StatusInternalServerError)
 		return
 	}
 
-	var sk skykey.Skykey
+	var sk pubaccesskey.Pubaccesskey
 	var err error
 	if name != "" {
 		sk, err = api.renter.SkykeyByName(name)
 	} else if idString != "" {
-		var id skykey.SkykeyID
+		var id pubaccesskey.SkykeyID
 		err = id.FromString(idString)
 		if err != nil {
 			WriteError(w, Error{"failed to decode ID string: "}, http.StatusInternalServerError)
@@ -807,34 +807,34 @@ func (api *API) skykeyHandlerGET(w http.ResponseWriter, req *http.Request, ps ht
 		sk, err = api.renter.SkykeyByID(id)
 	}
 	if err != nil {
-		WriteError(w, Error{"failed to retrieve skykey: " + err.Error()}, http.StatusInternalServerError)
+		WriteError(w, Error{"failed to retrieve pubaccesskey: " + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
 	skString, err := sk.ToString()
 	if err != nil {
-		WriteError(w, Error{"failed to decode skykey: " + err.Error()}, http.StatusInternalServerError)
+		WriteError(w, Error{"failed to decode pubaccesskey: " + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 	WriteJSON(w, SkykeyGET{
-		Skykey: skString,
+		Pubaccesskey: skString,
 	})
 }
 
-// skykeyCreateKeyHandlerPost handles the API call to create a skykey using the renter's
-// skykey manager.
+// skykeyCreateKeyHandlerPost handles the API call to create a pubaccesskey using the renter's
+// pubaccesskey manager.
 func (api *API) skykeyCreateKeyHandlerPOST(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	// Parse skykey name and ciphertype
+	// Parse pubaccesskey name and ciphertype
 	name := req.FormValue("name")
 	ctString := req.FormValue("ciphertype")
 
 	if name == "" {
-		WriteError(w, Error{"you must specify the name the skykey"}, http.StatusInternalServerError)
+		WriteError(w, Error{"you must specify the name the pubaccesskey"}, http.StatusInternalServerError)
 		return
 	}
 
 	if ctString == "" {
-		WriteError(w, Error{"you must specify the desited ciphertype for the skykey"}, http.StatusInternalServerError)
+		WriteError(w, Error{"you must specify the desited ciphertype for the pubaccesskey"}, http.StatusInternalServerError)
 		return
 	}
 
@@ -847,41 +847,41 @@ func (api *API) skykeyCreateKeyHandlerPOST(w http.ResponseWriter, req *http.Requ
 
 	sk, err := api.renter.CreateSkykey(name, ct)
 	if err != nil {
-		WriteError(w, Error{"failed to create skykey" + err.Error()}, http.StatusInternalServerError)
+		WriteError(w, Error{"failed to create pubaccesskey" + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
 	keyString, err := sk.ToString()
 	if err != nil {
-		WriteError(w, Error{"failed to decode skykey" + err.Error()}, http.StatusInternalServerError)
+		WriteError(w, Error{"failed to decode pubaccesskey" + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
 	WriteJSON(w, SkykeyGET{
-		Skykey: keyString,
+		Pubaccesskey: keyString,
 	})
 }
 
-// skykeyAddKeyHandlerPost handles the API call to add a skykey to the renter's
-// skykey manager.
+// skykeyAddKeyHandlerPost handles the API call to add a pubaccesskey to the renter's
+// pubaccesskey manager.
 func (api *API) skykeyAddKeyHandlerPOST(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	// Parse skykey.
-	skString := req.FormValue("skykey")
+	// Parse pubaccesskey.
+	skString := req.FormValue("pubaccesskey")
 	if skString == "" {
-		WriteError(w, Error{"you must specify the name the Skykey"}, http.StatusInternalServerError)
+		WriteError(w, Error{"you must specify the name the Pubaccesskey"}, http.StatusInternalServerError)
 		return
 	}
 
-	var sk skykey.Skykey
+	var sk pubaccesskey.Pubaccesskey
 	err := sk.FromString(skString)
 	if err != nil {
-		WriteError(w, Error{"failed to decode skykey" + err.Error()}, http.StatusInternalServerError)
+		WriteError(w, Error{"failed to decode pubaccesskey" + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
 	err = api.renter.AddSkykey(sk)
 	if err != nil {
-		WriteError(w, Error{"failed to add skykey" + err.Error()}, http.StatusInternalServerError)
+		WriteError(w, Error{"failed to add pubaccesskey" + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 

@@ -1,6 +1,6 @@
 package renter
 
-// pubfile.go provides the tools for creating and uploading skyfiles, and then
+// pubfile.go provides the tools for creating and uploading pubfiles, and then
 // receiving the associated publinks to recover the files. The pubfile is the
 // fundamental data structure underpinning Pubaccess.
 //
@@ -23,7 +23,7 @@ package renter
 // work with, meaning there is space to describe much fancier redundancy schemes
 // and data fetching patterns.
 //
-// Skyfiles also contain some metadata which gets encoded as json. The
+// Pubfiles also contain some metadata which gets encoded as json. The
 // intention is to allow uploaders to put any arbitrary metadata fields into
 // their file and know that users will be able to see that metadata after
 // downloading. A couple of fields such as the mode of the file are supported at
@@ -56,7 +56,7 @@ const (
 	// the base chunk of a pubfile.
 	SkyfileDefaultBaseChunkRedundancy = 10
 
-	// SkyfileVersion establishes the current version for creating skyfiles.
+	// SkyfileVersion establishes the current version for creating pubfiles.
 	// The pubfile versions are different from the siafile versions.
 	SkyfileVersion = 1
 )
@@ -628,10 +628,10 @@ func parseSkyfileMetadata(baseSector []byte) (sl skyfileLayout, fanoutBytes []by
 		return skyfileLayout{}, nil, modules.SkyfileMetadata{}, nil, errors.New("unsupported pubfile version")
 	}
 
-	// Currently there is no support for skyfiles with fanout + metadata that
+	// Currently there is no support for pubfiles with fanout + metadata that
 	// exceeds the base sector.
 	if offset+sl.fanoutSize+sl.metadataSize > uint64(len(baseSector)) || sl.fanoutSize > modules.SectorSize || sl.metadataSize > modules.SectorSize {
-		return skyfileLayout{}, nil, modules.SkyfileMetadata{}, nil, errors.New("this version of siad does not support skyfiles with large fanouts and metadata")
+		return skyfileLayout{}, nil, modules.SkyfileMetadata{}, nil, errors.New("this version of siad does not support pubfiles with large fanouts and metadata")
 	}
 
 	// Parse the fanout.

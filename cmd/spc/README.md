@@ -185,7 +185,7 @@ if you have multiple downloads happening simultaneously.
   pinned to this Sia node, meaning that this node will pay for storage and 
   repairs until the file(s) are manually deleted.
 
-* `spc pubaccess ls` lists all skyfiles that the user has pinned along with the
+* `spc pubaccess ls` lists all pubfiles that the user has pinned along with the
   corresponding publinks. By default, only files in var/pubaccess/ will be
   displayed.
 

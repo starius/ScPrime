@@ -24,7 +24,7 @@ func DefaultMetadataDir() string {
 }
 
 // DefaultSkynetDir returns default data directory for miscellaneous Pubaccess data,
-// e.g. skykeys. The values for supported operating systems are:
+// e.g. pubaccesskeys. The values for supported operating systems are:
 //
 // Linux:   $HOME/.pubaccess
 // MacOS:   $HOME/Library/Application Support/Pubaccess

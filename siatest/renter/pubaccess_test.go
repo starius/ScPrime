@@ -33,7 +33,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/node/api/client"
 	"gitlab.com/scpcorp/ScPrime/siatest"
 	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
-	"gitlab.com/scpcorp/ScPrime/skykey"
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 )
 
 // TestSkynet verifies the functionality of Pubaccess, a decentralized CDN and
@@ -76,7 +76,7 @@ func TestSkynet(t *testing.T) {
 	}
 }
 
-// testSkynetBasic provides basic end-to-end testing for uploading skyfiles and
+// testSkynetBasic provides basic end-to-end testing for uploading pubfiles and
 // downloading the resulting publinks.
 func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
@@ -1941,7 +1941,7 @@ func testSkynetLargeMetadata(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetSkykey tests basic Skykey manager functionality.
+// testSkynetSkykey tests basic Pubaccesskey manager functionality.
 func testSkynetSkykey(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
@@ -1956,9 +1956,9 @@ func testSkynetSkykey(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal("Expected error", err)
 	}
 
-	// Create a testkey from a hard-coded skykey string.
+	// Create a testkey from a hard-coded pubaccesskey string.
 	testSkykeyString := "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
-	var testSkykey skykey.Skykey
+	var testSkykey pubaccesskey.Pubaccesskey
 	err = testSkykey.FromString(testSkykeyString)
 	if err != nil {
 		t.Fatal(err)
@@ -1984,7 +1984,7 @@ func testSkynetSkykey(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 	if skStr != sk2Str {
-		t.Fatal("Expected same Skykey string")
+		t.Fatal("Expected same Pubaccesskey string")
 	}
 
 	// Check byte equality and string equality.
@@ -2007,14 +2007,14 @@ func testSkynetSkykey(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 	if skStr != sk3Str {
-		t.Fatal("Expected same Skykey string")
+		t.Fatal("Expected same Pubaccesskey string")
 	}
 
-	// Test misuse of the /pubaccess/skykey endpoint using an UnsafeClient.
+	// Test misuse of the /pubaccess/pubaccesskey endpoint using an UnsafeClient.
 	uc := client.NewUnsafeClient(r.Client)
 
 	// Passing in 0 params shouild return an error.
-	baseQuery := "/pubaccess/skykey"
+	baseQuery := "/pubaccess/pubaccesskey"
 	var skykeyGet api.SkykeyGET
 	err = uc.Get(baseQuery, &skykeyGet)
 	if err == nil {
@@ -2038,7 +2038,7 @@ func testSkynetSkykey(t *testing.T, tg *siatest.TestGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if skykeyGet.Skykey != sk2Str {
+	if skykeyGet.Pubaccesskey != sk2Str {
 		t.Fatal("Expected same result from  unsafe client")
 	}
 }

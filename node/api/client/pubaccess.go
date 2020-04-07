@@ -12,7 +12,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/node/api"
-	"gitlab.com/scpcorp/ScPrime/skykey"
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -317,50 +317,50 @@ func (c *Client) SkynetStatsGet() (stats api.SkynetStatsGET, err error) {
 	return
 }
 
-// SkykeyGetByName requests the /pubaccess/skykey Get endpoint using the key name.
-func (c *Client) SkykeyGetByName(name string) (skykey.Skykey, error) {
+// SkykeyGetByName requests the /pubaccess/pubaccesskey Get endpoint using the key name.
+func (c *Client) SkykeyGetByName(name string) (pubaccesskey.Pubaccesskey, error) {
 	values := url.Values{}
 	values.Set("name", name)
-	getQuery := fmt.Sprintf("/pubaccess/skykey?%s", values.Encode())
+	getQuery := fmt.Sprintf("/pubaccess/pubaccesskey?%s", values.Encode())
 
 	var skykeyGet api.SkykeyGET
 	err := c.get(getQuery, &skykeyGet)
 	if err != nil {
-		return skykey.Skykey{}, err
+		return pubaccesskey.Pubaccesskey{}, err
 	}
 
-	var sk skykey.Skykey
-	err = sk.FromString(skykeyGet.Skykey)
+	var sk pubaccesskey.Pubaccesskey
+	err = sk.FromString(skykeyGet.Pubaccesskey)
 	if err != nil {
-		return skykey.Skykey{}, err
+		return pubaccesskey.Pubaccesskey{}, err
 	}
 
 	return sk, nil
 }
 
-// SkykeyGetByID requests the /pubaccess/skykey Get endpoint using the key ID.
-func (c *Client) SkykeyGetByID(id skykey.SkykeyID) (skykey.Skykey, error) {
+// SkykeyGetByID requests the /pubaccess/pubaccesskey Get endpoint using the key ID.
+func (c *Client) SkykeyGetByID(id pubaccesskey.SkykeyID) (pubaccesskey.Pubaccesskey, error) {
 	values := url.Values{}
 	values.Set("id", id.ToString())
-	getQuery := fmt.Sprintf("/pubaccess/skykey?%s", values.Encode())
+	getQuery := fmt.Sprintf("/pubaccess/pubaccesskey?%s", values.Encode())
 
 	var skykeyGet api.SkykeyGET
 	err := c.get(getQuery, &skykeyGet)
 	if err != nil {
-		return skykey.Skykey{}, err
+		return pubaccesskey.Pubaccesskey{}, err
 	}
 
-	var sk skykey.Skykey
-	err = sk.FromString(skykeyGet.Skykey)
+	var sk pubaccesskey.Pubaccesskey
+	err = sk.FromString(skykeyGet.Pubaccesskey)
 	if err != nil {
-		return skykey.Skykey{}, err
+		return pubaccesskey.Pubaccesskey{}, err
 	}
 
 	return sk, nil
 }
 
 // SkykeyCreateKeyPost requests the /pubaccess/createskykey POST endpoint.
-func (c *Client) SkykeyCreateKeyPost(name string, ct crypto.CipherType) (skykey.Skykey, error) {
+func (c *Client) SkykeyCreateKeyPost(name string, ct crypto.CipherType) (pubaccesskey.Pubaccesskey, error) {
 	// Set the url values.
 	values := url.Values{}
 	values.Set("name", name)
@@ -369,25 +369,25 @@ func (c *Client) SkykeyCreateKeyPost(name string, ct crypto.CipherType) (skykey.
 	var skykeyGet api.SkykeyGET
 	err := c.post("/pubaccess/createskykey", values.Encode(), &skykeyGet)
 	if err != nil {
-		return skykey.Skykey{}, errors.AddContext(err, "createskykey POST request failed")
+		return pubaccesskey.Pubaccesskey{}, errors.AddContext(err, "createskykey POST request failed")
 	}
 
-	var sk skykey.Skykey
-	err = sk.FromString(skykeyGet.Skykey)
+	var sk pubaccesskey.Pubaccesskey
+	err = sk.FromString(skykeyGet.Pubaccesskey)
 	if err != nil {
-		return skykey.Skykey{}, errors.AddContext(err, "failed to decode skykey string")
+		return pubaccesskey.Pubaccesskey{}, errors.AddContext(err, "failed to decode pubaccesskey string")
 	}
 	return sk, nil
 }
 
 // SkykeyAddKeyPost requests the /pubaccess/addskykey POST endpoint.
-func (c *Client) SkykeyAddKeyPost(sk skykey.Skykey) error {
+func (c *Client) SkykeyAddKeyPost(sk pubaccesskey.Pubaccesskey) error {
 	values := url.Values{}
 	skString, err := sk.ToString()
 	if err != nil {
-		return errors.AddContext(err, "failed to encode skykey as string")
+		return errors.AddContext(err, "failed to encode pubaccesskey as string")
 	}
-	values.Set("skykey", skString)
+	values.Set("pubaccesskey", skString)
 
 	err = c.post("/pubaccess/addskykey", values.Encode(), nil)
 	if err != nil {

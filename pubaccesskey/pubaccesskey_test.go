@@ -1,4 +1,4 @@
-package skykey
+package pubaccesskey
 
 import (
 	"bytes"
@@ -51,31 +51,31 @@ func TestSkykeyManager(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	skykey, err := keyMan.CreateKey("test_key1", cipherType)
+	pubaccesskey, err := keyMan.CreateKey("test_key1", cipherType)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Simple encoding/decoding test.
 	var buf bytes.Buffer
-	err = skykey.marshalSia(&buf)
+	err = pubaccesskey.marshalSia(&buf)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var decodedSkykey Skykey
+	var decodedSkykey Pubaccesskey
 	err = decodedSkykey.unmarshalSia(&buf)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !decodedSkykey.equals(skykey) {
-		t.Fatal("Expected decoded skykey to be the same")
+	if !decodedSkykey.equals(pubaccesskey) {
+		t.Fatal("Expected decoded pubaccesskey to be the same")
 	}
 
 	// Check duplicate name errors.
 	_, err = keyMan.CreateKey("test_key1", cipherType)
 	if !errors.Contains(err, errSkykeyNameAlreadyExists) {
-		t.Fatal("Expected skykey name to already exist", err)
+		t.Fatal("Expected pubaccesskey name to already exist", err)
 	}
 
 	// Check the correct ID is returned.
@@ -83,7 +83,7 @@ func TestSkykeyManager(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if id != skykey.ID() {
+	if id != pubaccesskey.ID() {
 		t.Fatal("Expected matching keyID")
 	}
 
@@ -108,8 +108,8 @@ func TestSkykeyManager(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if skykey2.equals(skykey) {
-		t.Fatal("Expected different skykey to be created")
+	if skykey2.equals(pubaccesskey) {
+		t.Fatal("Expected different pubaccesskey to be created")
 	}
 	if len(keyMan.keysByID) != 3 {
 		t.Fatal("Wrong number of keys", len(keyMan.keysByID))
@@ -123,7 +123,7 @@ func TestSkykeyManager(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !key1Copy.equals(skykey) {
+	if !key1Copy.equals(pubaccesskey) {
 		t.Fatal("Expected key ID to match")
 	}
 

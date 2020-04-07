@@ -53,7 +53,7 @@ Latest:
 - Expand `SiaPath` unit testing to address more edge cases.
 
 **Key Updates**
- - Introduced Pubaccess with initial feature set for portals, web portals, skyfiles,
+ - Introduced Pubaccess with initial feature set for portals, web portals, pubfiles,
    publinks, uploads, downloads, and pinning
  - Add `data-pieces` and `parity-pieces` flags to `siac renter upload`
  - Integrate SiaMux
@@ -85,7 +85,7 @@ Latest:
   pubaccess, how many files were uploaded and the combined size of said files.
 - The `siac renter setallowance` UX is considerably improved.
 - Add XChaCha20 CipherKey.
-- Add Skykey Manager.
+- Add Pubaccesskey Manager.
 - Add `siac pubaccess unpin` subcommand.
 - Extend `siac renter -v` to show breakdown of file health.
 - Add Pubaccess-Disable-Force header to allow disabling the force update feature
@@ -129,7 +129,7 @@ Latest:
 ## Feb 2020:
 ### v1.4.3
 **Key Updates**
-- Introduced Pubaccess with initial feature set for portals, web portals, skyfiles,
+- Introduced Pubaccess with initial feature set for portals, web portals, pubfiles,
   publinks, uploads, downloads, and pinning
 - Add `data-pieces` and `parity-pieces` flags to `siac renter upload`
 - Integrate SiaMux

@@ -160,11 +160,11 @@ var (
 	// SkyfileFormatNotSpecified is the default format for the endpoint when the
 	// format isn't specified explicitly.
 	SkyfileFormatNotSpecified = SkyfileFormat("")
-	// SkyfileFormatConcat returns the skyfiles in a concatenated manner.
+	// SkyfileFormatConcat returns the pubfiles in a concatenated manner.
 	SkyfileFormatConcat = SkyfileFormat("concat")
-	// SkyfileFormatTar returns the skyfiles as a .tar.
+	// SkyfileFormatTar returns the pubfiles as a .tar.
 	SkyfileFormatTar = SkyfileFormat("tar")
-	// SkyfileFormatTarGz returns the skyfiles as a .tar.gz.
+	// SkyfileFormatTarGz returns the pubfiles as a .tar.gz.
 	SkyfileFormatTarGz = SkyfileFormat("targz")
 )
 

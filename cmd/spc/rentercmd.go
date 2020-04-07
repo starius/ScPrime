@@ -306,10 +306,10 @@ available on Pubaccess if other nodes have pinned the file.`,
 
 	skynetLsCmd = &cobra.Command{
 		Use:   "ls",
-		Short: "List all skyfiles that the user has pinned.",
-		Long: `List all skyfiles that the user has pinned along with the corresponding
+		Short: "List all pubfiles that the user has pinned.",
+		Long: `List all pubfiles that the user has pinned along with the corresponding
 publinks. By default, only files in var/pubaccess/ will be displayed. The --root
-flag can be used to view skyfiles pinned in other folders.`,
+flag can be used to view pubfiles pinned in other folders.`,
 		Run: skynetlscmd,
 	}
 
@@ -2774,7 +2774,7 @@ func skynetuploadcmd(sourcePath, destSiaPath string) {
 		return nil
 	})
 	wg.Wait()
-	fmt.Printf("Successfully uploaded %d skyfiles!\n", counterUploaded)
+	fmt.Printf("Successfully uploaded %d pubfiles!\n", counterUploaded)
 }
 
 // skynetuploadfile handles the upload of a single file. It should only be

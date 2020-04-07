@@ -4440,15 +4440,15 @@ Gitrevision refers to the commit hash used to build said.
 > curl example
 
 ```go
-curl -A "Sia-Agent"  -u "":<apipassword> --data "skykey=BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a" "localhost:9980/pubaccess/addskykey"
+curl -A "Sia-Agent"  -u "":<apipassword> --data "pubaccesskey=BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a" "localhost:9980/pubaccess/addskykey"
 ```
 
-Stores the given skykey with the renter's skykey manager.
+Stores the given pubaccesskey with the renter's pubaccesskey manager.
 
 ### Path Parameters
 ### REQUIRED
-**skykey** | string  
-base-64 encoded skykey
+**pubaccesskey** | string  
+base-64 encoded pubaccesskey
 
 ### Response
 
@@ -4463,12 +4463,12 @@ responses](#standard-responses).
 curl -A "Sia-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/createskykey"
 ```
 
-Returns a new skykey created and stored under that name.
+Returns a new pubaccesskey created and stored under that name.
 
 ### Path Parameters
 ### REQUIRED
 **name** | string  
-desired name of the skykey
+desired name of the pubaccesskey
 
 ### JSON Response
 > JSON Response Example
@@ -4476,44 +4476,44 @@ desired name of the skykey
  
 ```go
 {
-  "skykey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
+  "pubaccesskey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
 }
 ```
 
-**skykey** | string  
-base-64 encoded skykey
+**pubaccesskey** | string  
+base-64 encoded pubaccesskey
 
 
-## /pubaccess/skykey [GET]
+## /pubaccess/pubaccesskey [GET]
 > curl example
 
 ```go
-curl -A "Sia-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/skykey"
-curl -A "Sia-Agent"  -u "":<apipassword> --data "id=gi5z8cf5NWbcvPBaBn0DFQ==" "localhost:9980/pubaccess/skykey"
+curl -A "Sia-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/pubaccesskey"
+curl -A "Sia-Agent"  -u "":<apipassword> --data "id=gi5z8cf5NWbcvPBaBn0DFQ==" "localhost:9980/pubaccess/pubaccesskey"
 ```
 
-Returns the base-64 encoded skykey stored under that name, or with that ID.
+Returns the base-64 encoded pubaccesskey stored under that name, or with that ID.
 
 
 ### Path Parameters
 ### REQUIRED
 **name** | string  
-name of the skykey being queried
+name of the pubaccesskey being queried
 
 or
 
 **id** | string  
-base-64 encoded ID of the skykey being queried
+base-64 encoded ID of the pubaccesskey being queried
 
 
 ### JSON Response ```json
 {
-  "skykey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
+  "pubaccesskey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
 }
 ```
 
-**skykey** | string  
-base-64 encoded skykey
+**pubaccesskey** | string  
+base-64 encoded pubaccesskey
 
 
 ## /pubaccess/skykeyid [GET]
@@ -4523,12 +4523,12 @@ base-64 encoded skykey
 curl -A "Sia-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/skykeyid"
 ```
 
-Returns the base-64 encoded ID of the skykey stored under that name.
+Returns the base-64 encoded ID of the pubaccesskey stored under that name.
 
 ### Path Parameters
 ### REQUIRED
 **name** | string  
-name of the skykey being queried
+name of the pubaccesskey being queried
 
 
 ### JSON Response
@@ -4542,7 +4542,7 @@ name of the skykey being queried
 ```
 
 **skykeyid** | string  
-base-64 encoded skykey ID
+base-64 encoded pubaccesskey ID
 
 
 
