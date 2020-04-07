@@ -38,6 +38,9 @@ var (
 	renterShowHistory         bool   // Show download history in addition to download queue.
 	renterVerbose             bool   // Show additional info about the renter
 	dataDir                   string // Path to metadata dir
+	skykeyCipherType          string // CipherType used to create a Skykey.
+	skykeyName                string // Name used to identify a Skykey.
+	skykeyID                  string // ID used to identify a Skykey.
 	skynetBlacklistRemove     bool   // Remove a skylink from the Skynet Blacklist.
 	skynetUnpinRoot           bool   // Use root as the base instead of the Skynet folder.
 	skynetDownloadPortal      string // Portal to use when trying to download a skylink.
@@ -309,6 +312,12 @@ func main() {
 	skynetLsCmd.Flags().BoolVar(&skynetLsRoot, "root", false, "Use the root folder as the base instead of the Skynet folder")
 	skynetBlacklistCmd.Flags().BoolVar(&skynetBlacklistRemove, "remove", false, "Remove the skylink from the blacklist")
 
+	root.AddCommand(skykeyCmd)
+	skykeyCmd.AddCommand(skykeyCreateCmd, skykeyAddCmd, skykeyGetCmd, skykeyGetIDCmd)
+	skykeyCreateCmd.Flags().StringVar(&skykeyCipherType, "cipher-type", "XChaCha20", "The cipher type of the skykey")
+	skykeyGetCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the skykey")
+	skykeyGetCmd.Flags().StringVar(&skykeyID, "id", "", "The base-64 encoded skykey ID")
+
 	root.AddCommand(stratumminerCmd)
 	stratumminerCmd.AddCommand(stratumminerStartCmd, stratumminerStopCmd)
 
@@ -346,7 +355,7 @@ func main() {
 	root.Flags().BoolVarP(&statusVerbose, "verbose", "v", false, "Display additional siac information")
 	root.PersistentFlags().StringVarP(&httpClient.Address, "addr", "a", "localhost:4280", "which host/port to communicate with (i.e. the host/port spd is listening on)")
 	root.PersistentFlags().StringVarP(&httpClient.Password, "apipassword", "", "", "the password for the API's http authentication")
-	root.PersistentFlags().StringVarP(&dataDir, "scprime-directory", "d", build.DefaultSiaDir(), "location of the metadata directory")
+	root.PersistentFlags().StringVarP(&dataDir, "scprime-directory", "d", build.DefaultMetadataDir(), "location of the metadata directory")
 	root.PersistentFlags().StringVarP(&httpClient.UserAgent, "useragent", "", "ScPrime-Agent", "the useragent used by spc to connect to the daemon's API")
 
 	// Check if the api password environment variable is set.
@@ -362,13 +371,13 @@ func main() {
 		if dataDir != "" {
 			fmt.Println("Using SCPRIME_DATA_DIR environment variable")
 		} else {
-			dataDir = build.DefaultSiaDir()
+			dataDir = build.DefaultMetadataDir()
 		}
 	}
 
 	// If the API password wasn't set we try to read it from the file. This must
-	// be done only *after* we parse the sia-directory flag, which is why we do
-	// it inside OnInitialize.
+	// be done only *after* we parse the scprime-directory flag, which is why we
+	// do it inside OnInitialize.
 	cobra.OnInitialize(func() {
 		if httpClient.Password == "" {
 			pw, err := ioutil.ReadFile(build.APIPasswordFile(dataDir))

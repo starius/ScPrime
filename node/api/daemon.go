@@ -22,11 +22,7 @@ import (
 	"github.com/inconshreveable/go-update"
 	"github.com/julienschmidt/httprouter"
 
-	//"github.com/kardianos/osext"
 	"gitlab.com/NebulousLabs/errors"
-	//"golang.org/x/crypto/openpgp"
-	//"golang.org/x/crypto/openpgp/clearsign"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"

@@ -57,7 +57,7 @@ Usage
 This release comes with 2 binaries, `spd` and `spc`. `spd` is a background
 service, or "daemon," that runs the SiaPrime protocol and exposes an HTTP API on
 port 4280. `spc` is a command-line client that can be used to interact with
-`spd` in a user-friendly way. There is also a graphical client, [SiaPrime-UI](https://gitlab.com/scpcorp/ScPrime-UI), 
+`spd` in a user-friendly way. There is also a graphical client, [SiaPrime-UI](https://gitlab.com/scpcorp/ScPrime-UI),
 which is the preferred way of using SiaPrime for most users. For interested 
 developers, the `spd` API is documented [here](doc/API.md).
 

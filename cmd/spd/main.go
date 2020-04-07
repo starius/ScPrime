@@ -205,6 +205,16 @@ func main() {
 		globalConfig.Spd.DataDir = os.Getenv(cmd.SiaDataDir)
 		if globalConfig.Spd.DataDir != "" {
 			fmt.Printf("Using %v environment variable\n", cmd.SiaDataDir)
+		} else {
+			// Metadata directory not specified
+			// check for presence and look for the old default if not found
+			needMigrate := !dirExists(build.DefaultMetadataDir()) && dirExists(defaultSiaPrimeDir())
+			if needMigrate {
+				if err := migrateDataDir(); err != nil {
+					fmt.Printf("Error migrating default metadata directory: %v\n", err)
+					os.Exit(exitCodeGeneral)
+				}
+			}
 		}
 	}
 

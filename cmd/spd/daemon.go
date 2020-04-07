@@ -249,8 +249,11 @@ func startDaemon(config Config) (err error) {
 		return errors.AddContext(err, "failed to parse input parameter")
 	}
 
+	// Check for Metadata directory presence and try to migrate if it does not
+	// exist before continuing with anything else
+
 	// Load API password.
-	config, err = loadAPIPassword(config, build.DefaultSiaDir())
+	config, err = loadAPIPassword(config, build.DefaultMetadataDir())
 	if err != nil {
 		return errors.AddContext(err, "failed to get API password")
 	}
