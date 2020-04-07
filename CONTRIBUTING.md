@@ -123,11 +123,10 @@ $ git checkout -b <branch>
 ```
 Now write some code while the new branch is checked out.
 
-Only implement one logical change per branch. If you're working on several 
-things at once, make multiple branches. To switch between branches you're 
-working on, you have to stash the changes in the branch you're switching from 
-by running `git stash`, which tucks away all changes since the last 
-commit.
+Only implement one logical change per branch. If you're working on several
+things at once, make multiple branches. To switch between branches you're
+working on, you have to stash the changes in the branch you're switching from by
+running `git stash`, which tucks away all changes since the last commit.
 
 ```bash
 # Stash changes to current branch.
@@ -146,10 +145,9 @@ $ git stash list
 $ git stash pop <hash>
 ```
 
-To learn more about branching, see 
-[Using the Fork-and-Branch Git Workflow][branch] and 
-[Pro Git - Branches in a Nutshell][nutshell].
-For more on stashing, see [Pro Git - Stashing and Cleaning][stashing].
+To learn more about branching, see [Using the Fork-and-Branch Git
+Workflow][branch] and [Pro Git - Branches in a Nutshell][nutshell]. For more on
+stashing, see [Pro Git - Stashing and Cleaning][stashing].
   
 Be sure to follow the conventions detailed in 
 [docs/Developers.md][developers.md].  We will reject merge requests that do not 
@@ -193,17 +191,17 @@ outlined in our [Developers][developers.md] document.
 
 If you want to tweak code for which you've already submitted a pull request,
 push the updated code to your fork with `git push -f <fork remote> <branch>` and
-summarize the changes you've made in a comment on the pull request page on 
+summarize the changes you've made in a comment on the merge request page on
 GitLab.
 
-Once we have accepted your changes and merged them into the original repo, you 
+Once we have accepted your changes and merged them into the original repo, you
 have some cleanup to do:
 
 ```bash
 # Update local master branch to reflect changes in origin (the original 
 # repo).
 $ git pull origin master
-# Delete the branch you made the pull request from.
+# Delete the branch you made the merge request from.
 $ git branch -d <branch>
 # Delete the remote branch on your fork.
 $ git push <fork remote> :<branch>

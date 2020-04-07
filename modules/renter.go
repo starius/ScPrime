@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/skykey"
 	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
@@ -933,6 +934,24 @@ type Renter interface {
 
 	// DirList lists the directories in a siadir
 	DirList(siaPath SiaPath) ([]DirectoryInfo, error)
+
+	// AddSkykey adds the skykey to the renter's skykey manager.
+	AddSkykey(skykey.Skykey) error
+
+	// CreateSkykey creates a new Skykey with the given name and ciphertype.
+	CreateSkykey(string, crypto.CipherType) (skykey.Skykey, error)
+
+	// SkykeyByName gets the Skykey with the given name from the renter's skykey
+	// manager if it exists.
+	SkykeyByName(string) (skykey.Skykey, error)
+
+	// SkykeyByID gets the Skykey with the given ID from the renter's skykey
+	// manager if it exists.
+	SkykeyByID(skykey.SkykeyID) (skykey.Skykey, error)
+
+	// SkykeyIDByName gets the SkykeyID of the key with the given name if it
+	// exists.
+	SkykeyIDByName(string) (skykey.SkykeyID, error)
 
 	// CreateSkylinkFromSiafile will create a skylink from a siafile. This will
 	// result in some uploading - the base sector skyfile needs to be uploaded

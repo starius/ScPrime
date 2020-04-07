@@ -11,8 +11,10 @@ require (
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/klauspost/reedsolomon v1.9.3
+	github.com/mitchellh/mapstructure v1.2.2 // indirect
+	github.com/pelletier/go-toml v1.7.0 // indirect
 	github.com/sasha-s/go-deadlock v0.2.0
-	github.com/spf13/cobra v0.0.5
+	github.com/spf13/cobra v0.0.7
 	github.com/spf13/viper v1.6.2
 	github.com/xtaci/smux v1.5.12
 	gitlab.com/NebulousLabs/demotemutex v0.0.0-20151003192217-235395f71c40
@@ -27,11 +29,10 @@ require (
 	gitlab.com/scpcorp/siamux v0.0.0-20200326160319-adac4a7d7a74
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200401142414-c5d81e8a45b6
 	go.etcd.io/bbolt v1.3.3
-	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
+	golang.org/x/crypto v0.0.0-20200406173513-056763e48d71
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
-	golang.org/x/sys v0.0.0-20200331124033-c3d80250170d // indirect
+	golang.org/x/sys v0.0.0-20200406155108-e3b113bbe6a4 // indirect
 	golang.org/x/tools v0.0.0-20200331202046-9d5940d49312
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/ini.v1 v1.55.0 // indirect
-	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
