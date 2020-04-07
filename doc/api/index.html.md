@@ -4203,13 +4203,13 @@ the given publink. These headers are identical to the ones that would be
 returned if the request had been a GET request.
 
 ### Path Parameters
-See [/pubaccess/publink/publink](#skynetpublinkpublink-get)
+See [/pubaccess/publink/publink](#pubaccesspublinkpublink-get)
 
 ### Query String Parameters
-See [/pubaccess/publink/publink](#skynetpublinkpublink-get)
+See [/pubaccess/publink/publink](#pubaccesspublinkpublink-get)
 
 ### Response Header
-See [/pubaccess/publink/publink](#skynetpublinkpublink-get)
+See [/pubaccess/publink/publink](#pubaccesspublinkpublink-get)
 
 ### Response Body
 

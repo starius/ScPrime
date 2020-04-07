@@ -36,9 +36,9 @@ import (
 	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 )
 
-// TestSkynet verifies the functionality of Pubaccess, a decentralized CDN and
+// TestPubAccess verifies the functionality of Pubaccess, a decentralized CDN and
 // sharing platform.
-func TestSkynet(t *testing.T) {
+func TestPubAccess(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -54,20 +54,20 @@ func TestSkynet(t *testing.T) {
 
 	// Specify subtests to run
 	subTests := []siatest.SubTest{
-		{Name: "TestSkynetBasic", Test: testSkynetBasic},
-		{Name: "TestSkynetSkykey", Test: testSkynetSkykey},
-		{Name: "TestSkynetLargeMetadata", Test: testSkynetLargeMetadata},
-		{Name: "TestSkynetMultipartUpload", Test: testSkynetMultipartUpload},
-		{Name: "TestSkynetNoFilename", Test: testSkynetNoFilename},
-		{Name: "TestSkynetSubDirDownload", Test: testSkynetSubDirDownload},
-		{Name: "TestSkynetDisableForce", Test: testSkynetDisableForce},
-		{Name: "TestSkynetBlacklist", Test: testSkynetBlacklist},
-		{Name: "TestSkynetHeadRequest", Test: testSkynetHeadRequest},
-		{Name: "TestSkynetStats", Test: testSkynetStats},
-		{Name: "TestSkynetRequestTimeout", Test: testSkynetRequestTimeout},
-		{Name: "TestSkynetDryRunUpload", Test: testSkynetDryRunUpload},
+		{Name: "TestPubAccessBasic", Test: testPubaccessBasic},
+		{Name: "TestPubAccessSkykey", Test: testPubaccessSkykey},
+		{Name: "TestPubAccessLargeMetadata", Test: testPubaccessLargeMetadata},
+		{Name: "TestPubAccessMultipartUpload", Test: testPubaccessMultipartUpload},
+		{Name: "TestPubAccessNoFilename", Test: testPubaccessNoFilename},
+		{Name: "TestPubAccessSubDirDownload", Test: testPubaccessSubDirDownload},
+		{Name: "TestPubAccessDisableForce", Test: testPubaccessDisableForce},
+		{Name: "TestPubAccessBlacklist", Test: testPubaccessBlacklist},
+		{Name: "TestPubAccessHeadRequest", Test: testPubaccessHeadRequest},
+		{Name: "TestPubAccessStats", Test: testPubaccessStats},
+		{Name: "TestPubAccessRequestTimeout", Test: testPubaccessRequestTimeout},
+		{Name: "TestPubAccessDryRunUpload", Test: testPubaccessDryRunUpload},
 		{Name: "TestRegressionTimeoutPanic", Test: testRegressionTimeoutPanic},
-		{Name: "TestSkynetNoWorkers", Test: testSkynetNoWorkers},
+		{Name: "TestPubAccessNoWorkers", Test: testPubaccessNoWorkers},
 	}
 
 	// Run tests
@@ -76,9 +76,9 @@ func TestSkynet(t *testing.T) {
 	}
 }
 
-// testSkynetBasic provides basic end-to-end testing for uploading pubfiles and
+// testPubaccessBasic provides basic end-to-end testing for uploading pubfiles and
 // downloading the resulting publinks.
-func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
+func testPubaccessBasic(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	// Create some data to upload as a pubfile.
@@ -582,11 +582,11 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	// easier way.
 }
 
-// testSkynetMultipartUpload tests you can perform a multipart upload. It will
+// testPubaccessMultipartUpload tests you can perform a multipart upload. It will
 // verify the upload without any subfiles, with small subfiles and with large
 // subfiles. Small files are files which are smaller than one sector, and thus
 // don't need a fanout. Large files are files what span multiple sectors
-func testSkynetMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
+func testPubaccessMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	// create a multipart upload that without any files
@@ -778,10 +778,10 @@ func testSkynetMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetStats tests the validity of the response of /pubaccess/stats endpoint
+// testPubaccessStats tests the validity of the response of /pubaccess/stats endpoint
 // by uploading some test files and verifying that the reported statistics
 // change proportionally
-func testSkynetStats(t *testing.T, tg *siatest.TestGroup) {
+func testPubaccessStats(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	// get the stats
@@ -858,9 +858,9 @@ func testSkynetStats(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// TestSkynetNoFilename verifies that posting a Pubfile without providing a
+// TestPubAccessNoFilename verifies that posting a Pubfile without providing a
 // filename fails.
-func testSkynetNoFilename(t *testing.T, tg *siatest.TestGroup) {
+func testPubaccessNoFilename(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	// Create some data to upload as a pubfile.
@@ -971,8 +971,8 @@ func testSkynetNoFilename(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetSubDirDownload verifies downloading data from a pubfile using a path to download single subfiles or subdirectories
-func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
+// testPubaccessSubDirDownload verifies downloading data from a pubfile using a path to download single subfiles or subdirectories
+func testPubaccessSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	body := new(bytes.Buffer)
@@ -993,7 +993,7 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	}
 	reader := bytes.NewReader(body.Bytes())
 
-	uploadSiaPath, err := modules.NewSiaPath("testSkynetSubfileDownload")
+	uploadSiaPath, err := modules.NewSiaPath("testPubaccessSubfileDownload")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1005,7 +1005,7 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 		BaseChunkRedundancy: 2,
 		Reader:              reader,
 		ContentType:         writer.FormDataContentType(),
-		Filename:            "testSkynetSubfileDownload",
+		Filename:            "testPubaccessSubfileDownload",
 	}
 
 	publink, _, err := r.SkynetSkyfileMultiPartPost(mup)
@@ -1302,9 +1302,9 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetDisableForce verifies the behavior of force and the header that
+// testPubaccessDisableForce verifies the behavior of force and the header that
 // allows disabling forcefully uploading a Pubfile
-func testSkynetDisableForce(t *testing.T, tg *siatest.TestGroup) {
+func testPubaccessDisableForce(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	// Create some data to upload.
@@ -1381,8 +1381,8 @@ func testSkynetDisableForce(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetBlacklist tests the pubaccess blacklist module
-func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
+// testPubaccessBlacklist tests the pubaccess blacklist module
+func testPubaccessBlacklist(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	// Create pubfile upload params, data should be larger than a sector size to
@@ -1542,9 +1542,9 @@ func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetHeadRequest verifies the functionality of sending a HEAD request to
+// testPubaccessHeadRequest verifies the functionality of sending a HEAD request to
 // the publink GET route.
-func testSkynetHeadRequest(t *testing.T, tg *siatest.TestGroup) {
+func testPubaccessHeadRequest(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	// Upload a pubfile
@@ -1557,7 +1557,7 @@ func testSkynetHeadRequest(t *testing.T, tg *siatest.TestGroup) {
 		SiaPath:             uploadSiaPath,
 		BaseChunkRedundancy: 2,
 		FileMetadata: modules.SkyfileMetadata{
-			Filename: "TestSkynetHeadRequest",
+			Filename: "TestPubAccessHeadRequest",
 			Mode:     0640,
 		},
 		Reader: reader,
@@ -1620,7 +1620,7 @@ func testSkynetHeadRequest(t *testing.T, tg *siatest.TestGroup) {
 	if strContentDisposition == "" {
 		t.Fatal("Expected 'Content-Disposition' response header to be present")
 	}
-	if strContentDisposition != "inline; filename=\"TestSkynetHeadRequest\"" {
+	if strContentDisposition != "inline; filename=\"TestPubAccessHeadRequest\"" {
 		t.Fatal("Unexpected 'Content-Disposition' header")
 	}
 
@@ -1637,9 +1637,9 @@ func testSkynetHeadRequest(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetNoWorkers verifies that SkynetPublinkGet returns an error and does
+// testPubaccessNoWorkers verifies that SkynetPublinkGet returns an error and does
 // not deadlock if there are no workers.
-func testSkynetNoWorkers(t *testing.T, tg *siatest.TestGroup) {
+func testPubaccessNoWorkers(t *testing.T, tg *siatest.TestGroup) {
 	// Create renter, skip setting the allowance so that we can ensure there are
 	// no contracts created and therefore no workers in the worker pool
 	testDir := renterTestDir(t.Name())
@@ -1663,8 +1663,8 @@ func testSkynetNoWorkers(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetDryRunUpload verifies the --dry-run flag when uploading a Pubfile.
-func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
+// testPubaccessDryRunUpload verifies the --dry-run flag when uploading a Pubfile.
+func testPubaccessDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 	siaPath, err := modules.NewSiaPath(t.Name())
 	if err != nil {
@@ -1678,7 +1678,7 @@ func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 		SiaPath:             siaPath,
 		BaseChunkRedundancy: 2,
 		FileMetadata: modules.SkyfileMetadata{
-			Filename: "testSkynetDryRun",
+			Filename: "testPubaccessDryRun",
 			Mode:     0640,
 		},
 	})
@@ -1691,7 +1691,7 @@ func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 		SiaPath:             siaPath,
 		BaseChunkRedundancy: 2,
 		FileMetadata: modules.SkyfileMetadata{
-			Filename: "testSkynetDryRun",
+			Filename: "testPubaccessDryRun",
 			Mode:     0640,
 		},
 		Force:  true,
@@ -1750,7 +1750,7 @@ func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 		SiaPath:             uploadSiaPath,
 		BaseChunkRedundancy: 2,
 		FileMetadata: modules.SkyfileMetadata{
-			Filename: "testSkynetDryRunUploadSmall",
+			Filename: "testPubaccessDryRunUploadSmall",
 			Mode:     0640,
 		},
 	}, 100)
@@ -1764,15 +1764,15 @@ func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 		SiaPath:             uploadSiaPath,
 		BaseChunkRedundancy: 2,
 		FileMetadata: modules.SkyfileMetadata{
-			Filename: "testSkynetDryRunUploadLarge",
+			Filename: "testPubaccessDryRunUploadLarge",
 			Mode:     0640,
 		},
 	}, int(modules.SectorSize*2)+siatest.Fuzz())
 }
 
-// testSkynetRequestTimeout verifies that the Publink routes timeout when a
+// testPubaccessRequestTimeout verifies that the Publink routes timeout when a
 // timeout query string parameter has been passed.
-func testSkynetRequestTimeout(t *testing.T, tg *siatest.TestGroup) {
+func testPubaccessRequestTimeout(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	reader := bytes.NewReader(fastrand.Bytes(100))
@@ -1784,7 +1784,7 @@ func testSkynetRequestTimeout(t *testing.T, tg *siatest.TestGroup) {
 		SiaPath:             uploadSiaPath,
 		BaseChunkRedundancy: 2,
 		FileMetadata: modules.SkyfileMetadata{
-			Filename: "testSkynetRequestTimeout",
+			Filename: "testPubaccessRequestTimeout",
 			Mode:     0640,
 		},
 		Reader: reader,
@@ -1907,8 +1907,8 @@ func testRegressionTimeoutPanic(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetLargeMetadata makes sure that
-func testSkynetLargeMetadata(t *testing.T, tg *siatest.TestGroup) {
+// testPubaccessLargeMetadata makes sure that
+func testPubaccessLargeMetadata(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	// Create some data to upload as a pubfile.
@@ -1941,8 +1941,8 @@ func testSkynetLargeMetadata(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetSkykey tests basic Pubaccesskey manager functionality.
-func testSkynetSkykey(t *testing.T, tg *siatest.TestGroup) {
+// testPubaccessSkykey tests basic Pubaccesskey manager functionality.
+func testPubaccessSkykey(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	sk, err := r.SkykeyCreateKeyPost("testkey1", crypto.TypeXChaCha20)
