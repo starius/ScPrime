@@ -1,1 +1,1 @@
-- Fix panic when metadata of skyfile upload exceeds modules.SectorSize
+- Fix panic when metadata of pubfile upload exceeds modules.SectorSize

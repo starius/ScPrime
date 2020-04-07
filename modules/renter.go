@@ -954,7 +954,7 @@ type Renter interface {
 	SkykeyIDByName(string) (skykey.SkykeyID, error)
 
 	// CreateSkylinkFromSiafile will create a skylink from a siafile. This will
-	// result in some uploading - the base sector skyfile needs to be uploaded
+	// result in some uploading - the base sector pubfile needs to be uploaded
 	// separately, and if there is a fanout expansion that needs to be uploaded
 	// separately as well.
 	CreateSkylinkFromSiafile(SkyfileUploadParameters, SiaPath) (Skylink, error)
@@ -963,11 +963,11 @@ type Renter interface {
 	DownloadSkylink(Skylink, time.Duration) (SkyfileMetadata, Streamer, error)
 
 	// UploadSkyfile will upload data to the Sia network from a reader and
-	// create a skyfile, returning the skylink that can be used to access the
+	// create a pubfile, returning the skylink that can be used to access the
 	// file.
 	//
-	// NOTE: A skyfile is a file that is tracked and repaired by the renter.  A
-	// skyfile contains more than just the file data, it also contains metadata
+	// NOTE: A pubfile is a file that is tracked and repaired by the renter.  A
+	// pubfile contains more than just the file data, it also contains metadata
 	// about the file and other information which is useful in fetching the
 	// file.
 	UploadSkyfile(SkyfileUploadParameters) (Skylink, error)

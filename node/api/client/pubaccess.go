@@ -44,14 +44,14 @@ func (c *Client) SkynetSkylinkGetWithTimeout(skylink string, timeout int) ([]byt
 	if strMetadata != "" {
 		err = json.Unmarshal([]byte(strMetadata), &sm)
 		if err != nil {
-			return nil, modules.SkyfileMetadata{}, errors.AddContext(err, "unable to unmarshal skyfile metadata")
+			return nil, modules.SkyfileMetadata{}, errors.AddContext(err, "unable to unmarshal pubfile metadata")
 		}
 	}
 	return fileData, sm, errors.AddContext(err, "unable to fetch skylink data")
 }
 
 // SkynetSkylinkHead uses the /pubaccess/skylink endpoint to get the headers that
-// are returned if the skyfile were to be requested using the SkynetSkylinkGet
+// are returned if the pubfile were to be requested using the SkynetSkylinkGet
 // method.
 func (c *Client) SkynetSkylinkHead(skylink string, timeout int) (int, http.Header, error) {
 	getQuery := fmt.Sprintf("/pubaccess/skylink/%s?timeout=%d", skylink, timeout)
@@ -83,7 +83,7 @@ func (c *Client) SkynetSkylinkConcatGet(skylink string) ([]byte, modules.Skyfile
 	if strMetadata != "" {
 		err = json.Unmarshal([]byte(strMetadata), &sm)
 		if err != nil {
-			return nil, modules.SkyfileMetadata{}, errors.AddContext(err, "unable to unmarshal skyfile metadata")
+			return nil, modules.SkyfileMetadata{}, errors.AddContext(err, "unable to unmarshal pubfile metadata")
 		}
 	}
 	return fileData, sm, errors.AddContext(err, "unable to fetch skylink data")
@@ -155,7 +155,7 @@ func (c *Client) SkynetSkylinkPinPostWithTimeout(skylink string, params modules.
 	return nil
 }
 
-// SkynetSkyfilePost uses the /pubaccess/skyfile endpoint to upload a skyfile.  The
+// SkynetSkyfilePost uses the /pubaccess/pubfile endpoint to upload a pubfile.  The
 // resulting skylink is returned along with an error.
 func (c *Client) SkynetSkyfilePost(params modules.SkyfileUploadParameters) (string, api.SkynetSkyfileHandlerPOST, error) {
 	// Set the url values.
@@ -173,7 +173,7 @@ func (c *Client) SkynetSkyfilePost(params modules.SkyfileUploadParameters) (stri
 	values.Set("root", rootStr)
 
 	// Make the call to upload the file.
-	query := fmt.Sprintf("/pubaccess/skyfile/%s?%s", params.SiaPath.String(), values.Encode())
+	query := fmt.Sprintf("/pubaccess/pubfile/%s?%s", params.SiaPath.String(), values.Encode())
 	_, resp, err := c.postRawResponse(query, params.Reader)
 	if err != nil {
 		return "", api.SkynetSkyfileHandlerPOST{}, errors.AddContext(err, "post call to "+query+" failed")
@@ -188,8 +188,8 @@ func (c *Client) SkynetSkyfilePost(params modules.SkyfileUploadParameters) (stri
 	return rshp.Skylink, rshp, err
 }
 
-// SkynetSkyfilePostDisableForce uses the /pubaccess/skyfile endpoint to upload a
-// skyfile. This method allows to set the Disable-Force header. The resulting
+// SkynetSkyfilePostDisableForce uses the /pubaccess/pubfile endpoint to upload a
+// pubfile. This method allows to set the Disable-Force header. The resulting
 // skylink is returned along with an error.
 func (c *Client) SkynetSkyfilePostDisableForce(params modules.SkyfileUploadParameters, disableForce bool) (string, api.SkynetSkyfileHandlerPOST, error) {
 	// Set the url values.
@@ -211,7 +211,7 @@ func (c *Client) SkynetSkyfilePostDisableForce(params modules.SkyfileUploadParam
 	}
 
 	// Make the call to upload the file.
-	query := fmt.Sprintf("/pubaccess/skyfile/%s?%s", params.SiaPath.String(), values.Encode())
+	query := fmt.Sprintf("/pubaccess/pubfile/%s?%s", params.SiaPath.String(), values.Encode())
 	_, resp, err := c.postRawResponseWithHeaders(query, params.Reader, headers)
 	if err != nil {
 		return "", api.SkynetSkyfileHandlerPOST{}, errors.AddContext(err, "post call to "+query+" failed")
@@ -226,8 +226,8 @@ func (c *Client) SkynetSkyfilePostDisableForce(params modules.SkyfileUploadParam
 	return rshp.Skylink, rshp, err
 }
 
-// SkynetSkyfileMultiPartPost uses the /pubaccess/skyfile endpoint to upload a
-// skyfile using multipart form data.  The resulting skylink is returned along
+// SkynetSkyfileMultiPartPost uses the /pubaccess/pubfile endpoint to upload a
+// pubfile using multipart form data.  The resulting skylink is returned along
 // with an error.
 func (c *Client) SkynetSkyfileMultiPartPost(params modules.SkyfileMultipartUploadParameters) (string, api.SkynetSkyfileHandlerPOST, error) {
 	// Set the url values.
@@ -241,7 +241,7 @@ func (c *Client) SkynetSkyfileMultiPartPost(params modules.SkyfileMultipartUploa
 	values.Set("root", rootStr)
 
 	// Make the call to upload the file.
-	query := fmt.Sprintf("/pubaccess/skyfile/%s?%s", params.SiaPath.String(), values.Encode())
+	query := fmt.Sprintf("/pubaccess/pubfile/%s?%s", params.SiaPath.String(), values.Encode())
 
 	headers := map[string]string{"Content-Type": params.ContentType}
 	_, resp, err := c.postRawResponseWithHeaders(query, params.Reader, headers)
@@ -258,11 +258,11 @@ func (c *Client) SkynetSkyfileMultiPartPost(params modules.SkyfileMultipartUploa
 	return rshp.Skylink, rshp, err
 }
 
-// SkynetConvertSiafileToSkyfilePost uses the /pubaccess/skyfile endpoint to
-// convert an existing siafile to a skyfile. The input SiaPath 'convert' is the
+// SkynetConvertSiafileToSkyfilePost uses the /pubaccess/pubfile endpoint to
+// convert an existing siafile to a pubfile. The input SiaPath 'convert' is the
 // siapath of the siafile that should be converted. The siapath provided inside
 // of the upload params is the name that will be used for the base sector of the
-// skyfile.
+// pubfile.
 func (c *Client) SkynetConvertSiafileToSkyfilePost(lup modules.SkyfileUploadParameters, convert modules.SiaPath) (string, error) {
 	// Set the url values.
 	values := url.Values{}
@@ -276,7 +276,7 @@ func (c *Client) SkynetConvertSiafileToSkyfilePost(lup modules.SkyfileUploadPara
 	values.Set("convertpath", convert.String())
 
 	// Make the call to upload the file.
-	query := fmt.Sprintf("/pubaccess/skyfile/%s?%s", lup.SiaPath.String(), values.Encode())
+	query := fmt.Sprintf("/pubaccess/pubfile/%s?%s", lup.SiaPath.String(), values.Encode())
 	_, resp, err := c.postRawResponse(query, lup.Reader)
 	if err != nil {
 		return "", errors.AddContext(err, "post call to "+query+" failed")

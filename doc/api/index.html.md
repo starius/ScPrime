@@ -4258,7 +4258,7 @@ returned. Currently we only support 'concat', which will return the concatenated
 data of all subfiles in that directory.
 
 **timeout** | int  
-If 'timeout' is set, the download will fail if the Skyfile can not be retrieved 
+If 'timeout' is set, the download will fail if the Pubfile can not be retrieved 
 before it expires. Note that this timeout does not cover the actual download 
 time, but rather covers the TTFB. Timeout is specified in seconds, a timeout 
 value of 0 will be ignored. If no timeout is given, the default will be used,
@@ -4294,14 +4294,14 @@ supplied, this metadata will be relative to the given path.
 
 The response body is the raw data for the file.
 
-## /pubaccess/skyfile/*siapath* [POST]
+## /pubaccess/pubfile/*siapath* [POST]
 > curl example  
 
 ```go
 // This command uploads the file 'myImage.png' to the Sia folder
 // 'var/pubaccess/images/myImage.png'. Users who download the file will see the name
 // 'image.png'.
-curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:9980/pubaccess/skyfile/images/myImage.png?filename=image.png" --data-binary @myImage.png
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:9980/pubaccess/pubfile/images/myImage.png?filename=image.png" --data-binary @myImage.png
 ```
 
 uploads a file to the network using a stream. If the upload stream POST call
@@ -4314,7 +4314,7 @@ subsequent call to the upload stream endpoint using the `repair` flag.
 Location where the file will reside in the renter on the network. The path must
 be non-empty, may not include any path traversal strings ("./", "../"), and may
 not begin with a forward-slash character. If the 'root' flag is not set, the
-path will be prefixed with 'var/pubaccess/', placing the skyfile into the Sia
+path will be prefixed with 'var/pubaccess/', placing the pubfile into the Sia
 system's default pubaccess folder.
 
 ### Query String Parameters
@@ -4325,12 +4325,12 @@ the first chunk of the file, and is always uploaded using 1-of-N redundancy.
 
 **convertpath** string  
 The siapath of an existing siafile that should be converted to a skylink. A new
-skyfile will be created. Both the new skyfile and the existing siafile are
+pubfile will be created. Both the new pubfile and the existing siafile are
 required to be maintained on the network in order for the skylink to remain
 active. This field is mutually exclusive with uploading streaming.
 
 **filename** | string  
-The name of the file. This name will be encoded into the skyfile metadata, and
+The name of the file. This name will be encoded into the pubfile metadata, and
 will be a part of the skylink. If the name changes, the skylink will change as
 well.
 

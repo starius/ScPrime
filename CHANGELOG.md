@@ -30,8 +30,8 @@ Latest:
 - Fix potential channel double closed panic in DownloadByRootProject 
 - Fix divide by zero panic in `renterFileHealthSummary` for `siac renter -v`
 - Fix negative currency panic in `siac renter contracts view`
-- Fix panic when metadata of skyfile upload exceeds modules.SectorSize
-- Fix curl example for `/pubaccess/skyfile/` post
+- Fix panic when metadata of pubfile upload exceeds modules.SectorSize
+- Fix curl example for `/pubaccess/pubfile/` post
 - Don't delete hosts the renter has a contract with from hostdb 
 - Initiate a hostdb rescan on startup if a host the renter has a contract with isn't in the host tree 
 - Increase max host downtime in hostbd from 10 days to 20 days.
@@ -80,7 +80,7 @@ Latest:
   uploaded individually and result in separate skylinks.
 - No user-agent needed for Skylink downloads.
 - Add `go get` command to `make dependencies`.
-- Add flags for tag and targz for skyfile streaming.
+- Add flags for tag and targz for pubfile streaming.
 - Add new endpoint `/pubaccess/stats` that provides statistical information about
   pubaccess, how many files were uploaded and the combined size of said files.
 - The `siac renter setallowance` UX is considerably improved.

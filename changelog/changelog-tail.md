@@ -16,7 +16,7 @@
   uploaded individually and result in separate skylinks.
 - No user-agent needed for Skylink downloads.
 - Add `go get` command to `make dependencies`.
-- Add flags for tag and targz for skyfile streaming.
+- Add flags for tag and targz for pubfile streaming.
 - Add new endpoint `/pubaccess/stats` that provides statistical information about
   pubaccess, how many files were uploaded and the combined size of said files.
 - The `siac renter setallowance` UX is considerably improved.

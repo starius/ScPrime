@@ -81,11 +81,11 @@ func TestSkynet(t *testing.T) {
 func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Create some data to upload as a skyfile.
+	// Create some data to upload as a pubfile.
 	data := fastrand.Bytes(100 + siatest.Fuzz())
 	// Need it to be a reader.
 	reader := bytes.NewReader(data)
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	filename := "testSmall"
 	uploadSiaPath, err := modules.NewSiaPath("testSmallPath")
 	if err != nil {
@@ -293,11 +293,11 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal("expecting a file to be in the SkynetFolder after uploading")
 	}
 
-	// Create some data to upload as a skyfile.
+	// Create some data to upload as a pubfile.
 	rootData := fastrand.Bytes(100 + siatest.Fuzz())
 	// Need it to be a reader.
 	rootReader := bytes.NewReader(rootData)
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	rootFilename := "rootTestSmall"
 	rootUploadSiaPath, err := modules.NewSiaPath("rootTestSmallPath")
 	if err != nil {
@@ -349,7 +349,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Upload another skyfile, this time ensure that the skyfile is more than
+	// Upload another pubfile, this time ensure that the pubfile is more than
 	// one sector.
 	largeData := fastrand.Bytes(int(modules.SectorSize*2) + siatest.Fuzz())
 	largeReader := bytes.NewReader(largeData)
@@ -464,7 +464,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	// Make sure the file is no longer present.
 	_, err = r.RenterFileRootGet(fullPinSiaPath)
 	if !strings.Contains(err.Error(), filesystem.ErrNotExist.Error()) {
-		t.Fatal("skyfile still present after deletion")
+		t.Fatal("pubfile still present after deletion")
 	}
 
 	// Try another pin test, this time with the large skylink.
@@ -520,7 +520,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	// Make sure the file is no longer present.
 	_, err = r.RenterFileRootGet(fullLargePinSiaPath)
 	if !strings.Contains(err.Error(), filesystem.ErrNotExist.Error()) {
-		t.Fatal("skyfile still present after deletion")
+		t.Fatal("pubfile still present after deletion")
 	}
 
 	// TODO: We don't actually check at all whether the presence of the new
@@ -528,7 +528,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 	// the old files and then churning the hosts over, and checking that the
 	// renter does a repair operation to keep everyone alive.
 
-	// Upload a siafile that will then be converted to a skyfile. The siafile
+	// Upload a siafile that will then be converted to a pubfile. The siafile
 	// needs at least 2 sectors.
 	/*
 		localFile, remoteFile, err := r.UploadNewFileBlocking(int(modules.SectorSize*2)+siatest.Fuzz(), 2, 1, false)
@@ -569,7 +569,7 @@ func testSkynetBasic(t *testing.T, tg *siatest.TestGroup) {
 		}
 	*/
 
-	// TODO: Fetch both the skyfile and the siafile that was uploaded, make sure
+	// TODO: Fetch both the pubfile and the siafile that was uploaded, make sure
 	// that they both have the new skylink added to their metadata.
 
 	// TODO: Need to verify the mode, name, and create-time. At this time, I'm
@@ -641,7 +641,7 @@ func testSkynetMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 	}
 	reader = bytes.NewReader(body.Bytes())
 
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	uploadSiaPath, err = modules.NewSiaPath("TestFolderUpload")
 	if err != nil {
 		t.Fatal(err)
@@ -713,7 +713,7 @@ func testSkynetMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 	allData := body.Bytes()
 	reader = bytes.NewReader(allData)
 
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	uploadSiaPath, err = modules.NewSiaPath("TestFolderUploadLarge")
 	if err != nil {
 		t.Fatal(err)
@@ -858,16 +858,16 @@ func testSkynetStats(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// TestSkynetNoFilename verifies that posting a Skyfile without providing a
+// TestSkynetNoFilename verifies that posting a Pubfile without providing a
 // filename fails.
 func testSkynetNoFilename(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Create some data to upload as a skyfile.
+	// Create some data to upload as a pubfile.
 	data := fastrand.Bytes(100 + siatest.Fuzz())
 	reader := bytes.NewReader(data)
 
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	uploadSiaPath, err := modules.NewSiaPath("testNoFilename")
 	if err != nil {
 		t.Fatal(err)
@@ -886,7 +886,7 @@ func testSkynetNoFilename(t *testing.T, tg *siatest.TestGroup) {
 		Reader: reader,
 	}
 
-	// Try posting the skyfile without providing a filename
+	// Try posting the pubfile without providing a filename
 	_, _, err = r.SkynetSkyfilePost(sup)
 	if err == nil || !strings.Contains(err.Error(), "no filename provided") {
 		t.Log("Error:", err)
@@ -912,7 +912,7 @@ func testSkynetNoFilename(t *testing.T, tg *siatest.TestGroup) {
 	}
 	reader = bytes.NewReader(body.Bytes())
 
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	uploadSiaPath, err = modules.NewSiaPath("testNoFilenameMultipart")
 	if err != nil {
 		t.Fatal(err)
@@ -971,7 +971,7 @@ func testSkynetNoFilename(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetSubDirDownload verifies downloading data from a skyfile using a path to download single subfiles or subdirectories
+// testSkynetSubDirDownload verifies downloading data from a pubfile using a path to download single subfiles or subdirectories
 func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
@@ -1303,7 +1303,7 @@ func testSkynetSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 }
 
 // testSkynetDisableForce verifies the behavior of force and the header that
-// allows disabling forcefully uploading a Skyfile
+// allows disabling forcefully uploading a Pubfile
 func testSkynetDisableForce(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
@@ -1385,11 +1385,11 @@ func testSkynetDisableForce(t *testing.T, tg *siatest.TestGroup) {
 func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Create skyfile upload params, data should be larger than a sector size to
+	// Create pubfile upload params, data should be larger than a sector size to
 	// test large file uploads and the deletion of their extended data.
 	data := fastrand.Bytes(int(modules.SectorSize) + 100 + siatest.Fuzz())
 	reader := bytes.NewReader(data)
-	filename := "skyfile"
+	filename := "pubfile"
 	uploadSiaPath, err := modules.NewSiaPath("testskyfile")
 	if err != nil {
 		t.Fatal(err)
@@ -1411,7 +1411,7 @@ func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Confirm that the skyfile and its extended info are registered with the
+	// Confirm that the pubfile and its extended info are registered with the
 	// renter
 	sp, err := modules.SkynetFolder.Join(uploadSiaPath.String())
 	if err != nil {
@@ -1547,7 +1547,7 @@ func testSkynetBlacklist(t *testing.T, tg *siatest.TestGroup) {
 func testSkynetHeadRequest(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Upload a skyfile
+	// Upload a pubfile
 	reader := bytes.NewReader(fastrand.Bytes(100))
 	uploadSiaPath, err := modules.NewSiaPath(t.Name())
 	if err != nil {
@@ -1663,7 +1663,7 @@ func testSkynetNoWorkers(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testSkynetDryRunUpload verifies the --dry-run flag when uploading a Skyfile.
+// testSkynetDryRunUpload verifies the --dry-run flag when uploading a Pubfile.
 func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 	siaPath, err := modules.NewSiaPath(t.Name())
@@ -1671,7 +1671,7 @@ func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// verify we can perform a skyfile upload (note that we need this to trigger
+	// verify we can perform a pubfile upload (note that we need this to trigger
 	// contracts being created, this issue only surfaces when commenting out all
 	// other pubaccess tets)
 	_, _, err = r.SkynetSkyfilePost(modules.SkyfileUploadParameters{
@@ -1724,7 +1724,7 @@ func testSkynetDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 		}
 		_, err = r.RenterFileRootGet(skyfilePath)
 		if err == nil || !strings.Contains(err.Error(), "path does not exist") {
-			t.Fatal(errors.New("Skyfile not deleted after dry run."))
+			t.Fatal(errors.New("Pubfile not deleted after dry run."))
 		}
 
 		sup.DryRun = false
@@ -1790,7 +1790,7 @@ func testSkynetRequestTimeout(t *testing.T, tg *siatest.TestGroup) {
 		Reader: reader,
 		Force:  true,
 	}
-	// Upload a skyfile
+	// Upload a pubfile
 	skylink, _, err := r.SkynetSkyfilePost(sup)
 	if err != nil {
 		t.Fatal(err)
@@ -1829,7 +1829,7 @@ func testSkynetRequestTimeout(t *testing.T, tg *siatest.TestGroup) {
 	r = nodes[0]
 	defer tg.RemoveNode(r)
 
-	// Upload a skyfile
+	// Upload a pubfile
 	sup.Reader = bytes.NewReader(fastrand.Bytes(100))
 	skylink, _, err = r.SkynetSkyfilePost(sup)
 	if err != nil {
@@ -1893,7 +1893,7 @@ func testRegressionTimeoutPanic(t *testing.T, tg *siatest.TestGroup) {
 	r := nodes[0]
 	defer tg.RemoveNode(r)
 
-	// Upload a skyfile
+	// Upload a pubfile
 	sup.Reader = bytes.NewReader(fastrand.Bytes(100))
 	skylink, _, err := r.SkynetSkyfilePost(sup)
 	if err != nil {
@@ -1911,7 +1911,7 @@ func testRegressionTimeoutPanic(t *testing.T, tg *siatest.TestGroup) {
 func testSkynetLargeMetadata(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Create some data to upload as a skyfile.
+	// Create some data to upload as a pubfile.
 	data := fastrand.Bytes(100 + siatest.Fuzz())
 	// Need it to be a reader.
 	reader := bytes.NewReader(data)

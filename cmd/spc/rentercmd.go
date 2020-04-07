@@ -298,8 +298,8 @@ maintaining the file in your renter.`,
 
 	skynetUnpinCmd = &cobra.Command{
 		Use:   "unpin [siapath]",
-		Short: "Unpin a pinned skyfile.",
-		Long: `Unpin the pinned skyfile at the given siapath. The file will continue to be
+		Short: "Unpin a pinned pubfile.",
+		Long: `Unpin the pinned pubfile at the given siapath. The file will continue to be
 available on Pubaccess if other nodes have pinned the file.`,
 		Run: wrap(skynetunpincmd),
 	}
@@ -326,11 +326,11 @@ are manually deleted. Use the --dry-run flag to fetch the skylink without actual
 
 	skynetConvertCmd = &cobra.Command{
 		Use:   "convert [source siaPath] [destination siaPath]",
-		Short: "Convert a siafile to a skyfile with a skylink.",
-		Long: `Convert a siafile to a skyfile and then generate its skylink. A new skylink
-	will be created in the user's skyfile directory. The skyfile and the original
+		Short: "Convert a siafile to a pubfile with a skylink.",
+		Long: `Convert a siafile to a pubfile and then generate its skylink. A new skylink
+	will be created in the user's pubfile directory. The pubfile and the original
 	siafile are both necessary to pin the file and keep the skylink active. The
-	skyfile will consume an additional 40 MiB of storage.`,
+	pubfile will consume an additional 40 MiB of storage.`,
 		Run: wrap(skynetconvertcmd),
 	}
 
@@ -2730,7 +2730,7 @@ func skynetpincmd(sourceSkylink, destSiaPath string) {
 		die("could not pin file to Pubaccess:", err)
 	}
 
-	fmt.Printf("Skyfile pinned successfully \nSkylink: sia://%v\n", skylink)
+	fmt.Printf("Public file pinned successfully \nSkylink: sia://%v\n", skylink)
 }
 
 // skynetuploadcmd will upload a file to Pubaccess.
@@ -2748,7 +2748,7 @@ func skynetuploadcmd(sourcePath, destSiaPath string) {
 
 	if !fi.IsDir() {
 		skynetuploadfile(sourcePath, destSiaPath)
-		fmt.Printf("Successfully uploaded skyfile!\n")
+		fmt.Printf("Successfully uploaded pubfile!\n")
 		return
 	}
 
@@ -2853,17 +2853,17 @@ func skynetunpincmd(siaPathStr string) {
 	// Try to delete file.
 	errFile := httpClient.RenterFileDeleteRootPost(siaPath)
 	if errFile == nil {
-		fmt.Printf("Unpinned skyfile '%v'\n", siaPath)
+		fmt.Printf("Unpinned pubfile '%v'\n", siaPath)
 		return
 	} else if !(strings.Contains(errFile.Error(), filesystem.ErrNotExist.Error()) || strings.Contains(errFile.Error(), filesystem.ErrDeleteFileIsDir.Error())) {
-		die(fmt.Sprintf("Failed to unpin skyfile %v: %v", siaPath, errFile))
+		die(fmt.Sprintf("Failed to unpin pubfile %v: %v", siaPath, errFile))
 	}
 
 	// Unknown file/folder.
 	die(fmt.Sprintf("Unknown path '%v'", siaPath))
 }
 
-// skynetconvertcmd will convert an existing siafile to a skyfile and skylink on
+// skynetconvertcmd will convert an existing siafile to a pubfile and skylink on
 // the ScPrime network.
 func skynetconvertcmd(sourceSiaPathStr, destSiaPathStr string) {
 	// Create the siapaths.
@@ -2882,7 +2882,7 @@ func skynetconvertcmd(sourceSiaPathStr, destSiaPathStr string) {
 	}
 	skylink, err := httpClient.SkynetConvertSiafileToSkyfilePost(sup, sourceSiaPath)
 	if err != nil {
-		die("could not convert siafile to skyfile:", err)
+		die("could not convert siafile to pubfile:", err)
 	}
 
 	// Calculate the siapath that was used for the upload.
@@ -2895,7 +2895,7 @@ func skynetconvertcmd(sourceSiaPathStr, destSiaPathStr string) {
 			die("could not fetch skypath:", err)
 		}
 	}
-	fmt.Printf("Skyfile uploaded successfully to %v\nSkylink: sia://%v\n", skypath, skylink)
+	fmt.Printf("Published file successfully to %v\nSkylink: sia://%v\n", skypath, skylink)
 }
 
 // renterpricescmd is the handler for the command `spc renter prices`, which

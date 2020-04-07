@@ -218,7 +218,7 @@ func (api *API) skynetSkylinkHandlerGET(w http.ResponseWriter, req *http.Request
 		timeout = time.Duration(timeoutInt) * time.Second
 	}
 
-	// Fetch the skyfile's metadata and a streamer to download the file
+	// Fetch the pubfile's metadata and a streamer to download the file
 	metadata, streamer, err := api.renter.DownloadSkylink(skylink, timeout)
 	if errors.Contains(err, renter.ErrRootNotFound) {
 		WriteError(w, Error{fmt.Sprintf("failed to fetch skylink: %v", err)}, http.StatusNotFound)
@@ -270,7 +270,7 @@ func (api *API) skynetSkylinkHandlerGET(w http.ResponseWriter, req *http.Request
 		return
 	}
 	if err != nil {
-		WriteError(w, Error{fmt.Sprintf("failed to serve skyfile as archive: %v", err)}, http.StatusInternalServerError)
+		WriteError(w, Error{fmt.Sprintf("failed to serve pubfile as archive: %v", err)}, http.StatusInternalServerError)
 		return
 	}
 
@@ -413,8 +413,8 @@ func (api *API) skynetSkylinkPinHandlerPOST(w http.ResponseWriter, req *http.Req
 }
 
 // skynetSkyfileHandlerPOST is a dual purpose endpoint. If the 'convertpath'
-// field is set, this endpoint will create a skyfile using an existing siafile.
-// The original siafile and the skyfile will both need to be kept in order for
+// field is set, this endpoint will create a pubfile using an existing siafile.
+// The original siafile and the pubfile will both need to be kept in order for
 // the file to remain available on Pubaccess. If the 'convertpath' field is not
 // set, this is essentially an upload streaming endpoint for Pubaccess which
 // returns a skylink.
@@ -525,7 +525,7 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 		BaseChunkRedundancy: redundancy,
 	}
 
-	// Build the Skyfile metadata from the request
+	// Build the Pubfile metadata from the request
 	if strings.HasPrefix(mediaType, "multipart/form-data") {
 		subfiles, reader, err := skyfileParseMultiPartRequest(req)
 		if err != nil {
@@ -606,7 +606,7 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 	}
 	skylink, err := api.renter.CreateSkylinkFromSiafile(lup, convertPath)
 	if err != nil {
-		WriteError(w, Error{fmt.Sprintf("failed to convert siafile to skyfile: %v", err)}, http.StatusBadRequest)
+		WriteError(w, Error{fmt.Sprintf("failed to convert siafile to pubfile: %v", err)}, http.StatusBadRequest)
 		return
 	}
 
@@ -665,11 +665,11 @@ func serveTar(dst io.Writer, md modules.SkyfileMetadata, streamer modules.Stream
 		// the start.
 		length, err := streamer.Seek(0, io.SeekEnd)
 		if err != nil {
-			return errors.AddContext(err, "serveTar: failed to seek to end of skyfile")
+			return errors.AddContext(err, "serveTar: failed to seek to end of pubfile")
 		}
 		_, err = streamer.Seek(0, io.SeekStart)
 		if err != nil {
-			return errors.AddContext(err, "serveTar: failed to seek to start of skyfile")
+			return errors.AddContext(err, "serveTar: failed to seek to start of pubfile")
 		}
 		// Construct the SkyfileSubfileMetadata.
 		files = append(files, modules.SkyfileSubfileMetadata{
@@ -685,7 +685,7 @@ func serveTar(dst io.Writer, md modules.SkyfileMetadata, streamer modules.Stream
 		if err != nil {
 			return err
 		}
-		// Modify name to match path within skyfile.
+		// Modify name to match path within pubfile.
 		header.Name = file.Filename
 		// Write header.
 		if err := tw.WriteHeader(header); err != nil {

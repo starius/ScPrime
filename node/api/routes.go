@@ -140,7 +140,7 @@ func (api *API) buildHTTPRoutes() {
 		router.POST("/pubaccess/pin/:skylink", RequirePassword(api.skynetSkylinkPinHandlerPOST, requiredPassword))
 		router.GET("/pubaccess/skylink/*skylink", api.skynetSkylinkHandlerGET)
 		router.HEAD("/pubaccess/skylink/*skylink", api.skynetSkylinkHandlerGET)
-		router.POST("/pubaccess/skyfile/*siapath", RequirePassword(api.skynetSkyfileHandlerPOST, requiredPassword))
+		router.POST("/pubaccess/pubfile/*siapath", RequirePassword(api.skynetSkyfileHandlerPOST, requiredPassword))
 		router.GET("/pubaccess/stats", api.skynetStatsHandlerGET)
 		router.GET("/pubaccess/skykey", RequirePassword(api.skykeyHandlerGET, requiredPassword))
 		router.POST("/pubaccess/createskykey", RequirePassword(api.skykeyCreateKeyHandlerPOST, requiredPassword))

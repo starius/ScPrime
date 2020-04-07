@@ -197,13 +197,13 @@ if you have multiple downloads happening simultaneously.
   will still be available on pubaccess as long as you continue maintaining the file
   in your renter.
 
-* `spc pubaccess unpin [siapath]` unpins a skyfile, deleting it from your list of
+* `spc pubaccess unpin [siapath]` unpins a pubfile, deleting it from your list of
   stored files.
 
 * `spc pubaccess convert [source siaPath] [destination siaPath]` converts a
-  siafile to a skyfile and then generates its skylink. A new skylink will be
-  created in the user's skyfile directory. The skyfile and the original siafile
-  are both necessary to pin the file and keep the skylink active. The skyfile
+  siafile to a pubfile and then generates its skylink. A new skylink will be
+  created in the user's pubfile directory. The pubfile and the original siafile
+  are both necessary to pin the file and keep the skylink active. The pubfile
   will consume an additional 40 MiB of storage.
 
 * `spc pubaccess blacklist [skylink]` will add or remove a skylink from the

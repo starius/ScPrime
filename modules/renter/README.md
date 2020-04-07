@@ -64,7 +64,7 @@ responsibilities.
  - [Download Subsystem](#download-subsystem)
  - [Download Streaming Subsystem](#download-streaming-subsystem)
  - [Download By Root Subsystem](#download-by-root-subsystem)
- - [Skyfile Subsystem](#skyfile-subsystem)
+ - [Pubfile Subsystem](#pubfile-subsystem)
  - [Stream Buffer Subsystem](#stream-buffer-subsystem)
  - [Upload Subsystem](#upload-subsystem)
  - [Upload Streaming Subsystem](#upload-streaming-subsystem)
@@ -407,17 +407,17 @@ price and total throughput.
 *TODO* 
   - fill out subsystem explanation
 
-### Skyfile Subsystem
+### Pubfile Subsystem
 **Key Files**
- - [skyfile.go](./skyfile.go)
- - [skyfilefanout.go](./skyfilefanout.go)
- - [skyfilefanoutfetch.go](./skyfilefanoutfetch.go)
+ - [pubfile.go](./pubfile.go)
+ - [pubfilefanout.go](./pubfilefanout.go)
+ - [pubfilefanoutfetch.go](./pubfilefanoutfetch.go)
 
-The skyfile system contains methods for encoding, decoding, uploading, and
+The pubfile system contains methods for encoding, decoding, uploading, and
 downloading skyfiles using Skylinks, and is one of the foundations underpinning
 Pubaccess.
 
-The skyfile format is a custom format which prepends metadata to a file such
+The pubfile format is a custom format which prepends metadata to a file such
 that the entire file and all associated metadata can be recovered knowing
 nothing more than a single sector root. That single sector root can be encoded
 alongside some compressed fetch offset and length information to create a
@@ -426,7 +426,7 @@ skylink.
 **Outbound Complexities**
  - callUploadStreamFromReader is used to upload new data to the Sia network when
    creating skyfiles. This call appears three times in
-   [skyfile.go](./skyfile.go)
+   [pubfile.go](./pubfile.go)
 
 ### Stream Buffer Subsystem
 **Key Files**
@@ -500,8 +500,8 @@ as opposed to being used directly by external users.
   - fill out subsystem explanation
 
 **Inbound Complexities**
- - The skyfile subsystem makes three calls to `callUploadStreamFromReader()` in
-   [skyfile.go](./skyfile.go)
+ - The pubfile subsystem makes three calls to `callUploadStreamFromReader()` in
+   [pubfile.go](./pubfile.go)
  - The snapshot subsystem makes a call to `callUploadStreamFromReader()`
 
 ### Health and Repair Subsystem
