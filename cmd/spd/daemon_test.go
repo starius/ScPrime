@@ -214,7 +214,7 @@ func TestVerifyAPISecurity(t *testing.T) {
 
 	// Check that a public hostname is rejected when security is enabled.
 	var securityOnPublic Config
-	securityOnPublic.Spd.APIaddr = "siaprime.net:4280"
+	securityOnPublic.Spd.APIaddr = "scpri.me:4280"
 	err = verifyAPISecurity(securityOnPublic)
 	if err == nil {
 		t.Error("public + securityOn was accepted")
@@ -223,7 +223,7 @@ func TestVerifyAPISecurity(t *testing.T) {
 	// Check that a public hostname is rejected when security is disabled and
 	// there is no api password.
 	var securityOffPublic Config
-	securityOffPublic.Spd.APIaddr = "siaprime.net:4280"
+	securityOffPublic.Spd.APIaddr = "scpri.me:4280"
 	securityOffPublic.Spd.AllowAPIBind = true
 	err = verifyAPISecurity(securityOffPublic)
 	if err == nil {
@@ -233,7 +233,7 @@ func TestVerifyAPISecurity(t *testing.T) {
 	// Check that a public hostname is accepted when security is disabled and
 	// there is an api password.
 	var securityOffPublicAuthenticated Config
-	securityOffPublicAuthenticated.Spd.APIaddr = "siaprime.net:4280"
+	securityOffPublicAuthenticated.Spd.APIaddr = "scpri.me:4280"
 	securityOffPublicAuthenticated.Spd.AllowAPIBind = true
 	securityOffPublicAuthenticated.Spd.AuthenticateAPI = true
 	err = verifyAPISecurity(securityOffPublicAuthenticated)

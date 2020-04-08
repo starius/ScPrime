@@ -2,10 +2,10 @@
 The SiaDir module is responsible for creating and maintaining the directory
 metadata information stored in the `.siadir` files on disk. This includes all
 disk interaction and metadata definition. These siadirs represent directories on
-the Sia network.
+the ScPrime network.
 
 ## Structure of the SiaDir
-The SiaDir is a dir on the Sia network and the siadir metadata is a JSON
+The SiaDir is a dir on the ScPrime network and the siadir metadata is a JSON
 formatted metadata file that contains aggregate and non-aggregate fields. The
 aggregate fields are the totals of the siadir and any sub siadirs, or are
 calculated based on all the values in the subtree. The non-aggregate fields are

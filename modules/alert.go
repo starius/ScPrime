@@ -27,7 +27,7 @@ const (
 	SeverityCritical
 )
 
-// The following consts are a list of AlertIDs. All IDs used throughout Sia
+// The following consts are a list of AlertIDs. All IDs used throughout ScPrime
 // should be unique and listed here.
 const (
 	// alertIDUnknown is the id of an unknown alert.

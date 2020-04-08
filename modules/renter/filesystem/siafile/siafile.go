@@ -32,7 +32,7 @@ var (
 )
 
 type (
-	// SiaFile is the disk format for files uploaded to the Sia network.  It
+	// SiaFile is the disk format for files uploaded to the ScPrime network.  It
 	// contains all the necessary information to recover a file from its hosts and
 	// allows for easy constant-time updates of the file without having to read or
 	// write the whole file.

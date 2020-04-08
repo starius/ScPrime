@@ -118,7 +118,7 @@ lint:
 
 build:
   stage: lint
-  ## go 1.13 is the minimum accepted version for building Sia.
+  ## go 1.13 is the minimum accepted version for building ScPrime.
   image: golang:latest
   artifacts:
     name: "Binaries"

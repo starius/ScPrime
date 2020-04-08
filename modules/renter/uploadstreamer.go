@@ -119,7 +119,7 @@ func (ss *StreamShard) Read(b []byte) (int, error) {
 }
 
 // UploadStreamFromReader reads from the provided reader until io.EOF is reached and
-// upload the data to the Sia network.
+// upload the data to the ScPrime network.
 func (r *Renter) UploadStreamFromReader(up modules.FileUploadParams, reader io.Reader) error {
 	if err := r.tg.Add(); err != nil {
 		return err
@@ -189,12 +189,12 @@ func (r *Renter) managedInitUploadStream(up modules.FileUploadParams, backup boo
 }
 
 // callUploadStreamFromReader reads from the provided reader until io.EOF is
-// reached and upload the data to the Sia network. Depending on whether backup
+// reached and upload the data to the ScPrime network. Depending on whether backup
 // is true or false, the siafile for the upload will be stored in the siafileset
 // or backupfileset.
 //
 // callUploadStreamFromReader will return as soon as the data is available on
-// the Sia network, this will happen faster than the entire upload is complete -
+// the ScPrime network, this will happen faster than the entire upload is complete -
 // the streamer may continue uploading in the background after returning while
 // it is boosting redundancy.
 func (r *Renter) callUploadStreamFromReader(up modules.FileUploadParams, reader io.Reader, backup bool) (fileNode *filesystem.FileNode, err error) {

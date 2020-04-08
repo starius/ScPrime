@@ -208,6 +208,9 @@ func TestRenterListDirectory(t *testing.T) {
 		t.Fatal("Expected 5 DirectoryInfos but got", len(directories))
 	}
 	files, err := rt.renter.FileList(modules.RootSiaPath(), false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) != 1 {
 		t.Fatal("Expected 1 FileInfos but got", len(files))
 	}

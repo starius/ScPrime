@@ -122,15 +122,15 @@ party integrations such as Duplicati`,
 	utilsBruteForceSeedCmd = &cobra.Command{
 		Use:   "bruteforce-seed",
 		Short: "attempt to brute force seed",
-		Long: `Attempts to brute force a partial Sia seed.  Accepts a 27 or 28 word
+		Long: `Attempts to brute force a partial ScPrime seed.  Accepts a 27 or 28 word
 seed and returns a valid 28 or 29 word seed`,
 		Run: wrap(utilsbruteforceseed),
 	}
 
 	utilsUploadedsizeCmd = &cobra.Command{
 		Use:   "uploadedsize [path]",
-		Short: "calculate a folder's size on Sia",
-		Long: `Calculates a given folder size on Sia and the lost space caused by 
+		Short: "calculate a folder's size on ScPrime",
+		Long: `Calculates a given folder size on ScPrime and the lost space caused by 
 files are rounded up to the minimum chunks size.`,
 		Run: wrap(utilsuploadedsizecmd),
 	}
@@ -330,7 +330,7 @@ func utilsbruteforceseed() {
 }
 
 // utilsuploadedsizecmd is the handler for the command `utils uploadedsize [path] [flags]`
-// It estimates the 'on Sia' size of the given directory
+// It estimates the 'on ScPrime' size of the given directory
 func utilsuploadedsizecmd(path string) {
 	var fileSizes []uint64
 	if fileExists(path) {
@@ -376,8 +376,8 @@ func utilsuploadedsizecmd(path string) {
 		lostPercent = uint64(float64(siaSize)/float64(diskSize)*100) - 100
 	}
 	fmt.Printf(`Size on
-    Disk: %v
-    Sia:  %v
+    Disk:     %v
+    ScPrime:  %v
 
 Lost space: %v
     +%v%% empty space used for scaling every file up to %v

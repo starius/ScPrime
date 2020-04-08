@@ -1,4 +1,4 @@
-# Contributing to SiaPrime
+# Contributing to ScPrime
 
 #### Table of Contents
 - [Contributing to ScPrime](#Contributing-to-ScPrime)
@@ -90,7 +90,7 @@ $ git config --global credential.helper "cache --timeout=[seconds]"
 While logged into your GitLab account, navigate to the [ScPrime repository][siaprime] 
 and click the 'Fork' button in the upper right hand corner.  Your account now 
 has a 'forked' copy of the original repo at 
-`https://gitlab.com/<your GitLab username>/SiaPrime`.
+`https://gitlab.com/<your GitLab username>/ScPrime`.
 
 When you installed ScPrime using `go get`, the go tool put the ScPrime source code in 
 $GOPATH/src/gitlab.com/scpcorp/ScPrime. Change to that directory and set up
@@ -100,9 +100,9 @@ your fork as a git [remote][remote]:
 $ cd $GOPATH/src/gitlab.com/scpcorp/ScPrime
 # Add your fork as a remote.  Name it whatever is convenient,
 # e.g your GitLab username
-$ git remote add <remote name> https://gitlab.com/<username>/SiaPrime.git
+$ git remote add <remote name> https://gitlab.com/<username>/ScPrime.git
 # Or if you use an SSH key, create the remote with the following
-$ git remote add <remote name> git@gitlab.com:<username>/SiaPrime.git
+$ git remote add <remote name> git@gitlab.com:<username>/ScPrime.git
 ```
 
 ### Write some code
@@ -181,7 +181,7 @@ $ git push <fork remote> <branch>
 ### Submit your code for review
 
 Once you've tested your new code and pushed changes to your fork, navigate to 
-your fork at `https://gitlab.com/<username>/Sia` in your browser.  
+your fork at `https://gitlab.com/<username>/ScPrime` in your browser.  
 Switch to the branch you've made changes on by selecting it from the list on 
 the upper left.  Then click 'New merge request' on the upper right.
 
@@ -217,7 +217,7 @@ $ git push <fork remote> master
 ## Where to start
 
 If you'd like to contribute to ScPrime but don't have any specific ideas, writing 
-tests is a good way to get your feet wet.  See [doc/Running and Writing Tests for SiaPrime.md](Running%20and%20Writing%20Tests%20for%20SiaPrime.md) to get started.
+tests is a good way to get your feet wet.  See [doc/Running and Writing Tests for ScPrime.md](Running%20and%20Writing%20Tests%20for%20SiaPrime.md) to get started.
 
 To learn more about how various parts of the code base work, head over to our [Resources](resources.md) page in our [doc](docs) folder.
 

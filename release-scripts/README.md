@@ -1,6 +1,6 @@
 # Release Scripts
 
-This directory contains all the scripts used to build releases of Sia.
+This directory contains all the scripts used to build releases of ScPrime.
 
 `./release.sh` compiles `siac` and `siad` for each supported system. It places
 those binaries along with documentation into a separate directory for each
@@ -28,15 +28,15 @@ created for **all** systems using this script. In the future this can be
 improved to allow reproducibility on more systems.
 
 `./build-ui.sh` completes the final step of the build process by building the
-`Sia-UI` binaries with the outputs from the previous stages of the build
+`ScPrime-UI` binaries with the outputs from the previous stages of the build
 process. After this step is complete, the checksum file must be signed and the
 releases are ready.
 
 
 ## Example
-The following list of commands shows how one could use the scripts in this directory to build Sia.
+The following list of commands shows how one could use the scripts in this directory to build ScPrime.
 
 1. `./build-in-docker.sh master v1.4.3`
-2. `./build-ui.sh v1.4.3 ../release/ ~/Sia-UI`
-3. `cd ../release && sha256sum --check Sia-v1.4.3-SHA256SUMS.txt`
-3. `gpg --clearsign --armor Sia-v1.4.3-SHA256SUMS.txt`
+2. `./build-ui.sh v1.4.3 ../release/ ~/ScPrime-UI`
+3. `cd ../release && sha256sum --check ScPrime-v1.4.3-SHA256SUMS.txt`
+3. `gpg --clearsign --armor ScPrime-v1.4.3-SHA256SUMS.txt`

@@ -42,14 +42,14 @@ var (
 )
 
 var (
-	// SkynetFolder is the Sia folder where all of the pubfiles are stored by
+	// SkynetFolder is the ScPrime folder where all of the pubfiles are stored by
 	// default.
 	SkynetFolder = NewGlobalSiaPath("/var/pubaccess")
 )
 
 type (
 	// SiaPath is the struct used to uniquely identify siafiles and siadirs across
-	// Sia
+	// ScPrime
 	SiaPath struct {
 		Path string `json:"path"`
 	}

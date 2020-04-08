@@ -175,7 +175,7 @@ func (g *Gateway) managedForwardPort(port string) error {
 	}
 
 	// Forward port
-	err = d.Forward(uint16(portInt), "Sia RPC")
+	err = d.Forward(uint16(portInt), "ScPrime RPC")
 	if err != nil {
 		err = fmt.Errorf("WARN: could not automatically forward port %s: %v", port, err)
 		return err

@@ -3,7 +3,7 @@
 The Contractor is responsible for forming and renewing file contracts with
 hosts. Its goal is to manage the low-level details of the negotiation, revision,
 and renewal protocols, such that the renter can operate at a higher level of
-abstraction. Ideally, the renter should be mostly ignorant of the Sia protocol,
+abstraction. Ideally, the renter should be mostly ignorant of the ScPrime protocol,
 instead focusing on file management, redundancy, and upload/download algorithms.
 
 The Contractor is also responsible for various forms of contract maintenance
@@ -172,7 +172,7 @@ aggregate for the period has been reached.
 **Key Files**
 - [recovery.go](./recovery.go)
 
-The Contractor is also responsible for scanning the Sia blockchain and
+The Contractor is also responsible for scanning the ScPrime blockchain and
 recovering all unexpired contracts which belong to the current wallet seed. The
 relevant contracts are found by examining the contract identifier attached to
 every file contract. Recovery scans are initiated whenever the wallet is
@@ -235,7 +235,7 @@ The following `Session` methods are all exported by the Contractor:
 
 
 The Persistence subsystem is used to persist Contractor data across sessions.
-Currently it uses the Sia persist package. Prior to v1.3.0 the persistence
+Currently it uses the ScPrime persist package. Prior to v1.3.0 the persistence
 subsystem used a journal system which is no longer used. If, on startup, this
 old journal system is found, the Contractor will convert it into the new
 Persistence subsystem.

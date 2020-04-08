@@ -129,7 +129,7 @@ The following levels of severity are currently available:
 **Key Files**
 - [packing.go](./packing.go)
 
-The smallest amount of data that can be uploaded to the Sia network is 4 MiB. This limitation can be overcome by packing multiple files together. The upload batching commands can pack a bunch of small files into the same sector, producing a unique publink for each file.
+The smallest amount of data that can be uploaded to the ScPrime network is 4 MiB. This limitation can be overcome by packing multiple files together. The upload batching commands can pack a bunch of small files into the same sector, producing a unique publink for each file.
 
 Batch uploads work much the same as uploads, except that a JSON manifest is provided which pairs a list of source files to their destination siapaths. Every file in the manifest must be smaller than 4 MiB. The packing algorithm attempts to optimally pack the list of files into as few chunks as possible, where each chunk is 4 MiB in size.
 
@@ -145,7 +145,7 @@ Batch uploads work much the same as uploads, except that a JSON manifest is prov
 **Key Files**
 -[publink.go](./publink.go)
 
-The publink is a format for linking to data sectors stored on the Sia network.
+The publink is a format for linking to data sectors stored on the ScPrime network.
 In addition to pointing to a data sector, the publink contains a lossy offset an
 length that point to a data segment within the sector, allowing multiple small
 files to be packed into a single sector.
@@ -160,9 +160,9 @@ For more information, check out the documentation in the [publink.go](./publink.
 **Key Files**
 - [siapath.go](./siapath.go)
 
-Siapaths are the format of filesystem paths on the Sia network. Internally they
+Siapaths are the format of filesystem paths on the ScPrime network. Internally they
 are handled as linux paths and use the `/` separator. Siapaths are used to
-identify directories on the Sia network as well as files.  When manipulating
+identify directories on the ScPrime network as well as files.  When manipulating
 Siapaths in memory the `strings` package should be used so that the `/`
 separator can be enforced. When Siapaths are being translated to System paths,
 the `filepath` package is used to ensure the correct path separator is used for

@@ -40,7 +40,7 @@ func DefaultSkynetDir() string {
 	}
 }
 
-// APIPasswordFile returns the path to the API's password file given a Sia
+// APIPasswordFile returns the path to the API's password file given a ScPrime
 // directory.
 func APIPasswordFile(siaDir string) string {
 	return filepath.Join(siaDir, "apipassword")

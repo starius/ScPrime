@@ -25,7 +25,7 @@ const (
 // nodePersistMetadata contains the header and version strings that identify the
 // node persist file.
 var nodePersistMetadata = persist.Metadata{
-	Header:  "Sia Node List",
+	Header:  "ScPrime Node List",
 	Version: "1.3.0",
 }
 
@@ -144,7 +144,7 @@ func (g *Gateway) threadedSaveLoop() {
 func (g *Gateway) loadv033persist() error {
 	var nodes []modules.NetAddress
 	err := persist.LoadJSON(persist.Metadata{
-		Header:  "Sia Node List",
+		Header:  "ScPrime Node List",
 		Version: "0.3.3",
 	}, &nodes, filepath.Join(g.persistDir, nodesFile))
 	if err != nil {

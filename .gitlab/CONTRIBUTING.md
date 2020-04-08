@@ -1,4 +1,4 @@
-Interested in contributing to SiaPrime?
+Interested in contributing to ScPrime?
 =======================================
 
 Please review the contributing guidelines in the following pages:

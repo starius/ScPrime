@@ -95,7 +95,7 @@ func (fcs *fetchChunkState) threadedFetchPiece(pieceIndex uint64, pieceRoot cryp
 	}
 }
 
-// managedFetchChunk will grab the data of a specific chunk index from the Sia
+// managedFetchChunk will grab the data of a specific chunk index from the ScPrime
 // network.
 func (fs *fanoutStreamBufferDataSource) managedFetchChunk(chunkIndex uint64) ([]byte, error) {
 	// Input verification.

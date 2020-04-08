@@ -415,7 +415,7 @@ responses](#standard-responses).
 # Daemon
 
 The daemon is responsible for starting and stopping the modules which make up
-the rest of Sia.
+the rest of ScPrime.
 
 ## /daemon/alerts [GET]
 > curl example  
@@ -463,7 +463,7 @@ that are about to expire due to that.
 curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/constants"
 ```
 
-Returns the some of the constants that the Sia daemon uses. 
+Returns the some of the constants that the ScPrime daemon uses. 
 
 ### JSON Response
 > JSON Response Example
@@ -547,7 +547,7 @@ spending the payout. File contract payouts also are subject to a maturity delay.
 MedianTimestampWindow tells us how many blocks to look back when calculating the
 median timestamp over the previous n blocks. The timestamp of a block is not
 allowed to be less than or equal to the median timestamp of the previous n
-blocks, where for Sia this number is typically 11.
+blocks, where for ScPrime this number is typically 11.
 
 **siafundcount** | currency  
 SiafundCount is the total number of Siafunds in existence.
@@ -593,7 +593,7 @@ change in a single step, which is important to limit the effect of difficulty
 raising and lowering attacks.
 
 **siacoinprecision** | currency 
-SiacoinPrecision is the number of base units in a siacoin. The Sia network has a
+SiacoinPrecision is the number of base units in a siacoin. The ScPrime network has a
 very large number of base units. We call 10^24 of these a siacoin.
 
 **siacoinprecision** | currency  
@@ -704,7 +704,7 @@ responses](#standard-responses).
 curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/version"
 ```
 
-Returns the version of the Sia daemon currently running. 
+Returns the version of the ScPrime daemon currently running. 
 
 ### JSON Response
 > JSON Response Example
@@ -755,7 +755,7 @@ returns information about the gateway, including the list of connected peers.
 ```
 **netaddress** | string  
 netaddress is the network address of the gateway as seen by the rest of the
-network. The address consists of the external IP address and the port Sia is
+network. The address consists of the external IP address and the port ScPrime is
 listening on. It represents a `modules.NetAddress`.  
 
 **peers** | array  
@@ -2239,7 +2239,7 @@ The multiplier that gets applied to a host based on the uptime percentage of the
 host. The penalty increases extremely quickly as uptime drops below 90%.  
 
 **versionadjustment** | float64  
-The multiplier that gets applied to a host based on the version of Sia that they
+The multiplier that gets applied to a host based on the version of ScPrime that they
 are running. Versions get penalties if there are known bugs, scaling
 limitations, performance limitations, etc. Generally, the most recent version is
 always the one with the highest score.  
@@ -2394,7 +2394,7 @@ Submits a solved block and broadcasts it.
 
 ### Byte Request
 
-For efficiency the block is submitted in a raw byte encoding using the Sia
+For efficiency the block is submitted in a raw byte encoding using the ScPrime
 encoding.
 
 ### Response
@@ -2426,7 +2426,7 @@ root. The above process can then be repeated for the new block header.
 The other fields can generally be ignored. The parent block ID field is the hash
 of the parent block's header. Modifying this field will result in an orphan
 block. The timestamp is the time at which the block was mined and is set by the
-Sia Daemon. Modifying this field can result in invalid block. The merkle root is
+ScPrime Daemon. Modifying this field can result in invalid block. The merkle root is
 the merkle root of a merkle tree consisting of the timestamp, the miner outputs
 (one leaf per payout), and the transactions (one leaf per transaction).
 Modifying this field will result in an invalid block.
@@ -2465,7 +2465,7 @@ root. The above process can then be repeated for the new block header.
 The other fields can generally be ignored. The parent block ID field is the hash
 of the parent block's header. Modifying this field will result in an orphan
 block. The timestamp is the time at which the block was mined and is set by the
-Sia Daemon. Modifying this field can result in invalid block. The merkle root is
+ScPrime Daemon. Modifying this field can result in invalid block. The merkle root is
 the merkle root of a merkle tree consisting of the timestamp, the miner outputs
 (one leaf per payout), and the transactions (one leaf per transaction).
 Modifying this field will result in an invalid block.
@@ -2548,7 +2548,7 @@ period is reached. If there are not enough funds to repair all files, then files
 may be at risk of getting lost.
 
 **hosts** | int  
-Hosts sets the number of hosts that will be used to form the allowance. Sia
+Hosts sets the number of hosts that will be used to form the allowance. ScPrime
 gains most of its resiliancy from having a large number of hosts. More hosts
 will mean both more robustness and higher speeds when using the network, however
 will also result in more memory consumption and higher blockchain fees. It is
@@ -2578,8 +2578,8 @@ begin at week 20.
 
 **expectedstorage** | bytes  
 Expected storage is the amount of storage that the user expects to keep on the
-Sia network. This value is important to calibrate the spending habits of siad.
-Because Sia is decentralized, there is no easy way for siad to know what the
+ScPrime network. This value is important to calibrate the spending habits of siad.
+Because ScPrime is decentralized, there is no easy way for siad to know what the
 real world cost of storage is, nor what the real world price of a siacoin is. To
 overcome this deficiency, siad depends on the user for guidance.
 
@@ -2701,7 +2701,7 @@ Any of the renter settings can be set, see fields [here](#settings)
 
 **checkforipviolation** | boolean  
 Enables or disables the check for hosts using the same ip subnets within the
-hostdb. It's turned on by default and causes Sia to not form contracts with
+hostdb. It's turned on by default and causes ScPrime to not form contracts with
 hosts from the same subnet and if such contracts already exist, it will
 deactivate the contract which has occupied that subnet for the shorter time.  
 
@@ -3785,7 +3785,7 @@ The siapath that has been mounted to the mountpoint.
 curl -A "ScPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/fuse/mount?readonly=true"
 ```
 
-Mounts a Sia directory to the local filesystem using FUSE.
+Mounts a ScPrime directory to the local filesystem using FUSE.
 
 ### Query String Parameters
 ### REQUIRED
@@ -4298,7 +4298,7 @@ The response body is the raw data for the file.
 > curl example  
 
 ```go
-// This command uploads the file 'myImage.png' to the Sia folder
+// This command uploads the file 'myImage.png' to the ScPrime folder
 // 'var/pubaccess/images/myImage.png'. Users who download the file will see the name
 // 'image.png'.
 curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:9980/pubaccess/pubfile/images/myImage.png?filename=image.png" --data-binary @myImage.png
@@ -4314,7 +4314,7 @@ subsequent call to the upload stream endpoint using the `repair` flag.
 Location where the file will reside in the renter on the network. The path must
 be non-empty, may not include any path traversal strings ("./", "../"), and may
 not begin with a forward-slash character. If the 'root' flag is not set, the
-path will be prefixed with 'var/pubaccess/', placing the pubfile into the Sia
+path will be prefixed with 'var/pubaccess/', placing the pubfile into the ScPrime
 system's default pubaccess folder.
 
 ### Query String Parameters
@@ -4336,7 +4336,7 @@ well.
 
 **dryrun** | bool  
 If dryrun is set to true, the request will return the Publink of the file
-without uploading the actual file to the Sia network.
+without uploading the actual file to the ScPrime network.
 
 **force** | bool  
 If there is already a file that exists at the provided siapath, setting this
@@ -4440,7 +4440,7 @@ Gitrevision refers to the commit hash used to build said.
 > curl example
 
 ```go
-curl -A "Sia-Agent"  -u "":<apipassword> --data "pubaccesskey=BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a" "localhost:9980/pubaccess/addskykey"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "pubaccesskey=BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a" "localhost:9980/pubaccess/addskykey"
 ```
 
 Stores the given pubaccesskey with the renter's pubaccesskey manager.
@@ -4460,7 +4460,7 @@ responses](#standard-responses).
 > curl example
 
 ```go
-curl -A "Sia-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/createskykey"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/createskykey"
 ```
 
 Returns a new pubaccesskey created and stored under that name.
@@ -4488,8 +4488,8 @@ base-64 encoded pubaccesskey
 > curl example
 
 ```go
-curl -A "Sia-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/pubaccesskey"
-curl -A "Sia-Agent"  -u "":<apipassword> --data "id=gi5z8cf5NWbcvPBaBn0DFQ==" "localhost:9980/pubaccess/pubaccesskey"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/pubaccesskey"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "id=gi5z8cf5NWbcvPBaBn0DFQ==" "localhost:9980/pubaccess/pubaccesskey"
 ```
 
 Returns the base-64 encoded pubaccesskey stored under that name, or with that ID.
@@ -4520,7 +4520,7 @@ base-64 encoded pubaccesskey
 > curl example
 
 ```go
-curl -A "Sia-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/skykeyid"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/skykeyid"
 ```
 
 Returns the base-64 encoded ID of the pubaccesskey stored under that name.
@@ -5109,7 +5109,7 @@ selected from addresses in the wallet. If 'outputs' is supplied, 'amount',
 Amount and Destination or Outputs are required
 
 **amount** | hastings  
-Number of hastings being sent. A hasting is the smallest unit in Sia. There are
+Number of hastings being sent. A hasting is the smallest unit in ScPrime. There are
 10^24 hastings in a siacoin.
 
 **destination** | address  

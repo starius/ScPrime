@@ -1,7 +1,7 @@
 Consensus Rules
 ===============
 
-This document is meant to provide a good high level overview of the SiaPrime
+This document is meant to provide a good high level overview of the ScPrime
 cryptosystem, but does not fully explain all of the small details. The most
 accurate explanation of the consensus rules is the consensus package (and all
 dependencies).
@@ -13,7 +13,7 @@ principles.
 Cryptographic Algorithms
 ------------------------
 
-SiaPrime uses cryptographic hashing and cryptographic signing, each of which has
+ScPrime uses cryptographic hashing and cryptographic signing, each of which has
 many potentially secure algorithms that can be used. We acknowledge our
 inexperience, and that we have chosen these algorithms not because of our own
 confidence in their properties, but because other people seem confident in
@@ -63,19 +63,19 @@ threshold signatures.
   to prove that the entropy buffers are invalid public keys.
 
   There are plans to also add ECDSA secp256k1 and Schnorr secp256k1. New
-  signing algorithms can be added to SiaPrime through a soft fork, because
+  signing algorithms can be added to ScPrime through a soft fork, because
   unrecognized algorithm types are always considered to have valid signatures.
 
 Currency
 --------
 
-The SiaPrime cryptosystem has two types of currency. The first is the siaprimecoin.
+The ScPrime cryptosystem has two types of currency. The first is the siaprimecoin.
 siaprimecoins are generated every block and distributed to the miners. These miners
 can then use the siaprimecoins to fund file contracts, or can send the siaprimecoins to
 other parties. The siaprimecoin is represented by an infinite precision unsigned
 integer.
 
-The second currency in the SiaPrime cryptosystem is the siaprimefund, which is a special
+The second currency in the ScPrime cryptosystem is the siaprimefund, which is a special
 asset limited to 10,000 indivisible units. Each time a file contract payout is
 made, 3.9% of the payout is put into the siaprimefund pool. The number of siaprimecoins
 in the siaprimefund pool must always be divisible by 10,000; the number of coins
@@ -85,16 +85,16 @@ also represented by an infinite precision unsigned integer.
 Siaprimefund owners can collect the siaprimecoins in the siaprimefund pool. For every 10,000
 siaprimecoins added to the siaprimefund pool, a siaprimefund owner can withdraw 1 siaprimecoin.
 Approx. 8790 siaprimefunds are owned by Nebulous Inc. The remaining siaprimefunds are
-owned by early backers of the Sia project.
+owned by early backers of the ScPrime project.
 
-There are future plans to enable sidechain compatibility with SiaPrime. This would
+There are future plans to enable sidechain compatibility with ScPrime. This would
 allow other currencies such as Bitcoin to be spent in all the same places that
 the siaprimecoin can be spent.
 
 Marshalling
 -----------
 
-Many of the SiaPrime types need to be hashed at some point, which requires having a
+Many of the ScPrime types need to be hashed at some point, which requires having a
 consistent algorithm for marshalling types into a set of bytes that can be
 hashed. The following rules are used for hashing:
 
@@ -304,7 +304,7 @@ proof can be changed.
 
 The greatest application for file contract revisions is file-diff channels - a
 file contract can be edited many times off-blockchain as a user uploads new or
-different content to the host. This improves the overall scalability of SiaPrime.
+different content to the host. This improves the overall scalability of ScPrime.
 
 Storage Proofs
 --------------

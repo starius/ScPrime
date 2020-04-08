@@ -13,7 +13,7 @@ import (
 )
 
 var explorerMetadata = persist.Metadata{
-	Header:  "Sia Explorer",
+	Header:  "ScPrime Explorer",
 	Version: "0.5.2",
 }
 

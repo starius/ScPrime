@@ -6,7 +6,7 @@ version="$1"
 # Directory where the binaries produces by build-release.sh are stored.
 binDir="$2"
 
-# Directory of the Sia-UI Repo.
+# Directory of the ScPrime-UI Repo.
 uiDir="$3"
 if [ -z "$version" ] || [ -z "$binDir" ] || [ -z "$uiDir" ]; then
   echo "Usage: $0 VERSION BIN_DIRECTORY UI_DIRECTORY"
@@ -24,7 +24,7 @@ if [ "$SIA_SILENT_RELEASE" != "true" ]; then
 		exit 1
 	fi
 fi
-echo "Building Sia-UI...";
+echo "Building ScPrime-UI...";
 
 # Get the absolute paths to avoid funny business with relative paths.
 uiDir=$(realpath "${uiDir}")
@@ -37,14 +37,14 @@ cd "${uiDir}"
 
 # Copy over all the siac/siad binaries.
 mkdir -p bin/{linux,mac,win}
-cp "${binDir}"/Sia-"${version}"-darwin-amd64/siac bin/mac/
-cp "${binDir}"/Sia-"${version}"-darwin-amd64/siad bin/mac/
+cp "${binDir}"/ScPrime-"${version}"-darwin-amd64/siac bin/mac/
+cp "${binDir}"/ScPrime-"${version}"-darwin-amd64/siad bin/mac/
 
-cp "${binDir}"/Sia-"${version}"-linux-amd64/siac bin/linux/
-cp "${binDir}"/Sia-"${version}"-linux-amd64/siad bin/linux/
+cp "${binDir}"/ScPrime-"${version}"-linux-amd64/siac bin/linux/
+cp "${binDir}"/ScPrime-"${version}"-linux-amd64/siad bin/linux/
 
-cp "${binDir}"/Sia-"${version}"-windows-amd64/siac.exe bin/win/
-cp "${binDir}"/Sia-"${version}"-windows-amd64/siad.exe bin/win/
+cp "${binDir}"/ScPrime-"${version}"-windows-amd64/siac.exe bin/win/
+cp "${binDir}"/ScPrime-"${version}"-windows-amd64/siad.exe bin/win/
 
 # Build yarn deps.
 yarn
@@ -58,9 +58,9 @@ yarn package
 # The UI builder doesn't handle 4 digit versions correctly and if the UI hasn't
 # been updated the version might be stale.
 for ext in AppImage dmg exe; do 
-  mv "${uiDir}"/release/*."${ext}" "${binDir}"/Sia-UI-"${version}"."${ext}"
+  mv "${uiDir}"/release/*."${ext}" "${binDir}"/ScPrime-UI-"${version}"."${ext}"
 	(
 		cd "${binDir}"
-		sha256sum Sia-UI-"${version}"."${ext}" >> Sia-"${version}"-SHA256SUMS.txt
+		sha256sum ScPrime-UI-"${version}"."${ext}" >> ScPrime-"${version}"-SHA256SUMS.txt
 	)
 done

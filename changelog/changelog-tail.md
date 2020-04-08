@@ -124,7 +124,7 @@
 - Serving Downloads from Disk
 - Verify Wallet Password Endpoint
 - Siafilesystem
-- Sia node scanner
+- ScPrime node scanner
 - Gateway blacklisting
 - Contract Extortion Checker
 - Instant Boot
@@ -147,7 +147,7 @@
 - Module READMEs
 - staticcheck and gosec added
 - Security.md file created
-- Community images added for Built On Sia
+- Community images added for Built On ScPrime
 - JSON tag code analyzer 
 - ResponseWriter code analyzer
 - boltdb added to gitlab.com/NebulousLabs

@@ -103,7 +103,7 @@ func (h *Host) initConsensusSubscription() error {
 	if err == modules.ErrInvalidConsensusChangeID {
 		// Perform a rescan of the consensus set if the change id that the host
 		// has is unrecognized by the consensus set. This will typically only
-		// happen if the user has been replacing files inside the Sia folder
+		// happen if the user has been replacing files inside the ScPrime folder
 		// structure.
 		return h.initRescan()
 	}

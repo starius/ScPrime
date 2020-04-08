@@ -1,6 +1,6 @@
 package types
 
-// constants.go contains the Sia constants. Depending on which build tags are
+// constants.go contains the ScPrime constants. Depending on which build tags are
 // used, the constants will be initialized to different values.
 //
 // CONTRIBUTE: We don't have way to check that the non-test constants are all
@@ -133,7 +133,7 @@ var (
 	// AirdropNebulousLabsValue is a gift to the NebulousLabs Team to acknowledge all their
 	// effort and hard work. THANK YOU!
 	AirdropNebulousLabsValue = NewCurrency64(300000000).Mul(SiacoinPrecision)
-	// AirdropSiaPrimeValue is the total amount of coins SiaPrime gets to help bootstrap
+	// AirdropSiaPrimeValue is the total amount of coins ScPrime gets to help bootstrap
 	// expenses
 	AirdropSiaPrimeValue = NewCurrency64(200000000).Mul(SiacoinPrecision)
 	// MaturityDelay specifies the number of blocks that a maturity-required output
@@ -156,7 +156,7 @@ var (
 	// MedianTimestampWindow tells us how many blocks to look back when calculating
 	// the median timestamp over the previous n blocks. The timestamp of a block is
 	// not allowed to be less than or equal to the median timestamp of the previous n
-	// blocks, where for Sia this number is typically 11.
+	// blocks, where for ScPrime this number is typically 11.
 	MedianTimestampWindow = uint64(11)
 	// MinimumCoinbase is the minimum coinbase reward for a block.
 	// The coinbase decreases in each block after the Genesis block,
@@ -164,7 +164,7 @@ var (
 	MinimumCoinbase uint64
 
 	// Oak hardfork constants. Oak is the name of the difficulty algorithm for
-	// Sia following a hardfork at block 135e3.
+	// ScPrime following a hardfork at block 135e3.
 
 	// OakDecayDenom is the denominator for how much the total timestamp is decayed
 	// each step.
@@ -474,7 +474,7 @@ func init() {
 		// that the network is secure in a real-world byzantine environment.
 
 		// A hardfork height of max int64 was chosen to clarify that the we
-		// expect the hardfork to never happen on the SiaPrime blockchain.
+		// expect the hardfork to never happen on the ScPrime blockchain.
 		// A total time of 120,000 is chosen because that represents the total
 		// time elapsed at a perfect equilibrium, indicating a visible average
 		// block time that perfectly aligns with what is expected. A total
@@ -495,7 +495,7 @@ func init() {
 		// Payouts take 1 day to mature. This is to prevent a class of double
 		// spending attacks parties unintentionally spend coins that will stop
 		// existing after a blockchain reorganization. There are multiple
-		// classes of payouts in Sia that depend on a previous block - if that
+		// classes of payouts in ScPrime that depend on a previous block - if that
 		// block changes, then the output changes and the previously existing
 		// output ceases to exist. This delay stops both unintentional double
 		// spending and stops a small set of long-range mining attacks.
@@ -520,11 +520,11 @@ func init() {
 		// The difficulty adjustment is clamped to 2.5x every 500 blocks. This
 		// corresponds to 6.25x every 2 weeks, which can be compared to
 		// Bitcoin's clamp of 4x every 2 weeks. The difficulty clamp is
-		// primarily to stop difficulty raising attacks. Sia's safety margin is
-		// similar to Bitcoin's despite the looser clamp because Sia's
+		// primarily to stop difficulty raising attacks. ScPrime's safety margin is
+		// similar to Bitcoin's despite the looser clamp because ScPrime's
 		// difficulty is adjusted four times as often. This does result in
 		// greater difficulty oscillation, a tradeoff that was chosen to be
-		// acceptable due to Sia's more vulnerable position as an altcoin.
+		// acceptable due to ScPrime's more vulnerable position as an altcoin.
 		MaxTargetAdjustmentUp = big.NewRat(25, 10)
 		MaxTargetAdjustmentDown = big.NewRat(10, 25)
 
@@ -539,7 +539,7 @@ func init() {
 		ExtremeFutureThreshold = 5 * 60 * 60 // 5 hours.
 
 		// The minimum coinbase is set to 10,000. Because the coinbase
-		// decreases by 1 every time, it means that Sia's coinbase will have an
+		// decreases by 1 every time, it means that ScPrime's coinbase will have an
 		// increasingly potent dropoff for about 5 years, until inflation more
 		// or less permanently settles around 2%.
 		MinimumCoinbase = 10e3

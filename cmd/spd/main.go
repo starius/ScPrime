@@ -211,7 +211,7 @@ func main() {
 			needMigrate := !dirExists(build.DefaultMetadataDir()) && dirExists(defaultSiaPrimeDir())
 			if needMigrate {
 				if err := migrateDataDir(); err != nil {
-					fmt.Printf("Error migrating default metadata directory: %v\n", err)
+					fmt.Printf("Error moving default metadata directory: %v\n", err)
 					os.Exit(exitCodeGeneral)
 				}
 			}

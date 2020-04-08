@@ -11,11 +11,11 @@ function package {
   arch=$2
  	
 	echo Packaging ${os}...
- 	folder=$binDir/Sia-$version-$os-$arch
+ 	folder=$binDir/ScPrime-$version-$os-$arch
  	(
 		cd $binDir
-		zip -rq Sia-$version-$os-$arch.zip Sia-$version-$os-$arch
-		sha256sum  Sia-$version-$os-$arch.zip >> Sia-$version-SHA256SUMS.txt
+		zip -rq ScPrime-$version-$os-$arch.zip ScPrime-$version-$os-$arch
+		sha256sum  ScPrime-$version-$os-$arch.zip >> ScPrime-$version-SHA256SUMS.txt
  	)
 }
 

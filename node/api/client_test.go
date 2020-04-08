@@ -10,7 +10,7 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 )
 
-// Client holds fields to make requests to a Sia API.
+// Client holds fields to make requests to a ScPrime API.
 //
 //lint:ignore U1000 Ignore unused code, Client type is used externally
 type Client struct {

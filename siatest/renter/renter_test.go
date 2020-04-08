@@ -2582,9 +2582,9 @@ func TestRenterLosingHosts(t *testing.T) {
 // TestRenterFailingStandbyDownload checks a very specific edge case regarding
 // standby workers. It uploads a file with a 2/3 redundancy to 4 hosts, causes
 // a single piece to be stored on 2 hosts. Then it will take 3 hosts offline,
-// Since 4 hosts are in the worker pool but only 2 are needed, Sia will put 2
+// Since 4 hosts are in the worker pool but only 2 are needed, ScPrime will put 2
 // of them on standby and try to download from the other 2. Since only 1 worker
-// can succeed, Sia should wake up one worker after another until it finally
+// can succeed, ScPrime should wake up one worker after another until it finally
 // realizes that it doesn't have enough workers and the download fails.
 func TestRenterFailingStandbyDownload(t *testing.T) {
 	if !build.VLONG {

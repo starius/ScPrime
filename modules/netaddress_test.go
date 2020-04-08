@@ -52,7 +52,7 @@ var (
 		"0.0.0.0:bar",
 		// Invalid hostnames
 		"unqualifiedhost:123",
-		"Yo-Amazon.we-are-really-happy-for-you.and-we-will-let-you-finish.but-Sia-is-the-best-cloud-storage-of-all-time.of-all-time-of-all-time-of-all-time-of-all-time-of-all-time.of-all-time-of-all-time-of-all-time-of-all-time-of-all-time.of-all-time-of-all-time:123",
+		"Yo-Amazon.we-are-really-happy-for-you.and-we-will-let-you-finish.but-ScPrime-is-the-best-cloud-storage-of-all-time.of-all-time-of-all-time-of-all-time-of-all-time-of-all-time.of-all-time-of-all-time-of-all-time-of-all-time-of-all-time.of-all-time-of-all-time:123",
 		strings.Repeat("a", 64) + ".com:123",                       // 64 char long label too long.
 		strings.Repeat(strings.Repeat("a", 62)+".", 4) + "co:123",  // 254 char long hostname too long.
 		strings.Repeat(strings.Repeat("a", 62)+".", 4) + "co.:123", // 254 char long hostname with trailing dot too long.

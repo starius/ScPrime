@@ -55,7 +55,7 @@ func NewCachedTree(height uint64) *CachedMerkleTree {
 	return &CachedMerkleTree{*merkletree.NewCachedTree(height)}
 }
 
-// Prove is a redefinition of merkletree.CachedTree.Prove, so that Sia-specific
+// Prove is a redefinition of merkletree.CachedTree.Prove, so that ScPrime-specific
 // types are used instead of the generic types used by the parent package. The
 // base is not a return value because the base is used as input.
 func (ct *CachedMerkleTree) Prove(base []byte, cachedHashSet []Hash) []Hash {

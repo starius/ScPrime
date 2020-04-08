@@ -5,7 +5,7 @@ import (
 )
 
 type (
-	// RemoteDir is a helper struct that represents a directory on the Sia
+	// RemoteDir is a helper struct that represents a directory on the ScPrime
 	// network.
 	RemoteDir struct {
 		siapath modules.SiaPath

@@ -314,7 +314,7 @@ func (cs *ContractSet) managedV146SplitContractHeaderAndRoots(dir string) error 
 			return errors.Compose(err, f.Close())
 		}
 		if unappliedTxns {
-			build.Critical("can't upgrade contractset after an unclean shutdown, please downgrade Sia, start it, stop it cleanly and then try to upgrade again")
+			build.Critical("can't upgrade contractset after an unclean shutdown, please downgrade ScPrime, start it, stop it cleanly and then try to upgrade again")
 			return errors.Compose(errors.New("upgrade failed due to unclean shutdown"), f.Close())
 		}
 		merkleRoots, err := roots.merkleRoots()

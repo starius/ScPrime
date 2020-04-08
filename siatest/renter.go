@@ -470,7 +470,7 @@ func (tn *TestNode) WaitForDownload(lf *LocalFile, rf *RemoteFile) error {
 	return lf.checkIntegrity()
 }
 
-// WaitForFileAvailable waits for a file to become available on the Sia network
+// WaitForFileAvailable waits for a file to become available on the ScPrime network
 // (redundancy of 1).
 func (tn *TestNode) WaitForFileAvailable(rf *RemoteFile) error {
 	// Check if file is tracked by renter at all

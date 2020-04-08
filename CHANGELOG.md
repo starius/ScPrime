@@ -168,7 +168,7 @@ Latest:
  - Serving Downloads from Disk
  - Verify Wallet Password Endpoint
  - Siafilesystem
- - Sia node scanner
+ - ScPrime node scanner
  - Gateway blacklisting
  - Contract Extortion Checker
  - "Instant" Boot

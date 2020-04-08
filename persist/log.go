@@ -11,7 +11,7 @@ import (
 )
 
 // Logger is a wrapper for the standard library logger that enforces logging
-// with the Sia-standard settings. It also supports a Close method, which
+// with the ScPrime-standard settings. It also supports a Close method, which
 // attempts to close the underlying io.Writer.
 type Logger struct {
 	*log.Logger
@@ -29,7 +29,7 @@ func (l *Logger) Close() error {
 }
 
 // Critical logs a message with a CRITICAL prefix that guides the user to the
-// Sia github tracker. If debug mode is enabled, it will also write the message
+// ScPrime github tracker. If debug mode is enabled, it will also write the message
 // to os.Stderr and panic. Critical should only be called if there has been a
 // developer error, otherwise Severe should be called.
 func (l *Logger) Critical(v ...interface{}) {

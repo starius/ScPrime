@@ -1,6 +1,6 @@
 # Renter
 The Renter is responsible for tracking and actively maintaining all of the files
-that a user has uploaded to Sia. This includes the location and health of these
+that a user has uploaded to ScPrime. This includes the location and health of these
 files. The Renter, via the HostDB and the Contractor, is also responsible for
 picking hosts and maintaining the relationship with them.
 
@@ -92,7 +92,7 @@ responsibilities.
 The fuse subsystem enables mounting the renter as a virtual filesystem. When
 mounted, the kernel forwards I/O syscalls on files and folders to the userland
 code in this subsystem. For example, the `read` syscall is implemented by
-downloading data from Sia hosts.
+downloading data from ScPrime hosts.
 
 Fuse is implemented using the `hanwen/go-fuse/v2` series of packages, primarily
 `fs` and `fuse`. The fuse package recognizes a single node interface for files
@@ -110,7 +110,7 @@ have unique requirements for working with the fuse package.
 The siatest/renter suite has two packages which are useful for testing fuse. The
 first is [fuse\_test.go](../../siatest/renter/fuse_test.go), and the second is
 [fusemock\_test.go](../../siatest/renter/fusemock_test.go). The first file
-leverages a testgroup with a renter, a miner, and several hosts to mimic the Sia
+leverages a testgroup with a renter, a miner, and several hosts to mimic the ScPrime
 network, and then mounts a fuse folder which uses the full fuse implementation.
 The second file contains a hand-rolled implementation of a fake filesystem which
 implements the fuse interfaces. Both have a commented out sleep at the end of
@@ -424,7 +424,7 @@ alongside some compressed fetch offset and length information to create a
 publink.
 
 **Outbound Complexities**
- - callUploadStreamFromReader is used to upload new data to the Sia network when
+ - callUploadStreamFromReader is used to upload new data to the ScPrime network when
    creating pubfiles. This call appears three times in
    [pubfile.go](./pubfile.go)
 
@@ -482,7 +482,7 @@ merkle root and the contract revision.
  - [workerdownloadbyroot.go](./workerdownloadbyroot.go)
 
 The download by root subsystem exports a single method that allows a caller to
-download or partially download a sector from the Sia network knowing only the
+download or partially download a sector from the ScPrime network knowing only the
 Merkle root of that sector, and not necessarily knowing which host on the
 network has that sector. The single exported method is 'DownloadByRoot'.
 
@@ -523,7 +523,7 @@ as opposed to being used directly by external users.
   - Create benchmark for health loop and add print outs to Health Loop section
   - Break out Health, Repair, and Stuck code into 3 distinct subsystems
   
-There are 3 main functions that work together to make up Sia's file repair
+There are 3 main functions that work together to make up ScPrime's file repair
 mechanism, `threadedUpdateRenterHealth`, `threadedUploadAndRepairLoop`, and
 `threadedStuckFileLoop`. These 3 functions will be referred to as the health
 loop, the repair loop, and the stuck loop respectively.

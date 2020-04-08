@@ -96,7 +96,7 @@ type unfinishedUploadChunk struct {
 	//	+ the worker should increment the number of pieces completed
 	//	+ the worker should decrement the number of pieces registered
 	//	+ the worker should release the memory for the completed piece
-	availableChan    chan struct{} // used to signal to other processes that the chunk is available on the Sia network. Error needs to be checked.
+	availableChan    chan struct{} // used to signal to other processes that the chunk is available on the ScPrime network. Error needs to be checked.
 	err              error
 	mu               sync.Mutex
 	pieceUsage       []bool              // 'true' if a piece is either uploaded, or a worker is attempting to upload that piece.
@@ -112,7 +112,7 @@ type unfinishedUploadChunk struct {
 	cancelWG sync.WaitGroup // WaitGroup to wait on after canceling the uploadchunk.
 }
 
-// staticAvailable returns whether or not the chunk is available yet on the Sia
+// staticAvailable returns whether or not the chunk is available yet on the ScPrime
 // network.
 func (uc *unfinishedUploadChunk) staticAvailable() bool {
 	select {
@@ -346,7 +346,7 @@ func (r *Renter) threadedFetchAndRepairChunk(chunk *unfinishedUploadChunk) {
 		chunk.memoryReleased += erasureCodingMemory + pieceCompletedMemory
 		r.repairLog.Printf("Unable to fetch the logical data for chunk %v of %s - marking as stuck: %v", chunk.index, chunk.staticSiaPath, err)
 
-		// If Sia is not currently online, the chunk doesn't need to be marked
+		// If ScPrime is not currently online, the chunk doesn't need to be marked
 		// as stuck.
 		if !r.g.Online() {
 			return

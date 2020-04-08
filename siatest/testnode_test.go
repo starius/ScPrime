@@ -52,7 +52,7 @@ func TestNextNodeAddress(t *testing.T) {
 
 	// Test last address iteration
 	ac.address = net.ParseIP("127.255.255.255")
-	nextIP, err = ac.managedNextNodeAddress()
+	_, err = ac.managedNextNodeAddress()
 	if err == nil {
 		t.Fatal("Should have returned an error for reaching the last available address")
 	}

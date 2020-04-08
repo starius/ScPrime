@@ -303,7 +303,7 @@ func (api *API) skynetPublinkHandlerGET(w http.ResponseWriter, req *http.Request
 	http.ServeContent(w, req, metadata.Filename, time.Time{}, streamer)
 }
 
-// skynetPublinkPinHandlerPOST will pin a publink to this Sia node, ensuring
+// skynetPublinkPinHandlerPOST will pin a publink to this ScPrime node, ensuring
 // uptime even if the original uploader stops paying for the file.
 func (api *API) skynetPublinkPinHandlerPOST(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	// Parse the query params.

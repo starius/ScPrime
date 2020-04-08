@@ -1,6 +1,6 @@
 package types
 
-// block.go defines the Block type for Sia, and provides some helper functions
+// block.go defines the Block type for ScPrime, and provides some helper functions
 // for working with blocks.
 
 import (

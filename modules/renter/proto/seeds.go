@@ -200,8 +200,8 @@ func (csi ContractSignedIdentifier) IsValid(renterSeed EphemeralRenterSeed, txn 
 	// Create the cipher for verifying the signature and decrypting the hostKey.
 	sk, err := crypto.NewSiaKey(crypto.TypeThreefish, signingKey[:])
 	if err != nil {
-		build.Critical("Unable to generate New Sia Key", err)
-		return types.SiaPublicKey{}, false, errors.AddContext(err, "error getting new Sia PublicKey")
+		build.Critical("Unable to generate New ScPrime Key", err)
+		return types.SiaPublicKey{}, false, errors.AddContext(err, "error getting new ScPrime PublicKey")
 	}
 	// Pad the identifier and sign it but then only use 32 bytes of the
 	// signature.

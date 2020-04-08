@@ -10,7 +10,7 @@ import (
 
 // Version and system parameters.
 const (
-	// persistVersion defines the Sia version that the persistence was
+	// persistVersion defines the ScPrime version that the persistence was
 	// last updated
 	persistVersion = "1.4.2"
 )
@@ -96,7 +96,7 @@ var (
 	// will use before it no longer increases its own cache size. The value has
 	// been set fairly low because some applications like mpv will request very
 	// large buffer sizes, taking as much data as fast as they can. This results
-	// in the cache size on Sia's end growing to match the size of the
+	// in the cache size on ScPrime's end growing to match the size of the
 	// requesting application's buffer, and harms seek times. Maintaining a low
 	// maximum ensures that runaway growth is kept under at least a bit of
 	// control.

@@ -1,5 +1,5 @@
 # Changelog
-The Changelog for the `Sia` repository is managed by this directory in order to
+The Changelog for the `ScPrime` repository is managed by this directory in order to
 avoid merge conflicts on each Changelog update and to simplify generating
 Changelog.
 

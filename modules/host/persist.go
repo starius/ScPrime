@@ -176,13 +176,7 @@ func (h *Host) load() error {
 		// There is no host.json file, set up sane defaults.
 		return h.establishDefaults()
 	} else if err == persist.ErrBadVersion {
-		h.log.Debugln("Host needs upgrading.")
-		// Attempt an upgrade from V112 to V120.
-		err = h.upgradeFromV112ToV120()
-		if err != nil {
-			h.log.Println("WARNING: v112 to v120 host upgrade failed, trying v120 to v143 next", err)
-		}
-		// Then upgrade from V120 to V143.
+		// Then upgrade to V143.
 		err = h.upgradeFromV120ToV143()
 		if err != nil {
 			h.log.Println("WARNING: v120 to v143 host upgrade failed, nothing left to try", err)

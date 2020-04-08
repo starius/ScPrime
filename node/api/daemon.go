@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	// The developer key is used to sign updates and other important Sia-
+	// The developer key is used to sign updates and other important ScPrime-
 	// related information.
 	developerKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -178,7 +178,7 @@ func updateToRelease(version string) error {
 		}
 
 		// Download file of signed hashes.
-		resp, err := http.Get(fmt.Sprintf("https://sia.tech/releases/Sia-%s-SHA256SUMS.txt.asc", version))
+		resp, err := http.Get(fmt.Sprintf("https://sia.tech/releases/ScPrime-%s-SHA256SUMS.txt.asc", version))
 		if err != nil {
 			return err
 		}
@@ -220,7 +220,7 @@ func updateToRelease(version string) error {
 		}
 
 		// download release archive
-		releaseFilePrefix := fmt.Sprintf("Sia-%s-%s-%s", version, runtime.GOOS, runtime.GOARCH)
+		releaseFilePrefix := fmt.Sprintf("ScPrime-%s-%s-%s", version, runtime.GOOS, runtime.GOARCH)
 		zipResp, err := http.Get(fmt.Sprintf("https://sia.tech/releases/%s.zip", releaseFilePrefix))
 		if err != nil {
 			return err

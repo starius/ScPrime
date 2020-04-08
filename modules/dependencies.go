@@ -20,7 +20,7 @@ import (
 // production dependencies.
 var ProdDependencies = new(ProductionDependencies)
 
-// Dependencies defines dependencies used by all of Sia's modules. Custom
+// Dependencies defines dependencies used by all of ScPrime's modules. Custom
 // dependencies can be created to inject certain behavior during testing.
 type (
 	Dependencies interface {

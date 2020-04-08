@@ -5,7 +5,7 @@ package renter
 // fundamental data structure underpinning Pubaccess.
 //
 // The primary trick of the pubfile is that the initial data is stored entirely
-// in a single sector which is put on the Sia network using 1-of-N redundancy.
+// in a single sector which is put on the ScPrime network using 1-of-N redundancy.
 // Every replica has an identical Merkle root, meaning that someone attempting
 // to fetch the file only needs the Merkle root and then some way to ask hosts
 // on the network whether they have access to the Merkle root.
@@ -27,7 +27,7 @@ package renter
 // intention is to allow uploaders to put any arbitrary metadata fields into
 // their file and know that users will be able to see that metadata after
 // downloading. A couple of fields such as the mode of the file are supported at
-// the base level by Sia.
+// the base level by ScPrime.
 
 import (
 	"bytes"
@@ -487,7 +487,7 @@ func uploadSkyfileReadLeadingChunk(lup modules.SkyfileUploadParameters, headerSi
 }
 
 // managedUploadSkyfileLargeFile will accept a fileReader containing all of the
-// data to a large siafile and upload it to the Sia network using
+// data to a large siafile and upload it to the ScPrime network using
 // 'callUploadStreamFromReader'. The final publink is created by calling
 // 'CreatePublinkFromSiafile' on the resulting siafile.
 func (r *Renter) managedUploadSkyfileLargeFile(lup modules.SkyfileUploadParameters, metadataBytes []byte, fileReader io.Reader) (modules.Publink, error) {
@@ -574,7 +574,7 @@ func (r *Renter) managedUploadBaseSector(lup modules.SkyfileUploadParameters, ba
 }
 
 // managedUploadSkyfileSmallFile uploads a file that fits entirely in the
-// leading chunk of a pubfile to the Sia network and returns the publink that
+// leading chunk of a pubfile to the ScPrime network and returns the publink that
 // can be used to access the file.
 func (r *Renter) managedUploadSkyfileSmallFile(lup modules.SkyfileUploadParameters, metadataBytes []byte, fileBytes []byte) (modules.Publink, error) {
 	ll := skyfileLayout{

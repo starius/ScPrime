@@ -25,7 +25,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
-// A Server is a collection of SiaPrime modules that can be communicated with
+// A Server is a collection of ScPrime modules that can be communicated with
 // over an http api.
 type Server struct {
 	api               *api.API
@@ -172,7 +172,7 @@ func NewAsync(APIaddr string, requiredUserAgent string, requiredPassword string,
 			apiServer: &http.Server{
 				Handler: api,
 
-				// set reasonable timeout windows for requests, to prevent the Sia API
+				// set reasonable timeout windows for requests, to prevent the ScPrime API
 				// server from leaking file descriptors due to slow, disappearing, or
 				// unreliable API clients.
 
@@ -205,13 +205,13 @@ func NewAsync(APIaddr string, requiredUserAgent string, requiredPassword string,
 			close(srv.done)
 		}()
 
-		// Create the Sia node for the server after the server was started.
+		// Create the ScPrime node for the server after the server was started.
 		n, errChan = node.New(nodeParams, loadStartTime)
 		if err := modules.PeekErr(errChan); err != nil {
 			if isAddrInUseErr(err) {
 				return nil, fmt.Errorf("%v; are you running another instance of siad?", err.Error())
 			}
-			return nil, errors.AddContext(err, "server is unable to create the Sia node")
+			return nil, errors.AddContext(err, "server is unable to create the ScPrime node")
 		}
 
 		// Make sure that the server wasn't shut down while loading the modules.

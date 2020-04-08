@@ -1,7 +1,7 @@
 package modules
 
 // publink.go creates links that can be used to reference data stored within a
-// sector on Sia. The publinks can point to the full sector, as well as
+// sector on ScPrime. The publinks can point to the full sector, as well as
 // subsections of a sector.
 
 import (
@@ -271,7 +271,7 @@ func (sl Publink) MerkleRoot() crypto.Hash {
 // The first mode has 28 illegal states, and each mode after that has 60 illegal
 // states. Combined with the 64 illegal states that can be created by
 // incorrectly set mode bits, there are 512 illegal states total for v1 of the
-// Sia link.
+// ScPrime link.
 //
 // It's possible that these states will be repurposed in the future, extending
 // the functionality of the v1 publink. More likely however, a transition to v2

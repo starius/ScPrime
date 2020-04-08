@@ -703,7 +703,7 @@ func TestWalletTransactionGETid(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Check that undocumented API behavior used in Sia-UI still works with
+	// Check that undocumented API behavior used in ScPrime-UI still works with
 	// current API.
 	err = st.getAPI("/wallet/transactions?startheight=0&endheight=-1", &wtg)
 	if err != nil {

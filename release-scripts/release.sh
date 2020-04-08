@@ -18,7 +18,7 @@ function build {
 
 	echo Building ${os}...
 	# create workspace
-	folder=release/Sia-$version-$os-$arch
+	folder=release/ScPrime-$version-$os-$arch
 	rm -rf $folder
 	mkdir -p $folder
 	# compile and hash binaries
@@ -30,7 +30,7 @@ function build {
 		GOOS=${os} GOARCH=${arch} go build -a -tags 'netgo' -trimpath -ldflags="$ldflags" -o $folder/$bin ./cmd/$pkg
 		(
 			cd release/
-			sha256sum Sia-$version-$os-$arch/$bin >> Sia-$version-SHA256SUMS.txt
+			sha256sum ScPrime-$version-$os-$arch/$bin >> ScPrime-$version-SHA256SUMS.txt
 		)
   done
 

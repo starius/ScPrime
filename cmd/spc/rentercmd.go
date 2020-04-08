@@ -319,7 +319,7 @@ flag can be used to view pubfiles pinned in other folders.`,
 		Long: `Upload a file or a directory to Pubaccess. A publink will be produced which can be
 shared and used to retrieve the file. If the given path is a directory all files under that directory will
 be uploaded individually and an individual publink will be produced for each. All files that get uploaded
-will be pinned to this Sia node, meaning that this node will pay for storage and repairs until the files 
+will be pinned to this ScPrime node, meaning that this node will pay for storage and repairs until the files 
 are manually deleted. Use the --dry-run flag to fetch the publink without actually uploading the file.`,
 		Run: wrap(skynetuploadcmd),
 	}

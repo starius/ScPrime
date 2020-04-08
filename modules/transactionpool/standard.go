@@ -20,7 +20,7 @@ import (
 //		time on nonspecialized hardware.
 //
 // Rule: Foreign signature algorithms are rejected.
-//		There are plans to add newer, faster signature algorithms to Sia as the
+//		There are plans to add newer, faster signature algorithms to ScPrime as the
 //		project matures and the need for increased verification speed grows.
 //		Foreign signatures are allowed into the blockchain, where they are
 //		accepted as valid. Hoewver, if there has been a soft-fork, the foreign
@@ -28,7 +28,7 @@ import (
 //		from including potentially invalid transactions in their blocks.
 //
 // Rule: The types of allowed arbitrary data are limited
-//		The arbitrary data field can be used to orchestrate soft-forks to Sia
+//		The arbitrary data field can be used to orchestrate soft-forks to ScPrime
 //		that add features. Legacy miners are at risk of creating invalid blocks
 //		if they include arbitrary data which has meanings that the legacy miner
 //		doesn't understand.

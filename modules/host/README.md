@@ -1,5 +1,5 @@
 # Host
-The host takes local disk storage and makes it available to the Sia network. It
+The host takes local disk storage and makes it available to the ScPrime network. It
 will do so by announcing itself, and its settings, to the network. Renters
 transact with the host through a number of RPC calls.
 

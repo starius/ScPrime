@@ -1,19 +1,19 @@
-# Running and Writing Tests for SiaPrime
-Improving test coverage is a great way to start contributing to SiaPrime.  
+# Running and Writing Tests for ScPrime
+Improving test coverage is a great way to start contributing to ScPrime.  
 
 This guide focuses on how to write tests. You should also read
-[doc/Developers.md][developers] to learn about SiaPrime code conventions and 
+[doc/Developers.md][developers] to learn about ScPrime code conventions and 
 quality standards.
 
 
 #### Table of Contents
-- [Running and Writing Tests for SiaPrime](#Running-and-Writing-Tests-for-SiaPrime)
+- [Running and Writing Tests for ScPrime](#Running-and-Writing-Tests-for-ScPrime)
 			- [Table of Contents](#Table-of-Contents)
-	- [Running tests for SiaPrime](#Running-tests-for-SiaPrime)
+	- [Running tests for ScPrime](#Running-tests-for-ScPrime)
 		- [Updating code before testing](#Updating-code-before-testing)
 		- [Testing the entire build](#Testing-the-entire-build)
 		- [Testing a particular package or function](#Testing-a-particular-package-or-function)
-	- [Writing new tests for SiaPrime](#Writing-new-tests-for-SiaPrime)
+	- [Writing new tests for ScPrime](#Writing-new-tests-for-ScPrime)
 		- [A few guidelines](#A-few-guidelines)
 		- [Basic test format](#Basic-test-format)
 		- [Table-driven tests in Go](#Table-driven-tests-in-Go)
@@ -21,10 +21,10 @@ quality standards.
 	- [Questions?](#Questions)
 
 <a name="existing"></a>
-## Running tests for SiaPrime
+## Running tests for ScPrime
 Go's comprehensive [test package][pkg/testing] makes testing straightforward,
 particularly when you use the bundled tools included in the
-[SiaPrime makefile][makefile], including `make test`, `make cover`, `make bench`,
+[ScPrime makefile][makefile], including `make test`, `make cover`, `make bench`,
 and their variants.
 
 <a name="update"></a>
@@ -34,10 +34,10 @@ pull the latest version of the original repo to your master branch.
 
 ```bash
 # Make sure you are in the right directory.
-$ cd $GOPATH/src/github.com/<your Github username>/SiaPrime
+$ cd $GOPATH/src/github.com/<your Github username>/ScPrime
 # Also make sure you're working with the right branch.
 $ git checkout master
-# Pull latest changes from origin, the original SiaPrime repo. 
+# Pull latest changes from origin, the original ScPrime repo. 
 $ git pull origin master
 # Update your fork of the repo, which should be set up as a remote.
 $ git push <remote>  master
@@ -48,7 +48,7 @@ of the code is up to date. New code should be on its own branch.
 
 ```bash
 # Make sure you are in the right directory.
-$ cd $GOPATH/src/github.com/<your Github username>/SiaPrime
+$ cd $GOPATH/src/github.com/<your Github username>/ScPrime
 # Checkout the branch you made the changes on.
 $ git checkout <branch name>
 # Stash any tracked but uncommitted changes.
@@ -130,7 +130,7 @@ $
 ``` 
 
 <a name="write"></a>
-## Writing new tests for SiaPrime
+## Writing new tests for ScPrime
 When you run `make cover`, you'll notice that many files have pretty low
 coverage.  We're working on fixing that, but we could use your help.
 
@@ -233,7 +233,7 @@ func TestParseFilesize(t *testing.T) {
 
 <a name="siaPrimetest">
 ### SiaPrimetest Package
-When deciding what tests to write for SiaPrime, you should consider whether the 
+When deciding what tests to write for ScPrime, you should consider whether the 
 best test is a unit test or a siaprimetest. Ideally both a unit test and a 
 siaprimetest is written for new code. A unit test should explicitly test the new
 code functionality and a siaprimetest should test the integration of the code 
@@ -247,9 +247,9 @@ tests that could be upgraded to siaprimetests.
 ## Questions?
 Read these if you haven't already:
 * getting started with Go 
-* SiaPrime, and git
+* ScPrime, and git
 * [doc/Developers.md][developers]: conventions and quality standards for 
-* SiaPrime code
+* ScPrime code
 
 Some other useful resources, some of which have been linked to already:
 * [Golang.org page on the go testing package][pkg/testing]
@@ -258,7 +258,7 @@ Some other useful resources, some of which have been linked to already:
 * [How to into git and GitHub][luke]: an essential introduction to git
 
 And feel free to ask questions on the [#development channel][discord] on the 
-SiaPrime Discord. 
+ScPrime Discord. 
 Odds are, someone else is wondering the same thing.
 
 [pkg/testing]: https://golang.org/pkg/testing/

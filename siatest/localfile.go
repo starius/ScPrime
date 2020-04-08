@@ -16,7 +16,7 @@ import (
 
 type (
 	// LocalFile is a helper struct that represents a file on disk that was
-	// uploaded to the Sia network.
+	// uploaded to the ScPrime network.
 	LocalFile struct {
 		path     string
 		size     int

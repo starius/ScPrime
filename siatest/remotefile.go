@@ -8,7 +8,7 @@ import (
 )
 
 type (
-	// RemoteFile is a helper struct that represents a file uploaded to the Sia
+	// RemoteFile is a helper struct that represents a file uploaded to the ScPrime
 	// network.
 	RemoteFile struct {
 		checksum crypto.Hash

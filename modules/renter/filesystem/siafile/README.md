@@ -105,7 +105,7 @@ compatibility and readability. The encoded metadata is written to the
 beginning of the header.
 
 ### Host Public Key Table
-The host public key table uses the [Sia Binary
+The host public key table uses the [ScPrime Binary
 Encoding](./../../../doc/Encoding.md) and is written to the end of the
 header. As the table grows, it will grow towards the front of the header
 while the metadata grows towards the end. Should metadata and host public key

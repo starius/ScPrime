@@ -1,7 +1,7 @@
 package persist
 
 // disk_test.go probes some of the disk operations that are very commonly used
-// within Sia. Namely, Read, Write, Truncate, WriteAt(rand), ReadAt(rand).
+// within ScPrime. Namely, Read, Write, Truncate, WriteAt(rand), ReadAt(rand).
 
 import (
 	"os"

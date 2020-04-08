@@ -182,7 +182,7 @@ if you have multiple downloads happening simultaneously.
 * `spc pubaccess upload [source filepath] [destination siapath]` uploads a file or
   directory to Pubaccess. A publink will be produced for each file. The link can be
   shared and used to retrieve the file. The file(s) that get uploaded will be
-  pinned to this Sia node, meaning that this node will pay for storage and 
+  pinned to this ScPrime node, meaning that this node will pay for storage and 
   repairs until the file(s) are manually deleted.
 
 * `spc pubaccess ls` lists all pubfiles that the user has pinned along with the

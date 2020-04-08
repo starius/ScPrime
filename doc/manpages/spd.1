@@ -5,7 +5,7 @@
 
 .SH NAME
 .PP
-\&spd \- SiaPrime Daemon
+\&spd \- ScPrime Daemon
 
 
 .SH SYNOPSIS
@@ -18,13 +18,13 @@ spd [OPTIONS]
 
 .SH DESCRIPTION
 .PP
-The SiaPrime daemon, spd, is a background process that does all of the heavy lifting for SiaPrime. The daemon downloads the blockchain, uploads files, manages redundancy, monitors hosts for uptime, to name a few of the many tasks that it performs.
+The ScPrime daemon, spd, is a background process that does all of the heavy lifting for ScPrime. The daemon downloads the blockchain, uploads files, manages redundancy, monitors hosts for uptime, to name a few of the many tasks that it performs.
 The daemon is composed of modules, and each modules provides a set of primary functions on the network.
 
 
 .SH OPTIONS
 .PP
-\fB\-\-agent\fP="SiaPrime\-Agent"
+\fB\-\-agent\fP="ScPrime\-Agent"
     required substring for the user agent
 
 .PP
@@ -47,7 +47,7 @@ The daemon is composed of modules, and each modules provides a set of primary fu
 \fB\-M\fP, \fB\-\-modules\fP="cghrtw"
 .IP
 Use the -M or --modules flag to only run specific modules. Modules are
-independent components of SiaPrime. This flag should only be used by developers or
+independent components of ScPrime. This flag should only be used by developers or
 people who want to reduce overhead from unused modules. Modules are specified by
 their first letter. If the -M or --modules flag is not specified the default
 .br 

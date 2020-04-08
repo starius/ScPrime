@@ -959,10 +959,10 @@ type Renter interface {
 	// separately as well.
 	CreatePublinkFromSiafile(SkyfileUploadParameters, SiaPath) (Publink, error)
 
-	// DownloadPublink will fetch a file from the Sia network using the publink.
+	// DownloadPublink will fetch a file from the ScPrime network using the publink.
 	DownloadPublink(Publink, time.Duration) (SkyfileMetadata, Streamer, error)
 
-	// UploadSkyfile will upload data to the Sia network from a reader and
+	// UploadSkyfile will upload data to the ScPrime network from a reader and
 	// create a pubfile, returning the publink that can be used to access the
 	// file.
 	//
@@ -984,7 +984,7 @@ type Renter interface {
 }
 
 // Streamer is the interface implemented by the Renter's streamer type which
-// allows for streaming files uploaded to the Sia network.
+// allows for streaming files uploaded to the ScPrime network.
 type Streamer interface {
 	io.ReadSeeker
 	io.Closer

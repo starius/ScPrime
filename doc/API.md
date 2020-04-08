@@ -1,7 +1,7 @@
 ScPrime API
 ========
 
-SiaPrime uses semantic versioning and is backwards compatible to version v1.0.0.
+ScPrime uses semantic versioning and is backwards compatible to version v1.0.0.
 
 API calls return either JSON or no content. Success is indicated by 2xx HTTP
 status codes, while errors are indicated by 4xx and 5xx HTTP status codes. If
@@ -145,7 +145,7 @@ standard success or error response. See
 
 #### /daemon/version [GET]
 
-returns the version of the SiaPrime daemon currently running.
+returns the version of the ScPrime daemon currently running.
 
 ###### JSON Response [(with comments)](/doc/api/Daemon.md#json-response-1)
 ```javascript
@@ -1851,6 +1851,6 @@ addresses will be reported in /wallet/unspent.
 standard success or error response. See
 [#standard-responses](#standard-responses).
 
-The Sia API documentation can be found here:
-[Sia API](https://sia.tech/docs/ "Sia API")
+The ScPrime API documentation can be found here:
+[ScPrime API](https://sia.tech/docs/ "ScPrime API")
 

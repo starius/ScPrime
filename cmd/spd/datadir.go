@@ -33,14 +33,14 @@ func migrateDataDir() error {
 // The values for supported operating systems are:
 //
 // Linux:   $HOME/.siaprime
-// MacOS:   $HOME/Library/Application Support/SiaPrime
-// Windows: %LOCALAPPDATA%\SiaPrime
+// MacOS:   $HOME/Library/Application Support/ScPrime
+// Windows: %LOCALAPPDATA%\ScPrime
 func defaultSiaPrimeDir() string {
 	switch runtime.GOOS {
 	case "windows":
-		return filepath.Join(os.Getenv("LOCALAPPDATA"), "SiaPrime")
+		return filepath.Join(os.Getenv("LOCALAPPDATA"), "ScPrime")
 	case "darwin":
-		return filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "SiaPrime")
+		return filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "ScPrime")
 	default:
 		return filepath.Join(os.Getenv("HOME"), ".siaprime")
 	}

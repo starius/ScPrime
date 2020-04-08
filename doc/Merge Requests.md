@@ -1,9 +1,9 @@
 # Merge Requests
-Merge Requests are used to ensure all code being added to the Sia repo adheres
-to the Sia Engineering Guidelines (TODO: add link).
+Merge Requests are used to ensure all code being added to the ScPrime repo adheres
+to the ScPrime Engineering Guidelines (TODO: add link).
 
 ## Template
-Every merge request on the Sia repo will be created with the default Merge
+Every merge request on the ScPrime repo will be created with the default Merge
 Request Template.
 ```
 # MERGE REQUEST
@@ -22,7 +22,7 @@ Review and complete the checklist to ensure that the MR is complete before assig
  - [ ] Any new packages are added to Makefile and .gitlab-ci.yml
  - [ ] API documentation updated for API updates
  - [ ] Module README.md updated for changes to workflow
- - [ ] Issue added to Sia-UI repo for new supporting features
+ - [ ] Issue added to ScPrime-UI repo for new supporting features
  - [ ] Changelog File Created
 
 ## Issues Closed
@@ -34,7 +34,7 @@ Example: Closes #XXXX
 ```
 The `Overview` section is used to provide reviewers with a clear understanding
 of the purpose of the merge request. Developers should always make sure that the
-overview is filled out, as Sia is an open source project and we have people
+overview is filled out, as ScPrime is an open source project and we have people
 outside the core team, such as community members, that look at the merge
 requests and need to know the purpose behind them.
 
@@ -48,7 +48,7 @@ items that they believe do not apply as an approver might disagree. Updating the
 markdown to strike through the items that do not apply with the `~~text~~`
 (~~text~~) syntax is preferred. 
 
-The `Issues Closed` section is used to ensure the Sia repo is being kept tidy
+The `Issues Closed` section is used to ensure the ScPrime repo is being kept tidy
 and issues are being closed. Use the built in helper text such as `Closes #1324`
 to close issue 1324 when the merge request is approved.
 

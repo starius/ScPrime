@@ -13,7 +13,7 @@ var (
 	SiaTestingDir = filepath.Join(os.TempDir(), "SiaTesting")
 )
 
-// TestDir joins the provided directories and prefixes them with the Sia
+// TestDir joins the provided directories and prefixes them with the ScPrime
 // testing directory, removing any files or directories that previously existed
 // at that location.
 func TestDir(dirs ...string) string {

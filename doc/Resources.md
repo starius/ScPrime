@@ -5,14 +5,14 @@
     * [Module README's](#module-readme's)
     * [API](#api)
     * [Support Docs](#support-docs)
-* [Sia Third Party Apps](#sia-third-party-apps)
+* [ScPrime Third Party Apps](#sia-third-party-apps)
     * [Mining Pools](#mining-pools)
     * [Network Stats](#network-stats)
-    * [Built On Sia](#built-on-sia)
+    * [Built On ScPrime](#built-on-sia)
     * [Integrations](#integrations)
 
 ## Tech Docs
-Here is a list of technical documentation to help understand the different parts of the Sia code base.
+Here is a list of technical documentation to help understand the different parts of the ScPrime code base.
 
 ### Module README's
 * Consensus - `coming soon`

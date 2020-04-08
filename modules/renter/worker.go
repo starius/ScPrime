@@ -155,7 +155,7 @@ func (w *worker) staticWake() {
 //
 // If no work is found, the worker will sleep until woken up. Because each
 // iteration is stateless, it may be possible to reduce the goroutine count in
-// Sia by spinning down the worker / expiring the thread when there is no work,
+// ScPrime by spinning down the worker / expiring the thread when there is no work,
 // and then checking if the thread exists and creating a new one if not when
 // alerting / waking the worker. This will not interrupt any connections that
 // the worker has because the worker object will be kept in memory via the

@@ -125,7 +125,7 @@ func startContinuousLog(dir string, sleepCap time.Duration, restart func()) {
 		fmt.Println(err)
 		return
 	}
-	// Continuously log statistics about the running Sia application.
+	// Continuously log statistics about the running ScPrime application.
 	go func() {
 		// Create the logger.
 		log, err := persist.NewFileLogger(filepath.Join(dir, "continuousStats.log"))

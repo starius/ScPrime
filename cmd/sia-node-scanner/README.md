@@ -1,13 +1,13 @@
-# Sia-Node-Scanner
+# ScPrime-Node-Scanner
 
-The Sia-Node-Scanner tries to learn the IP addresses of all nodes in the Sia
+The ScPrime-Node-Scanner tries to learn the IP addresses of all nodes in the ScPrime
 network in order to get an accurate count of current active nodes.
 
 ## Overview
 
-The Sia-Node-Scanner uses a Sia gateway to explore the Sia peer-to-peer network.
-It attempts to connect to as many Sia nodes as possible, and uses the ShareNodes
-RPC with Sia nodes to learn the IP addresses of more nodes in the network.
+The ScPrime-Node-Scanner uses a ScPrime gateway to explore the ScPrime peer-to-peer network.
+It attempts to connect to as many ScPrime nodes as possible, and uses the ShareNodes
+RPC with ScPrime nodes to learn the IP addresses of more nodes in the network.
 ShareNodes returns only 10 randomly selected peers, so the node scanner uses
 this RPC multiple times with each peer to learn more from each of them.
 

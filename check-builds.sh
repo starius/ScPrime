@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo "check-builds is used to check that Sia can be compiled on all supported systems"
+echo "check-builds is used to check that ScPrime can be compiled on all supported systems"
 
 # Create fresh artifacts folder.
 rm -rf artifacts

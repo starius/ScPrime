@@ -59,7 +59,7 @@ func marshalMetadata(md Metadata) ([]byte, error) {
 	return json.Marshal(md)
 }
 
-// marshalPubKeyTable marshals the public key table of the SiaFile using Sia
+// marshalPubKeyTable marshals the public key table of the SiaFile using ScPrime
 // encoding.
 func marshalPubKeyTable(pubKeyTable []HostPublicKey) ([]byte, error) {
 	// Create a buffer.

@@ -95,7 +95,7 @@ type (
 		Fees types.Currency `json:"fees"`
 		// Public key of the host the contract was formed with.
 		HostPublicKey types.SiaPublicKey `json:"hostpublickey"`
-		// HostVersion is the version of Sia that the host is running
+		// HostVersion is the version of ScPrime that the host is running
 		HostVersion string `json:"hostversion"`
 		// ID of the file contract.
 		ID types.FileContractID `json:"id"`

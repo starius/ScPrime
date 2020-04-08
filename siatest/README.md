@@ -1,19 +1,19 @@
 # Siatest
-The siatest package is designed to handle the integration tests for the Sia
+The siatest package is designed to handle the integration tests for the ScPrime
 codebase.
 
 ## Methodology
 When writing siatests, the developer should structure the tests to mimic
-production use. All interactions with Sia should be performed through the API
+production use. All interactions with ScPrime should be performed through the API
 and client methods.
 
 Test group creation is a time and resource intensive operation. Whenever
 possible tests should be grouped together and share the same test group.
 
 ## Submodules
-There is a submodule of the siatest package for each module of Sia (ie Host,
+There is a submodule of the siatest package for each module of ScPrime (ie Host,
 Renter, Wallet, etc). There submodules contain all the test code for the
-corresponding Sia module.
+corresponding ScPrime module.
 
 In addition to these testing submodules there is a dependencies submodule. The
 dependencies submodule is for dependency injection for tests that need to
@@ -36,7 +36,7 @@ The following subsystems help the SiaDir module execute its responsibilities:
 - [localdir.go](./localdir.go)
 
 The Local Dir subsystem is responsible for representing a local directory on
-disk that could be uploaded to the Sia network.
+disk that could be uploaded to the ScPrime network.
 
 **Exports**
 `TestNode` Methods
@@ -62,7 +62,7 @@ disk that could be uploaded to the Sia network.
 - [localfile.go](./localfile.go)
 
 The Local File subsystem is responsible for representing a file on disk that
-has been uploaded to the Sia network.
+has been uploaded to the ScPrime network.
 
 **Exports**
  - `Data` returns the byte slice data of a file
@@ -78,7 +78,7 @@ has been uploaded to the Sia network.
  **Key Files**
 - [remotedir.go](./remotedir.go)
 
-The Remote Dir subsystem is responsible for representing a directory on the Sia
+The Remote Dir subsystem is responsible for representing a directory on the ScPrime
 network.
 
 **Exports**
@@ -88,7 +88,7 @@ network.
  **Key Files**
 - [remotefile.go](./remotefile.go)
 
-The Remote File subsystem is responsible for representing a SiaFile on the Sia
+The Remote File subsystem is responsible for representing a SiaFile on the ScPrime
 network.
 
 **Exports**
@@ -100,7 +100,7 @@ network.
 - [testgroup.go](./testgroup.go)
 
 The Test Group subsystem to responsible for creating a group of `TestNodes` to
-form a mini Sia network.
+form a mini ScPrime network.
 
 There is a `testGroupBuffer` that is used to control the creation of the
 `TestGroups` in order to reduce `too many open file` errors.
@@ -135,7 +135,7 @@ There is a `testGroupBuffer` that is used to control the creation of the
  **Key Files**
 - [testnode.go](./testnode.go)
 
-The Test Node subsystem is responsible for representing a node on the Sia
+The Test Node subsystem is responsible for representing a node on the ScPrime
 network.
 
 **Exports**

@@ -1,7 +1,7 @@
-// Package node provides tooling for creating a Sia node. Sia nodes consist of a
+// Package node provides tooling for creating a ScPrime node. ScPrime nodes consist of a
 // collection of modules. The node package gives you tools to easily assemble
 // various combinations of modules with varying dependencies and settings,
-// including templates for assembling sane no-hassle Sia nodes.
+// including templates for assembling sane no-hassle ScPrime nodes.
 package node
 
 // TODO: Add support for the explorer.
@@ -133,7 +133,7 @@ type NodeParams struct {
 	PoolConfig config.MiningPoolConfig
 }
 
-// Node is a collection of Sia modules operating together as a Sia node.
+// Node is a collection of ScPrime modules operating together as a ScPrime node.
 type Node struct {
 	// The mux of the node.
 	Mux *siamux.SiaMux

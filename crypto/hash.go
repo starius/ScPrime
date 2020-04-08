@@ -1,9 +1,9 @@
 package crypto
 
 // hash.go supplies a few geneeral hashing functions, using the hashing
-// algorithm blake2b. Because changing the hashing algorithm for Sia has much
+// algorithm blake2b. Because changing the hashing algorithm for ScPrime has much
 // stronger implications than changing any of the other algorithms, blake2b is
-// the only supported algorithm. Sia is not really flexible enough to support
+// the only supported algorithm. ScPrime is not really flexible enough to support
 // multiple.
 
 import (

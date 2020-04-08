@@ -44,12 +44,12 @@ the respective README files should be reviewed.
  - SiaFile
 
 ### SiaDir
-The SiaDir module is the code that defines what a directory is on the Sia
+The SiaDir module is the code that defines what a directory is on the ScPrime
 network. It also manages accesses and updates to the file, ensuring safety and
 ACIDity when performing file operations.
 
 ### SiaFile
-The SiaFile module is the code that defines what a file is on the Sia network.
+The SiaFile module is the code that defines what a file is on the ScPrime network.
 It also manages accesses and updates to the file, ensuring safety and ACIDity
 when performing file operations.
 

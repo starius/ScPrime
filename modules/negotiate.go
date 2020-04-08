@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	// MinimumSupportedRenterHostProtocolVersion is the minimum version of Sia
+	// MinimumSupportedRenterHostProtocolVersion is the minimum version of ScPrime
 	// that supports the currently used version of the renter-host protocol.
 	MinimumSupportedRenterHostProtocolVersion = "1.4.1"
 

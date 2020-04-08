@@ -230,7 +230,7 @@ func tryAutoUnlock(srv *server.Server) {
 		return
 	}
 	if password := os.Getenv("SIAPRIME_WALLET_PASSWORD"); password != "" {
-		fmt.Println("SiaPrime Wallet Password found, attempting to auto-unlock wallet")
+		fmt.Println("ScPrime Wallet Password found, attempting to auto-unlock wallet")
 		fmt.Println("Warning: Using SIAPRIME_WALLET_PASSWORD is deprecated.")
 		fmt.Println("Using it will not be supported in future versions, please update \n your configuration to use the environment variable 'SCPRIME_WALLET_PASSWORD'")
 		if err := srv.Unlock(password); err != nil {

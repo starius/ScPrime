@@ -35,8 +35,8 @@ var (
 )
 
 type (
-	// FileSystem implements a thread-safe filesystem for Sia for loading
-	// SiaFiles, SiaDirs and potentially other supported Sia types in the
+	// FileSystem implements a thread-safe filesystem for ScPrime for loading
+	// SiaFiles, SiaDirs and potentially other supported ScPrime types in the
 	// future.
 	FileSystem struct {
 		DirNode

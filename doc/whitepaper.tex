@@ -4,7 +4,7 @@
 \begin{document}
 \frenchspacing
 
-\title{Sia: Simple Decentralized Storage}
+\title{ScPrime: Simple Decentralized Storage}
 
 \author{
 {\rm David Vorick}\\
@@ -19,23 +19,23 @@ luke@nebulouslabs.com
 \maketitle
 
 \subsection*{Abstract}
-This is the original Sia Protocol whitepaper. As SiaPrime is a fork of Sia, it
+This is the original ScPrime Protocol whitepaper. As ScPrime is a fork of ScPrime, it
 describes the foundation of this project as well. Questions or suggestions 
 should be forwarded to the authors referenced above.
 
-The authors introduce Sia, a platform for decentralized storage.
-Sia enables the formation of storage contracts between peers.
+The authors introduce ScPrime, a platform for decentralized storage.
+ScPrime enables the formation of storage contracts between peers.
 Contracts are agreements between a storage provider and their client, defining what data will be stored and at what price.
 They require the storage provider to prove, at regular intervals, that they are still storing their client's data.
 
 Contracts are stored in a blockchain, making them publicly auditable.
-In this respect, Sia can be viewed as a Bitcoin derivative that includes support for such contracts.
-Sia will initially be implemented as an altcoin, and later financially connected to Bitcoin via a two-way peg.
+In this respect, ScPrime can be viewed as a Bitcoin derivative that includes support for such contracts.
+ScPrime will initially be implemented as an altcoin, and later financially connected to Bitcoin via a two-way peg.
 
 \section{Introduction}
-Sia is a decentralized cloud storage platform that intends to compete with existing storage solutions, at both the P2P and enterprise level.
-Instead of renting storage from a centralized provider, peers on Sia rent storage from each other.
-Sia itself stores only the storage contracts formed between parties, defining the terms of their arrangement.
+ScPrime is a decentralized cloud storage platform that intends to compete with existing storage solutions, at both the P2P and enterprise level.
+Instead of renting storage from a centralized provider, peers on ScPrime rent storage from each other.
+ScPrime itself stores only the storage contracts formed between parties, defining the terms of their arrangement.
 A blockchain, similar to Bitcoin \cite{btc, btcdg}, is used for this purpose.
 
 By forming a contract, a storage provider (also known as a \textit{host}) agrees to store a client's data, and to periodically submit proof of their continued storage until the contract expires.
@@ -47,17 +47,17 @@ We acknowledge that storing data on a single untrusted host guarantees little in
 Instead, we recommend storing data redundantly across multiple hosts.
 In particular, the use of erasure codes can enable high availability without excessive redundancy.
 
-Sia will initially be implemented as a blockchain-based altcoin.
+ScPrime will initially be implemented as a blockchain-based altcoin.
 Future support for a two-way peg with Bitcoin is planned, as discussed in ``Enabling Blockchain Innovations with Pegged Sidechains'' \cite{side}.
-The Sia protocol largely resembles Bitcoin except for the changes noted below.
+The ScPrime protocol largely resembles Bitcoin except for the changes noted below.
 
 \section{General Structure}
-Sia's primary departure from Bitcoin lies in its transactions.
+ScPrime's primary departure from Bitcoin lies in its transactions.
 Bitcoin uses a scripting system to enable a range of transaction types, such as pay-to-public-key-hash and pay-to-script-hash.
-Sia opts instead to use an $M$--of--$N$ multi-signature scheme for all transactions, eschewing the scripting system entirely.
+ScPrime opts instead to use an $M$--of--$N$ multi-signature scheme for all transactions, eschewing the scripting system entirely.
 This reduces complexity and attack surface.
 
-Sia also extends transactions to enable the creation and enforcement of storage contracts.
+ScPrime also extends transactions to enable the creation and enforcement of storage contracts.
 Three extensions are used to accomplish this: contracts, proofs, and contract updates.
 Contracts declare the intention of a host to store a file with a certain size and hash.
 They define the regularity with which a host must submit storage proofs.
@@ -223,7 +223,7 @@ Miners that understand the restrictions can block any transaction that spends th
 Naive nodes will stay synchronized without needing to be able to parse the arbitrary data.
 
 \section{Storage Ecosystem}
-Sia relies on an ecosystem that facilitates decentralized storage.
+ScPrime relies on an ecosystem that facilitates decentralized storage.
 Storage providers can use the arbitrary data field to announce themselves to the network.
 This can be done using standardized template that clients will be able to read.
 Clients can use these announcements to create a database of potential hosts, and form contracts with only those they trust.
@@ -266,7 +266,7 @@ In this scenario, clients offer a reward for being sent a file, and hosts must c
 Clients may request a file at any time, which incentivizes hosts to maximize uptime in order to collect as many rewards as possible.
 Clients can also incentivize greater throughput and lower latency via proportionally larger rewards.
 Clients could even perform random ``checkups'' that reward hosts simply for being online, even if they do not wish to download anything.
-However, we reiterate that uptime incentives are not part of the Sia protocol; they are entirely dependent on client behavior.
+However, we reiterate that uptime incentives are not part of the ScPrime protocol; they are entirely dependent on client behavior.
 
 Payment for downloads is expected to be offered through preexisting micropayment channels \cite{mpc}.
 Micropayment channels allow clients to make many consecutive small payments with minimal latency and blockchain bloat.
@@ -288,24 +288,24 @@ Each client can choose their own equation for picking hosts, and can use a large
 More complex systems, such as those that use human review or other metrics, could be implemented out-of-band in a more centralized setting.
 
 \section{Siafunds}
-Sia is a product of Nebulous Incorporated.
-Nebulous is a for-profit company, and Sia is intended to become a primary source of income for the company.
+ScPrime is a product of Nebulous Incorporated.
+Nebulous is a for-profit company, and ScPrime is intended to become a primary source of income for the company.
 Currency premining is not a stable source of income, as it requires creating a new currency and tethering the company's revenue to the currency's increasing value.
 When the company needs to spend money, it must trade away portions of its source of income.
 Additionally, premining means that one entity has control over a large volume of the currency, and therefore potentially large and disruptive control over the market.
 
-Instead, Nebulous intends to generate revenue from Sia in a manner proportional to the value added by Sia, as determined by the value of the contracts set up between clients and hosts.
+Instead, Nebulous intends to generate revenue from ScPrime in a manner proportional to the value added by ScPrime, as determined by the value of the contracts set up between clients and hosts.
 This is accomplished by imposing a fee on all contracts.
 When a contract is created, 3.9\% of the contract fund is removed and distributed to the holders of \textit{siafunds}.
-Nebulous Inc. will initially hold approx. 88\% of the siafunds, and the early crowd-fund backers of Sia will hold the rest.
+Nebulous Inc. will initially hold approx. 88\% of the siafunds, and the early crowd-fund backers of ScPrime will hold the rest.
 
 Siafunds can be sent to other addresses, in the same way that siacoins can be sent to other addresses.
 They cannot, however, be used to fund contracts or miner fees.
 When siafunds are transferred to a new address, an additional unspent output is created, containing all of the siacoins that have been earned by the siafunds since their previous transfer.
 These siacoins are sent to the same address as the siafunds.
 
-\section{Economics of Sia}
-The primary currency of Sia is the siacoin.
+\section{Economics of ScPrime}
+The primary currency of ScPrime is the siacoin.
 The supply of siacoins will increase permanently, and all fresh supply will be given to miners as a block subsidy.
 The first block will have 300,000 coins minted.
 This number will decrease by 1 coin per block, until a minimum of 30,000 coins per block is reached.
@@ -317,8 +317,8 @@ Following a target of 10 minutes between blocks, the annual growth in supply is:
 	Growth & 90\% & 39\% & 21\% & 11.5\% & 4.4\% & 3.2\% & 2.3\%
 \end{tabular} \\
 
-There are inefficiencies within the Sia incentive scheme.
-The primary goal of Sia is to provide a blockchain that enforces storage contracts.
+There are inefficiencies within the ScPrime incentive scheme.
+The primary goal of ScPrime is to provide a blockchain that enforces storage contracts.
 The mining reward, however, is only indirectly linked to the total value of contracts being created.
 
 The siacoin, especially initially, is likely to have high volatility.
@@ -328,10 +328,10 @@ Additionally, hosts can advertise their prices in a more stable currency (like U
 Eventually, the use of two-way pegs with other crypto-assets will give hosts additional means to insulate themselves from volatility.
 
 % \section{Under Consideration}
-% The primary foundation of Sia has been established above.
+% The primary foundation of ScPrime has been established above.
 % Other considerations, such as mining algorithms, block time, etc., can be assumed to mirror those found in Bitcoin.
 
-% Giving careful attention to ``A Treatise on Altcoins'' \cite{alts}, we are considering the following changes to Sia for the overall improvement of the cryptocurrency.
+% Giving careful attention to ``A Treatise on Altcoins'' \cite{alts}, we are considering the following changes to ScPrime for the overall improvement of the cryptocurrency.
 % We caution that these propositions have not yet been rigorously examined from a security standpoint.
 
 % \subsection{Flexible Contracts}
@@ -358,7 +358,7 @@ Eventually, the use of two-way pegs with other crypto-assets will give hosts add
 
 % % delete/expand this section?
 % \subsection{Siafund the Miner fees}
-% Have some portion of siafunds contribute to the miner fees, which ensures that miners have compensation so long as Sia is being used for its core purpose - storage.
+% Have some portion of siafunds contribute to the miner fees, which ensures that miners have compensation so long as ScPrime is being used for its core purpose - storage.
 
 % \subsection{Miner Fee Adjustments}
 % If a block has miner fees which are significantly higher than the fees in the current block, there is incentive for miners to re-mine the previous block and change who gets the miner fees.
@@ -395,8 +395,8 @@ Eventually, the use of two-way pegs with other crypto-assets will give hosts add
 
 % \subsection{Variance Enforced Merge Mining}
 % Bitcoin enforces a number of leading 0s on a winning block.
-% Sia could enforce something like a single leading 1, followed by a bunch of leading 0s.
-% This creates the property that no hash is ever valid for both Bitcoin and Sia.
+% ScPrime could enforce something like a single leading 1, followed by a bunch of leading 0s.
+% This creates the property that no hash is ever valid for both Bitcoin and ScPrime.
 
 % The value to this is that the number of payouts a miner gets from finding blocks goes up.
 % The total payout is still the same, but the number of payouts increases by the number of blocks that would have been valid for both.
@@ -404,7 +404,7 @@ Eventually, the use of two-way pegs with other crypto-assets will give hosts add
 % (I need to read more about merge mining before I publish this section)
 
 \section{Conclusion}
-Sia is a variant on the Bitcoin protocol that enables decentralized file storage via cryptographic contracts.
+ScPrime is a variant on the Bitcoin protocol that enables decentralized file storage via cryptographic contracts.
 These contracts can be used to enforce storage agreements between clients and hosts.
 After agreeing to store a file, a host must regularly submit storage proofs to the network.
 The host will automatically be compensated for storing the file regardless of the behavior of the client.
@@ -414,12 +414,12 @@ Instead, an out-of-band ecosystem must be created to reward hosts for uploading.
 Clients and hosts must also find a way to coordinate; one mechanism would be the arbitrary data field in the blockchain.
 Various precautions have been enumerated which mitigate Sybil attacks and the unreliability of hosts.
 
-Siafunds are used as a mechanism of generating revenue for Nebulous Inc., the company responsible for the release and maintenance of Sia.
+Siafunds are used as a mechanism of generating revenue for Nebulous Inc., the company responsible for the release and maintenance of ScPrime.
 By using Siafunds instead of premining, Nebulous more directly correlates revenue to actual use of the network, and is largely unaffected by market games that malicious entities may play with the network currency.
 Miners may also derive a part of their block subsidy from siafunds, with similar benefits.
 Long term, we hope to add support for two-way-pegs with various currencies, which would enable consumers to insulate themselves from the instability of a single currency.
 
-We believe Sia will provide a fertile platform for decentralized cloud storage in trustless environments.
+We believe ScPrime will provide a fertile platform for decentralized cloud storage in trustless environments.
 
 \onecolumn
 \begin{thebibliography}{9}

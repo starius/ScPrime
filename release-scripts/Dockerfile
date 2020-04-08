@@ -7,7 +7,7 @@ USER builder
 WORKDIR /home/builder
 
 RUN git clone https://gitlab.com/scpcorp/ScPrime
-WORKDIR /home/builder/Sia
+WORKDIR /home/builder/ScPrime
 RUN git fetch --all && git checkout $branch
 
 RUN ./release-scripts/release.sh $version

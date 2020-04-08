@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "$0 builds Sia in a reproducible Docker build environment"
+echo "$0 builds ScPrime in a reproducible Docker build environment"
 
 branchName="$1"
 versionName="$2"
@@ -30,7 +30,7 @@ docker build --no-cache -t sia-builder . --build-arg branch=${branchName} --buil
 docker create --name build-container sia-builder
 
 # Copy the artifacts out.
-docker cp build-container:/home/builder/Sia/release/ ../
+docker cp build-container:/home/builder/ScPrime/release/ ../
 
 # Remove the build container.
 docker rm build-container
@@ -40,4 +40,4 @@ docker rm build-container
 
 # Print out the SHA256SUM file.
 echo "SHA256SUM of binaries built: "
-cat ../release/Sia-${versionName}-SHA256SUMS.txt
+cat ../release/ScPrime-${versionName}-SHA256SUMS.txt

@@ -176,7 +176,7 @@ type SkyfileUploadParameters struct {
 	SiaPath SiaPath `json:"siapath"`
 
 	// DryRun allows to retrieve the publink without actually uploading the file
-	// to the Sia network.
+	// to the ScPrime network.
 	DryRun bool `json:"dryrun"`
 
 	// Force determines whether the upload should overwrite an existing siafile

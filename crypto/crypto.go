@@ -39,7 +39,7 @@ type (
 	// Ciphertext is an encrypted []byte.
 	Ciphertext []byte
 
-	// CipherKey is a key with Sia specific encryption/decryption methods.
+	// CipherKey is a key with ScPrime specific encryption/decryption methods.
 	CipherKey interface {
 		// Key returns the underlying key.
 		Key() []byte
