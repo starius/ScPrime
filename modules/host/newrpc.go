@@ -1049,7 +1049,8 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 		if err := s.writeResponse(resp); err != nil {
 			return err
 		}
-		return nil
+		// The stop signal must arrive before RPC is complete.
+		return <-stopSignal
 	}
 
 	go func() {
