@@ -414,11 +414,6 @@ var (
 	RPCLoopDownloadWithTokenStop = types.NewSpecifier("DownloadStop")
 )
 
-// Error returned by host when token runs out of resources
-var (
-	ErrNotEnoughTokenResources = types.NewSpecifier("TokenResources")
-)
-
 var (
 	// RPCChallengePrefix is the prefix prepended to the challenge data
 	// supplied by the host when proving ownership of a contract's secret key.
@@ -625,8 +620,10 @@ type (
 
 	// LoopDownloadWithTokenResponse contains the response data for RPCLoopDownloadWithToken.
 	LoopDownloadWithTokenResponse struct {
-		Data        []byte
-		MerkleProof []crypto.Hash
+		EnoughSectorAccesses bool
+		EnoughBytes          bool
+		Data                 []byte
+		MerkleProof          []crypto.Hash
 	}
 )
 

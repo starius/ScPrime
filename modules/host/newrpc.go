@@ -1022,32 +1022,34 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 	id := tokenID(req.Token)
 	estBandwidth := estimateBandwidth(req.Sections)
 	sectorAccesses := estimateSectorsAccesses(req.Sections)
+	enoughBytes := true
+	enoughSectors := true
 	tokenResources, err := h.tokenStor.tokenRecord(&id)
 	if err != nil {
-		err := &modules.RPCError{
-			Description: "unknown token",
-			Type:        modules.ErrNotEnoughTokenResources,
-		}
-		s.writeError(err)
-		return err
+		// Token not found = no resources.
+		enoughBytes = false
+		enoughSectors = false
 	}
 	availableBandwidth := tokenResources.downloadBytes
 	if availableBandwidth < estBandwidth {
-		err := &modules.RPCError{
-			Description: "token does not have enough download bytes available to handle the requested amount of downloading",
-			Type:        modules.ErrNotEnoughTokenResources,
-		}
-		s.writeError(err)
-		return err
+		// Not enough download bandwidth.
+		enoughBytes = false
 	}
 	availableSectors := tokenResources.sectorAccesses
 	if availableSectors < sectorAccesses {
-		err := &modules.RPCError{
-			Description: "token does not have enough sector accesses available to handle this request",
-			Type:        modules.ErrNotEnoughTokenResources,
+		// Not enough sector accesses.
+		enoughSectors = false
+	}
+	if !enoughBytes || !enoughSectors {
+		// Send response indicating lack of resources.
+		resp := modules.LoopDownloadWithTokenResponse{
+			EnoughSectorAccesses: enoughSectors,
+			EnoughBytes:          enoughBytes,
 		}
-		s.writeError(err)
-		return err
+		if err := s.writeResponse(resp); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	go func() {
@@ -1089,8 +1091,10 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 
 		// Send the response.
 		resp := modules.LoopDownloadWithTokenResponse{
-			Data:        data,
-			MerkleProof: proof,
+			EnoughSectorAccesses: true,
+			EnoughBytes:          true,
+			Data:                 data,
+			MerkleProof:          proof,
 		}
 		select {
 		case err := <-stopSignal:
