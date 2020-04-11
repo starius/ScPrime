@@ -312,6 +312,9 @@ type (
 		ContractPrice          types.Currency `json:"contractprice"`
 		DownloadBandwidthPrice types.Currency `json:"downloadbandwidthprice"`
 		SectorAccessPrice      types.Currency `json:"sectoraccessprice"`
+		KeyValueSetPrice       types.Currency `json:"keyvaluesetprice"`
+		KeyValueGetPrice       types.Currency `json:"keyvaluegetprice"`
+		KeyValueDeletePrice    types.Currency `json:"keyvaluedeleteprice"`
 		StoragePrice           types.Currency `json:"storageprice"`
 		UploadBandwidthPrice   types.Currency `json:"uploadbandwidthprice"`
 
@@ -367,16 +370,28 @@ type (
 
 // New RPC IDs
 var (
-	RPCLoopEnter         = types.NewSpecifier("LoopEnter")
-	RPCLoopExit          = types.NewSpecifier("LoopExit")
-	RPCLoopFormContract  = types.NewSpecifier("LoopFormContract")
-	RPCLoopLock          = types.NewSpecifier("LoopLock")
-	RPCLoopRead          = types.NewSpecifier("LoopRead")
-	RPCLoopRenewContract = types.NewSpecifier("LoopRenew")
-	RPCLoopSectorRoots   = types.NewSpecifier("LoopSectorRoots")
-	RPCLoopSettings      = types.NewSpecifier("LoopSettings")
-	RPCLoopUnlock        = types.NewSpecifier("LoopUnlock")
-	RPCLoopWrite         = types.NewSpecifier("LoopWrite")
+	RPCLoopEnter             = types.NewSpecifier("LoopEnter")
+	RPCLoopExit              = types.NewSpecifier("LoopExit")
+	RPCLoopFormContract      = types.NewSpecifier("LoopFormContract")
+	RPCLoopLock              = types.NewSpecifier("LoopLock")
+	RPCLoopRead              = types.NewSpecifier("LoopRead")
+	RPCLoopRenewContract     = types.NewSpecifier("LoopRenew")
+	RPCLoopSectorRoots       = types.NewSpecifier("LoopSectorRoots")
+	RPCLoopSettings          = types.NewSpecifier("LoopSettings")
+	RPCLoopUnlock            = types.NewSpecifier("LoopUnlock")
+	RPCLoopWrite             = types.NewSpecifier("LoopWrite")
+	RPCLoopTopUpToken        = types.NewSpecifier("LoopTopUpToken")
+	RPCLoopDownloadWithToken = types.NewSpecifier("LoopDownload")
+)
+
+// Token resources
+var (
+	DownloadBytes   = types.NewSpecifier("DownloadBytes")
+	UploadBytes     = types.NewSpecifier("UploadBytes")
+	SectorAccesses  = types.NewSpecifier("SectorAccesses")
+	KeyValueSets    = types.NewSpecifier("KeyValueSets")
+	KeyValueGets    = types.NewSpecifier("KeyValueGets")
+	KeyValueDeletes = types.NewSpecifier("KeyValueDeletes")
 )
 
 // RPC ciphers
@@ -395,7 +410,8 @@ var (
 
 // Read interrupt
 var (
-	RPCLoopReadStop = types.NewSpecifier("ReadStop")
+	RPCLoopReadStop              = types.NewSpecifier("ReadStop")
+	RPCLoopDownloadWithTokenStop = types.NewSpecifier("DownloadStop")
 )
 
 var (
@@ -574,6 +590,40 @@ type (
 	// LoopWriteResponse contains the response data for RPCLoopWrite.
 	LoopWriteResponse struct {
 		Signature []byte
+	}
+
+	// LoopTopUpTokenRequest contains the request parameters for RPCLoopTopUpToken.
+	LoopTopUpTokenRequest struct {
+		NewRevisionNumber    uint64
+		NewValidProofValues  []types.Currency
+		NewMissedProofValues []types.Currency
+		Signature            []byte
+
+		ResourcesType   types.Specifier
+		ResourcesAmount int64
+
+		Token [16]byte
+	}
+
+	// LoopTopUpTokenResponse contains the response data for RPCLoopTopUpToken.
+	LoopTopUpTokenResponse struct {
+		Signature []byte
+	}
+
+	// LoopDownloadWithTokenRequest contains the request parameters for RPCLoopDownloadWithToken.
+	LoopDownloadWithTokenRequest struct {
+		Sections    []LoopReadRequestSection
+		MerkleProof bool
+
+		Token [16]byte
+	}
+
+	// LoopDownloadWithTokenResponse contains the response data for RPCLoopDownloadWithToken.
+	LoopDownloadWithTokenResponse struct {
+		EnoughSectorAccesses bool
+		EnoughBytes          bool
+		Data                 []byte
+		MerkleProof          []crypto.Hash
 	}
 )
 

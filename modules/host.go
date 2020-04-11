@@ -97,6 +97,9 @@ type (
 		MinContractPrice          types.Currency `json:"mincontractprice"`
 		MinDownloadBandwidthPrice types.Currency `json:"mindownloadbandwidthprice"`
 		MinSectorAccessPrice      types.Currency `json:"minsectoraccessprice"`
+		MinKeyValueSetPrice       types.Currency `json:"minkeyvaluesetprice"`
+		MinKeyValueGetPrice       types.Currency `json:"minkeyvaluegetprice"`
+		MinKeyValueDeletePrice    types.Currency `json:"minkeyvaluedeleteprice"`
 		MinStoragePrice           types.Currency `json:"minstorageprice"`
 		MinUploadBandwidthPrice   types.Currency `json:"minuploadbandwidthprice"`
 	}

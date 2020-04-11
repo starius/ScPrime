@@ -66,6 +66,7 @@ package host
 import (
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -81,6 +82,8 @@ import (
 )
 
 const (
+	// Directory name for token storage.
+	tokenStorDir = "token_storage"
 	// Names of the various persistent files in the host.
 	dbFilename   = modules.HostDir + ".db"
 	logFile      = modules.HostDir + ".log"
@@ -163,6 +166,9 @@ type Host struct {
 	// storage obligations can be long-running, and each storage obligation can
 	// be locked separately.
 	lockedStorageObligations map[types.FileContractID]*siasync.TryMutex
+
+	// Storage of tokens for prepaid downloads.
+	tokenStor *tokenStorage
 
 	// Utilities.
 	db         *persist.BoltDatabase
@@ -255,6 +261,27 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	if err != nil {
 		return nil, err
 	}
+
+	tokenStorageDir := filepath.Join(h.persistDir, tokenStorDir)
+	if _, err := os.Stat(tokenStorageDir); os.IsNotExist(err) {
+		// Create the token storage directory if it does not yet exist.
+		if err := os.Mkdir(tokenStorageDir, 0755); err != nil {
+			return nil, err
+		}
+	}
+	// Initialize token storage.
+	// TODO: the current version of tokens storage does not support reverting blocks.
+	// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
+	h.tokenStor, err = newTokenStorage(tokenStorageDir)
+	if err != nil {
+		return nil, err
+	}
+	h.tg.AfterStop(func() {
+		err = h.tokenStor.close()
+		if err != nil {
+			fmt.Println("Error when closing token storage:", err)
+		}
+	})
 
 	// Initialize the logger, and set up the stop call that will close the
 	// logger.
