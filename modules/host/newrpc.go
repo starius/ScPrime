@@ -1024,18 +1024,18 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 	sectorAccesses := estimateSectorsAccesses(req.Sections)
 	enoughBytes := true
 	enoughSectors := true
+	availableBandwidth := int64(0)
+	availableSectors := int64(0)
 	tokenResources, err := h.tokenStor.tokenRecord(&id)
-	if err != nil {
-		// Token not found = no resources.
-		enoughBytes = false
-		enoughSectors = false
+	if err == nil {
+		// Token not found = no resources, and 0 is correct.
+		availableBandwidth = tokenResources.downloadBytes
+		availableSectors = tokenResources.sectorAccesses
 	}
-	availableBandwidth := tokenResources.downloadBytes
 	if availableBandwidth < estBandwidth {
 		// Not enough download bandwidth.
 		enoughBytes = false
 	}
-	availableSectors := tokenResources.sectorAccesses
 	if availableSectors < sectorAccesses {
 		// Not enough sector accesses.
 		enoughSectors = false
