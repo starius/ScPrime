@@ -77,14 +77,14 @@ var (
 	// settingsMetadata is the header that is used when writing the contract
 	// manager's settings to disk.
 	settingsMetadata = persist.Metadata{
-		Header:  "ScPrime Contract Manager",
+		Header:  "Sia Contract Manager",
 		Version: "1.2.0",
 	}
 
 	// walMetadata is the header that is used when writing the write ahead log
 	// to disk, so that it may be identified at startup.
 	walMetadata = persist.Metadata{
-		Header:  "ScPrime Contract Manager WAL",
+		Header:  "Sia Contract Manager WAL",
 		Version: "1.2.0",
 	}
 )

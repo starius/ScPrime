@@ -64,10 +64,6 @@ func die(args ...interface{}) {
 
 // versionCmd is a cobra command that prints the version of spd.
 func versionCmd(*cobra.Command, []string) {
-	version := build.Version
-	if build.ReleaseTag != "" {
-		version += "-" + build.ReleaseTag
-	}
 	switch build.Release {
 	case "dev":
 		fmt.Println("ScPrime Daemon v" + build.Version + "-dev")

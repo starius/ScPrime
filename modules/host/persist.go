@@ -218,26 +218,43 @@ func (h *Host) load() error {
 	// contract renewals. This leads to an offset to the real value over time.
 	h.financialMetrics.ContractCount = 0
 	h.financialMetrics.LockedStorageCollateral = types.NewCurrency64(0)
+	//In case corrupt entries in the database mark them for deletion
+	var invalidSOkeys [][]byte
 	err = h.db.View(func(tx *bolt.Tx) error {
 		cursor := tx.Bucket(bucketStorageObligations).Cursor()
 		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
 			var so storageObligation
-			err := json.Unmarshal(v, &so)
-			if err != nil {
-				return err
+			dataerr := json.Unmarshal(v, &so)
+			if dataerr != nil {
+				h.log.Printf("Marking corrupt storageobligation key: %v with error: %v\n", k, dataerr.Error())
+				invalidSOkeys = append(invalidSOkeys, k)
+				continue
 			}
 			if so.ObligationStatus == obligationUnresolved {
 				h.financialMetrics.ContractCount++
 				h.financialMetrics.LockedStorageCollateral = h.financialMetrics.LockedStorageCollateral.Add(so.LockedCollateral)
 			}
 		}
+		if len(invalidSOkeys) > 0 {
+			h.log.Println("Corrupt storageobligation database, will attempt to clean")
+			h.log.Println("Backing up storage obligations database.")
+			tx.CopyFile(filepath.Join(h.persistDir, dbFilename+".bak"), 0600)
+		}
 		return nil
 	})
-	if err != nil {
-		return err
+	if len(invalidSOkeys) > 0 {
+		h.log.Printf("Pruning %v corrupt storage obligations from database.\n", len(invalidSOkeys))
+		//Try to recover by reading again and pruning invalid entries
+		err = h.db.Update(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket(bucketStorageObligations)
+			for _, invalidKey := range invalidSOkeys {
+				h.log.Printf("Deleting %v from database.\n", invalidKey)
+				bucket.Delete(invalidKey)
+			}
+			return nil
+		})
 	}
-
-	return nil
+	return err
 }
 
 // saveSync stores all of the persist data to disk and then syncs to disk.

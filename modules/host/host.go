@@ -96,7 +96,7 @@ var (
 	// dbMetadata is a header that gets put into the database to identify a
 	// version and indicate that the database holds host information.
 	dbMetadata = persist.Metadata{
-		Header:  "ScPrime Host DB",
+		Header:  "Sia Host DB",
 		Version: "0.5.2",
 	}
 

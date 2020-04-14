@@ -64,7 +64,7 @@ const (
 // Variables related to the persisting structures of the transaction pool.
 var (
 	dbMetadata = persist.Metadata{
-		Header:  "ScPrime Transaction Pool DB",
+		Header:  "Sia Transaction Pool DB",
 		Version: "0.6.0",
 	}
 )

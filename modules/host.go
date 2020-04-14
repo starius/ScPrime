@@ -23,19 +23,19 @@ const (
 var (
 	// Hostv112PersistMetadata is the header of the v112 host persist file.
 	Hostv112PersistMetadata = persist.Metadata{
-		Header:  "ScPrime Host",
+		Header:  "Sia Host",
 		Version: "0.5",
 	}
 
 	// Hostv120PersistMetadata is the header of the v120 host persist file.
 	Hostv120PersistMetadata = persist.Metadata{
-		Header:  "ScPrime Host",
+		Header:  "Sia Host",
 		Version: "1.2.0",
 	}
 
 	// Hostv143PersistMetadata is the header of the v143 host persist file.
 	Hostv143PersistMetadata = persist.Metadata{
-		Header:  "ScPrime Host",
+		Header:  "Sia Host",
 		Version: "1.4.3",
 	}
 )
