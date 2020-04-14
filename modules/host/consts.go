@@ -46,7 +46,7 @@ var (
 	// DefaultStoragePrice defines the starting price for hosts selling
 	// storage. We try to match a number that is both reasonably profitable and
 	// reasonably competitive.
-	DefaultStoragePrice = types.SiacoinPrecision.Mul64(50).Div(modules.BlockBytesPerMonthTerabyte) // 50 SC / TB / Month
+	DefaultStoragePrice = types.ScPrimecoinPrecision.Mul64(20).Div(modules.BlockBytesPerMonthTerabyte) // 20 SCP / TB / Month
 )
 
 var (

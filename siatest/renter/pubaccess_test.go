@@ -596,7 +596,7 @@ func testConvertSiaFile(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// Try to download the skylink.
-	fetchedData, _, err := r.SkynetSkylinkGet(skylink)
+	fetchedData, _, err := r.SkynetPublinkGet(skylink)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -80,9 +80,9 @@ func TestBackupRestoreMetadata(t *testing.T) {
 
 	// Test both nil slice and regular slice.
 	if fastrand.Intn(2) == 0 {
-		sf.staticMetadata.Skylinks = []string{}
+		sf.staticMetadata.Publinks = []string{}
 	} else {
-		sf.staticMetadata.Skylinks = nil
+		sf.staticMetadata.Publinks = nil
 	}
 	if fastrand.Intn(2) == 0 {
 		sf.staticMetadata.PartialChunks = []PartialChunkInfo{}
@@ -139,9 +139,9 @@ func TestBackupRestoreMetadata(t *testing.T) {
 		sf.staticMetadata.GroupID = int32(fastrand.Intn(100))
 		sf.staticMetadata.ChunkOffset = int64(fastrand.Uint64n(100))
 		sf.staticMetadata.PubKeyTableOffset = int64(fastrand.Uint64n(100))
-		sf.staticMetadata.Skylinks = nil
+		sf.staticMetadata.Publinks = nil
 		if fastrand.Intn(2) == 0 { // 50% chance to be not nil
-			sf.staticMetadata.Skylinks = make([]string, fastrand.Intn(10))
+			sf.staticMetadata.Publinks = make([]string, fastrand.Intn(10))
 		}
 
 		// Error occurred after changing the fields.

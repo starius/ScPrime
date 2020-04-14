@@ -71,7 +71,7 @@ var (
 
 	// ErrRedundancyNotSupported is the error returned while Skynet only
 	// supports 1-N redundancy
-	ErrRedundancyNotSupported = errors.New("skylinks currently only support 1-of-N redundancy, other redundancies will be supported in a later version")
+	ErrRedundancyNotSupported = errors.New("publinks currently only support 1-of-N redundancy, other redundancies will be supported in a later version")
 
 	// ExtendedSuffix is the suffix that is added to a pubfile siapath if it is
 	// a large file upload
