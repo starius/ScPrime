@@ -69,6 +69,10 @@ var (
 	// sectorsize.
 	ErrMetadataTooBig = errors.New("metadata exceeds sectorsize")
 
+	// ErrRedundancyNotSupported is the error returned while Skynet only
+	// supports 1-N redundancy
+	ErrRedundancyNotSupported = errors.New("skylinks currently only support 1-of-N redundancy, other redundancies will be supported in a later version")
+
 	// ExtendedSuffix is the suffix that is added to a pubfile siapath if it is
 	// a large file upload
 	ExtendedSuffix = "-extended"
@@ -267,7 +271,7 @@ func (r *Renter) managedCreatePublinkFromFileNode(lup modules.SkyfileUploadParam
 	// cannot download them, but because it is currently inefficient to download
 	// them.
 	if ec.MinPieces() != 1 {
-		return modules.Publink{}, errors.New("publinks currently only support 1-of-N redundancy, other redundancies will be supported in a later version")
+		return modules.Publink{}, ErrRedundancyNotSupported
 	}
 
 	// Create the metadata for this siafile.

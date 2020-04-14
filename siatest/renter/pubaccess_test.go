@@ -68,6 +68,7 @@ func TestPubAccess(t *testing.T) {
 		{Name: "TestPubAccessDryRunUpload", Test: testPubaccessDryRunUpload},
 		{Name: "TestRegressionTimeoutPanic", Test: testRegressionTimeoutPanic},
 		{Name: "TestPubAccessNoWorkers", Test: testPubaccessNoWorkers},
+		{Name: "TestConvertSiaFile", Test: testConvertSiaFile},
 	}
 
 	// Run tests
@@ -528,47 +529,6 @@ func testPubaccessBasic(t *testing.T, tg *siatest.TestGroup) {
 	// the old files and then churning the hosts over, and checking that the
 	// renter does a repair operation to keep everyone alive.
 
-	// Upload a siafile that will then be converted to a pubfile. The siafile
-	// needs at least 2 sectors.
-	/*
-		localFile, remoteFile, err := r.UploadNewFileBlocking(int(modules.SectorSize*2)+siatest.Fuzz(), 2, 1, false)
-		if err != nil {
-			t.Fatal(err)
-		}
-		localData, err := localFile.Data()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		filename2 := "testTwo"
-		uploadSiaPath2, err := modules.NewSiaPath("testTwoPath")
-		if err != nil {
-			t.Fatal(err)
-		}
-		sup = modules.SkyfileUploadParameters{
-			SiaPath:             uploadSiaPath2,
-			Force:               !force,
-			BaseChunkRedundancy: 2,
-			FileMetadata: modules.SkyfileMetadata{
-				Executable: true,
-				Filename:   filename2,
-			},
-		}
-
-		publink2, err := r.RenterConvertSiafileToSkyfilePost(sup, remoteFile.SiaPath())
-		if err != nil {
-			t.Fatal(err)
-		}
-		// Try to download the publink.
-		fetchedData, err = r.RenterPublinkGet(publink2)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(fetchedData, localData) {
-			t.Error("upload and download doesn't match")
-		}
-	*/
-
 	// TODO: Fetch both the pubfile and the siafile that was uploaded, make sure
 	// that they both have the new publink added to their metadata.
 
@@ -580,6 +540,75 @@ func testPubaccessBasic(t *testing.T, tg *siatest.TestGroup) {
 	// Maybe this can be accomplished by tagging a flag to the API which has the
 	// layout and metadata streamed as the first bytes? Maybe there is some
 	// easier way.
+}
+
+// testConvertSiaFile tests converting a siafile to a skyfile. This test checks
+// for 1-of-N redundancies and N-of-M redundancies.
+func testConvertSiaFile(t *testing.T, tg *siatest.TestGroup) {
+	r := tg.Renters()[0]
+
+	// Upload a siafile that will then be converted to a skyfile. The siafile
+	// needs at least 2 sectors.
+	//
+	// Set 2 as the datapieces to check for N-of-M redundancy conversions
+	filesize := int(modules.SectorSize*2) + siatest.Fuzz()
+	localFile, remoteFile, err := r.UploadNewFileBlocking(filesize, 2, 1, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create Skyfile Upload Parameters
+	skyFilePath, err := modules.NewSiaPath("newskyfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sup := modules.SkyfileUploadParameters{
+		SiaPath: skyFilePath,
+	}
+
+	// Try and convert to a Skyfile, this should fail due to the the original
+	// siafile being a N-of-M redundancy
+	skylink, err := r.SkynetConvertSiafileToSkyfilePost(sup, remoteFile.SiaPath())
+	if !strings.Contains(err.Error(), renter.ErrRedundancyNotSupported.Error()) {
+		t.Fatalf("Expected Error to contrain %v but got %v", renter.ErrRedundancyNotSupported, err)
+	}
+
+	// Upload a new file with a 1-N redundancy by setting the datapieces to 1
+	localFile, remoteFile, err = r.UploadNewFileBlocking(filesize, 1, 2, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Get the local and remote data for comparison
+	localData, err := localFile.Data()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, remoteData, err := r.DownloadByStream(remoteFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Convert to a Skyfile
+	skylink, err = r.SkynetConvertSiafileToSkyfilePost(sup, remoteFile.SiaPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Try to download the skylink.
+	fetchedData, _, err := r.SkynetSkylinkGet(skylink)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Compare the data fetched from the Skylink to the local data and the
+	// previously uploaded data
+	if !bytes.Equal(fetchedData, localData) {
+		t.Error("converted skylink data doesn't match local data")
+	}
+	if !bytes.Equal(fetchedData, remoteData) {
+		t.Error("converted skylink data doesn't match remote data")
+	}
 }
 
 // testPubaccessMultipartUpload tests you can perform a multipart upload. It will

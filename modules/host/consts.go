@@ -43,6 +43,13 @@ const (
 )
 
 var (
+	// DefaultStoragePrice defines the starting price for hosts selling
+	// storage. We try to match a number that is both reasonably profitable and
+	// reasonably competitive.
+	DefaultStoragePrice = types.SiacoinPrecision.Mul64(50).Div(modules.BlockBytesPerMonthTerabyte) // 50 SC / TB / Month
+)
+
+var (
 	// connectablityCheckFirstWait defines how often the host's connectability
 	// check is run.
 	connectabilityCheckFirstWait = build.Select(build.Var{
@@ -77,14 +84,17 @@ var (
 	// collateral per-byte by default. The collateral should be considered as
 	// an absolute instead of as a percentage, because low prices result in
 	// collaterals which may be significant by percentage, but insignificant
-	// overall. A default of 25 KS / TB / Month has been chosen, which is 2.5x
+	// overall. A default of 20 KS / TB / Month has been chosen, which is same as
 	// the default price for storage. The host is expected to put up a
 	// significant amount of collateral as a commitment to faithfulness,
 	// because this guarantees that the incentives are aligned for the host to
 	// keep the data even if the price of SCP fluctuates, the price of raw
 	// storage fluctuates, or the host realizes that there is unexpected
-	// opportunity cost in being a host.
-	defaultCollateral = types.ScPrimecoinPrecision.Mul64(35).Div(modules.BlockBytesPerMonthTerabyte) // 35 SCP / TB / Month
+	// opportunity cost in being a host. Higher Collateral effectively increases
+	// the storage price for renters as it reduces the funding flow to the
+	// storage provider by increasing the SPF contract fee.
+	//defaultCollateral = types.ScPrimecoinPrecision.Mul64(20).Div(modules.BlockBytesPerMonthTerabyte) // 20 SCP / TB / Month
+	defaultCollateral = DefaultStoragePrice
 
 	// defaultCollateralBudget defines the maximum number of SCP that the
 	// host is going to allocate towards collateral. The number has been chosen
@@ -95,21 +105,21 @@ var (
 	// defaultContractPrice defines the default price of creating a contract
 	// with the host. The current default is 0.1. This was chosen since it is
 	// the minimum fee estimation of the transactionpool for a filecontract
-	// transaction..
+	// transaction.
 	defaultContractPrice = types.ScPrimecoinPrecision.Div64(1e6).Mul64(modules.EstimatedFileContractRevisionAndProofTransactionSetSize)
 
 	// defaultDownloadBandwidthPrice defines the default price of upload
-	// bandwidth. The default is set to 500 SCP per gigabyte, because
+	// bandwidth. The default is set to 2 SCP per terabyte, because
 	// download bandwidth is expected to be plentiful but also in-demand.
 	defaultDownloadBandwidthPrice = types.ScPrimecoinPrecision.Mul64(2).Div(modules.BytesPerTerabyte) // 2 SCP / TB
 
 	// defaultMaxCollateral defines the maximum amount of collateral that the
-	// host is comfortable putting into a single file contract. 10e3 is a
-	// relatively small file contract, but millions of SCP could be locked
+	// host is comfortable putting into a single file contract. 200 SCP is a
+	// reasonable contract of 10 terabytemonths, but thousands of SCP could be locked
 	// away by only a few hundred file contracts. As the ecosystem matures, it
 	// is expected that the safe default for this value will increase quite a
 	// bit.
-	defaultMaxCollateral = types.ScPrimecoinPrecision.Mul64(400) // 400 SCP
+	defaultMaxCollateral = types.ScPrimecoinPrecision.Mul64(200) // 200 SCP
 
 	// defaultMaxDownloadBatchSize defines the maximum number of bytes that the
 	// host will allow to be requested by a single download request. 33 MiB has
@@ -130,6 +140,22 @@ var (
 	// with a number like 65 MiB.
 	defaultMaxReviseBatchSize = 33 * (1 << 20)
 
+	// defaultEphemeralAccountExpiry defines the default maximum amount of
+	// time an ephemeral account can be inactive before it expires and gets
+	// deleted.
+	defaultEphemeralAccountExpiry = uint64(604800) // 1 week
+
+	// defaultMaxEphemeralAccountBalance defines the default maximum amount of
+	// money that the host will allow to deposit into a single ephemeral account
+	defaultMaxEphemeralAccountBalance = types.ScPrimecoinPrecision.Div64(100)
+
+	// defaultMaxEphemeralAccountRisk is the maximum amount of money that the
+	// host is willing to risk to a power loss. If a user's withdrawal would put
+	// the host over the maxunsaveddelat, the host will wait to complete the
+	// user's transaction until the host has persisted the widthdrawal, to
+	// prevent the host from having too much money at risk.
+	defaultMaxEphemeralAccountRisk = types.ScPrimecoinPrecision.Div64(20)
+
 	// defaultSectorAccessPrice defines the default price of a sector access. It
 	// is roughly equal to the cost of downloading 64 KiB.
 	// defaultSectorAccessPrice = defaultDownloadBandwidthPrice.Mul64(modules.MaxSectorAccessPriceVsBandwidth).Div64(2)
@@ -147,22 +173,6 @@ var (
 	// the data, meaning that the host serves to profit from accepting the
 	// data.
 	defaultUploadBandwidthPrice = types.ScPrimecoinPrecision.Mul64(2).Div(modules.BytesPerTerabyte) // 2 SCP / TB
-
-	// defaultEphemeralAccountExpiry defines the default maximum amount of
-	// time an ephemeral account can be inactive before it expires and gets
-	// deleted.
-	defaultEphemeralAccountExpiry = uint64(604800) // 1 week
-
-	// defaultMaxEphemeralAccountBalance defines the default maximum amount of
-	// money that the host will allow to deposit into a single ephemeral account
-	defaultMaxEphemeralAccountBalance = types.ScPrimecoinPrecision.Div64(100)
-
-	// defaultMaxEphemeralAccountRisk is the maximum amount of money that the
-	// host is willing to risk to a power loss. If a user's withdrawal would put
-	// the host over the maxunsaveddelat, the host will wait to complete the
-	// user's transaction until the host has persisted the widthdrawal, to
-	// prevent the host from having too much money at risk.
-	defaultMaxEphemeralAccountRisk = types.ScPrimecoinPrecision.Div64(20)
 
 	// defaultWindowSize is the size of the proof of storage window requested
 	// by the host. The host will not delete any obligations until the window
