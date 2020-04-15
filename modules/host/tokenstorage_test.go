@@ -1,8 +1,8 @@
 package host
 
 import (
+	"crypto/rand"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"testing"
 
