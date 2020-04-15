@@ -130,6 +130,8 @@ func (h *Host) managedRPCLoop(conn net.Conn) error {
 		modules.RPCLoopWrite:              h.managedRPCLoopWrite,
 		modules.RPCLoopRead:               h.managedRPCLoopRead,
 		modules.RPCLoopSectorRoots:        h.managedRPCLoopSectorRoots,
+		modules.RPCLoopTopUpToken:         h.managedRPCLoopTopUpToken,
+		modules.RPCLoopDownloadWithToken:  h.managedRPCLoopDownloadWithToken,
 	}
 	for {
 		conn.SetDeadline(time.Now().Add(rpcRequestInterval))
