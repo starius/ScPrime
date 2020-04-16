@@ -1167,10 +1167,6 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 		s.writeError(err)
 		return err
 	}
-	if err != nil {
-		s.writeError(err)
-		return err
-	}
 
 	// Save changes to token storage.
 	id := tokenID(req.Token)
