@@ -1159,12 +1159,14 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 	}
 
 	// Update the storage obligation.
-	paymentTransfer := currentRevision.NewValidProofOutputs[0].Value.Sub(newRevision.NewValidProofOutputs[0].Value)
+	paymentTransfer := currentRevision.ValidRenterPayout().Sub(newRevision.ValidRenterPayout())
 	s.so.PotentialDownloadRevenue = s.so.PotentialDownloadRevenue.Add(paymentTransfer)
 	s.so.RevisionTransactionSet = []types.Transaction{txn}
-	h.mu.Lock()
 	err = h.managedModifyStorageObligation(s.so, nil, nil)
-	h.mu.Unlock()
+	if err != nil {
+		s.writeError(err)
+		return err
+	}
 	if err != nil {
 		s.writeError(err)
 		return err
