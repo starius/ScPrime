@@ -1374,7 +1374,7 @@ Public key used to identify the host.
 > curl example
 
 ```go
-curl -A "ScPrime-Agent" "localhost:9980/host/bandwidth"
+curl -A "ScPrime-Agent" "localhost:4280/host/bandwidth"
 ```
 
 returns the total upload and download bandwidth usage for the host
@@ -4153,7 +4153,7 @@ See [standard responses](#standard-responses).
 > curl example
 
 ```go
-curl -A "ScPrime-Agent" "localhost:9980/pubaccess/blacklist"
+curl -A "ScPrime-Agent" "localhost:4280/pubaccess/blacklist"
 ```
 
 returns the list of merkleroots that are blacklisted.
@@ -4177,9 +4177,9 @@ The blacklist is a list of merkle roots, which are hashes, that are blacklisted.
 > curl example
 
 ```go
-curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"add" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:9980/pubaccess/blacklist"
+curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"add" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:4280/pubaccess/blacklist"
 
-curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"remove" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:9980/pubaccess/blacklist"
+curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"remove" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:4280/pubaccess/blacklist"
 ```
 
 updates the list of publinks that should be blacklisted from Pubaccess. This
@@ -4204,7 +4204,7 @@ responses](#standard-responses).
 > curl example
 
 ```bash
-curl -I -A "ScPrime-Agent" "localhost:9980/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
+curl -I -A "ScPrime-Agent" "localhost:4280/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
 ```
 
 This curl command performs a HEAD request that fetches the headers for
@@ -4231,13 +4231,13 @@ This request has an empty response body.
 
 ```bash
 # entire file
-curl -A "ScPrime-Agent" "localhost:9980/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
+curl -A "ScPrime-Agent" "localhost:4280/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
 
 # directory
-curl -A "ScPrime-Agent" "localhost:9980/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder"
+curl -A "ScPrime-Agent" "localhost:4280/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder"
 
 # sub file
-curl -A "ScPrime-Agent" "localhost:9980/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder/file.txt"
+curl -A "ScPrime-Agent" "localhost:4280/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder/file.txt"
 ```  
 
 downloads a publink using http streaming. This call blocks until the data is
@@ -4310,7 +4310,7 @@ The response body is the raw data for the file.
 // This command uploads the file 'myImage.png' to the ScPrime folder
 // 'var/pubaccess/images/myImage.png'. Users who download the file will see the name
 // 'image.png'.
-curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:9980/pubaccess/pubfile/images/myImage.png?filename=image.png" --data-binary @myImage.png
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/pubaccess/pubfile/images/myImage.png?filename=image.png" --data-binary @myImage.png
 ```
 
 uploads a file to the network using a stream. If the upload stream POST call
@@ -4407,7 +4407,7 @@ version, an offset and a length in a heavily compressed and optimized format.
 > curl example
 
 ```go
-curl -A "ScPrime-Agent" "localhost:9980/pubaccess/stats"
+curl -A "ScPrime-Agent" "localhost:4280/pubaccess/stats"
 ```
 
 returns statistical information about Pubaccess, e.g. number of files uploaded
@@ -4449,7 +4449,7 @@ Gitrevision refers to the commit hash used to build said.
 > curl example
 
 ```go
-curl -A "ScPrime-Agent"  -u "":<apipassword> --data "pubaccesskey=BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a" "localhost:9980/pubaccess/addpubaccesskey"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "pubaccesskey=BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a" "localhost:4280/pubaccess/addpubaccesskey"
 ```
 
 Stores the given pubaccesskey with the renter's pubaccesskey manager.
@@ -4469,7 +4469,7 @@ responses](#standard-responses).
 > curl example
 
 ```go
-curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/createpubaccesskey"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:4280/pubaccess/createpubaccesskey"
 ```
 
 Returns a new pubaccesskey created and stored under that name.
@@ -4497,8 +4497,8 @@ base-64 encoded pubaccesskey
 > curl example
 
 ```go
-curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/pubaccesskey"
-curl -A "ScPrime-Agent"  -u "":<apipassword> --data "id=gi5z8cf5NWbcvPBaBn0DFQ==" "localhost:9980/pubaccess/pubaccesskey"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:4280/pubaccess/pubaccesskey"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "id=gi5z8cf5NWbcvPBaBn0DFQ==" "localhost:4280/pubaccess/pubaccesskey"
 ```
 
 Returns the base-64 encoded pubaccesskey stored under that name, or with that ID.
@@ -4529,7 +4529,7 @@ base-64 encoded pubaccesskey
 > curl example
 
 ```go
-curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/pubaccesskeyid"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:4280/pubaccess/pubaccesskeyid"
 ```
 
 Returns the base-64 encoded ID of the pubaccesskey stored under that name.
