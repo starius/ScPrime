@@ -143,8 +143,8 @@ func (api *API) buildHTTPRoutes() {
 		router.POST("/pubaccess/pubfile/*siapath", RequirePassword(api.skynetSkyfileHandlerPOST, requiredPassword))
 		router.GET("/pubaccess/stats", api.skynetStatsHandlerGET)
 		router.GET("/pubaccess/pubaccesskey", RequirePassword(api.skykeyHandlerGET, requiredPassword))
-		router.POST("/pubaccess/createskykey", RequirePassword(api.skykeyCreateKeyHandlerPOST, requiredPassword))
-		router.POST("/pubaccess/addskykey", RequirePassword(api.skykeyAddKeyHandlerPOST, requiredPassword))
+		router.POST("/pubaccess/createpubaccesskey", RequirePassword(api.skykeyCreateKeyHandlerPOST, requiredPassword))
+		router.POST("/pubaccess/addpubaccesskey", RequirePassword(api.skykeyAddKeyHandlerPOST, requiredPassword))
 
 		// Directory endpoints
 		router.POST("/renter/dir/*siapath", RequirePassword(api.renterDirHandlerPOST, requiredPassword))

@@ -4445,11 +4445,11 @@ Version is the siad version the node is running.
 Gitrevision refers to the commit hash used to build said.
 
 
-## /pubaccess/addskykey [POST]
+## /pubaccess/addpubaccesskey [POST]
 > curl example
 
 ```go
-curl -A "ScPrime-Agent"  -u "":<apipassword> --data "pubaccesskey=BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a" "localhost:9980/pubaccess/addskykey"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "pubaccesskey=BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a" "localhost:9980/pubaccess/addpubaccesskey"
 ```
 
 Stores the given pubaccesskey with the renter's pubaccesskey manager.
@@ -4465,11 +4465,11 @@ standard success or error response. See [standard
 responses](#standard-responses).
 
 
-## /pubaccess/createskykey [POST]
+## /pubaccess/createpubaccesskey [POST]
 > curl example
 
 ```go
-curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/createskykey"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/createpubaccesskey"
 ```
 
 Returns a new pubaccesskey created and stored under that name.
@@ -4525,11 +4525,11 @@ base-64 encoded ID of the pubaccesskey being queried
 base-64 encoded pubaccesskey
 
 
-## /pubaccess/skykeyid [GET]
+## /pubaccess/pubaccesskeyid [GET]
 > curl example
 
 ```go
-curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/skykeyid"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:9980/pubaccess/pubaccesskeyid"
 ```
 
 Returns the base-64 encoded ID of the pubaccesskey stored under that name.
@@ -4546,11 +4546,11 @@ name of the pubaccesskey being queried
  
 ```go
 {
-  "skykeyid": "gi5z8cf5NWbcvPBaBn0DFQ=="
+  "pubaccesskeyid": "gi5z8cf5NWbcvPBaBn0DFQ=="
 }
 ```
 
-**skykeyid** | string  
+**pubaccesskeyid** | string  
 base-64 encoded pubaccesskey ID
 
 

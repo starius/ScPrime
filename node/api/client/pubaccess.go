@@ -359,7 +359,7 @@ func (c *Client) SkykeyGetByID(id pubaccesskey.SkykeyID) (pubaccesskey.Pubaccess
 	return sk, nil
 }
 
-// SkykeyCreateKeyPost requests the /pubaccess/createskykey POST endpoint.
+// SkykeyCreateKeyPost requests the /pubaccess/createpubaccesskey POST endpoint.
 func (c *Client) SkykeyCreateKeyPost(name string, ct crypto.CipherType) (pubaccesskey.Pubaccesskey, error) {
 	// Set the url values.
 	values := url.Values{}
@@ -367,9 +367,9 @@ func (c *Client) SkykeyCreateKeyPost(name string, ct crypto.CipherType) (pubacce
 	values.Set("ciphertype", ct.String())
 
 	var skykeyGet api.SkykeyGET
-	err := c.post("/pubaccess/createskykey", values.Encode(), &skykeyGet)
+	err := c.post("/pubaccess/createpubaccesskey", values.Encode(), &skykeyGet)
 	if err != nil {
-		return pubaccesskey.Pubaccesskey{}, errors.AddContext(err, "createskykey POST request failed")
+		return pubaccesskey.Pubaccesskey{}, errors.AddContext(err, "createpubaccesskey POST request failed")
 	}
 
 	var sk pubaccesskey.Pubaccesskey
@@ -380,7 +380,7 @@ func (c *Client) SkykeyCreateKeyPost(name string, ct crypto.CipherType) (pubacce
 	return sk, nil
 }
 
-// SkykeyAddKeyPost requests the /pubaccess/addskykey POST endpoint.
+// SkykeyAddKeyPost requests the /pubaccess/addpubaccesskey POST endpoint.
 func (c *Client) SkykeyAddKeyPost(sk pubaccesskey.Pubaccesskey) error {
 	values := url.Values{}
 	skString, err := sk.ToString()
@@ -389,9 +389,9 @@ func (c *Client) SkykeyAddKeyPost(sk pubaccesskey.Pubaccesskey) error {
 	}
 	values.Set("pubaccesskey", skString)
 
-	err = c.post("/pubaccess/addskykey", values.Encode(), nil)
+	err = c.post("/pubaccess/addpubaccesskey", values.Encode(), nil)
 	if err != nil {
-		return errors.AddContext(err, "addskykey POST request failed")
+		return errors.AddContext(err, "addpubaccesskey POST request failed")
 	}
 
 	return nil
