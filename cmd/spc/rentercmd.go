@@ -2534,7 +2534,7 @@ func pubaccessblacklistcmd(cmd *cobra.Command, args []string) {
 
 	// Get the publink
 	publink := args[0]
-	publink = strings.TrimPrefix(publink, "sia://")
+	publink = strings.TrimPrefix(publink, "scp://")
 
 	// Check if this is an addition or removal
 	var add, remove []string
@@ -2561,7 +2561,7 @@ func skynetdownloadcmd(cmd *cobra.Command, args []string) {
 
 	// Open the file.
 	publink := args[0]
-	publink = strings.TrimPrefix(publink, "sia://")
+	publink = strings.TrimPrefix(publink, "scp://")
 	filename := args[1]
 	file, err := os.Create(filename)
 	if err != nil {
@@ -2713,7 +2713,7 @@ func skynetlscmd(cmd *cobra.Command, args []string) {
 
 // skynetpincmd will pin the file from this publink.
 func skynetpincmd(sourcePublink, destSiaPath string) {
-	publink := strings.TrimPrefix(sourcePublink, "sia://")
+	publink := strings.TrimPrefix(sourcePublink, "scp://")
 	// Create the siapath.
 	siaPath, err := modules.NewSiaPath(destSiaPath)
 	if err != nil {
@@ -2730,7 +2730,7 @@ func skynetpincmd(sourcePublink, destSiaPath string) {
 		die("could not pin file to Pubaccess:", err)
 	}
 
-	fmt.Printf("Public file pinned successfully \nPublink: sia://%v\n", publink)
+	fmt.Printf("Public file pinned successfully \nPublink: scp://%v\n", publink)
 }
 
 // skynetuploadcmd will upload a file to Pubaccess.
@@ -2831,7 +2831,7 @@ func skynetuploadfile(sourcePath, destSiaPath string) {
 			die("could not fetch skypath:", err)
 		}
 	}
-	fmt.Printf("%v\n -> Publink: sia://%v\n", skypath, publink)
+	fmt.Printf("%v\n -> Publink: scp://%v\n", skypath, publink)
 }
 
 // skynetunpincmd will unpin and delete the file from the Renter.
@@ -2895,7 +2895,7 @@ func skynetconvertcmd(sourceSiaPathStr, destSiaPathStr string) {
 			die("could not fetch skypath:", err)
 		}
 	}
-	fmt.Printf("Published file successfully to %v\nPublink: sia://%v\n", skypath, publink)
+	fmt.Printf("Published file successfully to %v\nPublink: scp://%v\n", skypath, publink)
 }
 
 // renterpricescmd is the handler for the command `spc renter prices`, which
