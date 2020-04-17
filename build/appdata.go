@@ -12,15 +12,15 @@ import (
 )
 
 const (
-	// siaAPIPassword is the environment variable that sets a custom API
+	// EnvvarAPIPassword is the environment variable that sets a custom API
 	// password if the default is not used
 	EnvvarAPIPassword = "SCPRIME_API_PASSWORD"
 
-	// siaDataDir is the environment variable that tells spd where to put the
+	// EnvvarMetaDataDir is the environment variable that tells spd where to put the
 	// sia data
 	EnvvarMetaDataDir = "SCPRIME_DATA_DIR"
 
-	// siaWalletPassword is the environment variable that can be set to enable
+	// EnvvarWalletPassword is the environment variable that can be set to enable
 	// auto unlocking the wallet
 	EnvvarWalletPassword = "SCPRIME_WALLET_PASSWORD"
 )
@@ -129,7 +129,7 @@ func defaultSkynetDir() string {
 	}
 }
 
-// defaultSiaPrimeDir returns the default data directory of older ScPrime nodes.
+// DefaultSiaPrimeDir returns the default data directory of older ScPrime nodes.
 // This method is used to migrate the metadata to the new default location.
 // The values for supported operating systems are:
 //

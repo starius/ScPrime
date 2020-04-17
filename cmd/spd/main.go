@@ -219,7 +219,6 @@ func main() {
 				} else {
 					fmt.Printf("Done moving data from %v to %v\n", oldpath, targetpath)
 				}
-
 			}
 		}
 	}
