@@ -41,7 +41,7 @@ var (
 	metadataHeader = types.NewSpecifier("Public Portals\n")
 
 	// metadataVersion is the version of the persistence file
-	metadataVersion = types.NewSpecifier("v1.4.3\n")
+	metadataVersion = types.NewSpecifier("v1.4.3.0\n")
 )
 
 // marshalMetadata marshals the Skynet Portal List's metadata and returns the byte
