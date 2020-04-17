@@ -25,7 +25,7 @@ const (
 	metadataPageSize int64 = 4096
 
 	// persistFile is the name of the persist file
-	persistFile string = "skynetportals"
+	persistFile string = "pubaccessportals"
 
 	// persistPortalSize is the size of a persisted portal in the portals list.
 	// It is the length of `NetAddress` plus the `public` and `listed` flags.
@@ -38,10 +38,10 @@ var (
 	errWrongVersion = errors.New("wrong version")
 
 	// metadataHeader is the header of the metadata for the persist file
-	metadataHeader = types.NewSpecifier("SkynetPortals\n")
+	metadataHeader = types.NewSpecifier("PubaccessPortals\n")
 
 	// metadataVersion is the version of the persistence file
-	metadataVersion = types.NewSpecifier("v1.4.8\n")
+	metadataVersion = types.NewSpecifier("v1.4.3\n")
 )
 
 // marshalMetadata marshals the Skynet Portal List's metadata and returns the byte

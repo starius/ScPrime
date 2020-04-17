@@ -18,7 +18,7 @@ import (
 
 // testDir is a helper function for creating the testing directory
 func testDir(name string) string {
-	return build.TempDir("skynetportals", name)
+	return build.TempDir("pubaccessportals", name)
 }
 
 // checkNumPersistedPortals checks that the expected number of portals has been

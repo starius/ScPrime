@@ -26,7 +26,7 @@ length of fsync'd bytes encoded in the metadata.
 
 ### Skynet Portals Subsystem
 **Key Files**
- - [skynetportals.go](./skynetportals.go)
+ - [pubaccessportals.go](./pubaccessportals.go)
 
 The Skynet Portals subsystem contains the structure of the Skynet Portals List
 and is used to create a new Skynet Portals List and return information about the
