@@ -198,6 +198,8 @@ func main() {
 	if globalConfig.Spd.DataDir == "" {
 		globalConfig.Spd.DataDir = build.SiaDir()
 	}
+	// Check for existence of datadir and move it if not found
+	if needed MigrateDatadir()
 
 	// Parse cmdline flags, overwriting both the default values and the config
 	// file values.

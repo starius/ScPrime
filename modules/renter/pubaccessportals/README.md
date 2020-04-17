@@ -1,13 +1,13 @@
-# Skynet Portals
+# Public Access Portals
 
-The Skynet Portals module manages a list of known Skynet portals and whether
-they are public or not.
+The Public Access Portals module manages a list of known Public Access portals 
+and whether they are public or not.
 
 ## Subsystems
-The following subsystems help the Skynet Portals module execute its
+The following subsystems help the Public Access Portals module execute its
 responsibilities:
  - [Persistence Subsystem](#persistence-subsystem)
- - [Skynet Portals Subsystem](#skynet-portals-subsystem)
+ - [Public Access Portals Subsystem](#bubaccess-portals-subsystem)
 
  ### Persistence Subsystem
  **Key Files**

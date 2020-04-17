@@ -16,7 +16,6 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 
 	"gitlab.com/scpcorp/ScPrime/build"
-	"gitlab.com/scpcorp/ScPrime/cmd"
 	fileConfig "gitlab.com/scpcorp/ScPrime/config"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/node/api/server"

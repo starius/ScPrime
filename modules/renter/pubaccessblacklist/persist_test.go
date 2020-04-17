@@ -33,7 +33,7 @@ func checkNumPersistedLinks(blacklistPath string, numLinks int) error {
 	return nil
 }
 
-// TestPersist tests the persistence of the Skynet blacklist.
+// TestPersist tests the persistence of the Pubaccess blacklist.
 func TestPersist(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -55,9 +55,9 @@ func TestPersist(t *testing.T) {
 	}
 
 	// Update blacklist
-	var skylink modules.Skylink
-	add := []modules.Skylink{skylink}
-	remove := []modules.Skylink{skylink}
+	var skylink modules.Publink
+	add := []modules.Publink{skylink}
+	remove := []modules.Publink{skylink}
 	err = sb.UpdateSkynetBlacklist(add, remove)
 	if err != nil {
 		t.Fatal(err)
@@ -76,7 +76,7 @@ func TestPersist(t *testing.T) {
 	}
 
 	// Add the skylink again
-	err = sb.UpdateSkynetBlacklist(add, []modules.Skylink{})
+	err = sb.UpdateSkynetBlacklist(add, []modules.Publink{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestPersist(t *testing.T) {
 		t.Fatalf("Expected merkleroot %v to be listed in blacklist", skylink.MerkleRoot())
 	}
 
-	// Load a new Skynet Blacklist to verify the contents from disk get loaded
+	// Load a new Pubaccess Blacklist to verify the contents from disk get loaded
 	// properly
 	sb2, err := New(testdir)
 	if err != nil {
@@ -113,7 +113,7 @@ func TestPersist(t *testing.T) {
 	}
 
 	// Add the skylink again
-	err = sb2.UpdateSkynetBlacklist(add, []modules.Skylink{})
+	err = sb2.UpdateSkynetBlacklist(add, []modules.Publink{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestPersist(t *testing.T) {
 		t.Fatalf("Expected merkleroot %v to be listed in blacklist", skylink.MerkleRoot())
 	}
 
-	// Load another new Skynet Blacklist to verify the contents from disk get loaded
+	// Load another new Pubaccess Blacklist to verify the contents from disk get loaded
 	// properly
 	sb3, err := New(testdir)
 	if err != nil {
@@ -150,14 +150,14 @@ func TestPersist(t *testing.T) {
 	}
 }
 
-// TestPersistCorruption tests the persistence of the Skynet blacklist when corruption occurs.
+// TestPersistCorruption tests the persistence of the Pubaccess blacklist when corruption occurs.
 func TestPersistCorruption(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
 	t.Parallel()
 
-	// Create a new SkynetBlacklist
+	// Create a new PubaccessBlacklist
 	testdir := testDir(t.Name())
 	sb, err := New(testdir)
 	if err != nil {

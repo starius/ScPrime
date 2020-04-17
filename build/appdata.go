@@ -11,18 +11,18 @@ import (
 	"gitlab.com/NebulousLabs/fastrand"
 )
 
-var (
+const (
 	// siaAPIPassword is the environment variable that sets a custom API
 	// password if the default is not used
-	siaAPIPassword = "SCPRIME_API_PASSWORD"
+	EnvvarAPIPassword = "SCPRIME_API_PASSWORD"
 
-	// siaDataDir is the environment variable that tells siad where to put the
+	// siaDataDir is the environment variable that tells spd where to put the
 	// sia data
-	siaDataDir = "SCPRIME_DATA_DIR"
+	EnvvarMetaDataDir = "SCPRIME_DATA_DIR"
 
 	// siaWalletPassword is the environment variable that can be set to enable
 	// auto unlocking the wallet
-	siaWalletPassword = "SCPRIME_WALLET_PASSWORD"
+	EnvvarWalletPassword = "SCPRIME_WALLET_PASSWORD"
 )
 
 // APIPassword returns the Sia API Password either from the environment variable
@@ -30,7 +30,7 @@ var (
 // exists, a password file is created and that password is returned
 func APIPassword() (string, error) {
 	// Check the environment variable.
-	pw := os.Getenv(siaAPIPassword)
+	pw := os.Getenv(EnvvarAPIPassword)
 	if pw != "" {
 		return pw, nil
 	}
@@ -57,23 +57,11 @@ func APIPassword() (string, error) {
 // SiaDir returns the Sia data directory either from the environment variable or
 // the default.
 func SiaDir() string {
-	siaDir := os.Getenv(siaDataDir)
-	if siaDir == "" {
-		siaDir = defaultSiaDir()
-		// Metadata directory not specified
-		// check for presence and look for the old default if not found
-		needMigrate := !dirExists(build.DefaultMetadataDir()) && dirExists(defaultSiaPrimeDir())
-		if needMigrate {
-			if err := migrateDataDir(); err != nil {
-				fmt.Printf("Error moving default metadata directory: %v\n", err)
-				os.Exit(exitCodeGeneral)
-			}
-		}
-
-	} else {
-		fmt.Printf("Using %v environment variable\n", cmd.SiaDataDir)
+	dataDir := os.Getenv(EnvvarMetaDataDir)
+	if dataDir == "" {
+		dataDir = defaultMetadataDir()
 	}
-	return siaDir
+	return dataDir
 
 }
 
@@ -84,12 +72,7 @@ func SkynetDir() string {
 
 // WalletPassword returns the SiaWalletPassword environment variable.
 func WalletPassword() string {
-	return os.Getenv(siaWalletPassword)
-	if password := os.Getenv("SIAPRIME_WALLET_PASSWORD"); password != "" {
-		fmt.Println("ScPrime Wallet Password found, attempting to auto-unlock wallet")
-		fmt.Println("Warning: Using SIAPRIME_WALLET_PASSWORD is deprecated.")
-		fmt.Println("Using it will not be supported in future versions, please update \n your configuration to use the environment variable 'SCPRIME_WALLET_PASSWORD'")
-	}
+	return os.Getenv(EnvvarWalletPassword)
 }
 
 // apiPasswordFilePath returns the path to the API's password file. The password
@@ -113,7 +96,7 @@ func createAPIPasswordFile() (string, error) {
 	return pw, nil
 }
 
-// defaultMetadataDir returns the default data directory of siad. The values for
+// defaultMetadataDir returns the default data directory of spd. The values for
 // supported operating systems are:
 //
 // Linux:   $HOME/.scprime

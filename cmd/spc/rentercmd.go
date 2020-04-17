@@ -2878,7 +2878,7 @@ func skynetUploadFileFromReader(source io.Reader, filename string, siaPath modul
 
 		Reader: source,
 	}
-	publink, _, err := httpClient.SkynetSkyfilePost(sup)
+	skylink, _, err := httpClient.SkynetSkyfilePost(sup)
 	if err != nil {
 		die("could not upload file to Pubaccess:", err)
 	}

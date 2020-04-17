@@ -1,13 +1,11 @@
 // datadir.go
-package main
+package build
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
-
-	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 // Check for Metadata directory presence and try to migrate if it does not
@@ -22,10 +20,10 @@ func dirExists(path string) bool {
 	return info.IsDir()
 }
 
-// migrateDataDir migrates existing metadata directory to new location
-func migrateDataDir() error {
-	fmt.Printf("Migrating metadata from %v to %v\n", defaultSiaPrimeDir(), build.DefaultMetadataDir())
-	return os.Rename(defaultSiaPrimeDir(), build.DefaultMetadataDir())
+// moveDataDir migrates existing metadata directory to new location
+func moveDataDir() error {
+	fmt.Printf("Migrating metadata from %v to %v\n", defaultSiaPrimeDir(), defaultMetadataDir())
+	return os.Rename(defaultSiaPrimeDir(), defaultMetadataDir())
 }
 
 // defaultSiaPrimeDir returns the default data directory of older ScPrime nodes.

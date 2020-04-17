@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"gitlab.com/scpcorp/ScPrime/build"
-	"gitlab.com/scpcorp/ScPrime/cmd"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/node/api"
 	"gitlab.com/scpcorp/ScPrime/node/api/client"
@@ -357,7 +356,7 @@ func main() {
 	root.Flags().BoolVarP(&statusVerbose, "verbose", "v", false, "Display additional siac information")
 	root.PersistentFlags().StringVarP(&httpClient.Address, "addr", "a", "localhost:4280", "which host/port to communicate with (i.e. the host/port spd is listening on)")
 	root.PersistentFlags().StringVarP(&httpClient.Password, "apipassword", "", "", "the password for the API's http authentication")
-	root.PersistentFlags().StringVarP(&dataDir, "scprime-directory", "d", build.DefaultMetadataDir(), "location of the metadata directory")
+	root.PersistentFlags().StringVarP(&dataDir, "scprime-directory", "d", build.SiaDir(), "location of the metadata directory")
 	root.PersistentFlags().StringVarP(&httpClient.UserAgent, "useragent", "", "ScPrime-Agent", "the useragent used by spc to connect to the daemon's API")
 
 	// Check if the API Password is set
@@ -371,10 +370,10 @@ func main() {
 		httpClient.Password = pw
 	}
 
-	// Check if the siaDir is set.
-	if siaDir == "" {
-		// No siaDir passed in, fetch the siaDir
-		siaDir = build.SiaDir()
+	// Check if the dataDir is set.
+	if dataDir == "" {
+		// No dataDir passed in, fetch the dataDir
+		dataDir = build.SiaDir()
 	}
 
 	// Check for Critical Alerts

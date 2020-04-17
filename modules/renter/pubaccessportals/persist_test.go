@@ -1,4 +1,4 @@
-package skynetportals
+package pubaccessportals
 
 import (
 	"bytes"

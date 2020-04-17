@@ -196,7 +196,7 @@ func (api *API) skynetPortalsHandlerPOST(w http.ResponseWriter, req *http.Reques
 	if err != nil {
 		// If validation fails, return a bad request status.
 		errStatus := http.StatusInternalServerError
-		if strings.Contains(err.Error(), skynetportals.ErrSkynetPortalsValidation.Error()) {
+		if strings.Contains(err.Error(), pubaccessportals.ErrSkynetPortalsValidation.Error()) {
 			errStatus = http.StatusBadRequest
 		}
 		WriteError(w, Error{"unable to update the list of known pubaccess portals: " + err.Error()}, errStatus)

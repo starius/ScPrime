@@ -9,7 +9,7 @@ import (
 func TestAPIPassword(t *testing.T) {
 	// Unset any defaults, this only affects in memory state. Any Env Vars will
 	// remain intact on disk
-	err := os.Unsetenv(siaAPIPassword)
+	err := os.Unsetenv(EnvvarAPIPassword)
 	if err != nil {
 		t.Error(err)
 	}
@@ -26,7 +26,7 @@ func TestAPIPassword(t *testing.T) {
 
 	// Test setting the env variable
 	newPW := "abc123"
-	err = os.Setenv(siaAPIPassword, newPW)
+	err = os.Setenv(EnvvarAPIPassword, newPW)
 	if err != nil {
 		t.Error(err)
 	}
@@ -43,20 +43,20 @@ func TestAPIPassword(t *testing.T) {
 func TestSiaDir(t *testing.T) {
 	// Unset any defaults, this only affects in memory state. Any Env Vars will
 	// remain intact on disk
-	err := os.Unsetenv(siaDataDir)
+	err := os.Unsetenv(EnvvarMetaDataDir)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Test Default SiaDir
 	siaDir := SiaDir()
-	if siaDir != defaultSiaDir() {
-		t.Errorf("Expected siaDir to be %v but was %v", defaultSiaDir(), siaDir)
+	if siaDir != defaultMetadataDir() {
+		t.Errorf("Expected siaDir to be %v but was %v", defaultMetadataDir(), siaDir)
 	}
 
 	// Test Env Variable
 	newSiaDir := "foo/bar"
-	err = os.Setenv(siaDataDir, newSiaDir)
+	err = os.Setenv(EnvvarMetaDataDir, newSiaDir)
 	if err != nil {
 		t.Error(err)
 	}
@@ -70,7 +70,7 @@ func TestSiaDir(t *testing.T) {
 func TestSiaWalletPassword(t *testing.T) {
 	// Unset any defaults, this only affects in memory state. Any Env Vars will
 	// remain intact on disk
-	err := os.Unsetenv(siaWalletPassword)
+	err := os.Unsetenv(EnvvarWalletPassword)
 	if err != nil {
 		t.Error(err)
 	}
@@ -83,7 +83,7 @@ func TestSiaWalletPassword(t *testing.T) {
 
 	// Test Env Variable
 	newPW := "abc123"
-	err = os.Setenv(siaWalletPassword, newPW)
+	err = os.Setenv(EnvvarWalletPassword, newPW)
 	if err != nil {
 		t.Error(err)
 	}
