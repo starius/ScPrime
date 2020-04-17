@@ -16,8 +16,8 @@ import (
 var (
 	skykeyCmd = &cobra.Command{
 		Use:   "pubaccesskey",
-		Short: "Perform actions related to Skykeys",
-		Long:  `Perform actions related to Skykeys, the encryption keys used for Skyfiles.`,
+		Short: "Perform actions related to Pubaccesskeys",
+		Long:  `Perform actions related to Pubaccesskeys, the encryption keys used for Skyfiles.`,
 		Run:   skykeycmd,
 	}
 
@@ -66,7 +66,7 @@ func skykeycreatecmd(name string) {
 	fmt.Printf("Created new pubaccesskey: %v\n", skykeyStr)
 }
 
-// skykeyCreate creates a new Skykey with the given name and cipher type
+// skykeyCreate creates a new Pubaccesskey with the given name and cipher type
 // as set by flag.
 func skykeyCreate(name string) (string, error) {
 	var cipherType crypto.CipherType
@@ -82,11 +82,11 @@ func skykeyCreate(name string) (string, error) {
 	return sk.ToString()
 }
 
-// skykeyaddcmd is a wrapper for skykeyAdd used to handle the addition of new skykeys.
+// skykeyaddcmd is a wrapper for skykeyAdd used to handle the addition of new Pubaccesskeys.
 func skykeyaddcmd(skykeyString string) {
 	err := skykeyAdd(skykeyString)
 	if strings.Contains(err.Error(), pubaccesskey.ErrSkykeyWithNameAlreadyExists.Error()) {
-		die("Skykey name already used. Try using the --rename-as parameter with a different name.")
+		die("Pubaccesskey name already used. Try using the --rename-as parameter with a different name.")
 	}
 	if err != nil {
 		die(errors.AddContext(err, "Failed to add pubaccesskey"))
@@ -97,7 +97,7 @@ func skykeyaddcmd(skykeyString string) {
 
 // skykeyAdd adds the given pubaccesskey to the renter's pubaccesskey manager.
 func skykeyAdd(skykeyString string) error {
-	var sk pubaccesskey.Skykey
+	var sk pubaccesskey.Pubaccesskey
 	err := sk.FromString(skykeyString)
 	if err != nil {
 		return errors.AddContext(err, "Could not decode pubaccesskey string")
@@ -135,7 +135,7 @@ func skykeyGet(name, id string) (string, error) {
 		return "", errors.New("Use only one flag to get the pubaccesskey: --name or --id flag")
 	}
 
-	var sk pubaccesskey.Skykey
+	var sk pubaccesskey.Pubaccesskey
 	var err error
 	if name != "" {
 		sk, err = httpClient.SkykeyGetByName(name)

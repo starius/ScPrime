@@ -42,7 +42,7 @@ func TestSkykeyCommands(t *testing.T) {
 	}
 
 	// Change the key entropy, but keep the same name.
-	var sk pubaccesskey.Skykey
+	var sk pubaccesskey.Pubaccesskey
 	err = sk.FromString(testSkykeyString)
 	if err != nil {
 		t.Fatal(err)
