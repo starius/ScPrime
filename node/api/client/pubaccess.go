@@ -313,7 +313,7 @@ func (c *Client) SkynetBlacklistPost(additions, removals []string) (err error) {
 
 // SkynetPortalsGet requests the /pubaccess/portals Get endpoint.
 func (c *Client) SkynetPortalsGet() (portals api.SkynetPortalsGET, err error) {
-	err = c.get("/skynet/portals", &portals)
+	err = c.get("/pubaccess/portals", &portals)
 	return
 }
 
