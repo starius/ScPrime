@@ -14,8 +14,6 @@ import (
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/encoding"
-
-	//	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
@@ -47,11 +45,18 @@ var (
 	// SkykeyFileMagic is the first piece of data found in a Pubaccesskey file.
 	SkykeyFileMagic = types.NewSpecifier("SkykeyFile")
 
+	// ErrSkykeyWithNameAlreadyExists indicates that a key cannot be created or added
+	// because a key with the same name is already being stored.
+	ErrSkykeyWithNameAlreadyExists = errors.New("Pubaccesskey name already used by another key.")
+
+	// ErrSkykeyWithIDAlreadyExists indicates that a key cannot be created or
+	// added because a key with the same ID (and therefore same key entropy) is
+	// already being stored.
+	ErrSkykeyWithIDAlreadyExists = errors.New("Pubaccesskey ID already exists.")
+
 	errUnsupportedSkykeyCipherType = errors.New("Unsupported Pubaccesskey ciphertype")
 	errNoSkykeysWithThatName       = errors.New("No Pubaccesskey with that name")
 	errNoSkykeysWithThatID         = errors.New("No Pubaccesskey is assocated with that ID")
-	errSkykeyNameAlreadyExists     = errors.New("Pubaccesskey name already exists.")
-	errSkykeyWithIDAlreadyExists   = errors.New("Pubaccesskey ID already exists.")
 	errSkykeyNameToolong           = errors.New("Pubaccesskey name exceeds max length")
 
 	// SkykeyPersistFilename is the name of the pubaccesskey persistence file.
@@ -187,7 +192,7 @@ func (sm *SkykeyManager) CreateKey(name string, cipherType crypto.CipherType) (P
 	defer sm.mu.Unlock()
 	_, ok := sm.idsByName[name]
 	if ok {
-		return Pubaccesskey{}, errSkykeyNameAlreadyExists
+		return Pubaccesskey{}, ErrSkykeyWithNameAlreadyExists
 	}
 
 	// Generate the new key.
@@ -206,14 +211,14 @@ func (sm *SkykeyManager) CreateKey(name string, cipherType crypto.CipherType) (P
 func (sm *SkykeyManager) AddKey(sk Pubaccesskey) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	_, ok := sm.idsByName[sk.Name]
+	_, ok := sm.keysByID[sk.ID()]
 	if ok {
-		return errSkykeyNameAlreadyExists
+		return ErrSkykeyWithIDAlreadyExists
 	}
 
-	_, ok = sm.keysByID[sk.ID()]
+	_, ok = sm.idsByName[sk.Name]
 	if ok {
-		return errSkykeyWithIDAlreadyExists
+		return ErrSkykeyWithNameAlreadyExists
 	}
 
 	return sm.saveKey(sk)

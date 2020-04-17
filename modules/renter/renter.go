@@ -43,6 +43,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/pubaccessblacklist"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/pubaccessportals"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
@@ -173,6 +174,7 @@ type Renter struct {
 
 	// Pubaccess Management
 	staticSkynetBlacklist *pubaccessblacklist.SkynetBlacklist
+	staticSkynetPortals   *pubaccessportals.SkynetPortals
 
 	// Download management. The heap has a separate mutex because it is always
 	// accessed in isolation.
@@ -927,6 +929,13 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	}
 	r.staticSkynetBlacklist = sb
 
+	// Add SkynetPortals
+	sp, err := pubaccessportals.New(r.persistDir)
+	if err != nil {
+		return nil, errors.AddContext(err, "unable to create new skynet portal list")
+	}
+	r.staticSkynetPortals = sp
+
 	// Load all saved data.
 	err = r.managedInitPersist()
 	if err != nil {
@@ -940,7 +949,7 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 
 	// Create the pubaccesskey manager.
 	// In testing, keep the pubaccesskeys with the rest of the renter data.
-	skykeyManDir := build.DefaultSkynetDir()
+	skykeyManDir := build.SkynetDir()
 	if build.Release == "testing" {
 		skykeyManDir = persistDir
 	}

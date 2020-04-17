@@ -138,6 +138,8 @@ func (api *API) buildHTTPRoutes() {
 		router.GET("/pubaccess/blacklist", api.skynetBlacklistHandlerGET)
 		router.POST("/pubaccess/blacklist", RequirePassword(api.skynetBlacklistHandlerPOST, requiredPassword))
 		router.POST("/pubaccess/pin/:publink", RequirePassword(api.skynetPublinkPinHandlerPOST, requiredPassword))
+		router.GET("/pubaccess/portals", api.skynetPortalsHandlerGET)
+		router.POST("/pubaccess/portals", RequirePassword(api.skynetPortalsHandlerPOST, requiredPassword))
 		router.GET("/pubaccess/publink/*publink", api.skynetPublinkHandlerGET)
 		router.HEAD("/pubaccess/publink/*publink", api.skynetPublinkHandlerGET)
 		router.POST("/pubaccess/pubfile/*siapath", RequirePassword(api.skynetSkyfileHandlerPOST, requiredPassword))

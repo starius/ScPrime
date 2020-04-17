@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -48,6 +46,8 @@ var (
 	skynetLsRoot              bool   // Use root as the base instead of the Pubaccess folder.
 	skynetUploadRoot          bool   // Use root as the base instead of the Pubaccess folder.
 	skynetUploadDryRun        bool   // Perform a dry-run of the upload. This returns the publink without actually uploading the file to the network.
+	skykeyRenameAs            string // Optional parameter to rename a Pubaccesskey while adding it.
+	skynetUploadSilent        bool   // Don't report progress while uploading
 	statusVerbose             bool   // Display additional siac information
 	walletRawTxn              bool   // Encode/decode transactions in base64-encoded binary.
 	walletTxnFeeIncluded      bool   // include the fee in the balance being sent
@@ -306,6 +306,7 @@ func main() {
 	skynetCmd.AddCommand(skynetBlacklistCmd, skynetConvertCmd, skynetDownloadCmd, skynetLsCmd, skynetPinCmd, skynetUnpinCmd, skynetUploadCmd)
 	skynetUploadCmd.Flags().BoolVar(&skynetUploadRoot, "root", false, "Use the root folder as the base instead of the Pubaccess folder")
 	skynetUploadCmd.Flags().BoolVar(&skynetUploadDryRun, "dry-run", false, "Perform a dry-run of the upload, returning the publink without actually uploading the file")
+	skynetUploadCmd.Flags().BoolVarP(&skynetUploadSilent, "silent", "s", false, "Don't report progress while uploading")
 	skynetUnpinCmd.Flags().BoolVar(&skynetUnpinRoot, "root", false, "Use the root folder as the base instead of the Pubaccess folder")
 	skynetDownloadCmd.Flags().StringVar(&skynetDownloadPortal, "portal", "", "Use a Pubaccess portal to complete the download")
 	skynetLsCmd.Flags().BoolVarP(&skynetLsRecursive, "recursive", "R", false, "Recursively list pubfiles and folders")
@@ -314,6 +315,7 @@ func main() {
 
 	root.AddCommand(skykeyCmd)
 	skykeyCmd.AddCommand(skykeyCreateCmd, skykeyAddCmd, skykeyGetCmd, skykeyGetIDCmd)
+	skykeyAddCmd.Flags().StringVar(&skykeyRenameAs, "rename-as", "", "The new name for the pubaccesskey being added")
 	skykeyCreateCmd.Flags().StringVar(&skykeyCipherType, "cipher-type", "XChaCha20", "The cipher type of the pubaccesskey")
 	skykeyGetCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the pubaccesskey")
 	skykeyGetCmd.Flags().StringVar(&skykeyID, "id", "", "The base-64 encoded pubaccesskey ID")
@@ -358,37 +360,22 @@ func main() {
 	root.PersistentFlags().StringVarP(&dataDir, "scprime-directory", "d", build.DefaultMetadataDir(), "location of the metadata directory")
 	root.PersistentFlags().StringVarP(&httpClient.UserAgent, "useragent", "", "ScPrime-Agent", "the useragent used by spc to connect to the daemon's API")
 
-	// Check if the api password environment variable is set.
-	apiPassword := os.Getenv(cmd.SiaAPIPassword)
-	if apiPassword != "" {
-		httpClient.Password = apiPassword
-		fmt.Println("Using SCPRIME_API_PASSWORD environment variable")
+	// Check if the API Password is set
+	if httpClient.Password == "" {
+		// No password passed in, fetch the API Password
+		pw, err := build.APIPassword()
+		if err != nil {
+			fmt.Println("Exiting: Error getting API Password:", err)
+			os.Exit(exitCodeGeneral)
+		}
+		httpClient.Password = pw
 	}
 
-	// If dataDir is not set, use the environment variable provided.
-	if dataDir == "" {
-		dataDir = os.Getenv("SCPRIME_DATA_DIR")
-		if dataDir != "" {
-			fmt.Println("Using SCPRIME_DATA_DIR environment variable")
-		} else {
-			dataDir = build.DefaultMetadataDir()
-		}
+	// Check if the siaDir is set.
+	if siaDir == "" {
+		// No siaDir passed in, fetch the siaDir
+		siaDir = build.SiaDir()
 	}
-
-	// If the API password wasn't set we try to read it from the file. This must
-	// be done only *after* we parse the scprime-directory flag, which is why we
-	// do it inside OnInitialize.
-	cobra.OnInitialize(func() {
-		if httpClient.Password == "" {
-			pw, err := ioutil.ReadFile(build.APIPasswordFile(dataDir))
-			if err != nil {
-				fmt.Println("Could not read API password file:", err)
-				httpClient.Password = ""
-			} else {
-				httpClient.Password = strings.TrimSpace(string(pw))
-			}
-		}
-	})
 
 	// Check for Critical Alerts
 	alerts, err := httpClient.DaemonAlertsGet()

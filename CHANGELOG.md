@@ -14,7 +14,8 @@ Latest:
 
 **Key Updates**
 - Alerts returned by /daemon/alerts route are sorted by severity
-- Add `--fee-included` parameter to `siac wallet send siacoins` that allows    sending an exact wallet balance with the fees included.
+- Add `--fee-included` parameter to `siac wallet send siacoins` that allows
+   sending an exact wallet balance with the fees included.
 - Extend `siac hostdb view` to include all the fields returned from the API.
 - `siac renter delete` now accepts a list of files.
 - add pause and resume uploads to siac
@@ -25,7 +26,8 @@ Latest:
 - Set ratio for `MinBaseRPCPrice` and `MinSectorAccessPrice` with   `MinDownloadBandwidthPrice`
 
 **Bugs Fixed**
-- Fixed file health output of `siac renter -v` not adding to 100% by adding   parsePercentage function.
+- Fixed file health output of `siac renter -v` not adding to 100% by adding
+  parsePercentage function.
 - Fix `unlock of unlocked mutex` panic in the download destination writer.
 - Fix potential channel double closed panic in DownloadByRootProject 
 - Fix divide by zero panic in `renterFileHealthSummary` for `siac renter -v`

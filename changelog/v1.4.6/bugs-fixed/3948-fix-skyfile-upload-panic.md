@@ -1,1 +1,0 @@
-- Fix panic when metadata of pubfile upload exceeds modules.SectorSize

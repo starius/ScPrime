@@ -16,6 +16,7 @@ require (
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
+	github.com/vbauerster/mpb/v5 v5.0.3
 	github.com/xtaci/smux v1.5.12
 	gitlab.com/NebulousLabs/demotemutex v0.0.0-20151003192217-235395f71c40
 	gitlab.com/NebulousLabs/entropy-mnemonics v0.0.0-20181018051301-7532f67e3500
@@ -29,6 +30,6 @@ require (
 	gitlab.com/scpcorp/siamux v0.0.0-20200326160319-adac4a7d7a74
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200401142414-c5d81e8a45b6
 	go.etcd.io/bbolt v1.3.3
-	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
+	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4
 	golang.org/x/tools v0.0.0-20200227222343-706bc42d1f0d
 )

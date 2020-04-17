@@ -48,6 +48,7 @@ pkgs = ./build \
 	./modules/renter/hostdb/hosttree \
 	./modules/renter/proto \
 	./modules/renter/pubaccessblacklist \
+	./modules/renter/skynetportals \
 	./modules/transactionpool \
 	./modules/wallet \
 	./node \
@@ -169,7 +170,7 @@ else
 endif
 
 test:
-	go test -short -tags='debug testing netgo' -timeout=5s $(pkgs) -run=$(run) -count=$(count)
+	go test -short -tags='debug testing netgo' -timeout=60s $(pkgs) -run=$(run) -count=$(count)
 test-v:
 	go test -race -v -short -tags='debug testing netgo' -timeout=15s $(pkgs) -run=$(run) -count=$(count)
 test-long: clean fmt vet lint-ci

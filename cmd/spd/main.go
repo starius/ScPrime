@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"gitlab.com/scpcorp/ScPrime/build"
-	"gitlab.com/scpcorp/ScPrime/cmd"
 	"gitlab.com/scpcorp/ScPrime/config"
 )
 
@@ -191,27 +190,13 @@ func main() {
 	root.Flags().StringVarP(&globalConfig.Spd.Profile, "profile", "", "", "enable profiling with flags 'cmt' for CPU, memory, trace")
 	root.Flags().StringVarP(&globalConfig.Spd.RPCaddr, "rpc-addr", "", ":4281", "which port the gateway listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.SiaMuxAddr, "siamux-addr", "", ":9999", "which port the SiaMux listens on")
-	root.Flags().StringVarP(&globalConfig.Spd.Modules, "modules", "M", "gctwrh", "enabled modules, see 'spd modules' for more info")
+	root.Flags().StringVarP(&globalConfig.Spd.Modules, "modules", "M", "gctwrhf", "enabled modules, see 'spd modules' for more info")
 	root.Flags().BoolVarP(&globalConfig.Spd.AuthenticateAPI, "authenticate-api", "", true, "enable API password protection")
 	root.Flags().BoolVarP(&globalConfig.Spd.TempPassword, "temp-password", "", false, "enter a temporary API password during startup")
 	root.Flags().BoolVarP(&globalConfig.Spd.AllowAPIBind, "disable-api-security", "", false, "allow spd to listen on a non-localhost address (DANGEROUS)")
-
 	// If globalConfig.Spd.DataDir is not set, use the environment variable provided.
 	if globalConfig.Spd.DataDir == "" {
-		globalConfig.Spd.DataDir = os.Getenv(cmd.SiaDataDir)
-		if globalConfig.Spd.DataDir != "" {
-			fmt.Printf("Using %v environment variable\n", cmd.SiaDataDir)
-		} else {
-			// Metadata directory not specified
-			// check for presence and look for the old default if not found
-			needMigrate := !dirExists(build.DefaultMetadataDir()) && dirExists(defaultSiaPrimeDir())
-			if needMigrate {
-				if err := migrateDataDir(); err != nil {
-					fmt.Printf("Error moving default metadata directory: %v\n", err)
-					os.Exit(exitCodeGeneral)
-				}
-			}
-		}
+		globalConfig.Spd.DataDir = build.SiaDir()
 	}
 
 	// Parse cmdline flags, overwriting both the default values and the config

@@ -22,6 +22,7 @@ README files should be reviewed.
  - HostDB
  - Proto
  - Pubaccess Blacklist
+ - Pubaccess Portals
 
 ### Contractor
 The Contractor manages the Renter's contracts and is responsible for all
@@ -49,8 +50,13 @@ module whose functionality is largely wrapped by the Contractor.
 
 ### Pubaccess Blacklist
 The Pubaccess Blacklist module manages the list of publinks that the Renter wants
-blacklisted. It also manages persisting the blacklist in a ACID and performant
+blacklisted. It also manages persisting the blacklist in an ACID and performant
 manner.
+
+### Pubaccess Portals
+The Pubaccess Portals module manages the list of known Pubaccess portals that the
+Renter wants to keep track of. It also manages persisting the list in an ACID
+and performant manner.
 
 ## Subsystems
 The Renter has the following subsystems that help carry out its

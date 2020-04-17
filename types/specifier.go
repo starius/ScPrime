@@ -32,7 +32,7 @@ func NewSpecifier(name string) Specifier {
 		panic(err.Error())
 	}
 	if _, ok := specifierMap[name]; ok {
-		err := fmt.Sprint("ERROR: specifier name already in use", name)
+		err := fmt.Sprint("ERROR: specifier name already in use: ", name)
 		panic(err)
 	}
 	specifierMap[name] = struct{}{}
