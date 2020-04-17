@@ -198,8 +198,31 @@ func main() {
 	if globalConfig.Spd.DataDir == "" {
 		globalConfig.Spd.DataDir = build.SiaDir()
 	}
+
 	// Check for existence of datadir and move it if not found
-	if needed MigrateDatadir()
+	// The only possible scenario when this move is expected is when the target
+	// is the default datadir (not specified) && it does not exist yet && there
+	// exists a directory at the old default path.
+	targetpath := globalConfig.Spd.DataDir
+	if targetpath == build.DefaultMetadataDir() {
+		_, err := os.Stat(targetpath)
+		if os.IsNotExist(err) { //Metadata directory does not exist
+			//Check for pre v1.4.3 default data directory
+			oldpath := build.DefaultSiaPrimeDir()
+			info, err := os.Stat(oldpath)
+			if err == nil && info.IsDir() {
+				fmt.Printf("Migrating metadata from %v to %v\n", oldpath, targetpath)
+				err = os.Rename(oldpath, targetpath)
+				if err != nil {
+					//Panic, there is old metadata at the old default path but it can not be moved.
+					die("Can not move existing old SiaPrime metadata directory to new default path", err)
+				} else {
+					fmt.Printf("Done moving data from %v to %v\n", oldpath, targetpath)
+				}
+
+			}
+		}
+	}
 
 	// Parse cmdline flags, overwriting both the default values and the config
 	// file values.

@@ -50,8 +50,8 @@ func TestSiaDir(t *testing.T) {
 
 	// Test Default SiaDir
 	siaDir := SiaDir()
-	if siaDir != defaultMetadataDir() {
-		t.Errorf("Expected siaDir to be %v but was %v", defaultMetadataDir(), siaDir)
+	if siaDir != DefaultMetadataDir() {
+		t.Errorf("Expected siaDir to be %v but was %v", DefaultMetadataDir(), siaDir)
 	}
 
 	// Test Env Variable

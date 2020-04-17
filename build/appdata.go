@@ -59,10 +59,9 @@ func APIPassword() (string, error) {
 func SiaDir() string {
 	dataDir := os.Getenv(EnvvarMetaDataDir)
 	if dataDir == "" {
-		dataDir = defaultMetadataDir()
+		dataDir = DefaultMetadataDir()
 	}
 	return dataDir
-
 }
 
 // SkynetDir returns the Skynet data directory.
@@ -96,13 +95,13 @@ func createAPIPasswordFile() (string, error) {
 	return pw, nil
 }
 
-// defaultMetadataDir returns the default data directory of spd. The values for
+// DefaultMetadataDir returns the default data directory of spd. The values for
 // supported operating systems are:
 //
 // Linux:   $HOME/.scprime
 // MacOS:   $HOME/Library/Application Support/ScPrime
 // Windows: %LOCALAPPDATA%\ScPrime
-func defaultMetadataDir() string {
+func DefaultMetadataDir() string {
 	switch runtime.GOOS {
 	case "windows":
 		return filepath.Join(os.Getenv("LOCALAPPDATA"), "ScPrime")
@@ -127,5 +126,23 @@ func defaultSkynetDir() string {
 		return filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "Pubaccess")
 	default:
 		return filepath.Join(os.Getenv("HOME"), ".pubaccess")
+	}
+}
+
+// defaultSiaPrimeDir returns the default data directory of older ScPrime nodes.
+// This method is used to migrate the metadata to the new default location.
+// The values for supported operating systems are:
+//
+// Linux:   $HOME/.siaprime
+// MacOS:   $HOME/Library/Application Support/SiaPrime
+// Windows: %LOCALAPPDATA%\SiaPrime
+func DefaultSiaPrimeDir() string {
+	switch runtime.GOOS {
+	case "windows":
+		return filepath.Join(os.Getenv("LOCALAPPDATA"), "SiaPrime")
+	case "darwin":
+		return filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "SiaPrime")
+	default:
+		return filepath.Join(os.Getenv("HOME"), ".siaprime")
 	}
 }
