@@ -38,7 +38,7 @@ var (
 	errWrongVersion = errors.New("wrong version")
 
 	// metadataHeader is the header of the metadata for the persist file
-	metadataHeader = types.NewSpecifier("PubaccessPortals\n")
+	metadataHeader = types.NewSpecifier("Public Portals\n")
 
 	// metadataVersion is the version of the persistence file
 	metadataVersion = types.NewSpecifier("v1.4.3\n")
