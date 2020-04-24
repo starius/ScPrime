@@ -3,8 +3,8 @@ package modules
 import (
 	"testing"
 
-	"gitlab.com/scpcorp/ScPrime/types"
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestBudget tests the RPCBudget helper type.
