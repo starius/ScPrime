@@ -1,6 +1,6 @@
 # [![ScPrime Logo](https://scpri.me/imagestore/SPRho_256x256.png)](http://scpri.me) v1.4.3.0
 
-[![Build Status](https://gitlab.com/scpcorp/ScPrime/badges/master/build.svg)](https://gitlab.com/scpcorp/ScPrime/commits/master)
+[![Build Status](https://gitlab.com/scpcorp/ScPrime/badges/master/pipeline.svg)](https://gitlab.com/scpcorp/ScPrime/commits/master)
 [![Coverage Report](https://gitlab.com/scpcorp/ScPrime/badges/master/coverage.svg)](https://gitlab.com/scpcorp/ScPrime/commits/master)
 [![GoDoc](https://godoc.org/gitlab.com/scpcorp/ScPrime?status.svg)](https://godoc.org/gitlab.com/scpcorp/ScPrime)
 [![Go Report Card](https://goreportcard.com/badge/gitlab.com/scpcorp/ScPrime)](https://goreportcard.com/report/gitlab.com/scpcorp/ScPrime)
