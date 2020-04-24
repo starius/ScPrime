@@ -5,12 +5,12 @@ import (
 	"io"
 	"testing"
 
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/host/mdm"
 	"gitlab.com/scpcorp/ScPrime/types"
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // updateRunningCosts is a testing helper function for updating the running

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
+	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/types"
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TestRPCReadWriteError verifies the functionality of RPCRead, RPCWrite and
