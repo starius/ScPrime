@@ -4133,10 +4133,8 @@ responses](#standard-responses).
 curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/renter/validatesiapath/isthis-aval_idsiapath"
 ```
 
-validates whether or not the provided siapath is a valid siapath. SiaPaths
-cannot contain traversal strings or be empty. Valid characters are:
-
-$, &, `, :, ;, #, %, @, <, >, =, ?, [, ], {, }, ^, |, ~, -, +, _, comma, ', "
+validates whether or not the provided siapath is a valid siapath. Every path
+valid under Unix is valid as a SiaPath.
 
 ### Path Parameters
 ### REQUIRED

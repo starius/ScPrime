@@ -105,8 +105,8 @@ func (so *TestStorageObligation) Update(sectorRoots []crypto.Hash, sectorsRemove
 
 // newTestPriceTable returns a price table for testing that charges 1 Hasting
 // for every operation/rpc.
-func newTestPriceTable() modules.RPCPriceTable {
-	return modules.RPCPriceTable{
+func newTestPriceTable() *modules.RPCPriceTable {
+	return &modules.RPCPriceTable{
 		Expiry:               time.Now().Add(time.Minute).Unix(),
 		UpdatePriceTableCost: types.NewCurrency64(1),
 		InitBaseCost:         types.NewCurrency64(1),
@@ -116,6 +116,7 @@ func newTestPriceTable() modules.RPCPriceTable {
 		// Instruction costs
 		DropSectorsBaseCost: types.NewCurrency64(1),
 		DropSectorsUnitCost: types.NewCurrency64(1),
+		HasSectorBaseCost:   types.NewCurrency64(1),
 		ReadBaseCost:        types.NewCurrency64(1),
 		ReadLengthCost:      types.NewCurrency64(1),
 		WriteBaseCost:       types.NewCurrency64(1),

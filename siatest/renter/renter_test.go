@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -3829,7 +3828,7 @@ func testValidateSiaPath(t *testing.T, tg *siatest.TestGroup) {
 		path  string
 		valid bool
 	}{
-		{`\\some\\windows\\path`, false}, // false if no running windows
+		{`\\some\\windows\\path`, true},
 		{"valid/siapath", true},
 		{"../../../directory/traversal", false},
 		{"testpath", true},
@@ -3851,10 +3850,6 @@ func testValidateSiaPath(t *testing.T, tg *siatest.TestGroup) {
 		{"../", false},
 		{"./", false},
 		{".", false},
-	}
-	// Update if running windows
-	if runtime.GOOS == "windows" {
-		pathTests[0].valid = true
 	}
 	// Test all siapaths
 	for _, pathTest := range pathTests {

@@ -43,13 +43,6 @@ const (
 )
 
 var (
-	// DefaultStoragePrice defines the starting price for hosts selling
-	// storage. We try to match a number that is both reasonably profitable and
-	// reasonably competitive.
-	DefaultStoragePrice = types.ScPrimecoinPrecision.Mul64(20).Div(modules.BlockBytesPerMonthTerabyte) // 20 SCP / TB / Month
-)
-
-var (
 	// connectablityCheckFirstWait defines how often the host's connectability
 	// check is run.
 	connectabilityCheckFirstWait = build.Select(build.Var{
@@ -94,7 +87,7 @@ var (
 	// the storage price for renters as it reduces the funding flow to the
 	// storage provider by increasing the SPF contract fee.
 	//defaultCollateral = types.ScPrimecoinPrecision.Mul64(20).Div(modules.BlockBytesPerMonthTerabyte) // 20 SCP / TB / Month
-	defaultCollateral = DefaultStoragePrice
+	defaultCollateral = modules.DefaultStoragePrice
 
 	// defaultCollateralBudget defines the maximum number of SCP that the
 	// host is going to allocate towards collateral. The number has been chosen

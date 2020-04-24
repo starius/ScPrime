@@ -69,9 +69,13 @@ var (
 	// sectorsize.
 	ErrMetadataTooBig = errors.New("metadata exceeds sectorsize")
 
-	// ErrRedundancyNotSupported is the error returned while Skynet only
-	// supports 1-N redundancy
+	// ErrRedundancyNotSupported is the error returned when trying to convert a
+	// Siafile that was uploaded with redundancy that is not currently supported
+	// by Pubaccess
 	ErrRedundancyNotSupported = errors.New("publinks currently only support 1-of-N redundancy, other redundancies will be supported in a later version")
+
+	// ErrSkylinkBlacklisted is the error returned when a publink is blacklisted
+	ErrSkylinkBlacklisted = errors.New("publink is blacklisted")
 
 	// ExtendedSuffix is the suffix that is added to a pubfile siapath if it is
 	// a large file upload
