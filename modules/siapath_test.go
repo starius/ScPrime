@@ -95,7 +95,7 @@ func TestSiapath(t *testing.T) {
 	}{
 		{`\\some\\windows\\path`, true, `\\some\\windows\\path`}, // if the os is not windows this will not update the separators
 		{"valid/siapath", true, "valid/siapath"},
-		{`\some\back\slashes\path`, true, `\some\back\slashes\path`},
+		{`\some\back\slashes\path`, true, `\some\back\slashes\path`}, // on windows the backslashes are turned to forward slashes
 		{"../../../directory/traversal", false, ""},
 		{"testpath", true, "testpath"},
 		{"valid/siapath/../with/directory/traversal", false, ""},
@@ -154,8 +154,14 @@ func TestSiapath(t *testing.T) {
 	}
 	// If the OS is windows then the windows path is valid and will be updated
 	if runtime.GOOS == "windows" {
-		pathtests[0].valid = true
-		pathtests[0].out = `some/windows/path`
+		pathtests[0].valid = false
+		pathtests[0].out = ``
+		pathtests[2].out = `some/back/slashes/path`
+		pathtests[18].valid = false
+		pathtests[19].valid = false
+		pathtests[20].valid = false
+		pathtests[21].valid = false
+		pathtests[22].valid = false
 	}
 
 	// Test NewSiaPath
@@ -163,7 +169,7 @@ func TestSiapath(t *testing.T) {
 		sp, err := NewSiaPath(pathtest.in)
 		// Verify expected Error
 		if err != nil && pathtest.valid {
-			t.Fatal("validateSiapath failed on valid path: ", pathtest.in)
+			t.Fatalf("validateSiapath failed on valid path: %v with error %v", pathtest.in, err.Error())
 		}
 		if err == nil && !pathtest.valid {
 			t.Fatal("validateSiapath succeeded on invalid path: ", pathtest.in)
