@@ -54,6 +54,13 @@ func APIPassword() (string, error) {
 	return pw, nil
 }
 
+// SiadDataDir returns the siad consensus data directory from the
+// environment variable. If there is no environment variable it returns an empty
+// string, instructing siad to store the consensus in the current directory.
+func SiadDataDir() string {
+	return os.Getenv(siadDataDir)
+}
+
 // SiaDir returns the Sia data directory either from the environment variable or
 // the default.
 func SiaDir() string {

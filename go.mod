@@ -31,5 +31,5 @@ require (
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200401142414-c5d81e8a45b6
 	go.etcd.io/bbolt v1.3.3
 	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
-	golang.org/x/tools v0.0.0-20200423205358-59e73619c742
+	golang.org/x/tools v0.0.0-20200424195722-358506031216
 )
