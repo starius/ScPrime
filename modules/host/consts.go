@@ -74,7 +74,7 @@ var (
 
 	// defaultMaxEphemeralAccountBalance defines the default maximum amount of
 	// money that the host will allow to deposit into a single ephemeral account
-	defaultMaxEphemeralAccountBalance = types.ScPrimecoinPrecision.Div64(100)
+	defaultMaxEphemeralAccountBalance = types.ScPrimecoinPrecision.Div64(500)
 
 	// defaultMaxEphemeralAccountRisk is the maximum amount of money that the
 	// host is willing to risk to a power loss. If a user's withdrawal would put

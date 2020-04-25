@@ -182,7 +182,7 @@ func TestExecuteProgramWriteDeadline(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	// create a blank host tester
 	delay := modules.MDMProgramWriteResponseTime * 2
