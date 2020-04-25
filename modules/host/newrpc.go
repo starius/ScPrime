@@ -669,10 +669,14 @@ func (h *Host) managedRPCLoopRenewContract(s *rpcSession) error {
 	// obligation in the process.
 	h.mu.RLock()
 	fc := req.Transactions[len(req.Transactions)-1].FileContracts[0]
-	renewCollateral := renewContractCollateral(s.so, settings, fc)
 	renewRevenue := renewBasePrice(s.so, settings, fc)
 	renewRisk := renewBaseCollateral(s.so, settings, fc)
+	renewCollateral, err := renewContractCollateral(s.so, settings, fc)
 	h.mu.RUnlock()
+	if err != nil {
+		s.writeError(err)
+		return extendErr("failed to compute contract collateral: ", err)
+	}
 	fca := finalizeContractArgs{
 		builder:                 txnBuilder,
 		renewal:                 false,
@@ -934,10 +938,14 @@ func (h *Host) managedRPCLoopRenewAndClearContract(s *rpcSession) error {
 	// obligation in the process.
 	h.mu.RLock()
 	fc := req.Transactions[len(req.Transactions)-1].FileContracts[0]
-	renewCollateral := renewContractCollateral(s.so, settings, fc)
 	renewRevenue := renewBasePrice(s.so, settings, fc)
 	renewRisk := renewBaseCollateral(s.so, settings, fc)
+	renewCollateral, err := renewContractCollateral(s.so, settings, fc)
 	h.mu.RUnlock()
+	if err != nil {
+		s.writeError(err)
+		return extendErr("failed to compute contract collateral: ", err)
+	}
 	fca := finalizeContractArgs{
 		builder:                 txnBuilder,
 		renewal:                 true,

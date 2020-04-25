@@ -694,13 +694,13 @@ func (h *Host) managedModifyStorageObligation(so storageObligation, sectorsRemov
 		_ = h.RemoveSector(sectorsRemoved[k])
 	}
 
-	// The locked storage collateral was altered, we potentially want to
-	// unregister the insufficient collateral budget alert
-	h.TryUnregisterInsufficientCollateralBudgetAlert()
-
 	// Lock the host while we update the financial metrics.
 	h.mu.Lock()
 	defer h.mu.Unlock()
+
+	// The locked storage collateral was altered, we potentially want to
+	// unregister the insufficient collateral budget alert
+	h.TryUnregisterInsufficientCollateralBudgetAlert()
 
 	// Update the financial information for the storage obligation - apply the
 	// new values.
