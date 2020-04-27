@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"math"
 	"reflect"
 	"strings"
 	"testing"
@@ -101,7 +100,8 @@ func TestExecuteProgramWriteDeadline(t *testing.T) {
 	his := rhp.ht.host.managedInternalSettings()
 	_, err = rhp.callFundEphemeralAccount(his.MaxEphemeralAccountBalance)
 	if err != nil {
-		t.Fatal(err)
+		extension := fmt.Sprintf("Error funding EphemeralAccount with %v", his.MaxEphemeralAccountBalance)
+		t.Fatal(errors.AddContext(err, extension))
 	}
 
 	// create stream
@@ -126,7 +126,7 @@ func TestExecuteProgramWriteDeadline(t *testing.T) {
 	}
 
 	// execute program.
-	budget := types.NewCurrency64(math.MaxUint64)
+	budget := his.MaxEphemeralAccountBalance.Div64(50)
 	_, _, err = rhp.callExecuteProgram(epr, programData, budget)
 	if err == nil || !errors.Contains(err, io.ErrClosedPipe) {
 		t.Fatal("Expected callExecuteProgram to fail with an ErrClosedPipe, instead err was", err)

@@ -438,7 +438,7 @@ func (p *renterHostPair) callExecuteProgram(epr modules.RPCExecuteProgramRequest
 	// fetch a price table
 	pt, err := p.FetchPriceTable()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.AddContext(err, "error fetching price table")
 	}
 
 	// create stream
@@ -451,45 +451,45 @@ func (p *renterHostPair) callExecuteProgram(epr modules.RPCExecuteProgramRequest
 	// Write the specifier.
 	err = modules.RPCWrite(stream, modules.RPCExecuteProgram)
 	if err != nil {
-		return nil, limit, err
+		return nil, limit, errors.AddContext(err, "RPCWrite RPCExecuteProgram failed")
 	}
 
 	// Write the pricetable uid.
 	err = modules.RPCWrite(stream, pt.UID)
 	if err != nil {
-		return nil, limit, err
+		return nil, limit, errors.AddContext(err, "RPCWrite price table UID failed")
 	}
 
 	// Send the payment request.
 	err = modules.RPCWrite(stream, modules.PaymentRequest{Type: modules.PayByEphemeralAccount})
 	if err != nil {
-		return nil, limit, err
+		return nil, limit, errors.AddContext(err, "RPCWrite error submitting payment request")
 	}
 
 	// Send the payment details.
 	pbear := newPayByEphemeralAccountRequest(p.staticAccountID, p.ht.host.BlockHeight()+6, budget, p.staticAccountKey)
 	err = modules.RPCWrite(stream, pbear)
 	if err != nil {
-		return nil, limit, err
+		return nil, limit, errors.AddContext(err, "RPCWrite error submitting PayByEphemeralAccountRequest")
 	}
 
 	// Receive payment confirmation.
 	var pc modules.PayByEphemeralAccountResponse
 	err = modules.RPCRead(stream, &pc)
 	if err != nil {
-		return nil, limit, err
+		return nil, limit, errors.AddContext(err, "Error receiving PayByEphemeralAccount response")
 	}
 
 	// Send the execute program request.
 	err = modules.RPCWrite(stream, epr)
 	if err != nil {
-		return nil, limit, err
+		return nil, limit, errors.AddContext(err, "RPCWrite error submitting RPCExecuteProgramRequest")
 	}
 
 	// Send the programData.
 	_, err = stream.Write(programData)
 	if err != nil {
-		return nil, limit, err
+		return nil, limit, errors.AddContext(err, "error writing program data stream")
 	}
 
 	// Read the responses.
@@ -498,7 +498,7 @@ func (p *renterHostPair) callExecuteProgram(epr modules.RPCExecuteProgramRequest
 		// Read the response.
 		err = modules.RPCRead(stream, &responses[i])
 		if err != nil {
-			return nil, limit, err
+			return nil, limit, errors.AddContext(err, "error reading response")
 		}
 
 		// Read the output data.
@@ -506,7 +506,7 @@ func (p *renterHostPair) callExecuteProgram(epr modules.RPCExecuteProgramRequest
 		responses[i].Output = make([]byte, outputLen, outputLen)
 		_, err = io.ReadFull(stream, responses[i].Output)
 		if err != nil {
-			return nil, limit, err
+			return nil, limit, errors.AddContext(err, "error reading response output data")
 		}
 
 		// If the response contains an error we are done.
