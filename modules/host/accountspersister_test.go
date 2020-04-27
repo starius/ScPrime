@@ -28,6 +28,12 @@ func TestAccountsReload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		err := ht.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 	am := ht.host.staticAccountManager
 
 	// Generate couple of accounts and deposit some coins into them
@@ -80,6 +86,12 @@ func TestFingerprintsReload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		err := ht.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 	am := ht.host.staticAccountManager
 
 	// Prepare an account
@@ -144,6 +156,12 @@ func TestFingerprintsRotate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		err := ht.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 	am := ht.host.staticAccountManager
 
 	// Unlock the wallet
@@ -264,6 +282,12 @@ func TestFingerprintBucketsRotate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		err := ht.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	// verifyFPBuckets verifies the correct FP buckets are on disk
 	verifyFPBuckets := func() error {

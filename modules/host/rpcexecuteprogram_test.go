@@ -146,7 +146,12 @@ func TestExecuteReadSectorProgram(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rhp.Close()
+	defer func() {
+		err := rhp.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 	ht := rhp.ht
 
 	// create a random sector
@@ -190,8 +195,8 @@ func TestExecuteReadSectorProgram(t *testing.T) {
 	// this particular program on the "renter" side. This way we can test that
 	// the bandwidth measured by the renter is large enough to be accepted by
 	// the host.
-	expectedDownload := uint64(10220) // download
-	expectedUpload := uint64(18980)   // upload
+	expectedDownload := uint64(8760) // download
+	expectedUpload := uint64(17520)  // upload
 	downloadCost := pt.DownloadBandwidthCost.Mul64(expectedDownload)
 	uploadCost := pt.UploadBandwidthCost.Mul64(expectedUpload)
 	bandwidthCost := downloadCost.Add(uploadCost)
@@ -289,7 +294,12 @@ func TestExecuteReadPartialSectorProgram(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rhp.Close()
+	defer func() {
+		err := rhp.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 	ht := rhp.ht
 
 	// get a snapshot of the SO before running the program.
@@ -413,7 +423,12 @@ func TestExecuteHasSectorProgram(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rhp.Close()
+	defer func() {
+		err := rhp.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 	ht := rhp.ht
 
 	// get a snapshot of the SO before running the program.
@@ -455,8 +470,8 @@ func TestExecuteHasSectorProgram(t *testing.T) {
 	// this particular program on the "renter" side. This way we can test that
 	// the bandwidth measured by the renter is large enough to be accepted by
 	// the host.
-	expectedDownload := uint64(7300) // download
-	expectedUpload := uint64(18980)  // upload
+	expectedDownload := uint64(5840) // download
+	expectedUpload := uint64(17520)  // upload
 	downloadCost := pt.DownloadBandwidthCost.Mul64(expectedDownload)
 	uploadCost := pt.UploadBandwidthCost.Mul64(expectedUpload)
 	bandwidthCost := downloadCost.Add(uploadCost)

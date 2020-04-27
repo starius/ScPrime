@@ -23,6 +23,10 @@ import (
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
+var (
+	invalidSpecifier = types.NewSpecifier("Invalid")
+)
+
 // TestVerifyPaymentRevision is a unit test covering verifyPaymentRevision
 func TestVerifyPaymentRevision(t *testing.T) {
 	t.Parallel()
@@ -288,6 +292,12 @@ func TestProcessParallelPayments(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		err := ht.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 	am := ht.host.staticAccountManager
 
 	var refillAmount uint64 = 100
@@ -306,6 +316,12 @@ func TestProcessParallelPayments(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer func(pair *renterHostPair) {
+			err := pair.staticRenterMux.Close()
+			if err != nil {
+				t.Error(err)
+			}
+		}(pair)
 		pairs[i] = pair
 
 		if err := callDeposit(am, pair.staticAccountID, types.NewCurrency64(refillAmount)); err != nil {
@@ -336,10 +352,17 @@ func TestProcessParallelPayments(t *testing.T) {
 	// spin up a large amount of threads that use the renter-host pairs in
 	// parallel
 	totalThreads := 10 * runtime.NumCPU()
+	var wg sync.WaitGroup
 	for thread := 0; thread < totalThreads; thread++ {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			// create two streams
-			rs, hs := NewTestStreams()
+			rs, hs, err := NewTestStreams()
+			if err != nil {
+				t.Error(err)
+				return
+			}
 			defer rs.Close()
 			defer hs.Close()
 
@@ -403,6 +426,7 @@ func TestProcessParallelPayments(t *testing.T) {
 		}()
 	}
 	<-finished
+	wg.Wait()
 
 	t.Logf("\n\nIn %.f seconds, on %d cores, the following payments completed successfully\nPayByContract: %d (%v expected failures)\nPayByEphemeralAccount: %d (%v expected failures)\n\n", timeout.Seconds(), runtime.NumCPU(), atomic.LoadUint64(&fcPayments), atomic.LoadUint64(&fcFailures), atomic.LoadUint64(&eaPayments), atomic.LoadUint64(&eaFailures))
 }
@@ -531,7 +555,12 @@ func TestProcessPayment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pair.Close()
+	defer func() {
+		err := pair.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// test both payment methods
 	testPayByContract(t, pair)
@@ -555,7 +584,11 @@ func testPayByContract(t *testing.T, pair *renterHostPair) {
 	}
 
 	// create two streams
-	rStream, hStream := NewTestStreams()
+	rStream, hStream, err := NewTestStreams()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	defer rStream.Close()
 	defer hStream.Close()
 
@@ -699,7 +732,11 @@ func testPayByEphemeralAccount(t *testing.T, pair *renterHostPair) {
 		t.Fatal(err)
 	}
 	// create two streams
-	rStream, hStream := NewTestStreams()
+	rStream, hStream, err := NewTestStreams()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	defer rStream.Close()
 	defer hStream.Close()
 
@@ -766,13 +803,17 @@ func testPayByEphemeralAccount(t *testing.T, pair *renterHostPair) {
 // specify an unknown payment method
 func testUnknownPaymentMethodError(t *testing.T, pair *renterHostPair) {
 	// create two streams
-	rStream, hStream := NewTestStreams()
+	rStream, hStream, err := NewTestStreams()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	defer rStream.Close()
 	defer hStream.Close()
 
-	err := run(func() error {
+	err = run(func() error {
 		// send PaymentRequest
-		pr := modules.PaymentRequest{Type: types.NewSpecifier("Invalid")}
+		pr := modules.PaymentRequest{Type: invalidSpecifier}
 		err := modules.RPCWriteAll(rStream, modules.RPCUpdatePriceTable, pr)
 		if err != nil {
 			return err
@@ -942,22 +983,31 @@ type testStream struct {
 }
 
 // NewTestStreams returns two siamux.Stream mock objects.
-func NewTestStreams() (client siamux.Stream, server siamux.Stream) {
+func NewTestStreams() (client siamux.Stream, server siamux.Stream, err error) {
 	var clientConn net.Conn
 	var serverConn net.Conn
-	ln, _ := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, nil, errors.AddContext(err, "net.Listen failed")
+	}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
-		serverConn, _ = ln.Accept()
+		serverConn, err = ln.Accept()
 		wg.Done()
 	}()
-	clientConn, _ = net.Dial("tcp", ln.Addr().String())
+	clientConn, clientErr := net.Dial("tcp", ln.Addr().String())
 	wg.Wait()
+	if err != nil {
+		return nil, nil, errors.AddContext(err, "listener.Accept failed")
+	}
+	if clientErr != nil {
+		return nil, nil, errors.AddContext(clientErr, "net.Dial failed for clientConn")
+	}
 
 	client = testStream{c: clientConn}
 	server = testStream{c: serverConn}
-	return
+	return client, server, nil
 }
 
 func (s testStream) Read(b []byte) (n int, err error)  { return s.c.Read(b) }
@@ -983,7 +1033,10 @@ func (s testStream) SetWriteDeadline(t time.Time) error {
 // will test that an object can be written to and read from the stream over the
 // underlying connection.
 func TestStreams(t *testing.T) {
-	renter, host := NewTestStreams()
+	renter, host, err := NewTestStreams()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	var pr modules.PaymentRequest
 	var wg sync.WaitGroup
