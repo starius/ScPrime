@@ -13,7 +13,7 @@ const (
 	// auto unlocking the wallet
 	EnvvarWalletPassword = "SCPRIME_WALLET_PASSWORD"
 
-	// siadDataDir is the environment variable which tells siad where to put the
-	// siad-specific data
-	EnvvarDaemonDataDir = "SPD_DATA_DIR"
+	// EnvvarDaemonDataDir is the environment variable which tells the daemon
+	// where to put the daemon specific data
+	EnvvarDaemonDataDir = "DAEMON_DATA_DIR"
 )
