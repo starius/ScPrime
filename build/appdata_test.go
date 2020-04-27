@@ -43,7 +43,7 @@ func TestAPIPassword(t *testing.T) {
 func TestSiadDataDir(t *testing.T) {
 	// Unset any defaults, this only affects in memory state. Any Env Vars will
 	// remain intact on disk
-	err := os.Unsetenv(siadDataDir)
+	err := os.Unsetenv(EnvvarDaemonDataDir)
 	if err != nil {
 		t.Error(err)
 	}
@@ -56,7 +56,7 @@ func TestSiadDataDir(t *testing.T) {
 
 	// Test Env Variable
 	newSiaDir := "foo/bar"
-	err = os.Setenv(siadDataDir, newSiaDir)
+	err = os.Setenv(EnvvarDaemonDataDir, newSiaDir)
 	if err != nil {
 		t.Error(err)
 	}
