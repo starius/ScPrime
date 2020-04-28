@@ -9,14 +9,14 @@ require (
 	github.com/hanwen/go-fuse/v2 v2.0.3
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/klauspost/reedsolomon v1.9.3
+	github.com/klauspost/reedsolomon v1.9.4
 	github.com/pkg/errors v0.9.1
 	github.com/sasha-s/go-deadlock v0.2.0
 	github.com/spf13/cobra v1.0.0
-	github.com/spf13/viper v1.6.2
-	github.com/stretchr/testify v1.4.0
+	github.com/spf13/viper v1.6.3
+	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/vbauerster/mpb/v5 v5.0.3
+	github.com/vbauerster/mpb/v5 v5.0.4
 	github.com/xtaci/smux v1.5.12
 	gitlab.com/NebulousLabs/demotemutex v0.0.0-20151003192217-235395f71c40
 	gitlab.com/NebulousLabs/entropy-mnemonics v0.0.0-20181018051301-7532f67e3500
@@ -27,10 +27,9 @@ require (
 	gitlab.com/NebulousLabs/monitor v0.0.0-20191205095550-2b0fd3e1012a
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20191111145210-66b93e150b27
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20180716154133-88a11db9e46c
-	gitlab.com/scpcorp/siamux v0.0.0-20200326160319-adac4a7d7a74
-	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200401142414-c5d81e8a45b6
+	gitlab.com/scpcorp/siamux v0.0.0-20200425174509-8102d7bdc6b9
+	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200425183554-2fc52b175f7b
 	go.etcd.io/bbolt v1.3.3
-	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904
-	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4 // indirect
-	golang.org/x/tools v0.0.0-20200416214402-fc959738d646
+	golang.org/x/crypto v0.0.0-20200427165652-729f1e841bcc
+	golang.org/x/tools v0.0.0-20200427185906-e0d5eebdf8c4
 )

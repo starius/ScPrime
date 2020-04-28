@@ -38,7 +38,7 @@ func NewReadSectorInstruction(lengthOffset, offsetOffset, merkleRootOffset uint6
 
 // staticDecodeReadSectorInstruction creates a new 'ReadSector' instruction from the
 // provided generic instruction.
-func (p *Program) staticDecodeReadSectorInstruction(instruction modules.Instruction) (instruction, error) {
+func (p *program) staticDecodeReadSectorInstruction(instruction modules.Instruction) (instruction, error) {
 	// Check specifier.
 	if instruction.Specifier != modules.SpecifierReadSector {
 		return nil, fmt.Errorf("expected specifier %v but got %v",
@@ -95,6 +95,7 @@ func (i *instructionReadSector) Execute(previousOutput output) output {
 	}
 
 	ps := i.staticState
+
 	sectorData, err := ps.sectors.readSector(ps.host, sectorRoot)
 	if err != nil {
 		return errOutput(err)
@@ -137,11 +138,6 @@ func (i *instructionReadSector) Cost() (types.Currency, types.Currency, error) {
 // the lifetime of the instruction.
 func (i *instructionReadSector) Memory() uint64 {
 	return modules.MDMReadMemory()
-}
-
-// ReadOnly for the 'ReadSector' instruction is 'true'.
-func (i *instructionReadSector) ReadOnly() bool {
-	return true
 }
 
 // Time returns the execution time of a 'ReadSector' instruction.

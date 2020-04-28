@@ -189,11 +189,12 @@ func main() {
 	root.Flags().BoolVarP(&globalConfig.Spd.NoBootstrap, "no-bootstrap", "", false, "disable bootstrapping on this run")
 	root.Flags().StringVarP(&globalConfig.Spd.Profile, "profile", "", "", "enable profiling with flags 'cmt' for CPU, memory, trace")
 	root.Flags().StringVarP(&globalConfig.Spd.RPCaddr, "rpc-addr", "", ":4281", "which port the gateway listens on")
-	root.Flags().StringVarP(&globalConfig.Spd.SiaMuxAddr, "siamux-addr", "", ":9999", "which port the SiaMux listens on")
+	root.Flags().StringVarP(&globalConfig.Spd.SiaMuxAddr, "siamux-addr", "", ":4283", "which port the SiaMux listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.Modules, "modules", "M", "gctwrhf", "enabled modules, see 'spd modules' for more info")
 	root.Flags().BoolVarP(&globalConfig.Spd.AuthenticateAPI, "authenticate-api", "", true, "enable API password protection")
 	root.Flags().BoolVarP(&globalConfig.Spd.TempPassword, "temp-password", "", false, "enter a temporary API password during startup")
 	root.Flags().BoolVarP(&globalConfig.Spd.AllowAPIBind, "disable-api-security", "", false, "allow spd to listen on a non-localhost address (DANGEROUS)")
+
 	// If globalConfig.Spd.DataDir is not set, use the environment variable provided.
 	if globalConfig.Spd.DataDir == "" {
 		globalConfig.Spd.DataDir = build.SiaDir()
