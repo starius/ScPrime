@@ -29,6 +29,12 @@ const (
 
 	// persistPortalSize is the size of a persisted portal in the portals list.
 	// It is the length of `NetAddress` plus the `public` and `listed` flags.
+	//
+	// TODO: We can use a variable-sized buffer for a persisted portal instead
+	// of a fixed-size buffer. We currently use a large fixed-size buffer so
+	// that we always know the amount of stored objects given the file size (and
+	// for consistency with the blacklist implementation). This wastes a lot of
+	// space.
 	persistPortalSize int64 = modules.MaxEncodedNetAddressLength + 2
 )
 
@@ -44,7 +50,7 @@ var (
 	metadataVersion = types.NewSpecifier("v1.4.3.0\n")
 )
 
-// marshalMetadata marshals the Skynet Portal List's metadata and returns the byte
+// marshalMetadata marshals the Pubaccess Portal List's metadata and returns the byte
 // slice
 func (sp *SkynetPortals) marshalMetadata() ([]byte, error) {
 	headerBytes, headerErr := metadataHeader.MarshalText()
@@ -70,11 +76,14 @@ func marshalSia(w io.Writer, address modules.NetAddress, public, listed bool) er
 }
 
 // unmarshalPortals unmarshals the sia encoded portals list
-func unmarshalPortals(r io.Reader, numPortals int64) (map[modules.NetAddress]bool, error) {
-	// Unmarshal portals one by one
+func unmarshalPortals(r io.Reader) (map[modules.NetAddress]bool, error) {
 	portals := make(map[modules.NetAddress]bool)
-	for i := int64(0); i < numPortals; i++ {
+	// Unmarshal portals one by one until EOF.
+	for {
 		address, public, listed, err := unmarshalSia(r)
+		if errors.Contains(err, io.EOF) {
+			break
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -162,7 +171,7 @@ func (sp *SkynetPortals) callInitPersist() error {
 	return nil
 }
 
-// validatePortalChanges validates the changes to be made to the Skynet portals list.
+// validatePortalChanges validates the changes to be made to the Pubaccess portals list.
 func (sp *SkynetPortals) validatePortalChanges(additions []modules.SkynetPortal, removals []modules.NetAddress) error {
 	// Check for nil input
 	if len(additions)+len(removals) == 0 {
@@ -244,8 +253,14 @@ func (sp *SkynetPortals) callUpdateAndAppend(additions []modules.SkynetPortal, r
 		}
 	}
 
+	filepath := filepath.Join(sp.staticPersistDir, persistFile)
+	// Truncate the file to remove any corrupted data that may have been added.
+	err = os.Truncate(filepath, sp.persistLength)
+	if err != nil {
+		return err
+	}
 	// Open file
-	f, err := os.OpenFile(filepath.Join(sp.staticPersistDir, persistFile), os.O_RDWR, modules.DefaultFilePerm)
+	f, err := os.OpenFile(filepath, os.O_RDWR, modules.DefaultFilePerm)
 	if err != nil {
 		return errors.AddContext(err, "unable to open persistence file")
 	}
@@ -281,7 +296,8 @@ func (sp *SkynetPortals) callUpdateAndAppend(additions []modules.SkynetPortal, r
 // load loads the persisted portals list from disk.
 func (sp *SkynetPortals) load() error {
 	// Open File
-	f, err := os.Open(filepath.Join(sp.staticPersistDir, persistFile))
+	filepath := filepath.Join(sp.staticPersistDir, persistFile)
+	f, err := os.Open(filepath)
 	if err != nil {
 		// Intentionally don't add context to allow for IsNotExist error check
 		return err
@@ -300,10 +316,16 @@ func (sp *SkynetPortals) load() error {
 		return errors.AddContext(err, "unable to unmarshal metadata bytes")
 	}
 
-	// Check if there is a persisted portals list after the metatdata
+	// Check if there is a persisted portals list after the metadata.
 	goodBytes := sp.persistLength - metadataPageSize
 	if goodBytes <= 0 {
 		return nil
+	}
+
+	// Truncate the file to remove any corrupted data that may have been added.
+	err = os.Truncate(filepath, sp.persistLength)
+	if err != nil {
+		return err
 	}
 
 	// Seek to the start of the persisted portals list
@@ -312,18 +334,18 @@ func (sp *SkynetPortals) load() error {
 		return errors.AddContext(err, "unable to seek to start of persisted portals list")
 	}
 	// Decode persist portals
-	portals, err := unmarshalPortals(f, goodBytes/persistPortalSize)
+	portals, err := unmarshalPortals(f)
 	if err != nil {
 		return errors.AddContext(err, "unable to unmarshal persist portals")
 	}
 
-	// Add to Skynet Portals List
+	// Add to Pubaccess Portals List
 	sp.portals = portals
 
 	return nil
 }
 
-// unmarshalMetadata ummarshals the Skynet Portals List's metadata from the
+// unmarshalMetadata ummarshals the Pubaccess Portals List's metadata from the
 // provided byte slice.
 func (sp *SkynetPortals) unmarshalMetadata(raw []byte) error {
 	// Define offsets for reading from provided byte slice
