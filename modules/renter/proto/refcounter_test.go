@@ -30,15 +30,15 @@ var (
 	errTimeoutOnLock = errors.New("timeout while acquiring a lock ")
 )
 
-// StartUpdateWithTimeout acquires a lock, ensuring the caller is the only one currently
-//// allowed to perform updates on this refcounter file.
+// StartUpdateWithTimeout acquires a lock, ensuring the caller is the only one
+// currently allowed to perform updates on this refcounter file. Returns an
+// error if the supplied timeout is <= 0 - use `StartUpdate` instead.
 func (rc *RefCounter) StartUpdateWithTimeout(timeout time.Duration) error {
-	if timeout < 0 {
-		rc.muUpdate.Lock()
-	} else {
-		if ok := rc.muUpdate.TryLockTimed(timeout); !ok {
-			return errTimeoutOnLock
-		}
+	if timeout <= 0 {
+		return errors.New("non-positive timeout")
+	}
+	if ok := rc.muUpdate.TryLockTimed(timeout); !ok {
+		return errTimeoutOnLock
 	}
 	return rc.managedStartUpdate()
 }
@@ -105,7 +105,7 @@ func TestRefCounterAppend(t *testing.T) {
 	if err != nil {
 		t.Fatal("RefCounter creation finished successfully but the file is not accessible:", err)
 	}
-	err = rc.StartUpdateWithTimeout(-1)
+	err = rc.StartUpdate()
 	if err != nil {
 		t.Fatal("Failed to start an update session", err)
 	}
@@ -153,6 +153,68 @@ func TestRefCounterAppend(t *testing.T) {
 	}
 }
 
+// TestRefCounterCreateAndApplyTransaction test that CreateAndApplyTransaction
+// panics and restores the original in-memory structures on a failure to apply
+// updates.
+func TestRefCounterCreateAndApplyTransaction(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	// prepare a refcounter for the tests
+	numSec := 2 + fastrand.Uint64n(10)
+	rc := testPrepareRefCounter(numSec, t)
+	err := rc.StartUpdate()
+	if err != nil {
+		t.Fatal("Failed to start an update session", err)
+	}
+
+	// add some valid updates
+	updates := make([]writeaheadlog.Update, 0)
+	u, err := rc.Append()
+	if err != nil {
+		t.Fatal("Failed to create an append update", err)
+	}
+	updates = append(updates, u)
+	u, err = rc.Increment(0)
+	if err != nil {
+		t.Fatal("Failed to create an increment update", err)
+	}
+	updates = append(updates, u)
+
+	// add an invalid update that will cause an error
+	u = writeaheadlog.Update{
+		Name: "InvalidUpdate",
+	}
+	updates = append(updates, u)
+
+	// add another valid update that will change the rc.numSectors, which change
+	// must be reverted when we recover from the panic when applying the updates
+	u, err = rc.DropSectors(1)
+	if err != nil {
+		t.Fatal("Failed to create a drop sectors update", err)
+	}
+	updates = append(updates, u)
+
+	// make sure we panic because of the invalid update and that we restore the
+	// count of sector number to the right value
+	defer func() {
+		// recover from a panic
+		if r := recover(); r == nil {
+			t.Fatal("Did not panic on an invalid update")
+		}
+	}()
+
+	// apply the updates
+	err = rc.CreateAndApplyTransaction(updates...)
+	if err != nil {
+		t.Fatal("Did not panic on invalid update, only returned an err:", err)
+	} else {
+		t.Fatal("Applied an invalid update without panicking or an error")
+	}
+}
+
 // TestRefCounterDecrement tests that the Decrement method behaves correctly
 func TestRefCounterDecrement(t *testing.T) {
 	if testing.Short() {
@@ -162,7 +224,7 @@ func TestRefCounterDecrement(t *testing.T) {
 
 	// prepare a refcounter for the tests
 	rc := testPrepareRefCounter(2+fastrand.Uint64n(10), t)
-	err := rc.StartUpdateWithTimeout(-1)
+	err := rc.StartUpdate()
 	if err != nil {
 		t.Fatal("Failed to start an update session", err)
 	}
@@ -217,7 +279,7 @@ func TestRefCounterDelete(t *testing.T) {
 
 	// prepare a refcounter for the tests
 	rc := testPrepareRefCounter(fastrand.Uint64n(10), t)
-	err := rc.StartUpdateWithTimeout(-1)
+	err := rc.StartUpdate()
 	if err != nil {
 		t.Fatal("Failed to start an update session", err)
 	}
@@ -260,7 +322,7 @@ func TestRefCounterDropSectors(t *testing.T) {
 	if err != nil {
 		t.Fatal("RefCounter creation finished successfully but the file is not accessible:", err)
 	}
-	err = rc.StartUpdateWithTimeout(-1)
+	err = rc.StartUpdate()
 	if err != nil {
 		t.Fatal("Failed to start an update session", err)
 	}
@@ -337,7 +399,7 @@ func TestRefCounterIncrement(t *testing.T) {
 
 	// prepare a refcounter for the tests
 	rc := testPrepareRefCounter(2+fastrand.Uint64n(10), t)
-	err := rc.StartUpdateWithTimeout(-1)
+	err := rc.StartUpdate()
 	if err != nil {
 		t.Fatal("Failed to start an update session", err)
 	}
@@ -493,7 +555,7 @@ func TestRefCounterStartUpdate(t *testing.T) {
 
 	// prepare a refcounter for the tests
 	rc := testPrepareRefCounter(2+fastrand.Uint64n(10), t)
-	err := rc.StartUpdateWithTimeout(-1)
+	err := rc.StartUpdate()
 	if err != nil {
 		t.Fatal("Failed to start an update session", err)
 	}
@@ -529,7 +591,7 @@ func TestRefCounterSwap(t *testing.T) {
 	// prepare a refcounter for the tests
 	rc := testPrepareRefCounter(2+fastrand.Uint64n(10), t)
 	var updates []writeaheadlog.Update
-	err := rc.StartUpdateWithTimeout(-1)
+	err := rc.StartUpdate()
 	if err != nil {
 		t.Fatal("Failed to start an update session", err)
 	}
@@ -600,7 +662,7 @@ func TestRefCounterUpdateApplied(t *testing.T) {
 	// prepare a refcounter for the tests
 	rc := testPrepareRefCounter(2+fastrand.Uint64n(10), t)
 	var updates []writeaheadlog.Update
-	err := rc.StartUpdateWithTimeout(-1)
+	err := rc.StartUpdate()
 	if err != nil {
 		t.Fatal("Failed to start an update session", err)
 	}
@@ -659,7 +721,7 @@ func TestRefCounterUpdateSessionConstraints(t *testing.T) {
 	}
 
 	// start an update session
-	err := rc.StartUpdateWithTimeout(-1)
+	err := rc.StartUpdate()
 	if err != nil {
 		t.Fatal("Failed to start an update session", err)
 	}
@@ -692,7 +754,7 @@ func TestRefCounterUpdateSessionConstraints(t *testing.T) {
 	}
 
 	// make sure we cannot start an update session on a deleted counter
-	if err = rc.StartUpdateWithTimeout(-1); err != ErrUpdateAfterDelete {
+	if err = rc.StartUpdate(); err != ErrUpdateAfterDelete {
 		t.Fatal("Failed to prevent an update creation after a deletion", err)
 	}
 }
@@ -751,7 +813,7 @@ func TestRefCounterNumSectorsUnderflow(t *testing.T) {
 		t.Fatal("Expected ErrInvalidSectorNumber, got:", err)
 	}
 
-	err = rc.StartUpdateWithTimeout(-1)
+	err = rc.StartUpdate()
 	if err != nil {
 		t.Fatal("Failed to initiate an update session:", err)
 	}

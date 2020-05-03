@@ -30,6 +30,6 @@ require (
 	gitlab.com/scpcorp/siamux v0.0.0-20200425174509-8102d7bdc6b9
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200425183554-2fc52b175f7b
 	go.etcd.io/bbolt v1.3.3
-	golang.org/x/crypto v0.0.0-20200427165652-729f1e841bcc
-	golang.org/x/tools v0.0.0-20200427185906-e0d5eebdf8c4
+	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
+	golang.org/x/tools v0.0.0-20200502202811-ed308ab3e770
 )

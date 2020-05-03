@@ -3654,10 +3654,10 @@ only the entry in the renter. Will return an error if the target is a folder.
 Path to the file in the renter on the network.
 
 ### OPTIONAL
- **root** | bool
- Whether or not to treat the siapath as being relative to the user's home
- directory. If this field is not set, the siapath will be interpreted as
- relative to 'home/user/'.  
+**root** | bool  
+Whether or not to treat the siapath as being relative to the user's home
+directory. If this field is not set, the siapath will be interpreted as relative
+to 'home/user/'.
 
 ### Response
 
@@ -3886,7 +3886,7 @@ Returns some information about a potentially ongoing recovery scan.
 ### JSON Response
 > JSON Response Example
 
-```go
+```json
 {
   "scaninprogress": true // boolean
   "scannedheight" : 1000 // uint64
@@ -3902,9 +3902,13 @@ that have already been scanned.
 ## /renter/rename/*siapath* [POST]
 > curl example  
 
-```go
+```sh
 curl -A "ScPrime-Agent" -u "":<apipassword> --data "newsiapath=myfile2" "localhost:4280/renter/rename/myfile"
+
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "newsiapath=myfile2&root=true" "localhost:4280/renter/rename/myfile"
 ```
+
+change the siaPath for a file that is being managed by the renter.
 
 ### Path Parameters
 ### REQUIRED
@@ -3915,6 +3919,12 @@ Path to the file in the renter on the network.
 ### REQUIRED
 **newsiapath** | string  
 New location of the file in the renter on the network.  
+
+### OPTIONAL
+**root** | bool  
+Whether or not to treat the siapath as being relative to the user's home
+directory. If this field is not set, the siapath will be interpreted as
+relative to 'home/user/'.
 
 ### Response
 
