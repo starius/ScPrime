@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"reflect"
 
@@ -50,6 +51,8 @@ var (
 	skynetUploadSilent        bool   // Don't report progress while uploading
 	statusVerbose             bool   // Display additional siac information
 	walletRawTxn              bool   // Encode/decode transactions in base64-encoded binary.
+	walletStartHeight         uint64 // Start height for transaction search.
+	walletEndHeight           uint64 // End height for transaction search.
 	walletTxnFeeIncluded      bool   // include the fee in the balance being sent
 
 	dataPieces   string // the number of data pieces a files should be uploaded with
@@ -264,7 +267,7 @@ func main() {
 		renterDownloadsCmd, renterExportCmd, renterFilesDeleteCmd, renterFilesDownloadCmd,
 		renterFilesListCmd, renterFilesRenameCmd, renterFilesUnstuckCmd, renterFilesUploadCmd,
 		renterFuseCmd, renterPricesCmd, renterRatelimitCmd, renterSetAllowanceCmd, renterSetIPRestrictionCmd,
-		renterSetLocalPathCmd, renterTriggerContractRecoveryScanCmd, renterUploadsCmd)
+		renterSetLocalPathCmd, renterTriggerContractRecoveryScanCmd, renterUploadsCmd, renterWorkersCmd)
 
 	renterAllowanceCmd.AddCommand(renterAllowanceCancelCmd)
 	renterContractsCmd.AddCommand(renterContractsViewCmd)
@@ -310,6 +313,8 @@ func main() {
 	skynetUploadCmd.Flags().BoolVarP(&skynetUploadSilent, "silent", "s", false, "Don't report progress while uploading")
 	skynetUnpinCmd.Flags().BoolVar(&skynetUnpinRoot, "root", false, "Use the root folder as the base instead of the Pubaccess folder")
 	skynetDownloadCmd.Flags().StringVar(&skynetDownloadPortal, "portal", "", "Use a Pubaccess portal to complete the download")
+	skynetUploadCmd.Flags().StringVar(&skykeyName, "pubaccesskeyname", "", "Specify the pubaccesskey to be used by name.")
+	skynetUploadCmd.Flags().StringVar(&skykeyID, "pubaccesskeyid", "", "Specify the pubaccesskey to be used by its key identifier.")
 	skynetLsCmd.Flags().BoolVarP(&skynetLsRecursive, "recursive", "R", false, "Recursively list pubfiles and folders")
 	skynetLsCmd.Flags().BoolVar(&skynetLsRoot, "root", false, "Use the root folder as the base instead of the Pubaccess folder")
 	skynetBlacklistCmd.Flags().BoolVar(&skynetBlacklistRemove, "remove", false, "Remove the publink from the blacklist")
@@ -345,7 +350,7 @@ func main() {
 	walletInitCmd.Flags().BoolVarP(&initForce, "force", "", false, "destroy the existing wallet and re-encrypt")
 	walletInitSeedCmd.Flags().BoolVarP(&initForce, "force", "", false, "destroy the existing wallet")
 
-	//TODO: chech WalletLoadCMD
+	//These do not exist in ScPrime
 	//walletLoadCmd.AddCommand(walletLoad033xCmd, walletLoadSeedCmd, walletLoadSiagCmd)
 
 	walletSendCmd.AddCommand(walletSendSiacoinsCmd, walletSendSiafundsCmd)
@@ -353,6 +358,8 @@ func main() {
 	walletUnlockCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Display interactive password prompt even if SCPRIME_WALLET_PASSWORD is set")
 	walletBroadcastCmd.Flags().BoolVarP(&walletRawTxn, "raw", "", false, "Decode transaction as base64 instead of JSON")
 	walletSignCmd.Flags().BoolVarP(&walletRawTxn, "raw", "", false, "Encode signed transaction as base64 instead of JSON")
+	walletTransactionsCmd.Flags().Uint64Var(&walletStartHeight, "startheight", 0, " Height of the block where transaction history should begin.")
+	walletTransactionsCmd.Flags().Uint64Var(&walletEndHeight, "endheight", math.MaxUint64, " Height of the block where transaction history should end.")
 
 	// initialize client
 	root.Flags().BoolVarP(&statusVerbose, "verbose", "v", false, "Display additional siac information")

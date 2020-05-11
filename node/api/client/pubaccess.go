@@ -183,6 +183,15 @@ func (c *Client) SkynetSkyfilePost(params modules.SkyfileUploadParameters) (stri
 	rootStr := fmt.Sprintf("%t", params.Root)
 	values.Set("root", rootStr)
 
+	// Encode SkykeyName or SkykeyID.
+	if params.SkykeyName != "" {
+		values.Set("skykeyname", params.SkykeyName)
+	}
+	hasSkykeyID := params.SkykeyID != pubaccesskey.SkykeyID{}
+	if hasSkykeyID {
+		values.Set("skykeyid", params.SkykeyID.ToString())
+	}
+
 	// Make the call to upload the file.
 	query := fmt.Sprintf("/pubaccess/pubfile/%s?%s", params.SiaPath.String(), values.Encode())
 	_, resp, err := c.postRawResponse(query, params.Reader)

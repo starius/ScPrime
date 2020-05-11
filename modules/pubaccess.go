@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 )
 
 // SkyfileMetadata is all of the metadata that gets placed into the first 4096
@@ -200,6 +202,18 @@ type SkyfileUploadParameters struct {
 
 	// Reader supplies the file data for the pubfile.
 	Reader io.Reader `json:"reader"`
+
+	// SkykeyName is the name of the Pubaccesskey that should be used to encrypt the
+	// Skyfile.
+	SkykeyName string `json:"skykeyname"`
+
+	// SkykeyID is the ID of Pubaccesskey that should be used to encrypt the file.
+	SkykeyID pubaccesskey.SkykeyID `json:"skykeyid"`
+
+	// If Encrypt is set to true and one of SkykeyName or SkykeyID was set, a
+	// Pubaccesskey will be derived from the Master Pubaccesskey found under that name/ID to
+	// be used for this specific upload.
+	FileSpecificSkykey pubaccesskey.Pubaccesskey
 }
 
 // SkyfileMultipartUploadParameters defines the parameters specific to multipart

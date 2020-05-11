@@ -21,11 +21,11 @@ cpkg = ./modules/renter
 
 # pkgs changes which packages the makefile calls operate on. run changes which
 # tests are run during testing.
-
 pkgs = ./build \
 	./cmd/sia-node-scanner \
 	./cmd/spc \
 	./cmd/spd \
+	./cmd/pubaccess-benchmark \
 	./compatibility \
 	./crypto \
 	./encoding \
@@ -88,7 +88,7 @@ run = .
 
 # util-pkgs determine the set of packages that are built when running
 # 'make utils'
-util-pkgs = ./cmd/sia-node-scanner
+util-pkgs = ./cmd/node-scanner ./cmd/pubaccess-benchmark
 
 # dependencies list all packages needed to run make commands used to build, test
 # and lint spc/spd locally and in CI systems.
@@ -155,6 +155,8 @@ release:
 	go install -tags='netgo' -ldflags='-s -w $(ldflags)' $(release-pkgs)
 release-race:
 	go install -race -tags='netgo' -ldflags='-s -w $(ldflags)' $(release-pkgs)
+release-util:
+	go install -tags='netgo' -ldflags='-s -w $(ldflags)' $(release-pkgs) $(util-pkgs)
 
 # clean removes all directories that get automatically created during
 # development.

@@ -80,6 +80,8 @@ type (
 	// SkynetStatsGET contains the information queried for the /pubaccess/stats
 	// GET endpoint
 	SkynetStatsGET struct {
+		PerformanceStats SkynetPerformanceStats `json:"performancestats"`
+
 		UploadStats SkynetStats   `json:"uploadstats"`
 		VersionInfo SkynetVersion `json:"versioninfo"`
 	}
@@ -209,6 +211,15 @@ func (api *API) skynetPortalsHandlerPOST(w http.ResponseWriter, req *http.Reques
 // skynetPublinkHandlerGET accepts a publink as input and will stream the data
 // from the publink out of the response body as output.
 func (api *API) skynetPublinkHandlerGET(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	// Start the timer for the performance measurement.
+	startTime := time.Now()
+	isErr := true
+	defer func() {
+		if isErr {
+			skynetPerformanceStats.TimeToFirstByte.AddRequest(0)
+		}
+	}()
+
 	strLink := ps.ByName("publink")
 	strLink = strings.TrimPrefix(strLink, "/")
 
@@ -335,6 +346,37 @@ func (api *API) skynetPublinkHandlerGET(w http.ResponseWriter, req *http.Request
 		WriteError(w, Error{fmt.Sprintf("failed to write publink metadata: %v", err)}, http.StatusInternalServerError)
 		return
 	}
+
+	// Metadata has been parsed successfully, stop the time here for TTFB.
+	// Metadata was fetched from Skynet itself.
+	skynetPerformanceStatsMu.Lock()
+	skynetPerformanceStats.TimeToFirstByte.AddRequest(time.Since(startTime))
+	skynetPerformanceStatsMu.Unlock()
+
+	// No more errors, defer a function to record the total performance time.
+	isErr = false
+	defer func() {
+		skynetPerformanceStatsMu.Lock()
+		defer skynetPerformanceStatsMu.Unlock()
+
+		_, fetchSize, err := publink.OffsetAndFetchSize()
+		if err != nil {
+			return
+		}
+		if fetchSize <= 64e3 {
+			skynetPerformanceStats.Download64KB.AddRequest(time.Since(startTime))
+			return
+		}
+		if fetchSize <= 1e6 {
+			skynetPerformanceStats.Download1MB.AddRequest(time.Since(startTime))
+			return
+		}
+		if fetchSize <= 4e6 {
+			skynetPerformanceStats.Download4MB.AddRequest(time.Since(startTime))
+			return
+		}
+		skynetPerformanceStats.DownloadLarge.AddRequest(time.Since(startTime))
+	}()
 
 	// Only set the Content-Type header when the metadata defines one, if we
 	// were to set the header to an empty string, it would prevent the http
@@ -474,6 +516,9 @@ func (api *API) skynetPublinkPinHandlerPOST(w http.ResponseWriter, req *http.Req
 // set, this is essentially an upload streaming endpoint for Pubaccess which
 // returns a publink.
 func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	// Start the timer for the performance measurement.
+	startTime := time.Now()
+
 	// Parse the query params.
 	queryForm, err := url.ParseQuery(req.URL.RawQuery)
 	if err != nil {
@@ -621,6 +666,27 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 		}
 	}
 
+	// Grab the pubaccesskey specified.
+	skykeyName := queryForm.Get("pubaccesskeyname")
+	skykeyID := queryForm.Get("pubaccesskeyid")
+	if skykeyName != "" && skykeyID != "" {
+		WriteError(w, Error{"Can only use either pubaccesskeyname or pubaccesskeyid flag, not both."}, http.StatusBadRequest)
+		return
+	}
+
+	if skykeyName != "" {
+		lup.SkykeyName = skykeyName
+	}
+	if skykeyID != "" {
+		var ID pubaccesskey.SkykeyID
+		err = ID.FromString(skykeyID)
+		if err != nil {
+			WriteError(w, Error{"Unable to parse pubaccesskey ID"}, http.StatusBadRequest)
+			return
+		}
+		lup.SkykeyID = ID
+	}
+
 	// Enable CORS
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -645,6 +711,20 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 			WriteError(w, Error{fmt.Sprintf("failed to upload file to Pubaccess: %v", err)}, http.StatusBadRequest)
 			return
 		}
+
+		// Determine whether the file is large or not, and update the
+		// appropriate bucket.
+		file, err := api.renter.File(lup.SiaPath)
+		if err == nil && file.Filesize <= 4e6 {
+			skynetPerformanceStatsMu.Lock()
+			skynetPerformanceStats.Upload4MB.AddRequest(time.Since(startTime))
+			skynetPerformanceStatsMu.Unlock()
+		} else if err == nil {
+			skynetPerformanceStatsMu.Lock()
+			skynetPerformanceStats.UploadLarge.AddRequest(time.Since(startTime))
+			skynetPerformanceStatsMu.Unlock()
+		}
+
 		WriteJSON(w, SkynetSkyfileHandlerPOST{
 			Publink:    publink.String(),
 			MerkleRoot: publink.MerkleRoot(),
@@ -669,6 +749,12 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 		WriteError(w, Error{fmt.Sprintf("failed to convert siafile to pubfile: %v", err)}, http.StatusBadRequest)
 		return
 	}
+
+	// No more errors, add metrics for the upload time. A convert is a 4MB
+	// upload.
+	skynetPerformanceStatsMu.Lock()
+	skynetPerformanceStats.Upload4MB.AddRequest(time.Since(startTime))
+	skynetPerformanceStatsMu.Unlock()
 
 	WriteJSON(w, SkynetSkyfileHandlerPOST{
 		Publink:    publink.String(),
@@ -703,7 +789,21 @@ func (api *API) skynetStatsHandlerGET(w http.ResponseWriter, _ *http.Request, _ 
 		version += "-" + build.ReleaseTag
 	}
 
-	WriteJSON(w, SkynetStatsGET{UploadStats: stats, VersionInfo: SkynetVersion{Version: version, GitRevision: build.GitRevision}})
+	// Grab a copy of the performance stats.
+	skynetPerformanceStatsMu.Lock()
+	skynetPerformanceStats.Update()
+	perfStats := skynetPerformanceStats.Copy()
+	skynetPerformanceStatsMu.Unlock()
+
+	WriteJSON(w, SkynetStatsGET{
+		PerformanceStats: perfStats,
+
+		UploadStats: stats,
+		VersionInfo: SkynetVersion{
+			Version:     version,
+			GitRevision: build.GitRevision,
+		},
+	})
 }
 
 // serveTar serves pubfiles as a tar by reading them from r and writing the

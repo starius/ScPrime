@@ -1,6 +1,6 @@
 package main
 
-// TODO: If you run siac from a non-existent directory, the abs() function does
+// TODO: If you run spc from a non-existent directory, the abs() function does
 // not handle this very gracefully.
 
 import (
@@ -276,6 +276,13 @@ renter enableiprestriction 1 allows the renter to form contracts with only one s
 provider from the same IP address subnet.`,
 		Run: enableiprestriction,
 	}
+
+	renterWorkersCmd = &cobra.Command{
+		Use:   "workers",
+		Short: "View the Renter's workers",
+		Long:  "View the status of the Renter's workers",
+		Run:   wrap(renterworkerscmd),
+	}
 )
 
 // abs returns the absolute representation of a path.
@@ -349,17 +356,36 @@ func rentercmd() {
 // renterFileHealthSummary prints out a summary of the status of all the files
 // in the renter to track the progress of the files
 func renterFileHealthSummary(dirs []directoryInfo) {
+	fullHealth, greater75, greater50, greater25, greater0, unrecoverable, err := filePercentageBreakdown(dirs)
+	if err != nil {
+		die(err)
+	}
+
+	percentages := []float64{fullHealth, greater75, greater50, greater25, greater0, unrecoverable}
+	percentages = parsePercentages(percentages)
+
+	fmt.Printf(`File Health Summary:
+  %% At 100%%:            %v%%
+  %% Between 75%% - 100%%: %v%%
+  %% Between 50%% - 75%%:  %v%%
+  %% Between 25%% - 50%%:  %v%%
+  %% Between 0%% - 25%%:   %v%%
+  %% Unrecoverable:      %v%%
+`, percentages[0], percentages[1], percentages[2], percentages[3], percentages[4], percentages[5])
+}
+
+// filePercentageBreakdown returns a percentage breakdown of the renter's files'
+// healths
+func filePercentageBreakdown(dirs []directoryInfo) (float64, float64, float64, float64, float64, float64, error) {
 	// Check for nil input
 	if len(dirs) == 0 {
-		fmt.Println("No Directories Found")
-		return
+		return 0, 0, 0, 0, 0, 0, errors.New("No Directories Found")
 	}
 
 	// Check for no files uploaded
 	total := float64(dirs[0].dir.AggregateNumFiles)
 	if total == 0 {
-		fmt.Println("No Files Uploaded")
-		return
+		return 0, 0, 0, 0, 0, 0, errors.New("No Files Uploaded")
 	}
 
 	var fullHealth, greater75, greater50, greater25, greater0, unrecoverable float64
@@ -374,7 +400,7 @@ func renterFileHealthSummary(dirs []directoryInfo) {
 				greater50++
 			case file.MaxHealthPercent > 25:
 				greater25++
-			case file.MaxHealthPercent > 0:
+			case file.MaxHealthPercent > 0 || file.OnDisk:
 				greater0++
 			default:
 				unrecoverable++
@@ -389,17 +415,7 @@ func renterFileHealthSummary(dirs []directoryInfo) {
 	greater0 = 100 * greater0 / total
 	unrecoverable = 100 * unrecoverable / total
 
-	percentages := []float64{fullHealth, greater75, greater50, greater25, greater0, unrecoverable}
-	percentages = parsePercentages(percentages)
-
-	fmt.Printf(`File Health Summary:
-  %% At 100%%:            %v%%
-  %% Between 75%% - 100%%: %v%%
-  %% Between 50%% - 75%%:  %v%%
-  %% Between 25%% - 50%%:  %v%%
-  %% Between 0%% - 25%%:   %v%%
-  %% Unrecoverable:      %v%%
-`, percentages[0], percentages[1], percentages[2], percentages[3], percentages[4], percentages[5])
+	return fullHealth, greater75, greater50, greater25, greater0, unrecoverable, nil
 }
 
 // renterFilesAndContractSummary prints out a summary of what the renter is
@@ -887,7 +903,7 @@ func rentersetallowancecmd(cmd *cobra.Command, args []string) {
 	fmt.Printf("Allowance updated. %v setting(s) changed.\n", changedFields)
 }
 
-// rentersetallowancecmdInteractive is the interactive handler for `siac renter
+// rentersetallowancecmdInteractive is the interactive handler for `spc renter
 // setallowance`.
 func rentersetallowancecmdInteractive(req *client.AllowanceRequestPost, allowance modules.Allowance) *client.AllowanceRequestPost {
 	br := bufio.NewReader(os.Stdin)
@@ -917,7 +933,7 @@ up into state channels. In the allowance reports, these funds will typically be
 reported as 'unspent allocated'. The funds that have been set aside for forming
 contracts later in the billing cycle will be reported as 'unspent unallocated'.
 
-The command 'siac renter allowance' can be used to see a breakdown of spending.
+The command 'spc renter allowance' can be used to see a breakdown of spending.
 
 The following units can be used to set the allowance:
     H  (10^27 H per scprimecoin)
@@ -2122,18 +2138,6 @@ func renterfileslistcmd(cmd *cobra.Command, args []string) {
 
 	// Get dirs with their corresponding files.
 	dirs := getDir(sp, renterListRoot, renterListRecursive)
-	numFiles := 0
-	var totalStored uint64
-	for _, dir := range dirs {
-		for _, file := range dir.files {
-			totalStored += file.Filesize
-		}
-		numFiles += len(dir.files)
-	}
-	if numFiles+len(dirs) < 1 {
-		fmt.Println("No files/dirs have been uploaded.")
-		return
-	}
 
 	// Sort the directories and the files.
 	sort.Sort(byDirectoryInfo(dirs))
@@ -2142,15 +2146,24 @@ func renterfileslistcmd(cmd *cobra.Command, args []string) {
 		sort.Sort(bySiaPathFile(dirs[i].files))
 	}
 
-	// Print text that available for both verbose and not verbose output.
-	numFilesDirs := numFiles + len(dirs) - 1
+	// Get the total number of listings (subdirs and files).
+	root := dirs[0] // Root directory we are querying.
+	totalStored := root.dir.AggregateSize
+	var numFilesDirs uint64
+	if renterListRecursive {
+		numFilesDirs = root.dir.AggregateNumFiles + root.dir.AggregateNumSubDirs
+	} else {
+		numFilesDirs = root.dir.NumFiles + root.dir.NumSubDirs
+	}
+
+	// Print totals for both verbose and not verbose output.
 	totalStoredStr := modules.FilesizeUnits(totalStored)
-	fmt.Printf("\nListing %v files/dirs: %9s\n\n", numFilesDirs, totalStoredStr)
+	fmt.Printf("\nListing %v files/dirs:\t%9s\n\n", numFilesDirs, totalStoredStr)
 
 	// Handle the non verbose output.
 	if !renterListVerbose {
 		for _, dir := range dirs {
-			fmt.Println(dir.dir.SiaPath.String() + "/")
+			fmt.Printf("%v/\n", dir.dir.SiaPath)
 			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 			for _, subDir := range dir.subDirs {
 				name := subDir.SiaPath.Name() + "/"
@@ -2541,6 +2554,95 @@ func renterratelimitcmd(downloadSpeedStr, uploadSpeedStr string) {
 		die(errors.AddContext(err, "Could not set renter ratelimit speed"))
 	}
 	fmt.Println("Set renter maxdownloadspeed to ", downloadSpeedInt, " and maxuploadspeed to ", uploadSpeedInt)
+}
+
+// renterworkerscmd is the handler for the comand `spc renter workers`.
+// It lists the Renter's workers.
+func renterworkerscmd() {
+	rw, err := httpClient.RenterWorkersGet()
+	if err != nil {
+		die("Could not get contracts:", err)
+	}
+
+	// Print Worker Pool Summary
+	fmt.Printf(`Worker Pool Summary
+  Total Workers:                %v
+  Workers On Download Cooldown: %v
+  Workers On Upload Cooldown:   %v
+
+`, rw.NumWorkers, rw.TotalDownloadCoolDown, rw.TotalUploadCoolDown)
+
+	// Split Workers into GoodForUpload and !GoodForUpload
+	var goodForUpload, notGoodForUpload []modules.WorkerStatus
+	for _, worker := range rw.Workers {
+		if worker.ContractUtility.GoodForUpload {
+			goodForUpload = append(goodForUpload, worker)
+			continue
+		}
+		notGoodForUpload = append(notGoodForUpload, worker)
+	}
+
+	// List out GoorForUpload workers
+	fmt.Println("GoodForUpload Workers:")
+	if len(goodForUpload) == 0 {
+		fmt.Println("  No GoodForUpload workers.")
+	} else {
+		writeWorkers(goodForUpload)
+	}
+
+	// List out !GoorForUpload workers
+	fmt.Println("\nNot GoodForUpload Workers:")
+	if len(notGoodForUpload) == 0 {
+		fmt.Println("  All workers are GoodForUpload.")
+	} else {
+		writeWorkers(notGoodForUpload)
+	}
+}
+
+// writeWorkers is a helper function to display workers
+func writeWorkers(workers []modules.WorkerStatus) {
+	fmt.Println("  Number of Workers:", len(workers))
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	contractInfo := "Contract ID\tHost PubKey\tGood For Renew\tGood For Upload"
+	downloadInfo := "\tDownload On Cooldown\tDownload Queue\tDownload Terminated"
+	uploadInfo := "\tUpload Error\tUpload Cooldown Time\tUpload On Cooldown\tUpload Queue\tUpload Terminated"
+	eaInfo := "\tAvailable Balance\tBalance Targe\tFund Account Queue"
+	jobInfo := "\tBackup Queue\tDownload By Root Queue"
+	fmt.Fprintln(w, "  \n"+contractInfo+downloadInfo+uploadInfo+eaInfo+jobInfo)
+	for _, worker := range workers {
+		// Contract Info
+		fmt.Fprintf(w, "  %v\t%v\t%v\t%v",
+			worker.ContractID,
+			worker.HostPubKey.String(),
+			worker.ContractUtility.GoodForRenew,
+			worker.ContractUtility.GoodForUpload)
+
+		// Download Info
+		fmt.Fprintf(w, "\t%v\t%v\t%v",
+			worker.DownloadOnCoolDown,
+			worker.DownloadQueueSize,
+			worker.DownloadTerminated)
+
+		// Upload Info
+		fmt.Fprintf(w, "\t%v\t%v\t%v\t%v\t%v",
+			worker.UploadCoolDownError,
+			worker.UploadCoolDownTime,
+			worker.UploadOnCoolDown,
+			worker.UploadQueueSize,
+			worker.UploadTerminated)
+
+		// EA Info
+		fmt.Fprintf(w, "\t%v\t%v\t%v",
+			worker.AvailableBalance,
+			worker.BalanceTarget,
+			worker.FundAccountJobQueueSize)
+
+		// Job Info
+		fmt.Fprintf(w, "\t%v\t%v\n",
+			worker.BackupJobQueueSize,
+			worker.DownloadRootJobQueueSize)
+	}
+	w.Flush()
 }
 
 // enableiprestriction is the handler for the command `renter enableiprestriction`
