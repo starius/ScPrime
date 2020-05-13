@@ -1963,9 +1963,20 @@ func TestRenewFailing(t *testing.T) {
 	}
 
 	// mine enough blocks to reach the second half of the renew window.
-	for ; blockHeight+rg.Settings.Allowance.RenewWindow/2 < rcg.ActiveContracts[0].EndHeight; blockHeight++ {
+	expiryHeight := rcg.ActiveContracts[0].EndHeight
+	renterSettings, err := renter.RenterSettings()
+	if err != nil {
+		t.Fatal(errors.AddContext(err, "could not read renter settings"))
+	}
+	renewWindow := renterSettings.Allowance.RenewWindow
+
+	for blockHeight <= expiryHeight-renewWindow/2 {
 		if err := miner.MineBlock(); err != nil {
 			t.Fatal(err)
+		}
+		blockHeight, err = miner.BlockHeight()
+		if err != nil {
+			t.Fatal(errors.AddContext(err, "Error getting blockgeight"))
 		}
 	}
 
@@ -1975,7 +1986,7 @@ func TestRenewFailing(t *testing.T) {
 	// means we should have number of hosts - 1 active contracts, number of
 	// hosts - 1 renewed contracts, and one of the disabled contract which will
 	// be the host that has the locked wallet
-	err = build.Retry(int(rcg.ActiveContracts[0].EndHeight-blockHeight), 1*time.Second, func() error {
+	err = build.Retry(int(expiryHeight-blockHeight), 1*time.Second, func() error {
 		if err := miner.MineBlock(); err != nil {
 			return err
 		}

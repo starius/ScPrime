@@ -10,7 +10,7 @@ variables:
     ./node/api/server
   package_pkgs: >-
     ./build
-    ./cmd/sia-node-scanner
+    ./cmd/node-scanner
     ./cmd/spc
     ./cmd/spd
     ./compatibility

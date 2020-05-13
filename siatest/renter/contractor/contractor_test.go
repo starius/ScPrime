@@ -2572,6 +2572,7 @@ func TestFreshSettingsForRenew(t *testing.T) {
 		return siatest.CheckExpectedNumberOfContracts(r, 1, 0, 0, 0, 2, 0)
 	})
 	if err != nil {
+		r.PrintDebugInfo(t, true, true, true)
 		t.Fatal(err)
 	}
 }

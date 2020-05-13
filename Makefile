@@ -22,7 +22,7 @@ cpkg = ./modules/renter
 # pkgs changes which packages the makefile calls operate on. run changes which
 # tests are run during testing.
 pkgs = ./build \
-	./cmd/sia-node-scanner \
+	./cmd/node-scanner \
 	./cmd/spc \
 	./cmd/spd \
 	./cmd/pubaccess-benchmark \

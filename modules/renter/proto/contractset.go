@@ -73,7 +73,7 @@ func (cs *ContractSet) Delete(c *SafeContract) {
 	// delete contract file
 	headerPath := filepath.Join(cs.dir, c.header.ID().String()+contractHeaderExtension)
 	rootsPath := filepath.Join(cs.dir, c.header.ID().String()+contractRootsExtension)
-	err := errors.Compose(c.headerFile.Close(), os.Remove(headerPath), os.Remove(rootsPath))
+	err := errors.Compose(c.headerFile.Close(), c.merkleRoots.rootsFile.Close(), os.Remove(headerPath), os.Remove(rootsPath))
 	if err != nil {
 		build.Critical("Failed to delete SafeContract from disk:", err)
 	}
