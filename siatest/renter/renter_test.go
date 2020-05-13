@@ -1963,9 +1963,20 @@ func TestRenewFailing(t *testing.T) {
 	}
 
 	// mine enough blocks to reach the second half of the renew window.
-	for ; blockHeight+rg.Settings.Allowance.RenewWindow/2 < rcg.ActiveContracts[0].EndHeight; blockHeight++ {
+	expiryHeight := rcg.ActiveContracts[0].EndHeight
+	renterSettings, err := renter.RenterSettings()
+	if err != nil {
+		t.Fatal(errors.AddContext(err, "could not read renter settings"))
+	}
+	renewWindow := renterSettings.Allowance.RenewWindow
+
+	for blockHeight <= expiryHeight-renewWindow/2 {
 		if err := miner.MineBlock(); err != nil {
 			t.Fatal(err)
+		}
+		blockHeight, err = miner.BlockHeight()
+		if err != nil {
+			t.Fatal(errors.AddContext(err, "Error getting blockgeight"))
 		}
 	}
 
@@ -1975,7 +1986,7 @@ func TestRenewFailing(t *testing.T) {
 	// means we should have number of hosts - 1 active contracts, number of
 	// hosts - 1 renewed contracts, and one of the disabled contract which will
 	// be the host that has the locked wallet
-	err = build.Retry(int(rcg.ActiveContracts[0].EndHeight-blockHeight), 1*time.Second, func() error {
+	err = build.Retry(int(expiryHeight-blockHeight), 1*time.Second, func() error {
 		if err := miner.MineBlock(); err != nil {
 			return err
 		}
@@ -3060,7 +3071,7 @@ func TestSetFileTrackingPath(t *testing.T) {
 		t.SkipNow()
 	}
 
-	// Create a group for the subtests
+	// Create a testgroup.
 	gp := siatest.GroupParams{
 		Hosts:   5,
 		Renters: 1,
@@ -4062,7 +4073,7 @@ func TestAsyncStartupRace(t *testing.T) {
 			defer wg.Done()
 			_, err := node.ConsensusGet()
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
 			}
 		}()
 		// Contractor
@@ -4071,7 +4082,7 @@ func TestAsyncStartupRace(t *testing.T) {
 			defer wg.Done()
 			_, err := node.RenterContractsGet()
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
 			}
 		}()
 		// HostDB
@@ -4080,11 +4091,11 @@ func TestAsyncStartupRace(t *testing.T) {
 			defer wg.Done()
 			_, err := node.HostDbAllGet()
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
 			}
 			_, err = node.HostDbGet()
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
 			}
 		}()
 		// Renter
@@ -4093,7 +4104,7 @@ func TestAsyncStartupRace(t *testing.T) {
 			defer wg.Done()
 			_, err := node.RenterGet()
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
 			}
 		}()
 		wg.Wait()
@@ -4548,5 +4559,140 @@ func testDirMode(t *testing.T, tg *siatest.TestGroup) {
 	// The created dir should have the specified permissions.
 	if di.DirMode != mode {
 		t.Fatalf("Expected folder permissions to be %v but was %v", mode, di.DirMode)
+	}
+}
+
+// TestWorkerStatus probes the WorkerPoolStatus
+func TestWorkerStatus(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	// Create a testgroup.
+	groupParams := siatest.GroupParams{
+		Hosts:   2,
+		Miners:  1,
+		Renters: 1,
+	}
+	testDir := renterTestDir(t.Name())
+	tg, err := siatest.NewGroupFromTemplate(testDir, groupParams)
+	if err != nil {
+		t.Fatal("Failed to create group: ", err)
+	}
+	defer func() {
+		if err := tg.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	r := tg.Renters()[0]
+	numHosts := len(tg.Hosts())
+
+	// Build Contract ID and PubKey maps
+	rc, err := r.RenterContractsGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	contracts := make(map[types.FileContractID]struct{})
+	pks := make(map[string]struct{})
+	for _, c := range rc.ActiveContracts {
+		contracts[c.ID] = struct{}{}
+		pks[c.HostPublicKey.String()] = struct{}{}
+	}
+
+	// Get the worker status
+	rwg, err := r.RenterWorkersGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// There should be the same number of workers as Hosts
+	if rwg.NumWorkers != numHosts {
+		t.Errorf("Expected NumWorkers to be %v but got %v", numHosts, rwg.NumWorkers)
+	}
+	if len(rwg.Workers) != numHosts {
+		t.Errorf("Expected %v Workers but got %v", numHosts, len(rwg.Workers))
+	}
+
+	// No workers should be on cooldown
+	if rwg.TotalDownloadCoolDown != 0 {
+		t.Error("Didn't expect any workers on download cool down but found", rwg.TotalDownloadCoolDown)
+	}
+	if rwg.TotalUploadCoolDown != 0 {
+		t.Error("Didn't expect any workers on upload cool down but found", rwg.TotalUploadCoolDown)
+	}
+
+	// Check Worker information
+	for _, worker := range rwg.Workers {
+		// Contract Field checks
+		if _, ok := contracts[worker.ContractID]; !ok {
+			t.Error("Worker Contract ID not found in Contract map", worker.ContractID)
+		}
+		cu := worker.ContractUtility
+		if !cu.GoodForUpload {
+			t.Error("Worker contract should be GFR")
+		}
+		if !cu.GoodForRenew {
+			t.Error("Worker contract should be GFR")
+		}
+		if cu.BadContract {
+			t.Error("Worker contract should not be marked as Bad")
+		}
+		if cu.LastOOSErr != 0 {
+			t.Error("Worker contract LastOOSErr should be 0")
+		}
+		if cu.Locked {
+			t.Error("Worker contract should not be locked")
+		}
+		if _, ok := pks[worker.HostPubKey.String()]; !ok {
+			t.Error("Worker PubKey not found in PubKey map", worker.HostPubKey)
+		}
+
+		// Download Field checks
+		if worker.DownloadOnCoolDown {
+			t.Error("Worker should not be on cool down")
+		}
+		if worker.DownloadQueueSize != 0 {
+			t.Error("Expected download queue to be empty but was", worker.DownloadQueueSize)
+		}
+		if worker.DownloadTerminated {
+			t.Error("Worker should not be marked as DownloadTerminated")
+		}
+
+		// Upload Field checks
+		if worker.UploadCoolDownError != "" {
+			t.Error("Cool down error should be nil but was", worker.UploadCoolDownError)
+		}
+		if worker.UploadCoolDownTime.Nanoseconds() >= 0 {
+			t.Error("Cool down time should be negative but was", worker.UploadCoolDownTime)
+		}
+		if worker.UploadOnCoolDown {
+			t.Error("Worker should not be on cool down")
+		}
+		if worker.UploadQueueSize != 0 {
+			t.Error("Expected upload queue to be empty but was", worker.UploadQueueSize)
+		}
+		if worker.UploadTerminated {
+			t.Error("Worker should not be marked as UploadTerminated")
+		}
+
+		// Ephemeral Account cheks
+		if !worker.AvailableBalance.IsZero() {
+			t.Error("Expected available balance to be zero but was", worker.AvailableBalance.HumanString())
+		}
+		if !worker.BalanceTarget.IsZero() {
+			t.Error("Expected balance target to be zero but was", worker.BalanceTarget.HumanString())
+		}
+		if worker.FundAccountJobQueueSize != 0 {
+			t.Error("Expected fund account queue to be empty but was", worker.FundAccountJobQueueSize)
+		}
+
+		// Job Queues
+		if worker.BackupJobQueueSize != 0 {
+			t.Error("Expected backup queue to be empty but was", worker.BackupJobQueueSize)
+		}
+		if worker.DownloadRootJobQueueSize != 0 {
+			t.Error("Expected download by root queue to be empty but was", worker.DownloadRootJobQueueSize)
+		}
 	}
 }

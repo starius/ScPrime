@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/siatest"
@@ -43,11 +43,8 @@ func siaPathToFusePath(sp modules.SiaPath, fuseRoot modules.SiaPath, mountpoint 
 
 // TestFuse tests the renter's Fuse filesystem support. This test is only run on Linux.
 func TestFuse(t *testing.T) {
-	if testing.Short() {
+	if !build.VLONG {
 		t.SkipNow()
-	}
-	if runtime.GOOS != "linux" {
-		t.Skip("Skipping Fuse test on non-Linux OS")
 	}
 	t.Parallel()
 
@@ -688,7 +685,7 @@ func TestFuse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = r.RenterRenamePost(customFileSiaPath, customFileRenamedSiaPath)
+	err = r.RenterRenamePost(customFileSiaPath, customFileRenamedSiaPath, false)
 	if err != nil {
 		t.Fatal(err)
 	}

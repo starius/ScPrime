@@ -9,7 +9,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/aead/chacha20/chacha"
+
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -143,9 +146,21 @@ func (sk *Pubaccesskey) FromString(s string) error {
 	return sk.unmarshalSia(bytes.NewReader(keyBytes))
 }
 
-// ID returns the ID for the Pubaccesskey.
+// ID returns the ID for the Pubaccesskey. A master Pubaccesskey and all file-specific
+// skykeys derived from it share the same ID because they only differ in nonce
+// values, not key values. This fact is used to identify the master Pubaccesskey
+// with which a Skyfile was encrypted.
 func (sk Pubaccesskey) ID() (keyID SkykeyID) {
-	h := crypto.HashAll(SkykeySpecifier, sk.CipherType, sk.Entropy)
+	var entropy []byte
+	// Ignore the nonce for this type because the nonce is different for each
+	// file-specific subkey.
+	if sk.CipherType == crypto.TypeXChaCha20 {
+		entropy = sk.Entropy[:chacha.KeySize]
+	} else {
+		entropy = sk.Entropy
+	}
+
+	h := crypto.HashAll(SkykeySpecifier, sk.CipherType, entropy)
 	copy(keyID[:], h[:SkykeyIDLen])
 	return keyID
 }
@@ -168,9 +183,64 @@ func (id *SkykeyID) FromString(s string) error {
 	return nil
 }
 
-// equals returns true if and only if the two Pubaccesskeys are equal.
+// equals returns true if and only if the two Pubaccesskey are equal.
 func (sk *Pubaccesskey) equals(otherKey Pubaccesskey) bool {
-	return sk.Name == otherKey.Name && sk.ID() == otherKey.ID() && sk.CipherType.String() == otherKey.CipherType.String()
+	return sk.Name == otherKey.Name && sk.CipherType == otherKey.CipherType && bytes.Equal(sk.Entropy[:], otherKey.Entropy[:])
+}
+
+// GenerateFileSpecificSubkey creates a new subkey specific to a certain file
+// being uploaded/downloaded. Skykeys can only be used once with a
+// given nonce, so this method is used to generate keys with new nonces when a
+// new file is uploaded.
+func (sk *Pubaccesskey) GenerateFileSpecificSubkey() (Pubaccesskey, error) {
+	// Generate a new random nonce.
+	nonce := make([]byte, chacha.XNonceSize)
+	fastrand.Read(nonce[:])
+	return sk.SubkeyWithNonce(nonce)
+}
+
+// DeriveSubkey is used to create Skykeys with the same key, but with a
+// different nonce. This is used to create file-specific keys, and separate keys
+// for Skyfile baseSector uploads and fanout uploads.
+func (sk *Pubaccesskey) DeriveSubkey(derivation []byte) (Pubaccesskey, error) {
+	nonce := sk.Nonce()
+	derivedNonceHash := crypto.HashAll(nonce, derivation)
+	derivedNonce := derivedNonceHash[:chacha.XNonceSize]
+
+	return sk.SubkeyWithNonce(derivedNonce)
+}
+
+// SubkeyWithNonce creates a new subkey with the same key data as this key, but
+// with the given nonce.
+func (sk *Pubaccesskey) SubkeyWithNonce(nonce []byte) (Pubaccesskey, error) {
+	if len(nonce) != chacha.XNonceSize {
+		return Pubaccesskey{}, errors.New("Incorrect nonce size")
+	}
+
+	entropy := make([]byte, chacha.KeySize+chacha.XNonceSize)
+	copy(entropy[:chacha.KeySize], sk.Entropy[:chacha.KeySize])
+	copy(entropy[chacha.KeySize:], nonce[:])
+
+	// Sanity check that we can actually make a CipherKey with this.
+	_, err := crypto.NewSiaKey(sk.CipherType, entropy)
+	if err != nil {
+		return Pubaccesskey{}, errors.AddContext(err, "error creating new skykey subkey")
+	}
+
+	subkey := Pubaccesskey{sk.Name, sk.CipherType, entropy}
+	return subkey, nil
+}
+
+// CipherKey returns the crypto.CipherKey equivalent of this Pubaccesskey.
+func (sk *Pubaccesskey) CipherKey() (crypto.CipherKey, error) {
+	return crypto.NewSiaKey(sk.CipherType, sk.Entropy)
+}
+
+// Nonce returns the nonce of this Pubaccesskey.
+func (sk *Pubaccesskey) Nonce() []byte {
+	nonce := make([]byte, chacha.XNonceSize)
+	copy(nonce[:], sk.Entropy[chacha.KeySize:])
+	return nonce
 }
 
 // SupportsCipherType returns true if and only if the SkykeyManager supports

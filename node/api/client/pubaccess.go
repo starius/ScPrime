@@ -17,6 +17,17 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 )
 
+// RenterSkyfileGet wraps RenterFileRootGet to query a skyfile.
+func (c *Client) RenterSkyfileGet(siaPath modules.SiaPath, root bool) (rf api.RenterFile, err error) {
+	if !root {
+		siaPath, err = modules.SkynetFolder.Join(siaPath.String())
+		if err != nil {
+			return
+		}
+	}
+	return c.RenterFileRootGet(siaPath)
+}
+
 // SkynetPublinkGet uses the /pubaccess/publink endpoint to download a publink
 // file.
 func (c *Client) SkynetPublinkGet(publink string) ([]byte, modules.SkyfileMetadata, error) {
@@ -171,6 +182,15 @@ func (c *Client) SkynetSkyfilePost(params modules.SkyfileUploadParameters) (stri
 	values.Set("basechunkredundancy", redundancyStr)
 	rootStr := fmt.Sprintf("%t", params.Root)
 	values.Set("root", rootStr)
+
+	// Encode SkykeyName or SkykeyID.
+	if params.SkykeyName != "" {
+		values.Set("pubaccesskeyname", params.SkykeyName)
+	}
+	hasSkykeyID := params.SkykeyID != pubaccesskey.SkykeyID{}
+	if hasSkykeyID {
+		values.Set("skykeyid", params.SkykeyID.ToString())
+	}
 
 	// Make the call to upload the file.
 	query := fmt.Sprintf("/pubaccess/pubfile/%s?%s", params.SiaPath.String(), values.Encode())

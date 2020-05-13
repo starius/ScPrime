@@ -48,6 +48,9 @@ func TestPersist(t *testing.T) {
 	}
 
 	filename := filepath.Join(sb.staticPersistDir, persistFile)
+	if filename != sb.FilePath() {
+		t.Fatalf("Expected filepath %v, was %v", filename, sb.FilePath())
+	}
 
 	// There should be no skylinks in the blacklist
 	if len(sb.merkleroots) != 0 {
@@ -165,6 +168,9 @@ func TestPersistCorruption(t *testing.T) {
 	}
 
 	filename := filepath.Join(sb.staticPersistDir, persistFile)
+	if filename != sb.FilePath() {
+		t.Fatalf("Expected filepath %v, was %v", filename, sb.FilePath())
+	}
 
 	// There should be no publinks in the blacklist
 	if len(sb.merkleroots) != 0 {
@@ -458,7 +464,7 @@ func TestMarshalMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = sb.unmarshalMetadata(mdBytes)
-	if err != errWrongVersion {
+	if !errors.Contains(err, errWrongVersion) {
 		t.Fatalf("Expected %v got %v", errWrongVersion, err)
 	}
 

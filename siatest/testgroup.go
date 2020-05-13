@@ -597,7 +597,7 @@ func (tg *TestGroup) Nodes() []*TestNode {
 
 // RemoveNode removes a node from the group and shuts it down.
 func (tg *TestGroup) RemoveNode(tn *TestNode) error {
-	// Remote node from all data structures.
+	// Remove node from all data structures.
 	delete(tg.nodes, tn)
 	delete(tg.hosts, tn)
 	delete(tg.renters, tn)
