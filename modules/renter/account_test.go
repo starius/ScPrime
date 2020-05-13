@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"testing"
 
+	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TestAccountTracking unit tests all of the methods on the account that track

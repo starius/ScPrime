@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
-	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/NebulousLabs/fastrand"
 )

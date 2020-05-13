@@ -3,13 +3,13 @@ package feemanager
 import (
 	"testing"
 
+	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/feemanager"
 	"gitlab.com/scpcorp/ScPrime/node"
 	"gitlab.com/scpcorp/ScPrime/node/api"
 	"gitlab.com/scpcorp/ScPrime/siatest"
 	"gitlab.com/scpcorp/ScPrime/types"
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TestFeeManager probes the FeeManager

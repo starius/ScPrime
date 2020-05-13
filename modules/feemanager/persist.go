@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"sync"
 
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
-	"gitlab.com/NebulousLabs/errors"
 )
 
 var (

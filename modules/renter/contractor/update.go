@@ -71,6 +71,8 @@ func (c *Contractor) managedArchiveContracts() {
 			c.staticContracts.Delete(sc)
 		}
 	}
+	//Ensure the archived contracts doesn't interfere with forming new contracts
+	c.managedUpdatePubKeyToContractIDMap()
 }
 
 // ProcessConsensusChange will be called by the consensus set every time there

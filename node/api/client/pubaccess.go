@@ -185,7 +185,7 @@ func (c *Client) SkynetSkyfilePost(params modules.SkyfileUploadParameters) (stri
 
 	// Encode SkykeyName or SkykeyID.
 	if params.SkykeyName != "" {
-		values.Set("skykeyname", params.SkykeyName)
+		values.Set("pubaccesskeyname", params.SkykeyName)
 	}
 	hasSkykeyID := params.SkykeyID != pubaccesskey.SkykeyID{}
 	if hasSkykeyID {

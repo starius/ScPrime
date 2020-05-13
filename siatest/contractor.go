@@ -3,6 +3,7 @@ package siatest
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -343,10 +344,6 @@ func RenewContractsByRenewWindow(renter *TestNode, tg *TestGroup) error {
 	if err != nil {
 		return err
 	}
-	cg, err := renter.ConsensusGet()
-	if err != nil {
-		return err
-	}
 	rc, err := renter.RenterContractsGet()
 	if err != nil {
 		return err
@@ -355,12 +352,17 @@ func RenewContractsByRenewWindow(renter *TestNode, tg *TestGroup) error {
 		return errors.New("No Active Contracts")
 	}
 
-	blocksToMine := rc.ActiveContracts[0].EndHeight - rg.Settings.Allowance.RenewWindow - cg.Height
+	targetHeight := rc.ActiveContracts[0].EndHeight - rg.Settings.Allowance.RenewWindow/2
+
 	m := tg.Miners()[0]
-	for i := 0; i < int(blocksToMine); i++ {
+	currentHeight, err := m.BlockHeight()
+
+	for err == nil && currentHeight < targetHeight {
 		if err = m.MineBlock(); err != nil {
 			return err
 		}
+		time.Sleep(100 * time.Millisecond)
+		currentHeight, err = renter.BlockHeight()
 	}
 
 	// Waiting for nodes to sync
