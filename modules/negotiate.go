@@ -388,6 +388,11 @@ func (hes HostExternalSettings) MaxSectorAccessPrice() types.Currency {
 	return hes.DownloadBandwidthPrice.Mul64(MaxSectorAccessPriceVsBandwidth)
 }
 
+// SiaMuxAddress returns the address of the host's siamux.
+func (hes HostExternalSettings) SiaMuxAddress() string {
+	return fmt.Sprintf("%s:%s", hes.NetAddress.Host(), hes.SiaMuxPort)
+}
+
 // New RPC IDs
 var (
 	RPCLoopEnter              = types.NewSpecifier("LoopEnter")
@@ -403,16 +408,6 @@ var (
 	RPCLoopWrite              = types.NewSpecifier("LoopWrite")
 	RPCLoopTopUpToken         = types.NewSpecifier("LoopTopUpToken")
 	RPCLoopDownloadWithToken  = types.NewSpecifier("LoopDownload")
-)
-
-// Token resources
-var (
-	DownloadBytes   = types.NewSpecifier("DownloadBytes")
-	UploadBytes     = types.NewSpecifier("UploadBytes")
-	SectorAccesses  = types.NewSpecifier("SectorAccesses")
-	KeyValueSets    = types.NewSpecifier("KeyValueSets")
-	KeyValueGets    = types.NewSpecifier("KeyValueGets")
-	KeyValueDeletes = types.NewSpecifier("KeyValueDeletes")
 )
 
 // RPC ciphers
@@ -439,6 +434,16 @@ var (
 	// RPCChallengePrefix is the prefix prepended to the challenge data
 	// supplied by the host when proving ownership of a contract's secret key.
 	RPCChallengePrefix = types.NewSpecifier("challenge")
+)
+
+// Token resources
+var (
+	DownloadBytes   = types.NewSpecifier("DownloadBytes")
+	UploadBytes     = types.NewSpecifier("UploadBytes")
+	SectorAccesses  = types.NewSpecifier("SectorAccesses")
+	KeyValueSets    = types.NewSpecifier("KeyValueSets")
+	KeyValueGets    = types.NewSpecifier("KeyValueGets")
+	KeyValueDeletes = types.NewSpecifier("KeyValueDeletes")
 )
 
 // New RPC request and response types
