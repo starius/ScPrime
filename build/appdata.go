@@ -42,13 +42,13 @@ func APIPassword() (string, error) {
 
 // SiadDataDir returns the data directory from the
 // environment variable. If there is no environment variable it returns an empty
-// string, instructing siad to store the consensus in the current directory.
+// string, instructing spd to store the consensus in the current directory.
 func SiadDataDir() string {
 	// instead of return os.Getenv(EnvvarDaemonDataDir)
 	return SiaDir()
 }
 
-// SiaDir returns the Sia data directory either from the environment variable or
+// SiaDir returns the ScPrime data directory either from the environment variable or
 // the default.
 func SiaDir() string {
 	dataDir := os.Getenv(EnvvarMetaDataDir)
@@ -58,7 +58,7 @@ func SiaDir() string {
 	return dataDir
 }
 
-// SkynetDir returns the Skynet data directory.
+// SkynetDir returns the Pubaccess data directory.
 func SkynetDir() string {
 	return defaultSkynetDir()
 }
@@ -69,12 +69,12 @@ func WalletPassword() string {
 }
 
 // apiPasswordFilePath returns the path to the API's password file. The password
-// file is stored in the Sia data directory.
+// file is stored in the ScPrime data directory.
 func apiPasswordFilePath() string {
 	return filepath.Join(SiaDir(), "apipassword")
 }
 
-// createAPIPasswordFile creates an api password file in the Sia data directory
+// createAPIPasswordFile creates an api password file in the ScPrime data directory
 // and returns the newly created password
 func createAPIPasswordFile() (string, error) {
 	err := os.MkdirAll(SiaDir(), 0700)
@@ -85,7 +85,7 @@ func createAPIPasswordFile() (string, error) {
 	// an existent directory. We specifically use 0700 in order to prevent
 	// potential attackers from accessing the sensitive information inside, both
 	// by reading the contents of the directory and/or by creating files with
-	// specific names which siad would later on read from and/or write to.
+	// specific names which spd would later on read from and/or write to.
 	err = os.Chmod(SiaDir(), 0700)
 	if err != nil {
 		return "", err

@@ -1015,10 +1015,10 @@ type Renter interface {
 	// the given parameters.
 	PinPublink(Publink, SkyfileUploadParameters, time.Duration) error
 
-	// Portals returns the list of known skynet portals.
+	// Portals returns the list of known pubaccess portals.
 	Portals() ([]SkynetPortal, error)
 
-	// UpdateSkynetPortals updates the list of known skynet portals.
+	// UpdateSkynetPortals updates the list of known pubaccess portals.
 	UpdateSkynetPortals(additions []SkynetPortal, removals []NetAddress) error
 
 	// WorkerPoolStatus returns the current status of the Renter's worker pool

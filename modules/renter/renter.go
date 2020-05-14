@@ -940,7 +940,7 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	// Add SkynetPortals
 	sp, err := pubaccessportals.New(r.persistDir)
 	if err != nil {
-		return nil, errors.AddContext(err, "unable to create new skynet portal list")
+		return nil, errors.AddContext(err, "unable to create new pubaccess portal list")
 	}
 	r.staticSkynetPortals = sp
 

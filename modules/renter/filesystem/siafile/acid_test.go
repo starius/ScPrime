@@ -54,7 +54,7 @@ func TestSiaFileFaultyDisk(t *testing.T) {
 		hostkeys = append(hostkeys, types.SiaPublicKey{})
 	}
 
-	// The outer loop is responsible for simulating a restart of siad by
+	// The outer loop is responsible for simulating a restart of spd by
 	// reloading the wal, applying transactions and loading the sf from disk
 	// again.
 	fdd.Enable()

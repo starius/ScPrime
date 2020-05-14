@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	// OutputRefreshRate is the rate at which siac will update something like a
+	// OutputRefreshRate is the rate at which spc will update something like a
 	// progress meter when displaying a continuous action like a download.
 	OutputRefreshRate = 250 * time.Millisecond
 
@@ -14,7 +14,7 @@ const (
 	RenterDownloadTimeout = time.Minute
 
 	// SimultaneousSkynetUploads limits the number of files being concurrently
-	// uploaded to Skynet.
+	// uploaded to Pubaccess.
 	SimultaneousSkynetUploads = 8
 
 	// SpeedEstimationWindow is the size of the window which we use to

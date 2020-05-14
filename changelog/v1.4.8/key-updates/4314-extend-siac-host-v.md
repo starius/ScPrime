@@ -1,1 +1,1 @@
-- Add MinBaseRPCPrice and MinSectorAccessPrice to `siac host -v`
+- Add MinBaseRPCPrice and MinSectorAccessPrice to `spc host -v`

@@ -39,7 +39,7 @@ func TestAPIPassword(t *testing.T) {
 	}
 }
 
-// TestSiadDataDir tests getting and setting the Sia consensus directory
+// TestSiadDataDir tests getting and setting the ScPrime consensus directory
 func TestSiadDataDir(t *testing.T) {
 	t.Skipf("Env var %v is unused", EnvvarDaemonDataDir)
 	// Unset any defaults, this only affects in memory state. Any Env Vars will
@@ -67,7 +67,7 @@ func TestSiadDataDir(t *testing.T) {
 	}
 }
 
-// TestSiaDir tests getting and setting the Sia data directory
+// TestSiaDir tests getting and setting the ScPrime data directory
 func TestSiaDir(t *testing.T) {
 	// Unset any defaults, this only affects in memory state. Any Env Vars will
 	// remain intact on disk
@@ -94,7 +94,7 @@ func TestSiaDir(t *testing.T) {
 	}
 }
 
-// TestSiaWalletPassword tests getting and setting the Sia Wallet Password
+// TestSiaWalletPassword tests getting and setting the ScPrime Wallet Password
 func TestSiaWalletPassword(t *testing.T) {
 	// Unset any defaults, this only affects in memory state. Any Env Vars will
 	// remain intact on disk

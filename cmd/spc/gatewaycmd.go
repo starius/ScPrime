@@ -48,7 +48,7 @@ and the duration of the bandwidth tracking.`,
 		Long: `Adds new ip address(es) to the gateway blacklist.
 Accepts a list of ip addresses or domain names as individual inputs.
 
-For example: siac gateway blacklist append 123.123.123.123 111.222.111.222 mysiahost.duckdns.org`,
+For example: spc gateway blacklist append 123.123.123.123 111.222.111.222 mysiahost.duckdns.org`,
 		Run: gatewayblacklistappendcmd,
 	}
 
@@ -57,7 +57,7 @@ For example: siac gateway blacklist append 123.123.123.123 111.222.111.222 mysia
 		Short: "Clear the blacklisted peers list",
 		Long: `Clear the blacklisted peers list.
 
-	For example: siac gateway blacklist clear`,
+	For example: spc gateway blacklist clear`,
 		Run: gatewayblacklistclearcmd,
 	}
 
@@ -67,7 +67,7 @@ For example: siac gateway blacklist append 123.123.123.123 111.222.111.222 mysia
 		Long: `Remove ip address(es) from the gateway blacklist.
 Accepts a list of ip addresses or domain names as individual inputs.
 
-For example: siac gateway blacklist remove 123.123.123.123 111.222.111.222 mysiahost.duckdns.org`,
+For example: spc gateway blacklist remove 123.123.123.123 111.222.111.222 mysiahost.duckdns.org`,
 		Run: gatewayblacklistremovecmd,
 	}
 
@@ -77,7 +77,7 @@ For example: siac gateway blacklist remove 123.123.123.123 111.222.111.222 mysia
 		Long: `Set the gateway's blacklist.
 Accepts a list of ip addresses or domain names as individual inputs.
 
-For example: siac gateway blacklist set 123.123.123.123 111.222.111.222 mysiahost.duckdns.org`,
+For example: spc gateway blacklist set 123.123.123.123 111.222.111.222 mysiahost.duckdns.org`,
 		Run: gatewayblacklistsetcmd,
 	}
 
@@ -114,7 +114,7 @@ Set them to 0 for no limit.`,
 	}
 )
 
-// gatewayconnectcmd is the handler for the command `siac gateway add [address]`.
+// gatewayconnectcmd is the handler for the command `spc gateway add [address]`.
 // Adds a new peer to the peer list.
 func gatewayconnectcmd(addr string) {
 	err := httpClient.GatewayConnectPost(modules.NetAddress(addr))
@@ -124,7 +124,7 @@ func gatewayconnectcmd(addr string) {
 	fmt.Println("Added", addr, "to peer list.")
 }
 
-// gatewaydisconnectcmd is the handler for the command `siac gateway remove [address]`.
+// gatewaydisconnectcmd is the handler for the command `spc gateway remove [address]`.
 // Removes a peer from the peer list.
 func gatewaydisconnectcmd(addr string) {
 	err := httpClient.GatewayDisconnectPost(modules.NetAddress(addr))
@@ -134,7 +134,7 @@ func gatewaydisconnectcmd(addr string) {
 	fmt.Println("Removed", addr, "from peer list.")
 }
 
-// gatewayaddresscmd is the handler for the command `siac gateway address`.
+// gatewayaddresscmd is the handler for the command `spc gateway address`.
 // Prints the gateway's network address.
 func gatewayaddresscmd() {
 	info, err := httpClient.GatewayGet()
@@ -144,7 +144,7 @@ func gatewayaddresscmd() {
 	fmt.Println("Address:", info.NetAddress)
 }
 
-//gatewaybandwidthcmd is the handler for the command `siac gateway bandwidth`.
+//gatewaybandwidthcmd is the handler for the command `spc gateway bandwidth`.
 //returns the total upload and download bandwidth usage for the gateway
 func gatewaybandwidthcmd() {
 	bandwidth, err := httpClient.GatewayBandwidthGet()
@@ -158,7 +158,7 @@ Duration: %v
 `, modules.FilesizeUnits(bandwidth.Download), modules.FilesizeUnits(bandwidth.Upload), fmtDuration(time.Since(bandwidth.StartTime)))
 }
 
-// gatewaycmd is the handler for the command `siac gateway`.
+// gatewaycmd is the handler for the command `spc gateway`.
 // Prints the gateway's network address and number of peers.
 func gatewaycmd() {
 	info, err := httpClient.GatewayGet()
@@ -171,7 +171,7 @@ func gatewaycmd() {
 	fmt.Println("Max upload speed:", info.MaxUploadSpeed)
 }
 
-// gatewayblacklistcmd is the handler for the command `siac gateway blacklist`
+// gatewayblacklistcmd is the handler for the command `spc gateway blacklist`
 // Prints the ip addresses on the gateway blacklist
 func gatewayblacklistcmd() {
 	gbg, err := httpClient.GatewayBlacklistGet()
@@ -185,7 +185,7 @@ func gatewayblacklistcmd() {
 }
 
 // gatewayblacklistappendcmd is the handler for the command
-// `siac gateway blacklist append`
+// `spc gateway blacklist append`
 // Adds one or more new ip addresses to the gateway's blacklist
 func gatewayblacklistappendcmd(cmd *cobra.Command, addresses []string) {
 	if len(addresses) == 0 {
@@ -201,7 +201,7 @@ func gatewayblacklistappendcmd(cmd *cobra.Command, addresses []string) {
 }
 
 // gatewayblacklistclearcmd is the handler for the command
-// `siac gateway blacklist clear`
+// `spc gateway blacklist clear`
 // Clears the gateway blacklist
 func gatewayblacklistclearcmd(cmd *cobra.Command, addresses []string) {
 	err := httpClient.GatewaySetBlacklistPost(addresses)
@@ -212,7 +212,7 @@ func gatewayblacklistclearcmd(cmd *cobra.Command, addresses []string) {
 }
 
 // gatewayblacklistremovecmd is the handler for the command
-// `siac gateway blacklist remove`
+// `spc gateway blacklist remove`
 // Removes one or more ip addresses from the gateway's blacklist
 func gatewayblacklistremovecmd(cmd *cobra.Command, addresses []string) {
 	if len(addresses) == 0 {
@@ -228,7 +228,7 @@ func gatewayblacklistremovecmd(cmd *cobra.Command, addresses []string) {
 }
 
 // gatewayblacklistsetcmd is the handler for the command
-// `siac gateway blacklist set`
+// `spc gateway blacklist set`
 // Sets the gateway blacklist to the ip addresses passed in
 func gatewayblacklistsetcmd(cmd *cobra.Command, addresses []string) {
 	if len(addresses) == 0 {
@@ -243,7 +243,7 @@ func gatewayblacklistsetcmd(cmd *cobra.Command, addresses []string) {
 	fmt.Println(addresses, "was successfully set as the gateway blacklist")
 }
 
-// gatewaylistcmd is the handler for the command `siac gateway list`.
+// gatewaylistcmd is the handler for the command `spc gateway list`.
 // Prints a list of all peers.
 func gatewaylistcmd() {
 	info, err := httpClient.GatewayGet()
@@ -263,7 +263,7 @@ func gatewaylistcmd() {
 	w.Flush()
 }
 
-// gatewayratelimitcmd is the handler for the command `siac gateway ratelimit`.
+// gatewayratelimitcmd is the handler for the command `spc gateway ratelimit`.
 // sets the maximum upload & download bandwidth the gateway module is permitted
 // to use.
 func gatewayratelimitcmd(downloadSpeedStr, uploadSpeedStr string) {

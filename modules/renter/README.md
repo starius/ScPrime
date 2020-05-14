@@ -10,7 +10,7 @@ to be a high-signal log that tells users what files are being repaired, and
 whether the repair jobs have been successful. Where there are failures, the
 repair log should try and document what those failures were. Every message of
 the repair log should be interesting and useful to a power user, there should be
-no logspam and no messages that would only make sense to siad developers.
+no logspam and no messages that would only make sense to spd developers.
 
 ## Submodules
 The Renter has several submodules that each perform a specific function for the

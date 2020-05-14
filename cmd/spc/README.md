@@ -12,9 +12,9 @@ while `spc host help` will list the commands that can be called
 pertaining to hosting. `spc help` will list all of the top level
 command groups that can be used.
 
-You can change the address of where siad is pointing using the `-a`
+You can change the address of where spd is pointing using the `-a`
 flag. For example, `spc -a :9000 status` will display the status of
-the siad instance launched on the local machine with `siad -a :9000`.
+the spd instance launched on the local machine with `spd -a :9000`.
 
 Common tasks
 ------------
@@ -225,7 +225,7 @@ leaves it in the gateway's node list.
 
 #### Miner tasks
 * `spc miner status` returns information about the miner. It is only
-valid for when siad is running.
+valid for when spd is running.
 
 * `spc miner start` starts running the CPU miner on one thread. This
 is virtually useless outside of debugging.

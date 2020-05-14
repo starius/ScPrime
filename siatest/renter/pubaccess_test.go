@@ -1485,17 +1485,17 @@ func testPubaccessBlacklist(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testPubaccessPortals tests the skynet portals module.
+// testPubaccessPortals tests the pubaccess portals module.
 func testPubaccessPortals(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	portal1 := modules.SkynetPortal{
-		Address: modules.NetAddress("siasky.net:9980"),
+		Address: modules.NetAddress("siasky.net:4280"),
 		Public:  true,
 	}
 	// loopback address
 	portal2 := modules.SkynetPortal{
-		Address: "localhost:9980",
+		Address: "localhost:4280",
 		Public:  true,
 	}
 	// address without a port

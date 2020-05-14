@@ -17,7 +17,7 @@ The modules package is the top-level package for all modules. It contains the in
 - [Dependencies](#dependencies)
 - [Negotiate](#negotiate)
 - [Network Addresses](#network-addresses)
-- [Siad Configuration](#siad-configuration)
+- [Siad Configuration](#spd-configuration)
 - [Publink](#publink)
 - [SiaPath](#siapath)
 - [Storage Manager](#storage-manager)

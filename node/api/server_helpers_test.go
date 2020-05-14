@@ -37,7 +37,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
-// A Server is a collection of siad modules that can be communicated with over
+// A Server is a collection of spd modules that can be communicated with over
 // an http api.
 type Server struct {
 	api               *API
@@ -119,7 +119,7 @@ func NewServer(dir string, APIaddr string, requiredUserAgent string, requiredPas
 	// Load the config file.
 	cfg, err := modules.NewConfig(filepath.Join(dir, modules.ConfigName))
 	if err != nil {
-		return nil, errors.AddContext(err, "failed to load siad config")
+		return nil, errors.AddContext(err, "failed to load spd config")
 	}
 
 	api := New(cfg, requiredUserAgent, requiredPassword, cs, e, fm, g, h, m, r, tp, w, mp, sm, i)

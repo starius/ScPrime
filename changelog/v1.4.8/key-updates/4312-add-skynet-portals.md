@@ -1,1 +1,1 @@
-- Add /skynet/portals API endpoints.
+- Add /pubaccess/portals API endpoints.

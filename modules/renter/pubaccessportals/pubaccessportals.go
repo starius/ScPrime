@@ -11,11 +11,11 @@ import (
 
 var (
 	// ErrSkynetPortalsValidation is the error returned when validation of
-	// changes to the Skynet portals list fails.
+	// changes to the Pubaccess portals list fails.
 	ErrSkynetPortalsValidation = errors.New("could not validate additions and removals")
 )
 
-// SkynetPortals manages a list of known Skynet portals by persisting the list
+// SkynetPortals manages a list of known Pubaccess portals by persisting the list
 // to disk.
 type SkynetPortals struct {
 	portals          map[modules.NetAddress]bool
@@ -35,13 +35,13 @@ func New(persistDir string) (*SkynetPortals, error) {
 	// Initialize the persistence of the portals list
 	err := sp.callInitPersist()
 	if err != nil {
-		return nil, errors.AddContext(err, fmt.Sprintf("unable to initialize the skynet portal list persistence at '%v'", sp.FilePath()))
+		return nil, errors.AddContext(err, fmt.Sprintf("unable to initialize the pubaccess portal list persistence at '%v'", sp.FilePath()))
 	}
 
 	return sp, nil
 }
 
-// Portals returns the list of known Skynet portals.
+// Portals returns the list of known Pubaccess portals.
 func (sp *SkynetPortals) Portals() []modules.SkynetPortal {
 	sp.mu.Lock()
 	defer sp.mu.Unlock()
@@ -56,8 +56,8 @@ func (sp *SkynetPortals) Portals() []modules.SkynetPortal {
 	return portals
 }
 
-// UpdateSkynetPortals updates the list of known Skynet portals.
+// UpdateSkynetPortals updates the list of known Pubaccess portals.
 func (sp *SkynetPortals) UpdateSkynetPortals(additions []modules.SkynetPortal, removals []modules.NetAddress) error {
 	err := sp.callUpdateAndAppend(additions, removals)
-	return errors.AddContext(err, fmt.Sprintf("unable to update skynet portal list persistence at '%v'", sp.FilePath()))
+	return errors.AddContext(err, fmt.Sprintf("unable to update pubaccess portal list persistence at '%v'", sp.FilePath()))
 }

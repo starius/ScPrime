@@ -58,5 +58,5 @@ func (sb *SkynetBlacklist) IsBlacklisted(publink modules.Publink) bool {
 // UpdateSkynetBlacklist updates the list of skylinks that are blacklisted
 func (sb *SkynetBlacklist) UpdateSkynetBlacklist(additions, removals []modules.Publink) error {
 	err := sb.callUpdateAndAppend(additions, removals)
-	return errors.AddContext(err, fmt.Sprintf("unable to update skynet blacklist persistence at '%v'", sb.FilePath()))
+	return errors.AddContext(err, fmt.Sprintf("unable to update pubaccess blacklist persistence at '%v'", sb.FilePath()))
 }

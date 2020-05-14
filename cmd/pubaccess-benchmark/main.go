@@ -22,7 +22,7 @@ import (
 const (
 	// The SiaPath that will be used by the program to upload and store all of
 	// the files when performing test downloads.
-	testSiaDir = "var/skynet-benchmark"
+	testSiaDir = "var/pubaccess-benchmark"
 
 	// A range of files of different sizes.
 	dir64kb = "64kb"
@@ -57,11 +57,11 @@ var (
 func main() {
 	fmt.Printf("Pubaccess performance analysis tool.\n\n")
 
-	// Determine which port to use when talking to siad.
+	// Determine which port to use when talking to spd.
 	args := os.Args
 	var addr string
 	if len(args) == 1 {
-		addr = "localhost:9980"
+		addr = "localhost:4280"
 	} else if len(args) == 2 {
 		// Parse port.
 		num, err := strconv.Atoi(args[1])
@@ -73,14 +73,14 @@ func main() {
 		}
 		addr = "localhost:" + args[1]
 	} else if len(args) > 2 {
-		fmt.Println("Usage: ./skynet-benchmark [optional: port for siad api]")
+		fmt.Println("Usage: ./pubaccess-benchmark [optional: port for spd api]")
 		return
 	}
 
-	// Create the client that will be used to talk to siad.
+	// Create the client that will be used to talk to spd.
 	opts, err := client.DefaultOptions()
 	if err != nil {
-		fmt.Println("Unable to get Sia client options:", err)
+		fmt.Println("Unable to get ScPrime client options:", err)
 		return
 	}
 	opts.Address = addr

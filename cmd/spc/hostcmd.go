@@ -144,7 +144,7 @@ sector may impact host revenue.`,
 	}
 )
 
-// hostcmd is the handler for the command `siac host`.
+// hostcmd is the handler for the command `spc host`.
 // Prints info about the host and its storage folders.
 func hostcmd() {
 	hg, err := httpClient.HostGet()
@@ -356,7 +356,7 @@ RPC Stats:
 	w.Flush()
 }
 
-// hostconfigcmd is the handler for the command `siac host config [setting] [value]`.
+// hostconfigcmd is the handler for the command `spc host config [setting] [value]`.
 // Modifies host settings.
 func hostconfigcmd(param, value string) {
 	var err error
@@ -436,7 +436,7 @@ func hostconfigcmd(param, value string) {
 	fmt.Printf("Estimated conversion rate: %v%%\n", eg.ConversionRate)
 }
 
-// hostcontractcmd is the handler for the command `siac host contracts [type]`.
+// hostcontractcmd is the handler for the command `spc host contracts [type]`.
 func hostcontractcmd() {
 	cg, err := httpClient.HostContractInfoGet()
 	if err != nil {
@@ -464,7 +464,7 @@ func hostcontractcmd() {
 	w.Flush()
 }
 
-// hostannouncecmd is the handler for the command `siac host announce`.
+// hostannouncecmd is the handler for the command `spc host announce`.
 // Announces yourself as a host to the network. Optionally takes an address to
 // announce as.
 func hostannouncecmd(cmd *cobra.Command, args []string) {

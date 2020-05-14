@@ -1,1 +1,1 @@
-- Fixed the output of `siac skynet ls` not counting subdirectories.
+- Fixed the output of `spc pubaccess ls` not counting subdirectories.

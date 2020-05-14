@@ -1,2 +1,2 @@
 - Refactor the environment variables into the `build` package to address bug
-  where `siac` and `siad` could be using different API Passwords.
+  where `spc` and `spd` could be using different API Passwords.

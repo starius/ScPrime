@@ -60,7 +60,7 @@ func TestSpdConfigPersistCompat(t *testing.T) {
 	}
 }
 
-// saveLoadCheck is a helper to check saving and loading the siad config file
+// saveLoadCheck is a helper to check saving and loading the spd config file
 // and verifying the correct values for the WriteBPS fields
 func saveLoadCheck(sc *SpdConfig, writeBPS, writeBPSDeprepacted int64) error {
 	// Set both fields

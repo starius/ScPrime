@@ -56,7 +56,7 @@ type (
 
 	// SkynetPerformanceStats contains a set of performance metrics, bucketed by
 	// request size and time window, to give a good picture of how well requests
-	// are performing on Skynet.
+	// are performing on Pubaccess.
 	SkynetPerformanceStats struct {
 		// TimeToFirstByte only refers to downloads.
 		TimeToFirstByte HalfLifeDistribution `json:"timetofirstbyte"`
@@ -221,7 +221,7 @@ func (hld *HalfLifeDistribution) Update() {
 	}
 }
 
-// Copy returns a copy of the Skynet performance stats that is safe to pass to
+// Copy returns a copy of the Pubaccess performance stats that is safe to pass to
 // other threads and callers.
 func (sps *SkynetPerformanceStats) Copy() SkynetPerformanceStats {
 	// Currently there are no pointers within the struct, it is safe to just

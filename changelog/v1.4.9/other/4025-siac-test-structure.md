@@ -1,2 +1,2 @@
-- Update skykey siac functions to accept httpClient and remove global
-  httpClient reference from siac testing
+- Update skykey spc functions to accept httpClient and remove global
+  httpClient reference from spc testing

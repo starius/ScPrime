@@ -209,7 +209,7 @@ func NewAsync(APIaddr string, requiredUserAgent string, requiredPassword string,
 		n, errChan = node.New(nodeParams, loadStartTime)
 		if err := modules.PeekErr(errChan); err != nil {
 			if isAddrInUseErr(err) {
-				return nil, fmt.Errorf("%v; are you running another instance of siad?", err.Error())
+				return nil, fmt.Errorf("%v; are you running another instance of spd?", err.Error())
 			}
 			return nil, errors.AddContext(err, "server is unable to create the ScPrime node")
 		}

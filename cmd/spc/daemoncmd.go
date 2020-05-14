@@ -60,7 +60,7 @@ Set them to 0 for no limit.`,
 )
 
 // alertscmd prints the alerts from the daemon. This will not print critical
-// alerts as critical alerts are printed on every siac command
+// alerts as critical alerts are printed on every spc command
 func alertscmd() {
 	al, err := httpClient.DaemonAlertsGet()
 	if err != nil {
@@ -81,7 +81,7 @@ func alertscmd() {
 		for _, a := range al.Alerts {
 			if a.Severity == modules.AlertSeverity(sev) {
 				if alertCount > 1000 {
-					fmt.Println("Only the first 1000 alerts are displayed in siac")
+					fmt.Println("Only the first 1000 alerts are displayed in spc")
 					return
 				}
 				alertCount++
@@ -150,7 +150,7 @@ func updatecmd() {
 		fmt.Println("Could not apply update:", err)
 		return
 	}
-	fmt.Printf("Updated to version %s! Restart siad now.\n", update.Version)
+	fmt.Printf("Updated to version %s! Restart spd now.\n", update.Version)
 }
 
 // updatecheckcmd is the handler for the command `spc check`.
@@ -162,7 +162,7 @@ func updatecheckcmd() {
 		return
 	}
 	if update.Available {
-		fmt.Printf("A new release (v%s) is available! Run 'siac update' to install it.\n", update.Version)
+		fmt.Printf("A new release (v%s) is available! Run 'spc update' to install it.\n", update.Version)
 	} else {
 		fmt.Println("Up to date.")
 	}

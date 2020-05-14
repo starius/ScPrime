@@ -4,7 +4,7 @@
 **Key Updates**
 - Add a delay when modifying large contracts on hosts to prevent hosts from
   becoming unresponsive due to massive disk i/o.
-- Add `--root` parameter to `siac renter delete` that allows passing absolute
+- Add `--root` parameter to `spc renter delete` that allows passing absolute
   instead of relative file paths.
 - Add ability to blacklist publinks by merkleroot.
 - Uploading resumes more quickly after restart.
@@ -13,21 +13,21 @@
   producing unique publinks for each file.
 - Fix default expected upload/download values displaying 0 when setting an
   initial allowance.
-- `siac pubaccess upload` now supports uploading directories. All files are
+- `spc pubaccess upload` now supports uploading directories. All files are
   uploaded individually and result in separate publinks.
 - No user-agent needed for Publink downloads.
 - Add `go get` command to `make dependencies`.
 - Add flags for tag and targz for pubfile streaming.
 - Add new endpoint `/pubaccess/stats` that provides statistical information about
   pubaccess, how many files were uploaded and the combined size of said files.
-- The `siac renter setallowance` UX is considerably improved.
+- The `spc renter setallowance` UX is considerably improved.
 - Add XChaCha20 CipherKey.
 - Add Pubaccesskey Manager.
-- Add `siac pubaccess unpin` subcommand.
-- Extend `siac renter -v` to show breakdown of file health.
+- Add `spc pubaccess unpin` subcommand.
+- Extend `spc renter -v` to show breakdown of file health.
 - Add Pubaccess-Disable-Force header to allow disabling the force update feature
   on Pubaccess uploads
-- Add bandwidth usage to `siac gateway`
+- Add bandwidth usage to `spc gateway`
 
 **Bugs Fixed**
 - Fixed bug in startup where an error being returned by the renter's blocking
@@ -36,15 +36,15 @@
   siafile
 - Fix threadgroup violation in the watchdog that allowed writing to the log
   file after a shutdown
-- Fix bug where `siac renter -v` wasn't working due to the wrong flag being
+- Fix bug where `spc renter -v` wasn't working due to the wrong flag being
   used.
 - Fixed bug in siafile snapshot code where the `hostKey()` method was not used
   to safely acquire the host pubkey.
-- Fixed `siac pubaccess ls` not working when files were passed as input. It is now
+- Fixed `spc pubaccess ls` not working when files were passed as input. It is now
   able to access specific files in the Pubaccess folder.
 - Fixed a deadlock when performing a Pubaccess download with no workers
 - Fix a parsing bug for malformed publinks
-- fix siac update for new release verification
+- fix spc update for new release verification
 - Fix parameter delimiter for publinks
 - Fixed race condition in host's `RPCLoopLock`
 - Fixed a bug which caused a call to `build.Critical` in the case that a
@@ -68,11 +68,11 @@
 **Key Updates**
 - Introduced Pubaccess with initial feature set for portals, web portals, pubfiles,
   publinks, uploads, downloads, and pinning
-- Add `data-pieces` and `parity-pieces` flags to `siac renter upload`
+- Add `data-pieces` and `parity-pieces` flags to `spc renter upload`
 - Integrate SiaMux
 - Initialize defaults for the host's ephemeral account settings
 - Add SIA_DATA_DIR environment variable for setting the data directory for
-  siad/siac
+  spd/spc
 - Made build process deterministic. Moved related scripts into `release-scripts`
 - Add directory support to Publinks.
 - Enabled Lockcheck code anaylzer
@@ -132,9 +132,9 @@
 - Alert System
 - Remove siafile chunks from memory
 - Additional price change protection for the Renter
-- siac Alerts command
-- Critical alerts displayed on every siac call
-- Single File Get in siac
+- spc Alerts command
+- Critical alerts displayed on every spc call
+- Single File Get in spc
 - Gateway bandwidth monitoring
 - Ability to pause uploads/repairs
 
@@ -190,7 +190,7 @@ v1.3.6 (patch release)
 v1.3.5 (patch release)
 - Add offline signing functionality
 - Overhaul hostdb weighting
-- Add siac utils
+- Add spc utils
 
 Sep 2018:
 
@@ -239,7 +239,7 @@ April 2017:
 v1.2.1 (patch release)
 - Faster host upgrading
 - Fix wallet bugs
-- Add siac command to cancel allowance
+- Add spc command to cancel allowance
 
 v1.2.0 (minor release)
 - Host overhaul
@@ -257,7 +257,7 @@ February 2017:
 v1.1.1 (patch release)
 - Renter now performs much better at scale
 - Myriad HostDB improvements
-- Add siac command to support storage leaderboard
+- Add spc command to support storage leaderboard
 
 January 2017:
 
@@ -306,7 +306,7 @@ v0.5.2 (patch release)
 
 v0.5.1 (patch release)
 - Fixed bug severely impacting performance
-- Restored (but deprecated) some siac commands
+- Restored (but deprecated) some spc commands
 - Added modules flag, allowing modules to be disabled
 
 v0.5.0 (minor release)

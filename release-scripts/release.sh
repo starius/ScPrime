@@ -22,7 +22,7 @@ function build {
 	rm -rf $folder
 	mkdir -p $folder
 	# compile and hash binaries
-	for pkg in siac siad; do
+	for pkg in spc spd; do
 		bin=$pkg
 		if [ "$os" == "windows" ]; then
 			bin=${pkg}.exe

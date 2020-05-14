@@ -13,7 +13,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/siatest"
 )
 
-// TestSkykeyCommands tests the basic functionality of the siac pubaccesskey commands
+// TestSkykeyCommands tests the basic functionality of the spc pubaccesskey commands
 // interface. More detailed testing of the pubaccesskey manager is done in the pubaccesskey
 // package.
 func TestSkykeyCommands(t *testing.T) {
