@@ -48,9 +48,9 @@ var (
 
 type (
 	// FeeManager is responsible for tracking any application fees that are
-	// being charged to this siad instance
+	// being charged to this spd instance
 	FeeManager struct {
-		// fees are all the fees that are currently charging this siad instance
+		// fees are all the fees that are currently charging this spd instance
 		fees map[modules.FeeUID]*modules.AppFee
 
 		staticCommon *feeManagerCommon

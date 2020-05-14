@@ -684,7 +684,7 @@ func parseSkyfileMetadata(baseSector []byte) (sl skyfileLayout, fanoutBytes []by
 	// Currently there is no support for pubfiles with fanout + metadata that
 	// exceeds the base sector.
 	if offset+sl.fanoutSize+sl.metadataSize > uint64(len(baseSector)) || sl.fanoutSize > modules.SectorSize || sl.metadataSize > modules.SectorSize {
-		return skyfileLayout{}, nil, modules.SkyfileMetadata{}, nil, errors.New("this version of siad does not support pubfiles with large fanouts and metadata")
+		return skyfileLayout{}, nil, modules.SkyfileMetadata{}, nil, errors.New("this version of spd does not support pubfiles with large fanouts and metadata")
 	}
 
 	// Parse the fanout.

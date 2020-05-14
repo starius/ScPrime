@@ -9,7 +9,7 @@ the Filesystem's corresponding wrappers instead.
 To refer to a file or folder within the Filesystem, so-called SiaPaths are
 used. They are unix-like paths relative to the specified root of the
 Filesystem except for the fact that they don't start with a leading slash.
-Ideally all parts of the siad codebase only have to interact with SiaPaths
+Ideally all parts of the spd codebase only have to interact with SiaPaths
 instead of system paths and the Filesystem would handle all of the
 translations between SiaPaths and regular system paths. The Filesystem also
 enforces that files and folders can't share the same name.

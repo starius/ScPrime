@@ -2,7 +2,7 @@
 
 This directory contains all the scripts used to build releases of ScPrime.
 
-`./release.sh` compiles `siac` and `siad` for each supported system. It places
+`./release.sh` compiles `spc` and `spd` for each supported system. It places
 those binaries along with documentation into a separate directory for each
 system type. It also creates a file of SHA256 hashes containing the hash of
 each binary produced.

@@ -208,6 +208,12 @@ type Renter struct {
 	bubbleUpdates   map[string]bubbleStatus
 	bubbleUpdatesMu sync.Mutex
 
+	// Account management.
+	accounts           map[string]*account
+	accountsClosed     bool
+	staticAccountsWg   sync.WaitGroup
+	staticAccountsFile modules.File
+
 	// Utilities.
 	cs                    modules.ConsensusSet
 	deps                  modules.Dependencies
@@ -904,6 +910,8 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 		bubbleUpdates:   make(map[string]bubbleStatus),
 		downloadHistory: make(map[modules.DownloadID]*download),
 
+		accounts: make(map[string]*account),
+
 		cs:                    cs,
 		deps:                  deps,
 		g:                     g,
@@ -932,7 +940,7 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	// Add SkynetPortals
 	sp, err := pubaccessportals.New(r.persistDir)
 	if err != nil {
-		return nil, errors.AddContext(err, "unable to create new skynet portal list")
+		return nil, errors.AddContext(err, "unable to create new pubaccess portal list")
 	}
 	r.staticSkynetPortals = sp
 
@@ -941,6 +949,20 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	if err != nil {
 		return nil, err
 	}
+
+	// Load the accounts.
+	err = r.managedLoadAccounts()
+	if err != nil {
+		return nil, err
+	}
+	// Save accounts on shutdown.
+	if !r.deps.Disrupt("InterruptAccountSaveOnShutdown") {
+		err = r.tg.OnStop(r.managedSaveAccounts)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// After persist is initialized, push the root directory onto the directory
 	// heap for the repair process.
 	r.managedPushUnexploredDirectory(modules.RootSiaPath())

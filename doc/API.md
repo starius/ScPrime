@@ -14,8 +14,8 @@ in production.
 
 Notes:
 - Requests must set their User-Agent string to contain the substring "ScPrime-Agent".
-- By default, siad listens on "localhost:4280". This can be changed using the
-  `--api-addr` flag when running siad.
+- By default, spd listens on "localhost:4280". This can be changed using the
+  `--api-addr` flag when running spd.
 - **Do not bind or expose the API to a non-loopback address unless you are
   aware of the possible dangers.**
 
@@ -54,7 +54,7 @@ The standard error response indicating the request failed for any reason, is a
 Authentication
 --------------
 
-API authentication can be enabled with the `--authenticate-api` siad flag.
+API authentication can be enabled with the `--authenticate-api` spd flag.
 Authentication is HTTP Basic Authentication as described in
 [RFC 2617](https://tools.ietf.org/html/rfc2617), however, the username is the
 empty string. The flag does not enforce authentication on all API endpoints.
@@ -1220,7 +1220,7 @@ standard success or error response. See
 
 downloads a file using http streaming. This call blocks until the data is
 received.
-The streaming endpoint also uses caching internally to prevent siad from
+The streaming endpoint also uses caching internally to prevent spd from
 re-downloading the same chunk multiple times when only parts of a file are
 requested at once. This might lead to a substantial increase in ram usage and
 therefore it is not recommended to stream multiple files in parallel at the

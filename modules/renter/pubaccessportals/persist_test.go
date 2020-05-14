@@ -33,7 +33,7 @@ func checkNumPersistedPortals(portalsPath string, numPortals int) error {
 	return nil
 }
 
-// TestPersist tests the persistence of the Skynet portals list.
+// TestPersist tests the persistence of the Pubaccess portals list.
 func TestPersist(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -59,7 +59,7 @@ func TestPersist(t *testing.T) {
 
 	// Update portals list
 	portal := modules.SkynetPortal{
-		Address: "localhost:9980",
+		Address: "localhost:4280",
 		Public:  true,
 	}
 	add := []modules.SkynetPortal{portal}
@@ -99,7 +99,7 @@ func TestPersist(t *testing.T) {
 		t.Fatalf("Expected address %v to be listed in portals list", portal.Address)
 	}
 
-	// Load a new Skynet Portals List to verify the contents from disk get loaded
+	// Load a new Pubaccess Portals List to verify the contents from disk get loaded
 	// properly
 	sp2, err := New(testdir)
 	if err != nil {
@@ -142,7 +142,7 @@ func TestPersist(t *testing.T) {
 		t.Fatalf("Expected address %v to be listed in portals list", portal.Address)
 	}
 
-	// Load another new Skynet Portals List to verify the contents from disk get
+	// Load another new Pubaccess Portals List to verify the contents from disk get
 	// loaded properly
 	sp3, err := New(testdir)
 	if err != nil {
@@ -165,7 +165,7 @@ func TestPersist(t *testing.T) {
 	}
 }
 
-// TestPersistCorruption tests the persistence of the Skynet portal list when
+// TestPersistCorruption tests the persistence of the Pubaccess portal list when
 // corruption occurs.
 func TestPersistCorruption(t *testing.T) {
 	if testing.Short() {
@@ -218,7 +218,7 @@ func TestPersistCorruption(t *testing.T) {
 
 	// Update portals list
 	portal := modules.SkynetPortal{
-		Address: "localhost:9980",
+		Address: "localhost:4280",
 		Public:  true,
 	}
 	add := []modules.SkynetPortal{portal}
@@ -263,7 +263,7 @@ func TestPersistCorruption(t *testing.T) {
 		t.Fatalf("Expected address %v to be listed in portals list", portal.Address)
 	}
 
-	// Load a new Skynet Portals List to verify the contents from disk get loaded
+	// Load a new Pubaccess Portals List to verify the contents from disk get loaded
 	// properly
 	sp2, err := New(testdir)
 	if err != nil {
@@ -300,7 +300,7 @@ func TestPersistCorruption(t *testing.T) {
 		t.Fatalf("Expected address %v to be listed in portals list", portal.Address)
 	}
 
-	// Load another new Skynet Portals List to verify the contents from disk get
+	// Load another new Pubaccess Portals List to verify the contents from disk get
 	// loaded properly
 	sp3, err := New(testdir)
 	if err != nil {
@@ -337,7 +337,7 @@ func TestPersistCorruption(t *testing.T) {
 func TestMarshalSia(t *testing.T) {
 	// Test MarshalSia
 	portal := modules.SkynetPortal{
-		Address: modules.NetAddress("localhost:9980"),
+		Address: modules.NetAddress("localhost:4280"),
 		Public:  true,
 	}
 	var buf bytes.Buffer
@@ -422,7 +422,7 @@ func TestMarshalMetadata(t *testing.T) {
 	}
 	defer f.Close()
 
-	// Create empty struct of a skynet portals list and set the length. Not
+	// Create empty struct of a pubaccess portals list and set the length. Not
 	// using the New method to avoid overwriting the persist file on disk.
 	sp := SkynetPortals{}
 	sp.persistLength = metadataPageSize

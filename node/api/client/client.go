@@ -30,7 +30,7 @@ type (
 		// Password must match the password of the spd server.
 		Password string
 
-		// UserAgent must match the User-Agent required by the siad server. If not
+		// UserAgent must match the User-Agent required by the spd server. If not
 		// set, it defaults to "ScPrime-Agent".
 		UserAgent string
 	}
@@ -69,7 +69,7 @@ func New(opts Options) *Client {
 }
 
 // DefaultOptions returns the default options for a client. This includes
-// setting the default siad user agent to "Sia-Agent" and setting the password
+// setting the default spd user agent to "Sia-Agent" and setting the password
 // using the build.APIPassword() function.
 func DefaultOptions() (Options, error) {
 	pw, err := build.APIPassword()
@@ -83,7 +83,7 @@ func DefaultOptions() (Options, error) {
 	}, nil
 }
 
-// NewRequest constructs a request to the siad HTTP API, setting the correct
+// NewRequest constructs a request to the spd HTTP API, setting the correct
 // User-Agent and Basic Auth. The resource path must begin with /.
 func (c *Client) NewRequest(method, resource string, body io.Reader) (*http.Request, error) {
 	url := "http://" + c.Address + resource

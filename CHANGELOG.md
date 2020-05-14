@@ -14,24 +14,24 @@ Latest:
 
 **Key Updates**
 - Alerts returned by /daemon/alerts route are sorted by severity
-- Add `--fee-included` parameter to `siac wallet send siacoins` that allows
+- Add `--fee-included` parameter to `spc wallet send siacoins` that allows
    sending an exact wallet balance with the fees included.
-- Extend `siac hostdb view` to include all the fields returned from the API.
-- `siac renter delete` now accepts a list of files.
-- add pause and resume uploads to siac
-- Extended `siac renter` to include number of passive and disabled contracts
-- Add contract data to `siac renter`
+- Extend `spc hostdb view` to include all the fields returned from the API.
+- `spc renter delete` now accepts a list of files.
+- add pause and resume uploads to spc
+- Extended `spc renter` to include number of passive and disabled contracts
+- Add contract data to `spc renter`
 - Add getters and setter to `FileContract` and `FileContractRevision` types to prevent index-out-of-bounds panics after a `RenewAndClear`.
 - Add `--dry-run` parameter to Pubaccess upload
 - Set ratio for `MinBaseRPCPrice` and `MinSectorAccessPrice` with   `MinDownloadBandwidthPrice`
 
 **Bugs Fixed**
-- Fixed file health output of `siac renter -v` not adding to 100% by adding
+- Fixed file health output of `spc renter -v` not adding to 100% by adding
   parsePercentage function.
 - Fix `unlock of unlocked mutex` panic in the download destination writer.
 - Fix potential channel double closed panic in DownloadByRootProject 
-- Fix divide by zero panic in `renterFileHealthSummary` for `siac renter -v`
-- Fix negative currency panic in `siac renter contracts view`
+- Fix divide by zero panic in `renterFileHealthSummary` for `spc renter -v`
+- Fix negative currency panic in `spc renter contracts view`
 - Fix panic when metadata of pubfile upload exceeds modules.SectorSize
 - Fix curl example for `/pubaccess/pubfile/` post
 - Don't delete hosts the renter has a contract with from hostdb 
@@ -57,7 +57,7 @@ Latest:
 **Key Updates**
  - Introduced Pubaccess with initial feature set for portals, web portals, pubfiles,
    publinks, uploads, downloads, and pinning
- - Add `data-pieces` and `parity-pieces` flags to `siac renter upload`
+ - Add `data-pieces` and `parity-pieces` flags to `spc renter upload`
  - Integrate SiaMux
  - Initialize defaults for the host's ephemeral account settings
  - Add SCPRIME_DATA_DIR environment variable for setting the data directory for
@@ -69,7 +69,7 @@ Latest:
 
 - Add a delay when modifying large contracts on hosts to prevent hosts from
   becoming unresponsive due to massive disk i/o.
-- Add `--root` parameter to `siac renter delete` that allows passing absolute
+- Add `--root` parameter to `spc renter delete` that allows passing absolute
   instead of relative file paths.
 - Add ability to blacklist publinks by merkleroot.
 - Uploading resumes more quickly after restart.
@@ -78,21 +78,21 @@ Latest:
   producing unique publinks for each file.
 - Fix default expected upload/download values displaying 0 when setting an
   initial allowance.
-- `siac pubaccess upload` now supports uploading directories. All files are
+- `spc pubaccess upload` now supports uploading directories. All files are
   uploaded individually and result in separate publinks.
 - No user-agent needed for Publink downloads.
 - Add `go get` command to `make dependencies`.
 - Add flags for tag and targz for pubfile streaming.
 - Add new endpoint `/pubaccess/stats` that provides statistical information about
   pubaccess, how many files were uploaded and the combined size of said files.
-- The `siac renter setallowance` UX is considerably improved.
+- The `spc renter setallowance` UX is considerably improved.
 - Add XChaCha20 CipherKey.
 - Add Pubaccesskey Manager.
-- Add `siac pubaccess unpin` subcommand.
-- Extend `siac renter -v` to show breakdown of file health.
+- Add `spc pubaccess unpin` subcommand.
+- Extend `spc renter -v` to show breakdown of file health.
 - Add Pubaccess-Disable-Force header to allow disabling the force update feature
   on Pubaccess uploads
-- Add bandwidth usage to `siac gateway`
+- Add bandwidth usage to `spc gateway`
 
 **Bugs Fixed**
 - Fixed bug in startup where an error being returned by the renter's blocking
@@ -101,15 +101,15 @@ Latest:
   siafile
 - Fix threadgroup violation in the watchdog that allowed writing to the log
   file after a shutdown
-- Fix bug where `siac renter -v` wasn't working due to the wrong flag being
+- Fix bug where `spc renter -v` wasn't working due to the wrong flag being
   used.
 - Fixed bug in siafile snapshot code where the `hostKey()` method was not used
   to safely acquire the host pubkey.
-- Fixed `siac pubaccess ls` not working when files were passed as input. It is now
+- Fixed `spc pubaccess ls` not working when files were passed as input. It is now
   able to access specific files in the Pubaccess folder.
 - Fixed a deadlock when performing a Pubaccess download with no workers
 - Fix a parsing bug for malformed publinks
-- fix siac update for new release verification
+- fix spc update for new release verification
 - Fix parameter delimiter for publinks
 - Fixed race condition in host's `RPCLoopLock`
 - Fixed a bug which caused a call to `build.Critical` in the case that a
@@ -133,11 +133,11 @@ Latest:
 **Key Updates**
 - Introduced Pubaccess with initial feature set for portals, web portals, pubfiles,
   publinks, uploads, downloads, and pinning
-- Add `data-pieces` and `parity-pieces` flags to `siac renter upload`
+- Add `data-pieces` and `parity-pieces` flags to `spc renter upload`
 - Integrate SiaMux
 - Initialize defaults for the host's ephemeral account settings
 - Add SIA_DATA_DIR environment variable for setting the data directory for
-  siad/siac
+  spd/spc
 - Made build process deterministic. Moved related scripts into `release-scripts`
 - Add directory support to Publinks.
 - Enabled Lockcheck code anaylzer
@@ -177,9 +177,9 @@ Latest:
  - Alert System
  - Remove siafile chunks from memory
  - Additional price change protection for the Renter
- - siac Alerts command
- - Critical alerts displayed on every siac call
- - Single File Get in siac
+ - spc Alerts command
+ - Critical alerts displayed on every spc call
+ - Single File Get in spc
  - Gateway bandwidth monitoring
  - Ability to pause uploads/repairs
 

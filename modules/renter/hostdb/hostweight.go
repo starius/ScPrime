@@ -378,7 +378,7 @@ func (hdb *HostDB) storageRemainingAdjustments(entry modules.HostDBEntry, allowa
 	return math.Pow(storageRatio, storagePenaltyExponentitaion)
 }
 
-// versionAdjustments will adjust the weight of the entry according to the siad
+// versionAdjustments will adjust the weight of the entry according to the spd
 // version reported by the host.
 // TODO move hardcoded version strings to build package or somewhere else
 // so this has not to be altered on every new version

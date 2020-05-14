@@ -11,7 +11,7 @@ Request Template.
 
 ## Example for Visual Changes
 <!--
-For changes to siac or other user facing features please provide proof that the format is as expected.  
+For changes to spc or other user facing features please provide proof that the format is as expected.  
 Screen shots and/or asciinema recordings are very helpful.
 -->
 
@@ -39,7 +39,7 @@ outside the core team, such as community members, that look at the merge
 requests and need to know the purpose behind them.
 
 The `Example for Visual Changes` section should be used whenever there are UI
-changes to `siac`. Other examples of when this section should be used would be
+changes to `spc`. Other examples of when this section should be used would be
 proof that a regression test failed prior to a change.
 
 The `Checklist` should be used by the developer to make sure that they have

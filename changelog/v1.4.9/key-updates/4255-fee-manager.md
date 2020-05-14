@@ -1,1 +1,1 @@
-- Add `FeeManager` to siad to allow for applications to charge a fee
+- Add `FeeManager` to spd to allow for applications to charge a fee

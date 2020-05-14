@@ -138,7 +138,7 @@ FeeManager (f):
 	users for the user of their application.
 	The FeeManager requires the consensus set, gateway, transaction pool, and wallet.
 	Example:
-		siad -M gctwf
+		spd -M gctwf
 Explorer (e):
 	The explorer provides statistics about the blockchain and can be
 	queried for information about specific transactions or other objects on

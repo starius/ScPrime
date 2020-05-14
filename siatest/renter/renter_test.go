@@ -311,7 +311,7 @@ func testAllowanceDefaultSet(t *testing.T, tg *siatest.TestGroup) {
 }
 
 // testReceivedFieldEqualsFileSize tests that the bug that caused finished
-// downloads to stall in the UI and siac is gone.
+// downloads to stall in the UI and spc is gone.
 func testReceivedFieldEqualsFileSize(t *testing.T, tg *siatest.TestGroup) {
 	// Make sure the test has enough hosts.
 	if len(tg.Hosts()) < 4 {
@@ -778,7 +778,7 @@ func testDownloadAfterRenew(t *testing.T, tg *siatest.TestGroup) {
 
 // testDownloadAfterRenew makes sure that we can't download a file after
 // finalizing the contract and dropping the void output. This is also a
-// regression test for a index-out-of-bounds panic in siad.
+// regression test for a index-out-of-bounds panic in spd.
 func testDownloadAfterLegacyRenewAndClear(t *testing.T, tg *siatest.TestGroup) {
 	// Create a node with the right dependency.
 	params := node.Renter(renterTestDir(t.Name()))
@@ -4681,10 +4681,7 @@ func TestWorkerStatus(t *testing.T) {
 			t.Error("Expected available balance to be zero but was", worker.AvailableBalance.HumanString())
 		}
 		if !worker.BalanceTarget.IsZero() {
-			t.Error("Expected balance target to be zero but was", worker.BalanceTarget.HumanString())
-		}
-		if worker.FundAccountJobQueueSize != 0 {
-			t.Error("Expected fund account queue to be empty but was", worker.FundAccountJobQueueSize)
+			t.Error("Expected balance target to be 0SC but was", worker.BalanceTarget.HumanString())
 		}
 
 		// Job Queues

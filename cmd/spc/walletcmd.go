@@ -547,13 +547,13 @@ func walletsigncmd(cmd *cobra.Command, args []string) {
 	if err == nil {
 		txn = wspr.Transaction
 	} else {
-		// if siad is running, but the wallet is locked, assume the user
-		// wanted to sign with siad
+		// if spd is running, but the wallet is locked, assume the user
+		// wanted to sign with spd
 		if strings.Contains(err.Error(), modules.ErrLockedWallet.Error()) {
 			die("Signing via API failed: spd is running, but the wallet is locked.")
 		}
 
-		// siad is not running; fallback to offline keygen
+		// spd is not running; fallback to offline keygen
 		walletsigncmdoffline(&txn, toSign)
 	}
 
@@ -566,7 +566,7 @@ func walletsigncmd(cmd *cobra.Command, args []string) {
 }
 
 // walletsigncmdoffline is a helper for walletsigncmd that handles signing
-// transactions without siad.
+// transactions without spd.
 func walletsigncmdoffline(txn *types.Transaction, toSign []crypto.Hash) {
 	fmt.Println("Enter your wallet seed to generate the signing key(s) now and sign without spd.")
 	seedString, err := passwordPrompt("Seed: ")

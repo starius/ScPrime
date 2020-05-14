@@ -348,7 +348,7 @@ func (api *API) skynetPublinkHandlerGET(w http.ResponseWriter, req *http.Request
 	}
 
 	// Metadata has been parsed successfully, stop the time here for TTFB.
-	// Metadata was fetched from Skynet itself.
+	// Metadata was fetched from Pubaccess itself.
 	skynetPerformanceStatsMu.Lock()
 	skynetPerformanceStats.TimeToFirstByte.AddRequest(time.Since(startTime))
 	skynetPerformanceStatsMu.Unlock()

@@ -18,17 +18,17 @@ The build package contains high level helper functions.
  - [appdata.go](./appdata.go)
  - [appdata_test.go](./appdata_test.go)
 
-The Appdata subsystem is responsible for providing information about various Sia
+The Appdata subsystem is responsible for providing information about various
 application data. This subsystem is used to interact with any environment
 variables that are set by the user.
 
 **Environment Variables**
  - `SIA_API_PASSWORD` is the siaAPIPassword environment variable that sets a
    custom API password
- - `SIA_DATA_DIR` siaDataDir is the environment variable that tells siad where 
+ - `SIA_DATA_DIR` siaDataDir is the environment variable that tells spd where 
     to put the general sia data, e.g. api password, configuration, logs, etc.
- - `SIAD_DATA_DIR` siadDataDir is the environment variable which tells siad 
-    where to put the siad-specific data
+ - `SIAD_DATA_DIR` siadDataDir is the environment variable which tells spd 
+    where to put the spd-specific data
  - `SIA_WALLET_PASSWORD` is the siaWalletPassword environment variable that can
    enable auto unlocking the wallet
 

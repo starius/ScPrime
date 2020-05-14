@@ -21,7 +21,7 @@ for arch in amd64 arm64; do
 				fi
 			fi
 
-			# Binaries are called 'siac' and i'siad'.
+			# Binaries are called 'spc' and i'spd'.
 	                bin=$pkg
 
 			# Different naming convention for windows.

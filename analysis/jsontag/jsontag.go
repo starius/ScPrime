@@ -1,4 +1,4 @@
-// Package jsontag defines an Analyzer that checks for violations of siad json
+// Package jsontag defines an Analyzer that checks for violations of spd json
 // struct tag conventions.
 package jsontag
 
@@ -16,7 +16,7 @@ import (
 // Doc is the CLI help text for the jsontag analyzer.
 const Doc = `check that json struct field tags conform to conventions.
 
-siad json fields are always lowercase, and should match the Go field name.`
+spd json fields are always lowercase, and should match the Go field name.`
 
 // Analyzer defines the jsontag analysis tool, allowing it to be used with the
 // analysis framework.

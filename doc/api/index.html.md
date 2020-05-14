@@ -45,8 +45,8 @@ production.
 
 - Requests must set their User-Agent string to contain the substring
   "ScPrime-Agent".
-- By default, siad listens on "localhost:4280". This can be changed using the
-  `--api-addr` flag when running siad.
+- By default, spd listens on "localhost:4280". This can be changed using the
+  `--api-addr` flag when running spd.
 - **Do not bind or expose the API to a non-loopback address unless you are aware
   of the possible dangers.**
 
@@ -130,9 +130,9 @@ And for a curl call the following would be included
 `--user "":<apipassword>`
 
 Authentication can be disabled by passing the `--authenticate-api=false` flag to
-siad. You can change the password by modifying the password file, setting the
+spd. You can change the password by modifying the password file, setting the
 `SIA_API_PASSWORD` environment variable, or passing the `--temp-password` flag
-to siad.
+to spd.
 
 # Units
 
@@ -147,13 +147,13 @@ language's corresponding bignum library. Currency values are the most common
 example where this is necessary.
 
 # Environment Variables
-There are three environment variables supported by siad.
+There are three environment variables supported by spd.
  - `SIA_API_PASSWORD` is the environment variable that sets a custom API
    password if the default is not used
- - `SIA_DATA_DIR` is the environment variable that tells siad where to put the
+ - `SIA_DATA_DIR` is the environment variable that tells spd where to put the
    general sia data, e.g. api password, configuration, logs, etc.
- - `SIAD_DATA_DIR` is the environment variable that tells siad where to put the
-   siad-specific data
+ - `SIAD_DATA_DIR` is the environment variable that tells spd where to put the
+   spd-specific data
  - `SIA_WALLET_PASSWORD` is the environment variable that can be set to enable
    auto unlocking the wallet
 
@@ -1193,7 +1193,7 @@ fetches status information about the host.
     "maxdownloadbatchsize": 17825792,             // bytes
     "maxduration":          25920,                // blocks
     "maxrevisebatchsize":   17825792,             // bytes
-    "netaddress":           "123.456.789.0:9982", // string
+    "netaddress":           "123.456.789.0:4282", // string
     "remainingstorage":     35000000000,          // bytes
     "sectorsize":           4194304,              // bytes
     "totalstorage":         35000000000,          // bytes
@@ -1236,7 +1236,7 @@ fetches status information about the host.
     "maxdownloadbatchsize": 17825792,             // bytes
     "maxduration":          25920,                // blocks
     "maxrevisebatchsize":   17825792,             // bytes
-    "netaddress":           "123.456.789.0:9982", // string
+    "netaddress":           "123.456.789.0:4282", // string
     "windowsize":           144,                  // blocks
     
     "collateral":       "57870370370",                     // hastings / byte / block
@@ -2167,7 +2167,7 @@ there are insufficient active hosts. Optional, the default is all active hosts.
       "maxdownloadbatchsize":   17825792,             // bytes
       "maxduration":            25920,                // blocks
       "maxrevisebatchsize":     17825792,             // bytes
-      "netaddress":             "123.456.789.0:9982"  // string 
+      "netaddress":             "123.456.789.0:4282"  // string 
       "remainingstorage":       35000000000,          // bytes
       "sectorsize":             4194304,              // bytes
       "totalstorage":           35000000000,          // bytes
@@ -2818,41 +2818,41 @@ begin at week 20.
 
 **expectedstorage** | bytes  
 Expected storage is the amount of storage that the user expects to keep on the
-ScPrime network. This value is important to calibrate the spending habits of siad.
-Because ScPrime is decentralized, there is no easy way for siad to know what the
+ScPrime network. This value is important to calibrate the spending habits of spd.
+Because ScPrime is decentralized, there is no easy way for spd to know what the
 real world cost of storage is, nor what the real world price of a siacoin is. To
-overcome this deficiency, siad depends on the user for guidance.
+overcome this deficiency, spd depends on the user for guidance.
 
-If the user has a low allowance and a high amount of expected storage, siad will
+If the user has a low allowance and a high amount of expected storage, spd will
 more heavily prioritize cheaper hosts, and will also be more comfortable with
 hosts that post lower amounts of collateral. If the user has a high allowance
-and a low amount of expected storage, siad will prioritize hosts that post more
+and a low amount of expected storage, spd will prioritize hosts that post more
 collateral, as well as giving preference to hosts better overall traits such as
 uptime and age.
 
 Even when the user has a large allowance and a low amount of expected storage,
-siad will try to optimize for saving money; siad tries to meet the users storage
+spd will try to optimize for saving money; spd tries to meet the users storage
 and bandwidth needs while spending significantly less than the overall
 allowance.
 
 **expectedupload** | bytes  
-Expected upload tells siad how much uploading the user expects to do each month.
-If this value is high, siad will more strongly prefer hosts that have a low
-upload bandwidth price. If this value is low, siad will focus on other metrics
+Expected upload tells spd how much uploading the user expects to do each month.
+If this value is high, spd will more strongly prefer hosts that have a low
+upload bandwidth price. If this value is low, spd will focus on other metrics
 than upload bandwidth pricing, because even if the host charges a lot for upload
 bandwidth, it will not impact the total cost to the user very much.
 
-The user should not consider upload bandwidth used during repairs, siad will
+The user should not consider upload bandwidth used during repairs, spd will
 consider repair bandwidth separately.
 
 **expecteddownload** | bytes  
-Expected download tells siad how much downloading the user expects to do each
-month. If this value is high, siad will more strongly prefer hosts that have a
-low download bandwidth price. If this value is low, siad will focus on other
+Expected download tells spd how much downloading the user expects to do each
+month. If this value is high, spd will more strongly prefer hosts that have a
+low download bandwidth price. If this value is low, spd will focus on other
 metrics than download bandwidth pricing, because even if the host charges a lot
 for downloads, it will not impact the total cost to the user very much.
 
-The user should not consider download bandwidth used during repairs, siad will
+The user should not consider download bandwidth used during repairs, spd will
 consider repair bandwidth separately.
 
 **expectedredundancy** | bytes  
@@ -3797,7 +3797,7 @@ indicates if the source file is found on disk
 
 **recoverable** | boolean  
 indicates if the siafile is recoverable. A file is recoverable if it has at
-least 1x redundancy or if `siad` knows the location of a local copy of the file.
+least 1x redundancy or if `spd` knows the location of a local copy of the file.
 
 **redundancy** | float64  
 When a file is uploaded, it is first broken into a series of chunks. Each chunk
@@ -4183,7 +4183,7 @@ curl -A "ScPrime-Agent" -H "Range: bytes=0-1023" "localhost:4280/renter/stream/m
 ```
 
 downloads a file using http streaming. This call blocks until the data is
-received. The streaming endpoint also uses caching internally to prevent siad
+received. The streaming endpoint also uses caching internally to prevent spd
 from re-downloading the same chunk multiple times when only parts of a file are
 requested at once. This might lead to a substantial increase in ram usage and
 therefore it is not recommended to stream multiple files in parallel at the
@@ -4520,7 +4520,7 @@ The size of the worker's backup job queue
 **downloadrootjobqueuesize** | int  
 The size of the worker's download by root job queue
 
-# Skynet
+# Pubaccess
 
 ## /pubaccess/blacklist [GET]
 > curl example
@@ -4580,7 +4580,7 @@ responses](#standard-responses).
 curl -A "ScPrime-Agent" "localhost:4280/pubaccess/portals"
 ```
 
-returns the list of known Skynet portals.
+returns the list of known Pubaccess portals.
 
 ### JSON Response
 > JSON Response Example
@@ -4792,12 +4792,15 @@ Whether or not to treat the siapath as being relative to the root directory. If
 this field is not set, the siapath will be interpreted as relative to
 'var/pubaccess'.
 
+
+**UNSTABLE - subject to change in v1.4.9**
 **skykeyname** | string  
 The name of the skykey that will be used to encrypt this skyfile. Only the
 name or the ID of the skykey should be specified.
 
 **OR**
 
+**UNSTABLE - subject to change in v1.4.9**
 **skykeyid** | string  
 The ID of the skykey that will be used to encrypt this skyfile. Only the
 name or the ID of the skykey should be specified.
@@ -4817,7 +4820,7 @@ https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
 This request header allows overruling the behaviour of the `force` parameter
 that can be passed in through the query string parameters. This header is useful
 for Pubaccess portal operators that would like to have some control over the
-requests that are being passed to siad. To avoid having to parse query string
+requests that are being passed to spd. To avoid having to parse query string
 parameters and overrule them that way, this header can be set to disable the
 force flag and disallow overwriting the file at the given siapath.
 
@@ -4881,14 +4884,14 @@ Totalsize is the total amount of data in bytes uploaded to Pubaccess.
 Versioninfo is an object that contains the node's version information.
 
 **version** | string  
-Version is the siad version the node is running.
+Version is the spd version the node is running.
 
 **gitrevision** | string  
 Gitrevision refers to the commit hash used to build said.
 
 **performancestats** | object - api.SkynetPerforamnceStats  
 PerformanceStats is an object that contains a breakdown of performance metrics
-for the skynet endpoints. Things are broken down into containers based on the
+for the pubaccess endpoints. Things are broken down into containers based on the
 type of action performed. For example, there is a container for downloads less
 than 64kb in size.
 
@@ -4903,7 +4906,7 @@ minutes.
 Within each bucket, there are several fields. For example, the n60ms field
 represents the number of requests that finished in under 60ms. There is an NErr
 field which gets incremented if there is a failure that can be attributed to
-siad.
+spd.
 
 Every download request will go into the TimeToFirstByte container, as well as
 the appropriate download container based on the size of the download. Within the

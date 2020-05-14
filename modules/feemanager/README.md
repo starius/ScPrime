@@ -1,7 +1,7 @@
 # FeeManager
 The FeeManager is a way for developers building on top of Sia to charge a fee
 for the use of their product. The FeeManager is structured in a way that one
-siad instance can support fees from multiple applications running on top of it.
+spd instance can support fees from multiple applications running on top of it.
 
 An application can request that the user be charged a fixed amount once.
 Applications can use this as a setup fee or can charge the user for various
@@ -9,7 +9,7 @@ actions as the application is used.
 
 Fees can be marked as recurring to indicate to the user that the fee will be
 charged every month. The application that is extracting the fee is still
-expected to register the fee each month, siad will not charge users for
+expected to register the fee each month, spd will not charge users for
 applications that the user is no longer using.
 
 ## Subsystems

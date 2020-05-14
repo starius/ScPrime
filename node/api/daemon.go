@@ -136,7 +136,7 @@ type (
 		ScPrimecoinPrecision types.Currency `json:"scprimecoinprecision"`
 	}
 
-	// DaemonVersion holds the version information for siad
+	// DaemonVersion holds the version information for spd
 	DaemonVersion struct {
 		Version     string `json:"version"`
 		GitRevision string `json:"gitrevision"`
@@ -167,8 +167,8 @@ func fetchLatestRelease() (gitlabRelease, error) {
 	return gitlabRelease{}, errors.New("No non-nightly or non-RC releases found")
 }
 
-// updateToRelease updates siad and siac to the release specified. siac is
-// assumed to be in the same folder as siad.
+// updateToRelease updates spd and spc to the release specified. spc is
+// assumed to be in the same folder as spd.
 func updateToRelease(version string) error {
 	return errors.New("Updating to specified release is not supported yet")
 	/*
@@ -246,9 +246,9 @@ func updateToRelease(version string) error {
 			return errors.New("Expected zip file checksums to match")
 		}
 
-		// Process zip, finding siad/siac binaries and validate the checksum against
+		// Process zip, finding spd/spc binaries and validate the checksum against
 		// the signed checksums file.
-		for _, binary := range []string{"siad", "siac"} {
+		for _, binary := range []string{"spd", "spc"} {
 			var binData io.ReadCloser
 			var binaryName string // needed for TargetPath below
 			for _, zf := range z.File {
@@ -367,7 +367,7 @@ func (api *API) daemonUpdateHandlerGET(w http.ResponseWriter, _ *http.Request, _
 	})
 }
 
-// daemonUpdateHandlerPOST handles the API call that updates siad and siac.
+// daemonUpdateHandlerPOST handles the API call that updates spd and spc.
 // There is no safeguard to prevent "updating" to the same release, so callers
 // should always check the latest version via daemonUpdateHandlerGET first.
 // TODO: add support for specifying version to update to.

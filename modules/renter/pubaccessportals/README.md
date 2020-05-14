@@ -19,23 +19,23 @@ length of fsync'd bytes encoded in the metadata.
 
 **Inbound Complexities**
  - `callInitPersist` initializes the persistence file
-    - The Skynet Portals Subsystem's `New` method uses `callInitPersist`
- - `callUpdateAndAppend` updates the skynet portal list and appends the
+    - The Pubaccess Portals Subsystem's `New` method uses `callInitPersist`
+ - `callUpdateAndAppend` updates the pubaccess portal list and appends the
    information to the persistence file
-    - The Skynet Portals Subsytem's `Update` method uses `callUpdateAndAppend`
+    - The Pubaccess Portals Subsytem's `Update` method uses `callUpdateAndAppend`
 
-### Skynet Portals Subsystem
+### Pubaccess Portals Subsystem
 **Key Files**
  - [pubaccessportals.go](./pubaccessportals.go)
 
-The Skynet Portals subsystem contains the structure of the Skynet Portals List
-and is used to create a new Skynet Portals List and return information about the
+The Pubaccess Portals subsystem contains the structure of the Pubaccess Portals List
+and is used to create a new Pubaccess Portals List and return information about the
 Portals.
 
 **Exports**
- - `Portals` returns the list of known Skynet portals and whether they are
+ - `Portals` returns the list of known Pubaccess portals and whether they are
    public
- - `New` creates and returns a new Skynet Portals List
+ - `New` creates and returns a new Pubaccess Portals List
  - `Update` updates the Portals List
 
 **Outbound Complexities**

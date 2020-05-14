@@ -1,1 +1,1 @@
-- Add `startheight` and `endheight` flags for `siac wallet transactions` pagination
+- Add `startheight` and `endheight` flags for `spc wallet transactions` pagination

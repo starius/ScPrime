@@ -174,7 +174,7 @@ func (sf *SiaFile) SetSiaFilePath(path string) {
 // applyUpdates applies a number of writeaheadlog updates to the corresponding
 // SiaFile. This method can apply updates from different SiaFiles and should
 // only be run before the SiaFiles are loaded from disk right after the startup
-// of siad. Otherwise we might run into concurrency issues.
+// of spd. Otherwise we might run into concurrency issues.
 func applyUpdates(deps modules.Dependencies, updates ...writeaheadlog.Update) error {
 	for _, u := range updates {
 		err := func() error {

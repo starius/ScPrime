@@ -49,7 +49,7 @@ var (
 	skynetUploadDryRun        bool   // Perform a dry-run of the upload. This returns the publink without actually uploading the file to the network.
 	skykeyRenameAs            string // Optional parameter to rename a Pubaccesskey while adding it.
 	skynetUploadSilent        bool   // Don't report progress while uploading
-	statusVerbose             bool   // Display additional siac information
+	statusVerbose             bool   // Display additional spc information
 	walletRawTxn              bool   // Encode/decode transactions in base64-encoded binary.
 	walletStartHeight         uint64 // Start height for transaction search.
 	walletEndHeight           uint64 // End height for transaction search.
@@ -362,7 +362,7 @@ func main() {
 	walletTransactionsCmd.Flags().Uint64Var(&walletEndHeight, "endheight", math.MaxUint64, " Height of the block where transaction history should end.")
 
 	// initialize client
-	root.Flags().BoolVarP(&statusVerbose, "verbose", "v", false, "Display additional siac information")
+	root.Flags().BoolVarP(&statusVerbose, "verbose", "v", false, "Display additional spc information")
 	root.PersistentFlags().StringVarP(&httpClient.Address, "addr", "a", "localhost:4280", "which host/port to communicate with (i.e. the host/port spd is listening on)")
 	root.PersistentFlags().StringVarP(&httpClient.Password, "apipassword", "", "", "the password for the API's http authentication")
 	root.PersistentFlags().StringVarP(&dataDir, "scprime-directory", "d", build.SiaDir(), "location of the metadata directory")

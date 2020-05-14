@@ -42,7 +42,7 @@ const (
 // ApplyUpdates  applies a number of writeaheadlog updates to the corresponding
 // SiaDir. This method can apply updates from different SiaDirs and should only
 // be run before the SiaDirs are loaded from disk right after the startup of
-// siad. Otherwise we might run into concurrency issues.
+// spd. Otherwise we might run into concurrency issues.
 func ApplyUpdates(updates ...writeaheadlog.Update) error {
 	// Apply updates.
 	for _, u := range updates {

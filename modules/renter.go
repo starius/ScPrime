@@ -758,9 +758,8 @@ type (
 		UploadTerminated    bool          `json:"uploadterminated"`
 
 		// Ephemeral Account information
-		AvailableBalance        types.Currency `json:"availablebalance"`
-		BalanceTarget           types.Currency `json:"balancetarget"`
-		FundAccountJobQueueSize int            `json:"fundaccountjobqueuesize"`
+		AvailableBalance types.Currency `json:"availablebalance"`
+		BalanceTarget    types.Currency `json:"balancetarget"`
 
 		// Job Queues
 		BackupJobQueueSize       int `json:"backupjobqueuesize"`
@@ -1016,10 +1015,10 @@ type Renter interface {
 	// the given parameters.
 	PinPublink(Publink, SkyfileUploadParameters, time.Duration) error
 
-	// Portals returns the list of known skynet portals.
+	// Portals returns the list of known pubaccess portals.
 	Portals() ([]SkynetPortal, error)
 
-	// UpdateSkynetPortals updates the list of known skynet portals.
+	// UpdateSkynetPortals updates the list of known pubaccess portals.
 	UpdateSkynetPortals(additions []SkynetPortal, removals []NetAddress) error
 
 	// WorkerPoolStatus returns the current status of the Renter's worker pool

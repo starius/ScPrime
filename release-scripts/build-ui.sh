@@ -35,16 +35,16 @@ rm -r "${uiDir}"/release/
 
 cd "${uiDir}"
 
-# Copy over all the siac/siad binaries.
+# Copy over all the spc/spd binaries.
 mkdir -p bin/{linux,mac,win}
-cp "${binDir}"/ScPrime-"${version}"-darwin-amd64/siac bin/mac/
-cp "${binDir}"/ScPrime-"${version}"-darwin-amd64/siad bin/mac/
+cp "${binDir}"/ScPrime-"${version}"-darwin-amd64/spc bin/mac/
+cp "${binDir}"/ScPrime-"${version}"-darwin-amd64/spd bin/mac/
 
-cp "${binDir}"/ScPrime-"${version}"-linux-amd64/siac bin/linux/
-cp "${binDir}"/ScPrime-"${version}"-linux-amd64/siad bin/linux/
+cp "${binDir}"/ScPrime-"${version}"-linux-amd64/spc bin/linux/
+cp "${binDir}"/ScPrime-"${version}"-linux-amd64/spd bin/linux/
 
-cp "${binDir}"/ScPrime-"${version}"-windows-amd64/siac.exe bin/win/
-cp "${binDir}"/ScPrime-"${version}"-windows-amd64/siad.exe bin/win/
+cp "${binDir}"/ScPrime-"${version}"-windows-amd64/spc.exe bin/win/
+cp "${binDir}"/ScPrime-"${version}"-windows-amd64/spd.exe bin/win/
 
 # Build yarn deps.
 yarn

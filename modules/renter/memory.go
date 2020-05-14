@@ -28,7 +28,7 @@ import (
 // last manual call to runtime.GC(). After enough memory has been returned since
 // the previous manual call, the memoryManager will run a manual call to
 // runtime.GC() and follow that up with a call to debug.FreeOSMemory(). This has
-// been shown in production to significantly reduce the amount of RES that siad
+// been shown in production to significantly reduce the amount of RES that spd
 // consumes, without a significant hit to performance.
 type memoryManager struct {
 	available    uint64

@@ -1,1 +1,1 @@
-- Add `siac renter workers` command to siac
+- Add `spc renter workers` command to spc

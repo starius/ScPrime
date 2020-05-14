@@ -1,1 +1,1 @@
-- Added Pubaccesskey API endpoints and siac commands.
+- Added Pubaccesskey API endpoints and spc commands.
