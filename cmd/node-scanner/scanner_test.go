@@ -15,7 +15,7 @@ import (
 
 const numTestingGateways = 3
 
-const testPersistFile = filepath.Join("testdata", "persisted-node-set.json")
+var testPersistFile = filepath.Join("testdata", "persisted-node-set.json")
 
 // TestLoad checks that the testdata set is loaded with sane values.
 func TestLoad(t *testing.T) {
