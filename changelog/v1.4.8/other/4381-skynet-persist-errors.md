@@ -1,1 +1,0 @@
-- Pubaccess portals and blacklist persistence errors have been made more clear and now include the persist file locations.

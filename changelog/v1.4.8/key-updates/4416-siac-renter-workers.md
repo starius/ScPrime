@@ -1,1 +1,0 @@
-- Add `spc renter workers` command to spc

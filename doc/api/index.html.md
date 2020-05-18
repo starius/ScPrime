@@ -148,13 +148,13 @@ example where this is necessary.
 
 # Environment Variables
 There are three environment variables supported by spd.
- - `SIA_API_PASSWORD` is the environment variable that sets a custom API
+ - `SCPRIME_API_PASSWORD` is the environment variable that sets a custom API
    password if the default is not used
- - `SIA_DATA_DIR` is the environment variable that tells spd where to put the
+ - `SCPRIME_DATA_DIR` is the environment variable that tells spd where to put the
    general sia data, e.g. api password, configuration, logs, etc.
- - `SIAD_DATA_DIR` is the environment variable that tells spd where to put the
+ - `DAEMON_DATA_DIR` is the environment variable that tells spd where to put the
    spd-specific data
- - `SIA_WALLET_PASSWORD` is the environment variable that can be set to enable
+ - `SCPRIME_WALLET_PASSWORD` is the environment variable that can be set to enable
    auto unlocking the wallet
 
 # Consensus
@@ -3776,6 +3776,10 @@ the siafile is the health of the worst unstuck chunk.
 
 **localpath** | string  
 Path to the local file on disk.  
+**NOTE** `spd` will set the localpath to an empty string if the local file is
+not found on disk. This is done to avoid the siafile being corrupted in the
+future by a different file being placed on disk at the original localpath
+location.  
 
 **maxhealth** | float64  
 the maxhealth is either the health or the stuckhealth of the siafile, whichever

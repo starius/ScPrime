@@ -1,1 +1,0 @@
-- Add /pubaccess/portals API endpoints.
