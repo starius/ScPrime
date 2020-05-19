@@ -396,7 +396,7 @@ func (c *SafeContract) managedRecordAppendIntent(rev types.FileContractRevision,
 	newHeader.UploadSpending = newHeader.UploadSpending.Add(bandwidthCost)
 
 	rcUpdate, err := c.makeUpdateRefCounterAppend()
-	if err != nil {
+	if err != nil || len(rcUpdate.Name) == 0 {
 		return nil, errors.AddContext(err, "failed to create a refcounter update")
 	}
 	t, err := c.wal.NewTransaction([]writeaheadlog.Update{
