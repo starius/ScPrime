@@ -4799,15 +4799,15 @@ this field is not set, the siapath will be interpreted as relative to
 
 **UNSTABLE - subject to change in v1.4.9**
 **skykeyname** | string  
-The name of the skykey that will be used to encrypt this skyfile. Only the
-name or the ID of the skykey should be specified.
+The name of the pubaccesskey that will be used to encrypt this pubfile. Only the
+name or the ID of the pubaccesskey should be specified.
 
 **OR**
 
 **UNSTABLE - subject to change in v1.4.9**
 **skykeyid** | string  
-The ID of the skykey that will be used to encrypt this skyfile. Only the
-name or the ID of the skykey should be specified.
+The ID of the pubaccesskey that will be used to encrypt this pubfile. Only the
+name or the ID of the pubaccesskey should be specified.
 
 
 ### Http Headers

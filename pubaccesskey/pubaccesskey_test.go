@@ -16,7 +16,7 @@ import (
 // TestSkykeyManager tests the basic functionality of the skykeyManager.
 func TestSkykeyManager(t *testing.T) {
 	// Create a key manager.
-	persistDir := build.TempDir("skykey", t.Name())
+	persistDir := build.TempDir("pubaccesskey", t.Name())
 	keyMan, err := NewSkykeyManager(persistDir)
 	if err != nil {
 		t.Fatal(err)
@@ -194,21 +194,21 @@ func TestSkykeyManager(t *testing.T) {
 	}
 }
 
-// TestSkykeyDerivation tests skykey derivation methods used in skyfile
+// TestSkykeyDerivation tests pubaccesskey derivation methods used in pubfile
 // encryption.
 func TestSkykeyDerivations(t *testing.T) {
 	// Create a key manager.
-	persistDir := build.TempDir("skykey", t.Name())
+	persistDir := build.TempDir("pubaccesskey", t.Name())
 	keyMan, err := NewSkykeyManager(persistDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	skykey, err := keyMan.CreateKey("derivation_test_key", crypto.TypeXChaCha20)
+	pubaccesskey, err := keyMan.CreateKey("derivation_test_key", crypto.TypeXChaCha20)
 	if err != nil {
 		t.Fatal(err)
 	}
-	masterNonce := skykey.Nonce()
+	masterNonce := pubaccesskey.Nonce()
 
 	derivationPath1 := []byte("derivationtest1")
 	derivationPath2 := []byte("path2")
@@ -217,7 +217,7 @@ func TestSkykeyDerivations(t *testing.T) {
 	numDerivedSkykeys := 5
 	derivedSkykeys := make([]Pubaccesskey, 0)
 	for i := 0; i < numDerivedSkykeys; i++ {
-		fsKey, err := skykey.GenerateFileSpecificSubkey()
+		fsKey, err := pubaccesskey.GenerateFileSpecificSubkey()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -241,12 +241,12 @@ func TestSkykeyDerivations(t *testing.T) {
 
 	// Check that all keys have the same Key data.
 	for i := 0; i < numDerivedSkykeys; i++ {
-		if !bytes.Equal(skykey.Entropy[:chacha.KeySize], derivedSkykeys[i].Entropy[:chacha.KeySize]) {
-			t.Fatal("Expected each derived skykey to have the same key as the master skykey")
+		if !bytes.Equal(pubaccesskey.Entropy[:chacha.KeySize], derivedSkykeys[i].Entropy[:chacha.KeySize]) {
+			t.Fatal("Expected each derived pubaccesskey to have the same key as the master pubaccesskey")
 		}
 		// Sanity check by checking ID equality also.
-		if skykey.ID() != derivedSkykeys[i].ID() {
-			t.Fatal("Expected each derived skykey to have the same ID as the master skykey")
+		if pubaccesskey.ID() != derivedSkykeys[i].ID() {
+			t.Fatal("Expected each derived pubaccesskey to have the same ID as the master pubaccesskey")
 		}
 	}
 
@@ -263,7 +263,7 @@ func TestSkykeyDerivations(t *testing.T) {
 			}
 			// Sanity check our definition of equals.
 			if derivedSkykeys[i].equals(derivedSkykeys[j]) {
-				t.Fatal("Expected skykey to be different", i, j)
+				t.Fatal("Expected pubaccesskey to be different", i, j)
 			}
 		}
 	}

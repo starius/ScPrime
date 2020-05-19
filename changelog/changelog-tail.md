@@ -34,7 +34,7 @@
 - Fix negative currency panic in `spc renter contracts view`
 
 **Other**
-- Add timeout parameter to Skylink pin route
+- Add timeout parameter to Publink pin route
 - Also apply timeout when fetching the individual chunks
 - Add SiaMux stream handler to the host
 - Fix TestAccountExpiry NDF

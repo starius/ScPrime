@@ -528,12 +528,12 @@ func testPubaccessBasic(t *testing.T, tg *siatest.TestGroup) {
 	// easier way.
 }
 
-// testConvertSiaFile tests converting a siafile to a skyfile. This test checks
+// testConvertSiaFile tests converting a siafile to a pubfile. This test checks
 // for 1-of-N redundancies and N-of-M redundancies.
 func testConvertSiaFile(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Upload a siafile that will then be converted to a skyfile.
+	// Upload a siafile that will then be converted to a pubfile.
 	//
 	// Set 2 as the datapieces to check for N-of-M redundancy conversions
 	filesize := int(modules.SectorSize) + siatest.Fuzz()
@@ -542,14 +542,14 @@ func testConvertSiaFile(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Create Skyfile Upload Parameters
+	// Create Pubfile Upload Parameters
 	sup := modules.SkyfileUploadParameters{
 		SiaPath: modules.RandomSiaPath(),
 	}
 
-	// Try and convert to a Skyfile, this should fail due to the original
+	// Try and convert to a Pubfile, this should fail due to the original
 	// siafile being a N-of-M redundancy
-	skylink, err := r.SkynetConvertSiafileToSkyfilePost(sup, remoteFile.SiaPath())
+	publink, err := r.SkynetConvertSiafileToSkyfilePost(sup, remoteFile.SiaPath())
 	if !strings.Contains(err.Error(), renter.ErrRedundancyNotSupported.Error()) {
 		t.Fatalf("Expected Error to contain %v but got %v", renter.ErrRedundancyNotSupported, err)
 	}
@@ -570,14 +570,14 @@ func testConvertSiaFile(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Convert to a Skyfile
-	skylink, err = r.SkynetConvertSiafileToSkyfilePost(sup, remoteFile.SiaPath())
+	// Convert to a Pubfile
+	publink, err = r.SkynetConvertSiafileToSkyfilePost(sup, remoteFile.SiaPath())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Try to download the skylink.
-	fetchedData, _, err := r.SkynetPublinkGet(skylink)
+	// Try to download the publink.
+	fetchedData, _, err := r.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -585,10 +585,10 @@ func testConvertSiaFile(t *testing.T, tg *siatest.TestGroup) {
 	// Compare the data fetched from the Publink to the local data and the
 	// previously uploaded data
 	if !bytes.Equal(fetchedData, localData) {
-		t.Error("converted skylink data doesn't match local data")
+		t.Error("converted publink data doesn't match local data")
 	}
 	if !bytes.Equal(fetchedData, remoteData) {
-		t.Error("converted skylink data doesn't match remote data")
+		t.Error("converted publink data doesn't match remote data")
 	}
 }
 
@@ -1303,7 +1303,7 @@ func testPubaccessSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 func testPubaccessDisableForce(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Upload Skyfile
+	// Upload Pubfile
 	_, _, _, err := r.UploadNewSkyfileBlocking(t.Name(), 100, false)
 	if err != nil {
 		t.Fatal(err)
@@ -1373,7 +1373,7 @@ func testPubaccessBlacklist(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Blacklist the skylink
+	// Blacklist the publink
 	add := []string{publink}
 	remove := []string{}
 	err = r.SkynetBlacklistPost(add, remove)
@@ -1638,7 +1638,7 @@ func testPubaccessPortals(t *testing.T, tg *siatest.TestGroup) {
 func testPubaccessHeadRequest(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Upload a skyfile
+	// Upload a pubfile
 	publink, _, _, err := r.UploadNewSkyfileBlocking(t.Name(), 100, false)
 	if err != nil {
 		t.Fatal(err)
@@ -1865,7 +1865,7 @@ func testPubaccessDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 func testPubaccessRequestTimeout(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Upload a skyfile
+	// Upload a pubfile
 	publink, _, _, err := r.UploadNewSkyfileBlocking(t.Name(), 100, false)
 	if err != nil {
 		t.Fatal(err)
@@ -1931,7 +1931,7 @@ func testPubaccessRequestTimeout(t *testing.T, tg *siatest.TestGroup) {
 func testRegressionTimeoutPanic(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// Upload a skyfile
+	// Upload a pubfile
 	publink, _, _, err := r.UploadNewSkyfileBlocking(t.Name(), 100, false)
 	if err != nil {
 		t.Fatal(err)
@@ -2078,19 +2078,19 @@ func testPubaccessSkykey(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testRenameSiaPath verifies that the siapath to the skyfile can be renamed.
+// testRenameSiaPath verifies that the siapath to the pubfile can be renamed.
 func testRenameSiaPath(t *testing.T, tg *siatest.TestGroup) {
 	// Grab Renter
 	r := tg.Renters()[0]
 
-	// Create a skyfile
+	// Create a pubfile
 	publink, sup, _, err := r.UploadNewSkyfileBlocking("testRenameFile", 100, false)
 	siaPath := sup.SiaPath
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Rename Skyfile with root set to false should fail
+	// Rename Pubfile with root set to false should fail
 	err = r.RenterRenamePost(siaPath, modules.RandomSiaPath(), false)
 	if err == nil {
 		t.Error("Rename should have failed if the root flag is false")
@@ -2099,7 +2099,7 @@ func testRenameSiaPath(t *testing.T, tg *siatest.TestGroup) {
 		t.Errorf("Expected error to contain %v but got %v", filesystem.ErrNotExist, err)
 	}
 
-	// Rename Skyfile with root set to true should be successful
+	// Rename Pubfile with root set to true should be successful
 	siaPath, err = modules.SkynetFolder.Join(siaPath.String())
 	if err != nil {
 		t.Fatal(err)
@@ -2113,7 +2113,7 @@ func testRenameSiaPath(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Verify the skyfile can still be downloaded
+	// Verify the pubfile can still be downloaded
 	_, _, err = r.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
@@ -2126,11 +2126,11 @@ func testSkynetEncryption(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 	encKeyName := "encryption-test-key"
 
-	// Create some data to upload as a skyfile.
+	// Create some data to upload as a pubfile.
 	data := fastrand.Bytes(100 + siatest.Fuzz())
 	// Need it to be a reader.
 	reader := bytes.NewReader(data)
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	filename := "testEncryptSmall"
 	uploadSiaPath, err := modules.NewSiaPath(filename)
 	if err != nil {
@@ -2163,12 +2163,12 @@ func testSkynetEncryption(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	skylink, sfMeta, err := r.SkynetSkyfilePost(sup)
+	publink, sfMeta, err := r.SkynetSkyfilePost(sup)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Try to download the file behind the skylink.
+	// Try to download the file behind the publink.
 	fetchedData, metadata, err := r.SkynetPublinkGet(sfMeta.Publink)
 	if err != nil {
 		t.Fatal(err)
@@ -2185,13 +2185,13 @@ func testSkynetEncryption(t *testing.T, tg *siatest.TestGroup) {
 		t.Error("bad filename")
 	}
 
-	if sfMeta.Publink != skylink {
+	if sfMeta.Publink != publink {
 		t.Log(sfMeta.Publink)
-		t.Log(skylink)
-		t.Fatal("Expected metadata skylink to match returned skylink")
+		t.Log(publink)
+		t.Fatal("Expected metadata publink to match returned publink")
 	}
 
-	// Pin the encrypted Skyfile.
+	// Pin the encrypted Pubfile.
 	pinSiaPath, err := modules.NewSiaPath("testSmallEncryptedPinPath")
 	if err != nil {
 		t.Fatal(err)
@@ -2202,7 +2202,7 @@ func testSkynetEncryption(t *testing.T, tg *siatest.TestGroup) {
 		Root:                false,
 		BaseChunkRedundancy: 3,
 	}
-	err = r.SkynetPublinkPinPost(skylink, pinLUP)
+	err = r.SkynetPublinkPinPost(publink, pinLUP)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2217,10 +2217,10 @@ func testSkynetEncryption(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 	if len(pinnedFile.File.Publinks) != 1 {
-		t.Fatal("expecting 1 skylink")
+		t.Fatal("expecting 1 publink")
 	}
-	if pinnedFile.File.Publinks[0] != skylink {
-		t.Fatal("skylink mismatch")
+	if pinnedFile.File.Publinks[0] != publink {
+		t.Fatal("publink mismatch")
 	}
 }
 
@@ -2230,11 +2230,11 @@ func testSkynetEncryptionLargeFile(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 	encKeyName := "large-file-encryption-test-key"
 
-	// Create some data to upload as a skyfile.
+	// Create some data to upload as a pubfile.
 	data := fastrand.Bytes(5 * int(modules.SectorSize))
 	// Need it to be a reader.
 	reader := bytes.NewReader(data)
-	// Call the upload skyfile client call.
+	// Call the upload pubfile client call.
 	filename := "testEncryptLarge"
 	uploadSiaPath, err := modules.NewSiaPath(filename)
 	if err != nil {
@@ -2258,18 +2258,18 @@ func testSkynetEncryptionLargeFile(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	skylink, sfMeta, err := r.SkynetSkyfilePost(sup)
+	publink, sfMeta, err := r.SkynetSkyfilePost(sup)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if sfMeta.Publink != skylink {
+	if sfMeta.Publink != publink {
 		t.Log(sfMeta.Publink)
-		t.Log(skylink)
-		t.Fatal("Expected metadata skylink to match returned skylink")
+		t.Log(publink)
+		t.Fatal("Expected metadata publink to match returned publink")
 	}
 
-	// Try to download the file behind the skylink.
+	// Try to download the file behind the publink.
 	fetchedData, metadata, err := r.SkynetPublinkGet(sfMeta.Publink)
 	if err != nil {
 		t.Fatal(err)
@@ -2285,9 +2285,9 @@ func testSkynetEncryptionLargeFile(t *testing.T, tg *siatest.TestGroup) {
 	if metadata.Filename != filename {
 		t.Error("bad filename")
 	}
-	t.Log(skylink)
+	t.Log(publink)
 
-	// Pin the encrypted Skyfile.
+	// Pin the encrypted Pubfile.
 	pinSiaPath, err := modules.NewSiaPath("testEncryptedPinPath")
 	if err != nil {
 		t.Fatal(err)
@@ -2298,7 +2298,7 @@ func testSkynetEncryptionLargeFile(t *testing.T, tg *siatest.TestGroup) {
 		Root:                false,
 		BaseChunkRedundancy: 2,
 	}
-	err = r.SkynetPublinkPinPost(skylink, pinLUP)
+	err = r.SkynetPublinkPinPost(publink, pinLUP)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2313,9 +2313,9 @@ func testSkynetEncryptionLargeFile(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 	if len(pinnedFile.File.Publinks) != 1 {
-		t.Fatal("expecting 1 skylink")
+		t.Fatal("expecting 1 publink")
 	}
-	if pinnedFile.File.Publinks[0] != skylink {
-		t.Fatal("skylink mismatch")
+	if pinnedFile.File.Publinks[0] != publink {
+		t.Fatal("publink mismatch")
 	}
 }

@@ -215,10 +215,10 @@ func (rc *RefCounter) callCreateAndApplyTransaction(updates ...writeaheadlog.Upd
 	// interrupted during the creation of the refcounter after writing the
 	// header update to the Wal but before applying it.
 	f, err := rc.staticDeps.OpenFile(rc.filepath, os.O_CREATE|os.O_RDWR, modules.DefaultFilePerm)
+	defer f.Close()
 	if err != nil {
 		return errors.AddContext(err, "failed to open refcounter file in order to apply updates")
 	}
-	defer f.Close()
 	if !rc.isUpdateInProgress {
 		return ErrUpdateWithoutUpdateSession
 	}

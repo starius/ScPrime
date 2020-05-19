@@ -340,6 +340,7 @@ func TestRenterPricesVolatility(t *testing.T) {
 			t.Fatal(errors.AddContext(err, "Could not add host"))
 		}
 		hosts = append(hosts, h)
+		defer h.Close()
 	}
 	allowance := modules.Allowance{}
 	initial, _, err := rt.renter.PriceEstimation(allowance)

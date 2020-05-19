@@ -39,7 +39,7 @@ const (
 	exactSize4mb  = 3931e3
 	exactSize10mb = 10e6 // Once over 4 MB, fetch size doesn't matter, can use exact sizes.
 
-	// Fetch size is the largest fetch size that can be set using the skylink
+	// Fetch size is the largest fetch size that can be set using the publink
 	// naming standard without exceeding the filesize.
 	fetchSize64kb = 61440
 	fetchSize1mb  = 983040
@@ -212,7 +212,7 @@ func downloadFileSet(dir modules.SiaPath, fileSize int, threads uint64) error {
 				atomic.AddUint64(&atomicDownloadErrors, 1)
 				return
 			}
-			// Figure out the skylink for the file.
+			// Figure out the publink for the file.
 			rf, err := c.RenterFileRootGet(siaPath)
 			if err != nil {
 				fmt.Println("Error getting file info:", err)
@@ -222,7 +222,7 @@ func downloadFileSet(dir modules.SiaPath, fileSize int, threads uint64) error {
 			// Get a reader / stream for the download.
 			reader, err := c.SkynetPublinkReaderGet(rf.File.Publinks[0])
 			if err != nil {
-				fmt.Println("Error getting skylink reader:", err)
+				fmt.Println("Error getting publink reader:", err)
 				atomic.AddUint64(&atomicDownloadErrors, 1)
 				return
 			}
@@ -285,11 +285,11 @@ func getMissingFiles(dir modules.SiaPath, expectedFileSize uint64, expectedFetch
 		var sl modules.Publink
 		err := sl.LoadString(file.Publinks[0])
 		if err != nil {
-			return nil, errors.AddContext(err, "error parsing skylink in testing dir")
+			return nil, errors.AddContext(err, "error parsing publink in testing dir")
 		}
 		_, fetchSize, err := sl.OffsetAndFetchSize()
 		if err != nil {
-			return nil, errors.AddContext(err, "error parsing skylink offset and fetch size in testing dir")
+			return nil, errors.AddContext(err, "error parsing publink offset and fetch size in testing dir")
 		}
 		if expectedFetchSize < 4100e3 && fetchSize != expectedFetchSize {
 			continue

@@ -149,7 +149,7 @@ func (sk *Pubaccesskey) FromString(s string) error {
 // ID returns the ID for the Pubaccesskey. A master Pubaccesskey and all file-specific
 // skykeys derived from it share the same ID because they only differ in nonce
 // values, not key values. This fact is used to identify the master Pubaccesskey
-// with which a Skyfile was encrypted.
+// with which a Pubfile was encrypted.
 func (sk Pubaccesskey) ID() (keyID SkykeyID) {
 	var entropy []byte
 	// Ignore the nonce for this type because the nonce is different for each
@@ -201,7 +201,7 @@ func (sk *Pubaccesskey) GenerateFileSpecificSubkey() (Pubaccesskey, error) {
 
 // DeriveSubkey is used to create Skykeys with the same key, but with a
 // different nonce. This is used to create file-specific keys, and separate keys
-// for Skyfile baseSector uploads and fanout uploads.
+// for Pubfile baseSector uploads and fanout uploads.
 func (sk *Pubaccesskey) DeriveSubkey(derivation []byte) (Pubaccesskey, error) {
 	nonce := sk.Nonce()
 	derivedNonceHash := crypto.HashAll(nonce, derivation)
@@ -224,7 +224,7 @@ func (sk *Pubaccesskey) SubkeyWithNonce(nonce []byte) (Pubaccesskey, error) {
 	// Sanity check that we can actually make a CipherKey with this.
 	_, err := crypto.NewSiaKey(sk.CipherType, entropy)
 	if err != nil {
-		return Pubaccesskey{}, errors.AddContext(err, "error creating new skykey subkey")
+		return Pubaccesskey{}, errors.AddContext(err, "error creating new pubaccesskey subkey")
 	}
 
 	subkey := Pubaccesskey{sk.Name, sk.CipherType, entropy}

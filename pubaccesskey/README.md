@@ -28,23 +28,23 @@ transmitted.
 
 ## Key Derivation
 
-The skykey manager stores only master skykeys. These skykeys are not used
+The pubaccesskey manager stores only master skykeys. These skykeys are not used
 directly for encryption/decryption. Rather they are used to derive file-specific
-Skykeys. File-specific skykeys share the same key material as the master skykey
+Skykeys. File-specific skykeys share the same key material as the master pubaccesskey
 they are derived from. They differ in the nonce value. This allows us to reuse
-the master skykey for multiple files, by using a new file-specific skykey for
+the master pubaccesskey for multiple files, by using a new file-specific pubaccesskey for
 every new file. 
 
 The method `GenerateFileSpecificSubkey` is used to create new file-specific
-sub-keys from a master skykey. 
+sub-keys from a master pubaccesskey. 
 
 Further levels of key derivation may be necessary and are supported by using the
 `DeriveSubkey` method.
 
-## Skyfile encryption
+## Pubfile encryption
 Two other types of subkeys are the ones actually used for encrypting skyfiles.
 There is a `BaseSector` derivation and a `Fanout` derivation which are used for
-encrypting the base sector and fanout of a skyfile respectively. 
+encrypting the base sector and fanout of a pubfile respectively. 
 
 This is necessary because of the final level of key derivation used in the upload
 process of Sia. When splitting up files for redundancy, each `(chunkIndex,

@@ -17,7 +17,7 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 )
 
-// RenterSkyfileGet wraps RenterFileRootGet to query a skyfile.
+// RenterSkyfileGet wraps RenterFileRootGet to query a pubfile.
 func (c *Client) RenterSkyfileGet(siaPath modules.SiaPath, root bool) (rf api.RenterFile, err error) {
 	if !root {
 		siaPath, err = modules.SkynetFolder.Join(siaPath.String())
