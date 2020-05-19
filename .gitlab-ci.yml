@@ -161,7 +161,7 @@ lint:
 build:
   stage: lint
   ## go 1.13 is the minimum accepted version for building ScPrime.
-  image: golang:latest
+  image: golang:1.13
   artifacts:
     name: "Binaries"
     paths:
