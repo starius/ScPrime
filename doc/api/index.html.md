@@ -108,7 +108,7 @@ curl -A "ScPrime-Agent" --user "":<apipassword> --data "amount=123&destination=a
 API authentication is enabled by default, using a password stored in a flat
 file. The location of this file is:
 
- - Linux:   `$HOME/.sia/apipassword`
+ - Linux:   `$HOME/.scprime/apipassword`
  - MacOS:   `$HOME/Library/Application Support/ScPrime/apipassword`
  - Windows: `%LOCALAPPDATA%\ScPrime\apipassword`
 
@@ -151,7 +151,7 @@ There are three environment variables supported by spd.
  - `SCPRIME_API_PASSWORD` is the environment variable that sets a custom API
    password if the default is not used
  - `SCPRIME_DATA_DIR` is the environment variable that tells spd where to put the
-   general sia data, e.g. api password, configuration, logs, etc.
+   general ScPrime node data, e.g. api password, configuration, logs, etc.
  - `DAEMON_DATA_DIR` is the environment variable that tells spd where to put the
    spd-specific data
  - `SCPRIME_WALLET_PASSWORD` is the environment variable that can be set to enable
@@ -426,15 +426,14 @@ the rest of ScPrime.
 curl -A "ScPrime-Agent" "localhost:4280/daemon/alerts"
 ```
 
-Returns the alerts of the node sorted by severity from highest to
-lowest.
+Returns all alerts of all severities of the ScPrime instance sorted by severity from highest to lowest in `alerts` and the alerts sorted by category in `criticalalerts`, `erroralerts` and `warningalerts`.
 
 ### JSON Response
 > JSON Response Example
  
 ```go
 {
-  "alerts": [
+    "alerts": [
     {
       "cause": "wallet is locked",
       "msg": "user's contracts need to be renewed but a locked wallet prevents renewal",
@@ -442,6 +441,16 @@ lowest.
       "severity": "warning",
     }
   ],
+  "criticalalerts": [],
+  "erroralerts": [],
+  "warningalerts": [
+    {
+      "cause": "wallet is locked",
+      "msg": "user's contracts need to be renewed but a locked wallet prevents renewal",
+      "module": "contractor",
+      "severity": "warning",
+    }
+  ]
 }
 ```
 **cause** | string  
@@ -3332,12 +3341,12 @@ curl -A "ScPrime-Agent" "localhost:4280/renter/dir/"
 curl -A "ScPrime-Agent" "localhost:4280/renter/dir/mydir"
 ```
 
-retrieves the contents of a directory on the sia network
+retrieves the contents of a directory on the ScPrime network
 
 ### Path Parameters
 ### REQUIRED
 **siapath** | string  
-Path to the directory on the sia network  
+Path to the directory on the ScPrime network  
 
 ### JSON Response
 > JSON Response Example
@@ -3364,7 +3373,7 @@ Path to the directory on the sia network
   "files": []
 }
 ```
-**directories** An array of sia directories
+**directories** An array of directories
 
 **aggregatenumfiles** | uint64  
 the total number of files in the sub directory tree
@@ -3402,7 +3411,7 @@ the number of files in the directory
 the number of directories in the directory
 
 **siapath** | string  
-The path to the directory on the sia network
+The path to the directory on the ScPrime network
 
 **size** | string
 The size in bytes of files in the directory
@@ -3437,10 +3446,10 @@ relative to 'home/user/'.
 ### REQUIRED
 **action** | string  
 Action can be either `create`, `delete` or `rename`.
- - `create` will create an empty directory on the sia network
- - `delete` will remove a directory and its contents from the sia network. Will
+ - `create` will create an empty directory on the ScPrime network
+ - `delete` will remove a directory and its contents from the ScPrime network. Will
    return an error if the target is a file.
- - `rename` will rename a directory on the sia network
+ - `rename` will rename a directory on the ScPrime network
 
  **newsiapath** | string  
  The new siapath of the renamed folder. Only required for the `rename` action.

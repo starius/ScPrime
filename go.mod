@@ -10,13 +10,14 @@ require (
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/klauspost/reedsolomon v1.9.8
+	github.com/pelletier/go-toml v1.8.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/sasha-s/go-deadlock v0.2.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/vbauerster/mpb/v5 v5.1.0
+	github.com/vbauerster/mpb/v5 v5.2.0
 	github.com/xtaci/smux v1.5.12
 	gitlab.com/NebulousLabs/demotemutex v0.0.0-20151003192217-235395f71c40
 	gitlab.com/NebulousLabs/entropy-mnemonics v0.0.0-20181018051301-7532f67e3500
@@ -31,7 +32,7 @@ require (
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200425183554-2fc52b175f7b
 	go.etcd.io/bbolt v1.3.3
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/net v0.0.0-20200519113804-d87ec0cfa476 // indirect
+	golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7 // indirect
 	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299 // indirect
-	golang.org/x/tools v0.0.0-20200519015757-0d0afa43d58a
+	golang.org/x/tools v0.0.0-20200519205726-57a9e4404bf7
 )
