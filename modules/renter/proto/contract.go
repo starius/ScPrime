@@ -317,10 +317,6 @@ func (c *SafeContract) makeUpdateSetRoot(root crypto.Hash, index int) writeahead
 // refcounter value. If there is no open refcounter update session this method
 // will open one. This update session will be closed when we apply the update.
 func (c *SafeContract) makeUpdateRefCounterAppend() (writeaheadlog.Update, error) {
-	if build.Release != "testing" {
-		return writeaheadlog.Update{}, nil // no update needed
-	}
-
 	if c.staticRC == nil {
 		return writeaheadlog.Update{}, ErrRefCounterNotExist
 	}
@@ -343,9 +339,6 @@ func (c *SafeContract) makeUpdateRefCounterAppend() (writeaheadlog.Update, error
 // update session, it will open one and it will leave it open. This update
 // session must be closed by the calling method.
 func (c *SafeContract) applyRefCounterUpdate(u writeaheadlog.Update) error {
-	if build.Release != "testing" {
-		return nil
-	}
 	err := c.staticRC.callCreateAndApplyTransaction(u)
 	// If we don't have an open update session open one and try again.
 	if errors.Contains(err, ErrUpdateWithoutUpdateSession) {
@@ -796,12 +789,12 @@ func (cs *ContractSet) managedApplyInsertContractUpdate(update writeaheadlog.Upd
 		return modules.RenterContract{}, err
 	}
 	var rc *RefCounter
-	if build.Release == "testing" {
-		rc, err = newRefCounter(rcFilePath, uint64(len(roots)), cs.wal)
-		if err != nil {
-			return modules.RenterContract{}, errors.AddContext(err, "failed to create a refcounter")
-		}
+
+	rc, err = newRefCounter(rcFilePath, uint64(len(roots)), cs.wal)
+	if err != nil {
+		return modules.RenterContract{}, errors.AddContext(err, "failed to create a refcounter")
 	}
+
 	sc := &SafeContract{
 		header:      h,
 		merkleRoots: merkleRoots,
@@ -900,16 +893,16 @@ func (cs *ContractSet) loadSafeContract(headerFileName, rootsFileName, refCountF
 		}
 	}
 	var rc *RefCounter
-	if build.Release == "testing" {
-		// load the reference counter or create a new one if it doesn't exist
-		rc, err = loadRefCounter(refCountFileName, cs.wal)
-		if errors.Contains(err, ErrRefCounterNotExist) {
-			rc, err = newRefCounter(refCountFileName, uint64(merkleRoots.numMerkleRoots), cs.wal)
-		}
-		if err != nil {
-			return errors.AddContext(err, "failed to load or create a refcounter")
-		}
+
+	// load the reference counter or create a new one if it doesn't exist
+	rc, err = loadRefCounter(refCountFileName, cs.wal)
+	if errors.Contains(err, ErrRefCounterNotExist) {
+		rc, err = newRefCounter(refCountFileName, uint64(merkleRoots.numMerkleRoots), cs.wal)
 	}
+	if err != nil {
+		return errors.AddContext(err, "failed to load or create a refcounter")
+	}
+
 	// add to set
 	sc := &SafeContract{
 		header:        header,
