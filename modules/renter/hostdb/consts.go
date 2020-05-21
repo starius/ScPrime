@@ -31,7 +31,8 @@ const (
 
 	// maxHostDowntime specifies the maximum amount of time that a host is
 	// allowed to be offline while still being in the hostdb.
-	maxHostDowntime = 10 * 24 * time.Hour
+	maxHostDowntime       = maxHostDownTimeInDays * 24 * time.Hour
+	maxHostDownTimeInDays = 20
 
 	// maxSettingsLen indicates how long in bytes the host settings field is
 	// allowed to be before being ignored as a DoS attempt.
@@ -59,10 +60,6 @@ const (
 	// saveFrequency defines how frequently the hostdb will save to disk. Hostdb
 	// will also save immediately prior to shutdown.
 	saveFrequency = 2 * time.Minute
-
-	// scanCheckInterval is the interval used when waiting for the scanList to
-	// empty itself and for waiting on the consensus set to be synced.
-	scanCheckInterval = time.Second
 
 	// scanSpeedupMedianMultiplier is the number with which the median of the
 	// initial scans is multiplied to speedup the initial scan after
@@ -131,6 +128,14 @@ var (
 		Standard: time.Hour * 6,
 		Dev:      time.Minute * 10,
 		Testing:  time.Second * 5,
+	}).(time.Duration)
+
+	// scanCheckInterval is the interval used when waiting for the scanList to
+	// empty itself and for waiting on the consensus set to be synced.
+	scanCheckInterval = build.Select(build.Var{
+		Standard: time.Second,
+		Dev:      time.Second,
+		Testing:  100 * time.Millisecond,
 	}).(time.Duration)
 
 	// minScanSleep is the minimum amount of time that the hostdb will sleep

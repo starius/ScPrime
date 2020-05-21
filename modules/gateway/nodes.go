@@ -6,12 +6,12 @@ import (
 	"net"
 	"time"
 
+	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 var (
@@ -21,7 +21,7 @@ var (
 	errPeerGenesisID = errors.New("peer has different genesis ID")
 )
 
-// A node represents a potential peer on the Sia network.
+// A node represents a potential peer on the ScPrime network.
 type node struct {
 	NetAddress      modules.NetAddress `json:"netaddress"`
 	WasOutboundPeer bool               `json:"wasoutboundpeer"`
@@ -46,7 +46,7 @@ func (g *Gateway) addNode(addr modules.NetAddress) error {
 }
 
 // staticPingNode verifies that there is a reachable node at the provided address
-// by performing the Sia gateway handshake protocol.
+// by performing the ScPrime gateway handshake protocol.
 func (g *Gateway) staticPingNode(addr modules.NetAddress) error {
 	// Ping the untrusted node to see whether or not there's actually a
 	// reachable node at the provided address.

@@ -122,27 +122,27 @@ party integrations such as Duplicati`,
 	utilsBruteForceSeedCmd = &cobra.Command{
 		Use:   "bruteforce-seed",
 		Short: "attempt to brute force seed",
-		Long: `Attempts to brute force a partial Sia seed.  Accepts a 27 or 28 word
+		Long: `Attempts to brute force a partial ScPrime seed.  Accepts a 27 or 28 word
 seed and returns a valid 28 or 29 word seed`,
 		Run: wrap(utilsbruteforceseed),
 	}
 
 	utilsUploadedsizeCmd = &cobra.Command{
 		Use:   "uploadedsize [path]",
-		Short: "calculate a folder's size on Sia",
-		Long: `Calculates a given folder size on Sia and the lost space caused by 
+		Short: "calculate a folder's size on ScPrime",
+		Long: `Calculates a given folder size on ScPrime and the lost space caused by 
 files are rounded up to the minimum chunks size.`,
 		Run: wrap(utilsuploadedsizecmd),
 	}
 )
 
-// bashcmlcmd is the handler for the command `siac utils bash-completion`.
+// bashcmlcmd is the handler for the command `spc utils bash-completion`.
 func bashcomplcmd(path string) {
 	rootCmd.GenBashCompletionFile(path)
 }
 
-// mangencmd is the handler for the command `siac utils man-generation`.
-// generates siac man pages
+// mangencmd is the handler for the command `spc utils man-generation`.
+// generates spc man pages
 func mangencmd(path string) {
 	doc.GenManTree(rootCmd, &doc.GenManHeader{
 		Section: "1",
@@ -151,7 +151,7 @@ func mangencmd(path string) {
 	}, path)
 }
 
-// utilshastingscmd is the handler for the command `siac utils hastings`.
+// utilshastingscmd is the handler for the command `spc utils hastings`.
 // converts a Siacoin amount into hastings.
 func utilshastingscmd(amount string) {
 	hastings, err := parseCurrency(amount)
@@ -161,7 +161,7 @@ func utilshastingscmd(amount string) {
 	fmt.Println(hastings)
 }
 
-// utilsdecoderawtxncmd is the handler for command `siac utils decoderawtxn`.
+// utilsdecoderawtxncmd is the handler for command `spc utils decoderawtxn`.
 // converts a base64-encoded transaction to JSON encoding
 func utilsdecoderawtxncmd(b64 string) {
 	bin, err := base64.StdEncoding.DecodeString(b64)
@@ -176,7 +176,7 @@ func utilsdecoderawtxncmd(b64 string) {
 	fmt.Println(string(js))
 }
 
-// utilsencoderawtxncmd is the handler for command `siac utils encoderawtxn`.
+// utilsencoderawtxncmd is the handler for command `spc utils encoderawtxn`.
 // converts a JSON encoded transaction to base64-encoding
 func utilsencoderawtxncmd(jstxn string) {
 	var jsBytes []byte
@@ -198,7 +198,7 @@ func utilsencoderawtxncmd(jstxn string) {
 	fmt.Println(base64.StdEncoding.EncodeToString(encoding.Marshal(txn)))
 }
 
-// utilssighashcmd is the handler for the command `siac utils sighash`.
+// utilssighashcmd is the handler for the command `spc utils sighash`.
 // calculates the SigHash of a transaction
 func utilssighashcmd(indexStr, txnStr string) {
 	index, err := strconv.Atoi(indexStr)
@@ -233,7 +233,7 @@ func utilssighashcmd(indexStr, txnStr string) {
 	fmt.Println(txn.SigHash(index, 180e3))
 }
 
-// utilschecksigcmd is the handler for the command `siac utils checksig`.
+// utilschecksigcmd is the handler for the command `spc utils checksig`.
 // verifies the signature of a hash
 func utilschecksigcmd(base64Sig, hexHash, pkStr string) {
 	var sig crypto.Signature
@@ -264,9 +264,9 @@ func utilschecksigcmd(base64Sig, hexHash, pkStr string) {
 	}
 }
 
-// utilsverifyseed is the handler for the command `siac utils verify-seed`.
+// utilsverifyseed is the handler for the command `spc utils verify-seed`.
 // verifies a seed matches the required formatting.  This can be used to help
-// troubleshot seeds that are not being accepted by siad.
+// troubleshot seeds that are not being accepted by spd.
 func utilsverifyseed() {
 	seed, err := passwordPrompt("Please enter your seed: ")
 	if err != nil {
@@ -278,17 +278,16 @@ func utilsverifyseed() {
 		die(err)
 	}
 	fmt.Println("No issues detected with your seed")
-
 }
 
-// utilsdisplayapipassword is the handler for the command `siac utils
+// utilsdisplayapipassword is the handler for the command `spc utils
 // display-api-password`.
 // displays the API Password to the user.
 func utilsdisplayapipassword() {
 	fmt.Println(httpClient.Password)
 }
 
-// utilsbruteforceseed is the handler for the command `siac utils
+// utilsbruteforceseed is the handler for the command `spc utils
 // bruteforce-seed`
 // attempts to find the one word missing from a seed.
 func utilsbruteforceseed() {
@@ -317,7 +316,6 @@ func utilsbruteforceseed() {
 			copy(seed[:], checksumSeedBytes)
 			fullChecksum := crypto.HashObject(seed)
 			if len(checksumSeedBytes) == crypto.EntropySize+modules.SeedChecksumSize && bytes.Equal(fullChecksum[:modules.SeedChecksumSize], checksumSeedBytes[crypto.EntropySize:]) {
-
 				if _, err := modules.StringToSeed(s, mnemonics.English); err == nil {
 					fmt.Printf("\nFound valid seed! The missing word was %q\n", word)
 					fmt.Println(s)
@@ -332,7 +330,7 @@ func utilsbruteforceseed() {
 }
 
 // utilsuploadedsizecmd is the handler for the command `utils uploadedsize [path] [flags]`
-// It estimates the 'on Sia' size of the given directory
+// It estimates the 'on ScPrime' size of the given directory
 func utilsuploadedsizecmd(path string) {
 	var fileSizes []uint64
 	if fileExists(path) {
@@ -378,8 +376,8 @@ func utilsuploadedsizecmd(path string) {
 		lostPercent = uint64(float64(siaSize)/float64(diskSize)*100) - 100
 	}
 	fmt.Printf(`Size on
-    Disk: %v
-    Sia:  %v
+    Disk:     %v
+    ScPrime:  %v
 
 Lost space: %v
     +%v%% empty space used for scaling every file up to %v
@@ -399,6 +397,25 @@ Files: %v
 			len(fileSizes),
 			modules.FilesizeUnits(calculateAverageUint64(fileSizes)),
 			modules.FilesizeUnits(calculateMedianUint64(fileSizes)))
+	}
+}
+
+// askForConfirmation prints a question and waits for confirmation until the
+// user gives a valid answer ("y", "yes", "n", "no" with any capitalization).
+func askForConfirmation(s string) bool {
+	r := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Printf("%s [y/n]: ", s)
+		answer, err := r.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+		answer = strings.ToLower(strings.TrimSpace(answer))
+		if answer == "y" || answer == "yes" {
+			return true
+		} else if answer == "n" || answer == "no" {
+			return false
+		}
 	}
 }
 

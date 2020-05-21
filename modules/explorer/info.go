@@ -1,11 +1,11 @@
 package explorer
 
 import (
+	bolt "go.etcd.io/bbolt"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	bolt "go.etcd.io/bbolt"
 )
 
 // Block takes a block ID and finds the corresponding block, provided that the

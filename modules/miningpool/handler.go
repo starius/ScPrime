@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	// "math/big"
+
 	"net"
 	"strconv"
 	"strings"
@@ -593,7 +593,7 @@ func (h *Handler) sendStratumNotify(cleanJobs bool) error {
 	h.p.persist.mu.Unlock()
 	encoding.Unmarshal(job.MarshalledBlock, &b)
 	job.MerkleRoot = b.MerkleRoot()
-	mbj := b.MerkleBranches()
+	mbj := ReadMerkleBranches(b)
 	h.log.Debugf("merkleBranch: %s\n", mbj)
 
 	version := ""

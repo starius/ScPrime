@@ -4,6 +4,8 @@ import (
 	"net"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -33,8 +35,17 @@ func renewBasePrice(so storageObligation, settings modules.HostExternalSettings,
 // renewContractCollateral returns the amount of collateral that the host is
 // expected to add to the file contract based on the file contract and host
 // settings.
-func renewContractCollateral(so storageObligation, settings modules.HostExternalSettings, fc types.FileContract) types.Currency {
-	return fc.ValidProofOutputs[1].Value.Sub(settings.ContractPrice).Sub(renewBasePrice(so, settings, fc))
+func renewContractCollateral(so storageObligation, settings modules.HostExternalSettings, fc types.FileContract) (types.Currency, error) {
+	if fc.ValidHostPayout().Cmp(settings.ContractPrice) < 0 {
+		return types.Currency{}, errors.New("ContractPrice higher than ValidHostOutput")
+	}
+
+	diff := fc.ValidHostPayout().Sub(settings.ContractPrice)
+	rbp := renewBasePrice(so, settings, fc)
+	if diff.Cmp(rbp) < 0 {
+		return types.Currency{}, errors.New("ValidHostOutput smaller than ContractPrice + RenewBasePrice")
+	}
+	return diff.Sub(rbp), nil
 }
 
 // managedAddRenewCollateral adds the host's collateral to the renewed file
@@ -43,7 +54,11 @@ func (h *Host) managedAddRenewCollateral(so storageObligation, settings modules.
 	txn := txnSet[len(txnSet)-1]
 	parents := txnSet[:len(txnSet)-1]
 	fc := txn.FileContracts[0]
-	hostPortion := renewContractCollateral(so, settings, fc)
+	hostPortion, err := renewContractCollateral(so, settings, fc)
+	if err != nil {
+		return nil, nil, nil, nil, extendErr("could not compute contract collateral: ", ErrorCommunication(err.Error()))
+	}
+
 	builder, err = h.wallet.RegisterTransaction(txn, parents)
 	if err != nil {
 		return
@@ -178,11 +193,28 @@ func (h *Host) managedRPCRenewContract(conn net.Conn) error {
 	// During finalization the signatures sent by the renter are all checked.
 	h.mu.RLock()
 	fc := txnSet[len(txnSet)-1].FileContracts[0]
-	renewCollateral := renewContractCollateral(so, settings, fc)
 	renewRevenue := renewBasePrice(so, settings, fc)
 	renewRisk := renewBaseCollateral(so, settings, fc)
+	renewCollateral, err := renewContractCollateral(so, settings, fc)
 	h.mu.RUnlock()
-	hostTxnSignatures, hostRevisionSignature, newSOID, err := h.managedFinalizeContract(txnBuilder, renterPK, renterTxnSignatures, renterRevisionSignature, so.SectorRoots, renewCollateral, renewRevenue, renewRisk, settings)
+	if err != nil {
+		modules.WriteNegotiationRejection(conn, err)
+		return extendErr("failed to compute contract collateral: ", err)
+	}
+
+	fca := finalizeContractArgs{
+		builder:                 txnBuilder,
+		renewal:                 false,
+		renterPK:                renterPK,
+		renterSignatures:        renterTxnSignatures,
+		renterRevisionSignature: renterRevisionSignature,
+		initialSectorRoots:      so.SectorRoots,
+		hostCollateral:          renewCollateral,
+		hostInitialRevenue:      renewRevenue,
+		hostInitialRisk:         renewRisk,
+		settings:                settings,
+	}
+	hostTxnSignatures, hostRevisionSignature, newSOID, err := h.managedFinalizeContract(fca)
 	if err != nil {
 		modules.WriteNegotiationRejection(conn, err) // Error is ignored to preserve type for extendErr
 		return extendErr("failed to finalize contract: ", err)
@@ -220,11 +252,11 @@ func (h *Host) managedVerifyRenewedContract(so storageObligation, txnSet []types
 
 	// Check that the transaction set is not empty.
 	if len(txnSet) < 1 {
-		return extendErr("zero-length transaction set: ", errEmptyObject)
+		return extendErr("zero-length transaction set: ", ErrEmptyObject)
 	}
 	// Check that the transaction set has a file contract.
 	if len(txnSet[len(txnSet)-1].FileContracts) < 1 {
-		return extendErr("transaction without file contract: ", errEmptyObject)
+		return extendErr("transaction without file contract: ", ErrEmptyObject)
 	}
 
 	h.mu.Lock()
@@ -240,41 +272,48 @@ func (h *Host) managedVerifyRenewedContract(so storageObligation, txnSet []types
 	// The file size and merkle root must match the file size and merkle root
 	// from the previous file contract.
 	if fc.FileSize != so.fileSize() {
-		return errBadFileSize
+		return ErrBadFileSize
 	}
 	if fc.FileMerkleRoot != so.merkleRoot() {
-		return errBadFileMerkleRoot
+		return ErrBadFileMerkleRoot
 	}
 	// The WindowStart must be at least revisionSubmissionBuffer blocks into
 	// the future.
 	if fc.WindowStart <= blockHeight+revisionSubmissionBuffer {
-		return errEarlyWindow
+		return ErrEarlyWindow
 	}
 	// WindowEnd must be at least settings.WindowSize blocks after WindowStart.
 	if fc.WindowEnd < fc.WindowStart+externalSettings.WindowSize {
-		return errSmallWindow
+		return ErrSmallWindow
 	}
 	// WindowStart must not be more than settings.MaxDuration blocks into the
 	// future.
 	if fc.WindowStart > blockHeight+externalSettings.MaxDuration {
-		return errLongDuration
+		return ErrLongDuration
 	}
 
 	// ValidProofOutputs shoud have 2 outputs (renter + host) and missed
 	// outputs should have 3 (renter + host + void)
 	if len(fc.ValidProofOutputs) != 2 || len(fc.MissedProofOutputs) != 3 {
-		return errBadContractOutputCounts
+		return ErrBadContractOutputCounts
 	}
 	// The unlock hashes of the valid and missed proof outputs for the host
 	// must match the host's unlock hash. The third missed output should point
 	// to the void.
-	if fc.ValidProofOutputs[1].UnlockHash != unlockHash || fc.MissedProofOutputs[1].UnlockHash != unlockHash || fc.MissedProofOutputs[2].UnlockHash != (types.UnlockHash{}) {
-		return errBadPayoutUnlockHashes
+	voidOutput, err := fc.MissedVoidOutput()
+	if err != nil {
+		return err
+	}
+	if fc.ValidHostOutput().UnlockHash != unlockHash || fc.MissedHostOutput().UnlockHash != unlockHash || voidOutput.UnlockHash != (types.UnlockHash{}) {
+		return ErrBadPayoutUnlockHashes
 	}
 
 	// Check that the collateral does not exceed the maximum amount of
 	// collateral allowed.
-	expectedCollateral := renewContractCollateral(so, externalSettings, fc)
+	expectedCollateral, err := renewContractCollateral(so, externalSettings, fc)
+	if err != nil {
+		return errors.AddContext(err, "Failed to compute contract collateral")
+	}
 	if expectedCollateral.Cmp(externalSettings.MaxCollateral) > 0 {
 		return errMaxCollateralReached
 	}
@@ -289,17 +328,17 @@ func (h *Host) managedVerifyRenewedContract(so storageObligation, txnSet []types
 	// void output contains enough money.
 	basePrice := renewBasePrice(so, externalSettings, fc)
 	baseCollateral := renewBaseCollateral(so, externalSettings, fc)
-	if fc.ValidProofOutputs[1].Value.Cmp(basePrice.Add(baseCollateral)) < 0 {
-		return errLowHostValidOutput
+	if fc.ValidHostPayout().Cmp(basePrice.Add(baseCollateral)) < 0 {
+		return ErrLowHostValidOutput
 	}
-	expectedHostMissedOutput := fc.ValidProofOutputs[1].Value.Sub(basePrice).Sub(baseCollateral)
-	if fc.MissedProofOutputs[1].Value.Cmp(expectedHostMissedOutput) < 0 {
-		return errLowHostMissedOutput
+	expectedHostMissedOutput := fc.ValidHostPayout().Sub(basePrice).Sub(baseCollateral)
+	if fc.MissedHostOutput().Value.Cmp(expectedHostMissedOutput) < 0 {
+		return ErrLowHostMissedOutput
 	}
 	// Check that the void output has the correct value.
 	expectedVoidOutput := basePrice.Add(baseCollateral)
-	if fc.MissedProofOutputs[2].Value.Cmp(expectedVoidOutput) > 0 {
-		return errLowVoidOutput
+	if voidOutput.Value.Cmp(expectedVoidOutput) > 0 {
+		return ErrLowVoidOutput
 	}
 
 	// The unlock hash for the file contract must match the unlock hash that
@@ -312,7 +351,7 @@ func (h *Host) managedVerifyRenewedContract(so storageObligation, txnSet []types
 		SignaturesRequired: 2,
 	}.UnlockHash()
 	if fc.UnlockHash != expectedUH {
-		return errBadUnlockHash
+		return ErrBadUnlockHash
 	}
 
 	// Check that the transaction set has enough fees on it to get into the
@@ -320,7 +359,7 @@ func (h *Host) managedVerifyRenewedContract(so storageObligation, txnSet []types
 	setFee := modules.CalculateFee(txnSet)
 	minFee, _ := h.tpool.FeeEstimation()
 	if setFee.Cmp(minFee) < 0 {
-		return errLowTransactionFees
+		return ErrLowTransactionFees
 	}
 	return nil
 }

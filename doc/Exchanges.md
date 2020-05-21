@@ -1,11 +1,11 @@
 Wallet Information for Exchanges
 =======
 
-SiaPrime's wallet differs a bit from Bitcoin's. This guide is to point any exchanges to relevant functions and features of the wallet that may be of unique interest to them.
+ScPrime's wallet differs a bit from Bitcoin's. This guide is to point any exchanges to relevant functions and features of the wallet that may be of unique interest to them.
 
 ### Address Management
 
-The SiaPrime wallet follows the concept of an address gap limit [as specified in BIP 44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki#Address_gap_limit). The default gap limit is 50. This means the wallet will not allow creation of more than 50 consecutive addresses if none of those 50 addresses have been used on the blockchain.
+The ScPrime wallet follows the concept of an address gap limit [as specified in BIP 44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki#Address_gap_limit). The default gap limit is 50. This means the wallet will not allow creation of more than 50 consecutive addresses if none of those 50 addresses have been used on the blockchain.
 
 New addresses can be created via a GET request to the `/wallet/address` endpoint.
 
@@ -101,7 +101,7 @@ transaction pool.
 
 ###### Query String Parameters
 ```
-// Number of hastings being sent. A hasting is the smallest unit in SiaPrime. There
+// Number of hastings being sent. A hasting is the smallest unit in ScPrime. There
 // are 10^24 hastings in a single unit of SCP.
 amount      // hastings
 

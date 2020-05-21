@@ -1,12 +1,17 @@
 package host
 
 import (
+	"fmt"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
+
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // blockingPortForward is a dependency set that causes the host port forward
@@ -72,7 +77,12 @@ func TestHostWorkingStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ht.Close()
+	defer func() {
+		err := ht.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// TODO: this causes an ndf, because it relies on the host tester starting up
 	// and fully returning faster than the first check, which isnt always the
@@ -111,8 +121,8 @@ func TestHostWorkingStatus(t *testing.T) {
 	}
 }
 
-// TestHostConnectabilityStatus checks that the host properly updates its connectable
-// state
+// TestHostConnectabilityStatus checks that the host properly updates its
+// connectable state
 func TestHostConnectabilityStatus(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -122,7 +132,12 @@ func TestHostConnectabilityStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ht.Close()
+	defer func() {
+		err := ht.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// TODO: this causes an ndf, because it relies on the host tester starting up
 	// and fully returning faster than the first check, which isnt always the
@@ -141,5 +156,45 @@ func TestHostConnectabilityStatus(t *testing.T) {
 	}
 	if !success {
 		t.Fatal("expected connectability state to flip to HostConnectabilityStatusConnectable")
+	}
+}
+
+// TestUnrecognizedRPCID verifies the host's stream handler returns an error if
+// we send an random RPC id.
+func TestUnrecognizedRPCID(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	pair, err := newRenterHostPair(t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		err := pair.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
+
+	stream := pair.managedNewStream()
+	defer func() {
+		err := stream.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
+
+	// write a random rpc id to it and expect it to fail
+	var randomRPCID types.Specifier
+	fastrand.Read(randomRPCID[:])
+	err = modules.RPCWrite(stream, randomRPCID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = modules.RPCRead(stream, struct{}{})
+	if err == nil || !strings.Contains(err.Error(), randomRPCID.String()) {
+		t.Fatalf("Expected err '%v', but received '%v'", fmt.Sprintf("Unrecognized RPC id %v", randomRPCID), err)
 	}
 }

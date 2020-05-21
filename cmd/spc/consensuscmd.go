@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-
 	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/node/api"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
@@ -22,7 +22,7 @@ var (
 	consensusCmdVerbose bool
 )
 
-// consensuscmd is the handler for the command `siac consensus`.
+// consensuscmd is the handler for the command `spc consensus`.
 // Prints the current state of consensus.
 func consensuscmd() {
 	cg, err := httpClient.ConsensusGet()

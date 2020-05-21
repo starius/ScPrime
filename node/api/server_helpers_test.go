@@ -26,15 +26,18 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/host"
 	"gitlab.com/scpcorp/ScPrime/modules/index"
 	"gitlab.com/scpcorp/ScPrime/modules/miner"
-	"gitlab.com/scpcorp/ScPrime/modules/miningpool"
+	pool "gitlab.com/scpcorp/ScPrime/modules/miningpool"
 	"gitlab.com/scpcorp/ScPrime/modules/renter"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
 	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
 	"gitlab.com/scpcorp/ScPrime/modules/wallet"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
-// A Server is a collection of siad modules that can be communicated with over
+// A Server is a collection of spd modules that can be communicated with over
 // an http api.
 type Server struct {
 	api               *API
@@ -107,7 +110,7 @@ func (srv *Server) Serve() error {
 // the empty string. Usernames are ignored for authentication. This type of
 // authentication sends passwords in plaintext and should therefore only be
 // used if the APIaddr is localhost.
-func NewServer(dir string, APIaddr string, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, mp modules.Pool, sm modules.StratumMiner, i modules.Index) (*Server, error) {
+func NewServer(dir string, APIaddr string, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, mp modules.Pool, sm modules.StratumMiner, i modules.Index) (*Server, error) {
 	listener, err := net.Listen("tcp", APIaddr)
 	if err != nil {
 		return nil, err
@@ -116,10 +119,10 @@ func NewServer(dir string, APIaddr string, requiredUserAgent string, requiredPas
 	// Load the config file.
 	cfg, err := modules.NewConfig(filepath.Join(dir, modules.ConfigName))
 	if err != nil {
-		return nil, errors.AddContext(err, "failed to load siad config")
+		return nil, errors.AddContext(err, "failed to load spd config")
 	}
 
-	api := New(cfg, requiredUserAgent, requiredPassword, cs, e, g, h, m, r, tp, w, mp, sm, i)
+	api := New(cfg, requiredUserAgent, requiredPassword, cs, e, fm, g, h, m, r, tp, w, mp, sm, i)
 	srv := &Server{
 		api: api,
 		apiServer: &http.Server{
@@ -149,29 +152,37 @@ type serverTester struct {
 	dir string
 }
 
-// assembleServerTester creates a bunch of modules and assembles them into a
-// server tester, without creating any directories or mining any blocks.
-func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, error) {
+// assembleServerTesterWithDeps creates a bunch of modules with injected
+// dependencies and assembles them into a server tester, without creating any
+// directories or mining any blocks.
+func assembleServerTesterWithDeps(key crypto.CipherKey, testdir string, gDeps, cDeps, tDeps, wDeps, hDeps, rDeps, hdbDeps, hcDeps, csDeps modules.Dependencies) (*serverTester, error) {
 	// assembleServerTester should not get called during short tests, as it
 	// takes a long time to run.
 	if testing.Short() {
 		panic("assembleServerTester called during short tests")
 	}
 
-	// Create the modules.
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	// Create the siamux
+	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
 	if err != nil {
 		return nil, err
 	}
-	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+
+	// Create the modules.
+	g, err := gateway.NewCustomGateway("localhost:0", false, filepath.Join(testdir, modules.GatewayDir), gDeps)
+	if err != nil {
+		return nil, err
+	}
+	cs, errChan := consensus.NewCustomConsensusSet(g, false, filepath.Join(testdir, modules.ConsensusDir), cDeps)
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
-	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
+	tp, err := transactionpool.NewCustomTPool(cs, g, filepath.Join(testdir, modules.TransactionPoolDir), tDeps)
 	if err != nil {
 		return nil, err
 	}
-	w, err := wallet.New(cs, tp, filepath.Join(testdir, modules.WalletDir))
+	w, err := wallet.NewCustomWallet(cs, tp, filepath.Join(testdir, modules.WalletDir), wDeps)
 	if err != nil {
 		return nil, err
 	}
@@ -193,15 +204,32 @@ func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, 
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.New(cs, g, tp, w, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := host.NewCustomHost(hDeps, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
 	if err != nil {
 		return nil, err
 	}
-	r, errChan := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
+	renterPersistDir := filepath.Join(testdir, modules.RenterDir)
+	hdb, errChan := hostdb.NewCustomHostDB(g, cs, tp, renterPersistDir, hdbDeps)
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
-	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
+	logger, err := persist.NewFileLogger(filepath.Join(renterPersistDir, "contractor.log"))
+	if err != nil {
+		return nil, err
+	}
+	contractSet, err := proto.NewContractSet(filepath.Join(renterPersistDir, "contracts"), csDeps)
+	if err != nil {
+		return nil, err
+	}
+	hc, errChan := contractor.NewCustomContractor(cs, w, tp, hdb, renterPersistDir, contractSet, logger, hcDeps)
+	if err := <-errChan; err != nil {
+		return nil, err
+	}
+	r, errChan := renter.NewCustomRenter(g, cs, tp, hdb, w, hc, mux, renterPersistDir, rDeps)
+	if err := <-errChan; err != nil {
+		return nil, err
+	}
+	srv, err := NewServer(testdir, "localhost:0", "ScPrime-Agent", "", cs, nil, nil, g, h, m, r, tp, w, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -232,6 +260,12 @@ func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, 
 	return st, nil
 }
 
+// assembleServerTester creates a bunch of modules and assembles them into a
+// server tester, without creating any directories or mining any blocks.
+func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, error) {
+	return assembleServerTesterWithDeps(key, testdir, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies)
+}
+
 // assembleAuthenticatedServerTester creates a bunch of modules and assembles
 // them into a server tester that requires authentication with the given
 // requiredPassword. No directories are created and no blocks are mined.
@@ -240,6 +274,13 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 	// tests, as it takes a long time to run.
 	if testing.Short() {
 		panic("assembleServerTester called during short tests")
+	}
+
+	// Create the siamux.
+	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
+	if err != nil {
+		return nil, err
 	}
 
 	// Create the modules.
@@ -277,11 +318,11 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.New(cs, g, tp, w, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := host.New(cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
 	if err != nil {
 		return nil, err
 	}
-	r, errChan := renter.New(g, cs, w, tp, filepath.Join(testdir, modules.RenterDir))
+	r, errChan := renter.New(g, cs, w, tp, mux, filepath.Join(testdir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
@@ -297,7 +338,7 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 			return nil, err
 		}
 	}
-	srv, err := NewServer(testdir, "localhost:0", "SiaPrime-Agent", requiredPassword, cs, nil, g, h, m, r, tp, w, mp, nil, idx)
+	srv, err := NewServer(testdir, "localhost:0", "ScPrime-Agent", requiredPassword, cs, nil, nil, g, h, m, r, tp, w, mp, nil, idx)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +392,7 @@ func assembleExplorerServerTester(testdir string) (*serverTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	srv, err := NewServer(testdir, "localhost:0", "", "", cs, e, g, nil, nil, nil, nil, nil, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "", "", cs, e, nil, g, nil, nil, nil, nil, nil, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -396,9 +437,10 @@ func blankServerTester(name string) (*serverTester, error) {
 	return st, nil
 }
 
-// createServerTester creates a server tester object that is ready for testing,
-// including money in the wallet and all modules initialized.
-func createServerTester(name string) (*serverTester, error) {
+// createServerTesterWithDeps creates a server tester object with injected
+// dependencies that is ready for testing, including money in the wallet and all
+// modules initialized.
+func createServerTesterWithDeps(name string, gDeps, cDeps, tDeps, wDeps, hDeps, rDeps, hdbDeps, hcDeps, csDeps modules.Dependencies) (*serverTester, error) {
 	// createServerTester is expensive, and therefore should not be called
 	// during short tests.
 	if testing.Short() {
@@ -409,7 +451,7 @@ func createServerTester(name string) (*serverTester, error) {
 	testdir := build.TempDir("api", name)
 
 	key := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
-	st, err := assembleServerTester(key, testdir)
+	st, err := assembleServerTesterWithDeps(key, testdir, gDeps, cDeps, tDeps, wDeps, hDeps, rDeps, hdbDeps, hcDeps, csDeps)
 	if err != nil {
 		return nil, err
 	}
@@ -423,6 +465,12 @@ func createServerTester(name string) (*serverTester, error) {
 	}
 
 	return st, nil
+}
+
+// createServerTester creates a server tester object that is ready for testing,
+// including money in the wallet and all modules initialized.
+func createServerTester(name string) (*serverTester, error) {
+	return createServerTesterWithDeps(name, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies)
 }
 
 // createAuthenticatedServerTester creates an authenticated server tester

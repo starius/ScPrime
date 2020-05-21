@@ -1,6 +1,7 @@
 package contractor
 
 import (
+	"math"
 	"sync"
 	"testing"
 	"time"
@@ -194,10 +195,11 @@ func TestWatchdogRevisionCheck(t *testing.T) {
 	}
 	t.Parallel()
 	// create testing trio
-	_, c, m, err := newTestingTrio(t.Name())
+	_, c, m, cf, err := newTestingTrio(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer tryClose(cf, t)
 
 	// form a contract with the host
 	a := modules.Allowance{
@@ -379,8 +381,10 @@ func TestWatchdogRevisionCheck(t *testing.T) {
 	if revTxn.FileContractRevisions[0].ParentID != contract.ID {
 		t.Fatal("watchdog revision sent for wrong contract ID")
 	}
-	if revTxn.FileContractRevisions[0].NewRevisionNumber != uint64(numRevisions) {
-		t.Fatal("watchdog sent wrong revision number")
+	// The last revision will be cleared and refreshed so it has a special
+	// revision number.
+	if revTxn.FileContractRevisions[0].NewRevisionNumber != math.MaxUint64 {
+		t.Fatalf("watchdog sent wrong revision number %v != %v", revTxn.FileContractRevisions[0].NewRevisionNumber, uint64(math.MaxUint64))
 	}
 	gatedTpool.mu.Unlock()
 
@@ -403,10 +407,10 @@ func TestWatchdogRevisionCheck(t *testing.T) {
 		t.Fatal("expected watchdog to have found a revision")
 	}
 
-	// LastRevisionTxn was saved when creating all the new revisions.
-	lastRevisionNumber := lastRevisionTxn.FileContractRevisions[0].NewRevisionNumber
+	// LastRevisionTxn is the max revision number.
+	lastRevisionNumber := uint64(math.MaxUint64)
 	if revFound != lastRevisionNumber {
-		t.Fatal("Expected watchdog to have found the most recent revision, that it posted")
+		t.Fatalf("Expected watchdog to have found the most recent revision, that it posted %v != %v", revFound, lastRevisionNumber)
 	}
 
 	// Create a fake reorg and remove the file contract revision.
@@ -446,10 +450,11 @@ func TestWatchdogStorageProofCheck(t *testing.T) {
 	}
 	t.Parallel()
 	// create testing trio
-	_, c, m, err := newTestingTrio(t.Name())
+	_, c, m, cf, err := newTestingTrio(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer tryClose(cf, t)
 
 	// form a contract with the host
 	a := modules.Allowance{
@@ -703,10 +708,11 @@ func TestWatchdogPruning(t *testing.T) {
 	fcID := fcTxn.FileContractID(0)
 
 	// create testing trio
-	_, c, _, err := newTestingTrio(t.Name())
+	_, c, _, cf, err := newTestingTrio(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer tryClose(cf, t)
 	revisionTxn := createFakeRevisionTxn(fcID, 1, 10000, 10005)
 
 	// Give the watchdog a gated transaction pool. This precents it from
@@ -843,10 +849,11 @@ func TestWatchdogDependencyAdding(t *testing.T) {
 	fcID := fcTxn.FileContractID(0)
 
 	// create testing trio
-	_, c, _, err := newTestingTrio(t.Name())
+	_, c, _, cf, err := newTestingTrio(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer tryClose(cf, t)
 	revisionTxn := createFakeRevisionTxn(fcID, 1, 10000, 10005)
 	formationSet := []types.Transaction{fcTxn}
 

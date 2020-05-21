@@ -7,10 +7,12 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
+	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siadir"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siadir"
 	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
 )
 
@@ -199,17 +201,53 @@ func TestRenterListDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Confirm that DirList returns 1 FileInfo and 2 DirectoryInfos
+	// Confirm that we get expected number of FileInfo and DirectoryInfo.
 	directories, err := rt.renter.DirList(modules.RootSiaPath())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(directories) != 4 {
-		t.Fatal("Expected 4 DirectoryInfos but got", len(directories))
+	if len(directories) != 5 {
+		t.Fatal("Expected 5 DirectoryInfos but got", len(directories))
 	}
 	files, err := rt.renter.FileList(modules.RootSiaPath(), false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(files) != 1 {
-		t.Fatal("Expected 1 FileInfos but got", len(files))
+		t.Fatal("Expected 1 FileInfo but got", len(files))
+	}
+
+	// Refresh the directories.
+	for _, dir := range directories {
+		go rt.renter.callThreadedBubbleMetadata(dir.SiaPath)
+	}
+
+	// Wait for root directory to show proper number of files and subdirs.
+	err = build.Retry(100, 100*time.Millisecond, func() error {
+		directories, err = rt.renter.DirList(modules.RootSiaPath())
+		if err != nil {
+			return err
+		}
+		root := directories[0]
+		// Check the aggregate and siadir fields.
+		//
+		// Expecting /home, /home/user, /var, /var/pubaccess, /snapshots, /foo
+		if root.AggregateNumSubDirs != 6 {
+			return fmt.Errorf("Expected 6 subdirs in aggregate but got %v", root.AggregateNumSubDirs)
+		}
+		if root.NumSubDirs != 4 {
+			return fmt.Errorf("Expected 4 subdirs but got %v", root.NumSubDirs)
+		}
+		if root.AggregateNumFiles != 1 {
+			return fmt.Errorf("Expected 1 file in aggregate but got %v", root.AggregateNumFiles)
+		}
+		if root.NumFiles != 1 {
+			return fmt.Errorf("Expected 1 file but got %v", root.NumFiles)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	// Verify that the directory information matches the on disk information
@@ -222,11 +260,11 @@ func TestRenterListDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	homeDir, err := rt.renter.staticFileSystem.OpenSiaDir(modules.HomeSiaPath())
+	homeDir, err := rt.renter.staticFileSystem.OpenSiaDir(modules.HomeFolder)
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshotsDir, err := rt.renter.staticFileSystem.OpenSiaDir(modules.SnapshotsSiaPath())
+	snapshotsDir, err := rt.renter.staticFileSystem.OpenSiaDir(modules.BackupFolder)
 	if err != nil {
 		t.Fatal(err)
 	}

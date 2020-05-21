@@ -14,10 +14,12 @@ The modules package is the top-level package for all modules. It contains the in
 
 ## Subsystems
 - [Alert System](#alert-system)
+- [Append-Only Persist](#append-only-persist)
 - [Dependencies](#dependencies)
 - [Negotiate](#negotiate)
 - [Network Addresses](#network-addresses)
-- [Siad Configuration](#siad-configuration)
+- [Siad Configuration](#spd-configuration)
+- [Publink](#publink)
 - [SiaPath](#siapath)
 - [Storage Manager](#storage-manager)
 
@@ -98,7 +100,7 @@ The Alert System provides the `Alerter` interface and an implementation of the i
 
 The following levels of severity are currently available:
 
-- **Unknown**: This should never be used and is a safeguard against developer errors	
+- **Unknown**: This should never be used and is a safeguard against developer errors
 - **Warning**: Warns the user about potential issues which might require preventive actions
 - **Error**: Alerts the user of an issue that requires immediate action to prevent further issues like loss of data
 - **Critical**: Indicates that a critical error is imminent. e.g. lack of funds causing contracts to get lost
@@ -124,6 +126,14 @@ The following levels of severity are currently available:
 *TODO* 
   - fill out subsystem explanation
 
+### Packing
+**Key Files**
+- [packing.go](./packing.go)
+
+The smallest amount of data that can be uploaded to the ScPrime network is 4 MiB. This limitation can be overcome by packing multiple files together. The upload batching commands can pack a bunch of small files into the same sector, producing a unique publink for each file.
+
+Batch uploads work much the same as uploads, except that a JSON manifest is provided which pairs a list of source files to their destination siapaths. Every file in the manifest must be smaller than 4 MiB. The packing algorithm attempts to optimally pack the list of files into as few chunks as possible, where each chunk is 4 MiB in size.
+
 ### Siad Configuration
 **Key Files**
 - [siadconfig.go](./siadconfig.go)
@@ -131,12 +141,33 @@ The following levels of severity are currently available:
 *TODO* 
   - fill out subsystem explanation
 
+### Publink
+
+**Key Files**
+-[publink.go](./publink.go)
+
+The publink is a format for linking to data sectors stored on the ScPrime network.
+In addition to pointing to a data sector, the publink contains a lossy offset an
+length that point to a data segment within the sector, allowing multiple small
+files to be packed into a single sector.
+
+All told, there are 32 bytes in a publink for encoding the Merkle root of the
+sector being linked, and 2 bytes encoding a link version, the offset, and the
+length of the sector being fetched.
+
+For more information, check out the documentation in the [publink.go](./publink.go) file.
+
 ### SiaPath
 **Key Files**
 - [siapath.go](./siapath.go)
 
-*TODO* 
-  - fill out subsystem explanation
+Siapaths are the format of filesystem paths on the ScPrime network. Internally they
+are handled as linux paths and use the `/` separator. Siapaths are used to
+identify directories on the ScPrime network as well as files.  When manipulating
+Siapaths in memory the `strings` package should be used so that the `/`
+separator can be enforced. When Siapaths are being translated to System paths,
+the `filepath` package is used to ensure the correct path separator is used for
+the OS that is running.
 
 ### Storage Manager
 **Key Files**

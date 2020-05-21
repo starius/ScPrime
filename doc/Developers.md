@@ -1,29 +1,29 @@
 Developer Environment
 =====================
 
-SiaPrime is written in Go. To build and test SiaPrime, you are going to need a 
+ScPrime is written in Go. To build and test ScPrime, you are going to need a 
 working go environment, including having both `$GOROOT/bin` and `$GOPATH/bin` in
 your `$PATH`. For most Linux distributions, Go will be in the package manager,
-though it may be an old version that is incompatible with SiaPrime. Once you have a
+though it may be an old version that is incompatible with ScPrime. Once you have a
 working Go environment, you are set to build the project. If you plan on cross
-compiling SiaPrime, you may need to install Go from source. You can find information
+compiling ScPrime, you may need to install Go from source. You can find information
 on that [here](http://golang.org/doc/install/source).
 
-SiaPrime has a development build, an automated testing build, and a release
+ScPrime has a development build, an automated testing build, and a release
 build. The release build is the only one that can synchronize to the full
 network. To get the release build, it is usually sufficient to run `go get -u
-gitlab.com/scpcorp/ScPrime/...`. This will download SiaPrime and its dependencies
+gitlab.com/scpcorp/ScPrime/...`. This will download ScPrime and its dependencies
 and install binaries in `$GOPATH/bin`.
 
-After downloading, you can find the SiaPrime source code in
+After downloading, you can find the ScPrime source code in
 `$GOPATH/src/gitlab.com/scpcorp/ScPrime`. To build the release binary, run
 `make release-std` from this directory. To build the release binary with a
 (slow) race detector and an array of debugging asserts, run `make release`. To
 build the developer binary (which has a different genesis block, faster block
 times, and a few other tweaks), run `make dev`.
 
-If you intend to contribute to SiaPrime, you should start by forking the project on
-GitHub, and then adding your fork as a "remote" in the SiaPrime git repository via
+If you intend to contribute to ScPrime, you should start by forking the project on
+GitHub, and then adding your fork as a "remote" in the ScPrime git repository via
 `git remote add [fork name] [fork url]`. Now you can develop by pulling changes
 from `origin`, pushing your modifications to `[fork name]`, and then making a
 merge request on GitLab.
@@ -44,9 +44,9 @@ Developer Conventions
 
 This file is meant to help a developer navigate the codebase and develop clean,
 maintainable code. Knowing all of these conventions will also make it easier to
-read and code review the SiaPrime project.
+read and code review the ScPrime project.
 
-The primary purpose of the conventions within SiaPrime is to keep the codebase
+The primary purpose of the conventions within ScPrime is to keep the codebase
 simple. Simpler constructions means easier code reviews, greater accessibility
 to newcomers, and less potential for mistakes. It is also to keep things
 uniform, much in the spirit of `go fmt`. When everything looks the same,
@@ -164,7 +164,7 @@ developers it is obvious that `cs` refers to a `consensus.ConsensusSet`.
 
 ### Function Prefixes
 
-SiaPrime uses special prefixes for certain functions to hint about their usage to the
+ScPrime uses special prefixes for certain functions to hint about their usage to the
 caller.
 
 #### `threaded`

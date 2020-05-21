@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -12,17 +10,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
+	"golang.org/x/crypto/ssh/terminal"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	fileConfig "gitlab.com/scpcorp/ScPrime/config"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/node/api/server"
 	"gitlab.com/scpcorp/ScPrime/profile"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 // passwordPrompt securely reads a password from stdin.
@@ -72,7 +69,7 @@ func processNetAddr(addr string) string {
 // invalid module character.
 func processModules(modules string) (string, error) {
 	modules = strings.ToLower(modules)
-	validModules := "cghmrtwepsi"
+	validModules := "cghmrtwefpsi"
 	invalidModules := modules
 	for _, m := range validModules {
 		invalidModules = strings.Replace(invalidModules, string(m), "", 1)
@@ -115,51 +112,9 @@ func processConfig(config Config) (Config, error) {
 	return config, nil
 }
 
-// apiPassword discovers the API password, which may be specified in an
-// environment variable, stored in a file on disk, or supplied by the user via
-// stdin.
-func apiPassword(siaDir string) (string, error) {
-	// Check the environment variable.
-	pw := os.Getenv("SCPRIME_API_PASSWORD")
-	if pw != "" {
-		fmt.Println("Using SCPRIME_API_PASSWORD environment variable")
-		return pw, nil
-	}
-
-	pw = os.Getenv("SIAPRIME_API_PASSWORD")
-	if pw != "" {
-		fmt.Println("Warning: Using SIAPRIME_API_PASSWORD environment variable.")
-		fmt.Println("Using it will not be supported in future versions, please update \n your configuration to use the environment variable 'SCPRIME_API_PASSWORD'")
-		return pw, nil
-	}
-
-	// Try to read the password from disk.
-	path := build.APIPasswordFile(siaDir)
-	pwFile, err := ioutil.ReadFile(path)
-	if err == nil {
-		// This is the "normal" case, so don't print anything.
-		return strings.TrimSpace(string(pwFile)), nil
-	} else if !os.IsNotExist(err) {
-		return "", err
-	}
-
-	// No password file; generate a secure one.
-	// Generate a password file.
-	if err := os.MkdirAll(siaDir, 0700); err != nil {
-		return "", err
-	}
-	pw = hex.EncodeToString(fastrand.Bytes(16))
-	if err := ioutil.WriteFile(path, []byte(pw+"\n"), 0600); err != nil {
-		return "", err
-	}
-	fmt.Println("A secure API password has been written to", path)
-	fmt.Println("This password will be used automatically the next time you run spd.")
-	return pw, nil
-}
-
 // loadAPIPassword determines whether to use an API password from disk or a
 // temporary one entered by the user according to the provided config.
-func loadAPIPassword(config Config, siaDir string) (_ Config, err error) {
+func loadAPIPassword(config Config) (_ Config, err error) {
 	if config.Spd.AuthenticateAPI {
 		if config.Spd.TempPassword {
 			config.APIPassword, err = passwordPrompt("Enter API password: ")
@@ -170,7 +125,7 @@ func loadAPIPassword(config Config, siaDir string) (_ Config, err error) {
 			}
 		} else {
 			// load API password from environment variable or file.
-			config.APIPassword, err = apiPassword(siaDir)
+			config.APIPassword, err = build.APIPassword()
 			if err != nil {
 				return Config{}, err
 			}
@@ -218,27 +173,14 @@ func installKillSignalHandler() chan os.Signal {
 // tryAutoUnlock will try to automatically unlock the server's wallet if the
 // environment variable is set.
 func tryAutoUnlock(srv *server.Server) {
-	if password := os.Getenv("SCPRIME_WALLET_PASSWORD"); password != "" {
+	if password := build.WalletPassword(); password != "" {
 		fmt.Println("ScPrime Wallet Password found, attempting to auto-unlock wallet")
 		if err := srv.Unlock(password); err != nil {
 			fmt.Println("Auto-unlock failed:", err)
 		} else {
 			fmt.Println("Auto-unlock successful.")
 		}
-		return
 	}
-	if password := os.Getenv("SIAPRIME_WALLET_PASSWORD"); password != "" {
-		fmt.Println("SiaPrime Wallet Password found, attempting to auto-unlock wallet")
-		fmt.Println("Warning: Using SIAPRIME_WALLET_PASSWORD is deprecated.")
-		fmt.Println("Using it will not be supported in future versions, please update \n your configuration to use the environment variable 'SCPRIME_WALLET_PASSWORD'")
-
-		if err := srv.Unlock(password); err != nil {
-			fmt.Println("Auto-unlock failed:", err)
-		} else {
-			fmt.Println("Auto-unlock successful.")
-		}
-	}
-
 }
 
 // startDaemon uses the config parameters to initialize modules and start spd.
@@ -249,8 +191,11 @@ func startDaemon(config Config) (err error) {
 		return errors.AddContext(err, "failed to parse input parameter")
 	}
 
+	// Check for Metadata directory presence and try to migrate if it does not
+	// exist before continuing with anything else
+
 	// Load API password.
-	config, err = loadAPIPassword(config, build.DefaultSiaDir())
+	config, err = loadAPIPassword(config)
 	if err != nil {
 		return errors.AddContext(err, "failed to get API password")
 	}
@@ -324,7 +269,7 @@ func startDaemonCmd(cmd *cobra.Command, _ []string) {
 		if cmd.Root().Flag("profile-directory").Changed {
 			profileDir = globalConfig.Spd.ProfileDir
 		} else {
-			profileDir = filepath.Join(globalConfig.Spd.SiaDir, globalConfig.Spd.ProfileDir)
+			profileDir = filepath.Join(globalConfig.Spd.DataDir, globalConfig.Spd.ProfileDir)
 		}
 		go profile.StartContinuousProfile(profileDir, profileCPU, profileMem, profileTrace)
 	}
@@ -341,7 +286,7 @@ func startDaemonCmd(cmd *cobra.Command, _ []string) {
 		die(err)
 	}
 
-	// Daemon seems to have closed cleanly. Print a 'closed' mesasge.
+	// Daemon seems to have closed cleanly. Print a 'closed' message.
 	fmt.Println("Shutdown complete.")
 }
 

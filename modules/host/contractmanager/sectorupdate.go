@@ -418,25 +418,34 @@ func (cm *ContractManager) AddSector(root crypto.Hash, sectorData []byte) error 
 //
 // TODO: Make ACID, and definitely improve the performance as well.
 func (cm *ContractManager) AddSectorBatch(sectorRoots []crypto.Hash) error {
-	// Prevent shutdown until this function completes.
+	// Make sure ContractManager hasn't already shutdown
 	err := cm.tg.Add()
 	if err != nil {
 		return err
 	}
-	defer cm.tg.Done()
 
 	go func() {
+		// Defer done thread group to make sure that the contract manager won't
+		// shutdown until this function returns
+		defer cm.tg.Done()
+		// Create wait group to ensure the go routine does not return before
+		// internal go routines complete.
+		var wg sync.WaitGroup
 		// Ensure only 'maxSectorBatchThreads' goroutines are running at a time.
 		semaphore := make(chan struct{}, maxSectorBatchThreads)
 		for _, root := range sectorRoots {
 			semaphore <- struct{}{}
+			wg.Add(1)
 			go func(root crypto.Hash) {
+				// Defer signal wait group and signal channel that a new go
+				// routine can run
 				defer func() {
 					<-semaphore
+					wg.Done()
 				}()
 
-				// Hold a sector lock throughout the duration of the function, but release
-				// before syncing.
+				// Hold a sector lock throughout the duration of the function,
+				// but release before syncing.
 				id := cm.managedSectorID(root)
 				cm.wal.managedLockSector(id)
 				defer cm.wal.managedUnlockSector(id)
@@ -450,6 +459,8 @@ func (cm *ContractManager) AddSectorBatch(sectorRoots []crypto.Hash) error {
 				}
 			}(root)
 		}
+		// Wait until all go routines have completed
+		wg.Wait()
 	}()
 	return nil
 }
@@ -461,7 +472,10 @@ func (cm *ContractManager) AddSectorBatch(sectorRoots []crypto.Hash) error {
 // storage proofs. If the amount of data removed is small, the risk is small.
 // This operation will not destabilize the contract manager.
 func (cm *ContractManager) DeleteSector(root crypto.Hash) error {
-	cm.tg.Add()
+	err := cm.tg.Add()
+	if err != nil {
+		return err
+	}
 	defer cm.tg.Done()
 	id := cm.managedSectorID(root)
 	cm.wal.managedLockSector(id)
@@ -473,7 +487,10 @@ func (cm *ContractManager) DeleteSector(root crypto.Hash) error {
 // RemoveSector will remove a sector from the contract manager. If multiple
 // copies of the sector exist, only one will be removed.
 func (cm *ContractManager) RemoveSector(root crypto.Hash) error {
-	cm.tg.Add()
+	err := cm.tg.Add()
+	if err != nil {
+		return err
+	}
 	defer cm.tg.Done()
 	id := cm.managedSectorID(root)
 	cm.wal.managedLockSector(id)

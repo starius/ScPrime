@@ -5,37 +5,34 @@
     * [Module README's](#module-readme's)
     * [API](#api)
     * [Support Docs](#support-docs)
-* [Sia Third Party Apps](#sia-third-party-apps)
+* [ScPrime Third Party Apps](#sia-third-party-apps)
     * [Mining Pools](#mining-pools)
     * [Network Stats](#network-stats)
-    * [Built On Sia](#built-on-sia)
+    * [Built On ScPrime](#built-on-sia)
     * [Integrations](#integrations)
 
 ## Tech Docs
-Here is a list of technical documentation to help understand the different parts of the Sia code base.
+Here is a list of technical documentation to help understand the different parts of the ScPrime code base.
 
 ### Module README's
 * Consensus - `coming soon`
 * Explorer - `coming soon`
-* Gateway - `coming soon`
-* Host - `coming soon`
+* [Gateway](../modules/gateway/README.md)
+* [Host](../modules/host/README.md)
     * Contract Manager - `coming soon`
 * Miner - `coming soon`
 * [Renter](../modules/renter/README.md)
-    * Contractor - `coming soon`
-    * HostDB - `coming soon`
-    * Proto - `coming soon`
-    * SiaDir - `coming soon`
-    * SiaFile - `coming soon`
+    * [Contractor](../modules/renter/contractor/README.md)
+    * [File System](../modules/renter/filesystem/README.md)
+        * [SiaDir](../modules/renter/filesystem/siadir/README.md)
+        * [SiaFile](../modules/renter/filesystem/siafile/README.md)
+    * [HostDB](../modules/renter/hostdb/README.md)
+        * [Hosttree](../modules/renter/hostdb/hosttree/README.md)
+    * [Proto](../modules/renter/proto/README.md)
+    * [Pubaccess Blacklist](../modules/renter/pubaccessblacklist/README.md)
 * Transaction Pool - `coming soon`
-* Wallet - `coming soon`
+* [Wallet](../modules/wallet/README.md)
 
 ### API
 The API documentation can be found [here](api/index.html.md) and at [sia.tech/docs](https://sia.tech/docs).
 
-### Integrations
-* [Duplicati](https://blog.sia.tech/introducing-full-computer-backup-with-sia-through-the-new-duplicati-integration-62dd17cbcfb7)
-* [Minio](https://blog.sia.tech/introducing-s3-style-file-sharing-for-sia-through-the-new-minio-integration-bb880af2366a)
-* [Nextcloud](https://blog.sia.tech/using-sia-as-a-storage-back-end-for-nextcloud-90eab037959d)
-
-## Contact Us 

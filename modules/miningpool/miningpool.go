@@ -34,7 +34,7 @@ var (
 	// persistMetadata is the header that gets written to the persist file, and is
 	// used to recognize other persist files.
 	persistMetadata = persist.Metadata{
-		Header:  "Sia Pool",
+		Header:  "ScPrime Pool",
 		Version: "0.0.1",
 	}
 
@@ -500,7 +500,6 @@ func (p *Pool) AddClient(c *Client) {
 	defer p.mu.Unlock()
 
 	p.clients[c.Name()] = c
-
 }
 
 // newStratumID returns a function pointer to a unique ID generator used
@@ -520,7 +519,7 @@ func (p *Pool) newStratumID() (f func() uint64) {
 }
 
 func (p *Pool) coinB1() types.Transaction {
-	s := fmt.Sprintf("\000     Software: siad-miningpool-module v%d.%02d\nPool name: \"%s\"     \000", MajorVersion, MinorVersion, p.InternalSettings().PoolName)
+	s := fmt.Sprintf("\000     Software: spd-miningpool-module v%d.%02d\nPool name: \"%s\"     \000", MajorVersion, MinorVersion, p.InternalSettings().PoolName)
 	if ((len(modules.PrefixNonSia[:]) + len(s)) % 2) != 0 {
 		// odd length, add extra null
 		s = s + "\000"

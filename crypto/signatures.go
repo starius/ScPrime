@@ -5,10 +5,10 @@ import (
 	"errors"
 	"io"
 
-	"gitlab.com/scpcorp/ScPrime/encoding"
-
 	"gitlab.com/NebulousLabs/fastrand"
 	"golang.org/x/crypto/ed25519"
+
+	"gitlab.com/scpcorp/ScPrime/encoding"
 )
 
 const (

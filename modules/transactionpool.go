@@ -46,9 +46,9 @@ var (
 
 	// PrefixNonSia defines the prefix that should be appended to any
 	// transactions that use the arbitrary data for reasons outside of the
-	// standard Sia protocol. This will prevent these transactions from being
+	// standard ScPrime protocol. This will prevent these transactions from being
 	// rejected by the IsStandard set of rules, but also means that the data
-	// will never be used within the formal Sia protocol.
+	// will never be used within the formal ScPrime protocol.
 	PrefixNonSia = types.NewSpecifier("NonSia")
 
 	// TransactionPoolDir is the name of the directory that is used to store

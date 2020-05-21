@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
+	bolt "go.etcd.io/bbolt"
+	"golang.org/x/crypto/pbkdf2"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
-	bolt "go.etcd.io/bbolt"
-	"golang.org/x/crypto/pbkdf2"
 )
 
 var (
@@ -61,7 +61,8 @@ func verifyEncryption(key crypto.CipherKey, encrypted crypto.Ciphertext) error {
 	return nil
 }
 
-// checkMasterKey verifies that the masterKey is the key used to encrypt the wallet.
+// checkMasterKey verifies that the masterKey is the key used to encrypt the
+// wallet.
 func checkMasterKey(tx *bolt.Tx, masterKey crypto.CipherKey) error {
 	if masterKey == nil {
 		return modules.ErrBadEncryptionKey
@@ -437,8 +438,12 @@ func (w *Wallet) Reset() error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	w.cs.Unsubscribe(w)
-	w.tpool.Unsubscribe(w)
+	// If the wallet was subscribed to the consensus and tpool then unsubscribe
+	if w.subscribed {
+		w.cs.Unsubscribe(w)
+		w.tpool.Unsubscribe(w)
+		w.subscribed = false
+	}
 
 	err := dbReset(w.dbTx)
 	if err != nil {
@@ -451,7 +456,6 @@ func (w *Wallet) Reset() error {
 	w.unconfirmedProcessedTransactions = []modules.ProcessedTransaction{}
 	w.unlocked = false
 	w.encrypted = false
-	w.subscribed = false
 
 	return nil
 }
@@ -565,7 +569,6 @@ func (w *Wallet) IsMasterKey(masterKey crypto.CipherKey) (bool, error) {
 		return false, err
 	}
 	return true, nil
-
 }
 
 // UnlockAsync will decrypt the wallet seed and load all of the addresses into
@@ -725,7 +728,6 @@ func (w *Wallet) managedChangeKey(masterKey crypto.CipherKey, newKey crypto.Ciph
 		if err != nil {
 			return errors.AddContext(err, "unable to put key encryption verification into db")
 		}
-
 		wpk := walletPasswordEncryptionKey(primarySeed, dbGetWalletSalt(w.dbTx))
 		mkt := newKey.Type()
 		mke := newKey.Key()

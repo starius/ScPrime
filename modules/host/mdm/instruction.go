@@ -1,16 +1,40 @@
 package mdm
 
-import "gitlab.com/scpcorp/ScPrime/crypto"
+import (
+	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/types"
+)
 
 // instruction is the interface an instruction needs to implement to be part of
 // a program.
 type instruction interface {
-	Execute(fcRoot crypto.Hash) Output
-	ReadOnly() bool
+	// Collateral returns the amount of additional collateral the host is
+	// expected to put up for this instruction after execution.
+	Collateral() (collateral types.Currency)
+	// Cost returns the cost of executing the instruction and the potential
+	// refund should the program not be committed.
+	Cost() (cost types.Currency, refund types.Currency, _ error)
+	// Execute executes the instruction without committing the changes to the
+	// storage obligation.
+	Execute(output) output
+	// Memory returns the amount of memory allocated by the instruction which
+	// sticks around beyond the scope of the instruction until the program gets
+	// committed/canceled.
+	Memory() uint64
+	// Time returns the amount of time the execution of the instruction takes.
+	Time() (uint64, error)
 }
 
-// Output is the type returned by all instructions when being executed.
+// Output is the type of the outputs returned by a program run on the MDM.
 type Output struct {
+	output
+	ExecutionCost        types.Currency
+	AdditionalCollateral types.Currency
+	PotentialRefund      types.Currency
+}
+
+// output is the type returned by all instructions when being executed.
+type output struct {
 	// The error will be set to nil unless the instruction experienced an error
 	// during execution. If the instruction did experience an error during
 	// execution, the program will halt at this instruction and no changes will
@@ -41,15 +65,14 @@ type Output struct {
 
 // commonInstruction contains all the fields shared by every instruction.
 type commonInstruction struct {
-	staticMerkleProof  bool
-	staticContractSize uint64 // contract size before executing instruction
-	staticData         *programData
-	staticState        *programState
+	staticMerkleProof bool
+	staticData        *programData
+	staticState       *programState
 }
 
-// outputFromError is a convenience function to wrap an error in an Output.
-func outputFromError(err error) Output {
-	return Output{
+// errOutput returns an instruction output that contains the specified error.
+func errOutput(err error) output {
+	return output{
 		Error: err,
 	}
 }

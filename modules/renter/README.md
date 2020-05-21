@@ -1,7 +1,6 @@
 # Renter
-
 The Renter is responsible for tracking and actively maintaining all of the files
-that a user has uploaded to Sia. This includes the location and health of these
+that a user has uploaded to ScPrime. This includes the location and health of these
 files. The Renter, via the HostDB and the Contractor, is also responsible for
 picking hosts and maintaining the relationship with them.
 
@@ -11,7 +10,7 @@ to be a high-signal log that tells users what files are being repaired, and
 whether the repair jobs have been successful. Where there are failures, the
 repair log should try and document what those failures were. Every message of
 the repair log should be interesting and useful to a power user, there should be
-no logspam and no messages that would only make sense to siad developers.
+no logspam and no messages that would only make sense to spd developers.
 
 ## Submodules
 The Renter has several submodules that each perform a specific function for the
@@ -19,16 +18,23 @@ Renter. This README will provide brief overviews of the submodules, but for more
 detailed descriptions of the inner workings of the submodules the respective
 README files should be reviewed.
  - Contractor
+ - Filesystem
  - HostDB
  - Proto
- - SiaDir
- - SiaFile
+ - Pubaccess Blacklist
+ - Pubaccess Portals
 
 ### Contractor
 The Contractor manages the Renter's contracts and is responsible for all
 contract actions such as new contract formation and contract renewals. The
 Contractor determines which contracts are GoodForUpload and GoodForRenew and
 marks them accordingly.
+
+### Filesystem
+The Filesystem is responsible for ensuring that all of its supported file
+formats can be accessed in a threadsafe manner. It doesn't handle any
+persistence directly but instead relies on the underlying format's package to
+handle that itself.
 
 ### HostDB
 The HostDB curates and manages a list of hosts that may be useful for the renter
@@ -42,27 +48,30 @@ including contract formation and renewal RPCs, uploading and downloading,
 verifying Merkle proofs, and synchronizing revision states. It is a low-level
 module whose functionality is largely wrapped by the Contractor.
 
-### SiaDir
-The SiaDir module is the code that defines what a directory is on the Sia
-network. It also manages accesses and updates to the file, ensuring safety and
-ACIDity when performing file operations.
+### Pubaccess Blacklist
+The Pubaccess Blacklist module manages the list of publinks that the Renter wants
+blacklisted. It also manages persisting the blacklist in an ACID and performant
+manner.
 
-### SiaFile
-The SiaFile module is the code that defines what a file is on the Sia network.
-It also manages accesses and updates to the file, ensuring safety and ACIDity
-when performing file operations.
+### Pubaccess Portals
+The Pubaccess Portals module manages the list of known Pubaccess portals that the
+Renter wants to keep track of. It also manages persisting the list in an ACID
+and performant manner.
 
 ## Subsystems
 The Renter has the following subsystems that help carry out its
 responsibilities.
  - [Filesystem Controllers](#filesystem-controllers)
  - [Fuse Subsystem](#fuse-subsystem)
- - [Fuse Manager Subsystem](#fuse-manager)
+ - [Fuse Manager Subsystem](#fuse-manager-subsystem)
  - [Persistence Subsystem](#persistence-subsystem)
  - [Memory Subsystem](#memory-subsystem)
  - [Worker Subsystem](#worker-subsystem)
  - [Download Subsystem](#download-subsystem)
  - [Download Streaming Subsystem](#download-streaming-subsystem)
+ - [Download By Root Subsystem](#download-by-root-subsystem)
+ - [Pubfile Subsystem](#pubfile-subsystem)
+ - [Stream Buffer Subsystem](#stream-buffer-subsystem)
  - [Upload Subsystem](#upload-subsystem)
  - [Upload Streaming Subsystem](#upload-streaming-subsystem)
  - [Health and Repair Subsystem](#health-and-repair-subsystem)
@@ -89,7 +98,7 @@ responsibilities.
 The fuse subsystem enables mounting the renter as a virtual filesystem. When
 mounted, the kernel forwards I/O syscalls on files and folders to the userland
 code in this subsystem. For example, the `read` syscall is implemented by
-downloading data from Sia hosts.
+downloading data from ScPrime hosts.
 
 Fuse is implemented using the `hanwen/go-fuse/v2` series of packages, primarily
 `fs` and `fuse`. The fuse package recognizes a single node interface for files
@@ -107,7 +116,7 @@ have unique requirements for working with the fuse package.
 The siatest/renter suite has two packages which are useful for testing fuse. The
 first is [fuse\_test.go](../../siatest/renter/fuse_test.go), and the second is
 [fusemock\_test.go](../../siatest/renter/fusemock_test.go). The first file
-leverages a testgroup with a renter, a miner, and several hosts to mimic the Sia
+leverages a testgroup with a renter, a miner, and several hosts to mimic the ScPrime
 network, and then mounts a fuse folder which uses the full fuse implementation.
 The second file contains a hand-rolled implementation of a fake filesystem which
 implements the fuse interfaces. Both have a commented out sleep at the end of
@@ -201,6 +210,13 @@ and the function `callUpdate` can be used to update the set of workers in the
 worker pool. `callUpdate` will create new workers for any new contracts, will
 update workers for any contracts that changed, and will kill workers for any
 contracts that are no longer useful.
+
+There is also a function `managedWorkers` which can be used to fetch the list of
+workers from the worker pool. It should be noted that it is not safe to lock the
+worker pool, iterate through the workers, and then call locking functions on the
+workers. The worker pool must be unlocked if the workers are going to be
+acquiring locks. Which means functions that loop over the list of workers must
+fetch that list separately.
 
 ##### Inbound Complexities
 
@@ -404,6 +420,43 @@ price and total throughput.
 *TODO* 
   - fill out subsystem explanation
 
+### Pubfile Subsystem
+**Key Files**
+ - [pubfile.go](./pubfile.go)
+ - [pubfilefanout.go](./pubfilefanout.go)
+ - [pubfilefanoutfetch.go](./pubfilefanoutfetch.go)
+
+The pubfile system contains methods for encoding, decoding, uploading, and
+downloading pubfiles using Publinks, and is one of the foundations underpinning
+Pubaccess.
+
+The pubfile format is a custom format which prepends metadata to a file such
+that the entire file and all associated metadata can be recovered knowing
+nothing more than a single sector root. That single sector root can be encoded
+alongside some compressed fetch offset and length information to create a
+publink.
+
+**Outbound Complexities**
+ - callUploadStreamFromReader is used to upload new data to the ScPrime network when
+   creating pubfiles. This call appears three times in
+   [pubfile.go](./pubfile.go)
+
+### Stream Buffer Subsystem
+**Key Files**
+ - [streambuffer.go](./streambuffer.go)
+ - [streambufferlru.go](./streambufferlru.go)
+
+The stream buffer subsystem coordinates buffering for a set of streams. Each
+stream has an LRU which includes both the recently visited data as well as data
+that is being buffered in front of the current read position. The LRU is
+implemented in [streambufferlru.go](./streambufferlru.go).
+
+If there are multiple streams open from the same data source at once, they will
+share their cache. Each stream will maintain its own LRU, but the data is stored
+in a common stream buffer. The stream buffers draw their data from a data source
+interface, which allows multiple different types of data sources to use the
+stream buffer.
+
 ### Upload Subsystem
 **Key Files**
  - [directoryheap.go](./directoryheap.go)
@@ -436,12 +489,33 @@ merkle root and the contract revision.
    `uploadHeap` and then signals the heap's `newUploads` channel so that the
    Repair Loop will work through the heap and upload the chunks
 
+### Download By Root Subsystem
+**Key Files**
+ - [projectdownloadbyroot.go](./projectdownloadbyroot.go)
+ - [workerdownloadbyroot.go](./workerdownloadbyroot.go)
+
+The download by root subsystem exports a single method that allows a caller to
+download or partially download a sector from the ScPrime network knowing only the
+Merkle root of that sector, and not necessarily knowing which host on the
+network has that sector. The single exported method is 'DownloadByRoot'.
+
+This subsystem was created primarily as a facilitator for the publinks of
+Pubaccess. Publinks provide a merkle root and some offset+length information, but
+do not provide any information about which hosts are storing the sectors. The
+exported method of this subsystem will primarily be called by publink methods,
+as opposed to being used directly by external users.
+
 ### Upload Streaming Subsystem
 **Key Files**
  - [uploadstreamer.go](./uploadstreamer.go)
 
 *TODO* 
   - fill out subsystem explanation
+
+**Inbound Complexities**
+ - The pubfile subsystem makes three calls to `callUploadStreamFromReader()` in
+   [pubfile.go](./pubfile.go)
+ - The snapshot subsystem makes a call to `callUploadStreamFromReader()`
 
 ### Health and Repair Subsystem
 **Key Files**
@@ -462,7 +536,7 @@ merkle root and the contract revision.
   - Create benchmark for health loop and add print outs to Health Loop section
   - Break out Health, Repair, and Stuck code into 3 distinct subsystems
   
-There are 3 main functions that work together to make up Sia's file repair
+There are 3 main functions that work together to make up ScPrime's file repair
 mechanism, `threadedUpdateRenterHealth`, `threadedUploadAndRepairLoop`, and
 `threadedStuckFileLoop`. These 3 functions will be referred to as the health
 loop, the repair loop, and the stuck loop respectively.
@@ -606,6 +680,11 @@ a remote repair, ie repairing from data downloaded from the Renter's contracts,
 to be successful the chunk must be at 1x redundancy or better. If a chunk is
 below 1x redundancy and the local file is not present the chunk, and therefore
 the file, is considered lost as there is no way to repair it. 
+
+**NOTE:** if the repair loop does not find a local file on disk, it will reset
+the localpath of the siafile to an empty string. This is done to avoid the
+siafile being corrupted in the future by a different file being placed on disk
+at the original localpath location.
 
 **Inbound Complexities**  
  - `Upload` adds chunks directly to the upload heap by calling

@@ -3,7 +3,7 @@ package siatest
 import "gitlab.com/scpcorp/ScPrime/node"
 
 var (
-	// MinerTemplate is a template for a Sia node that has a functioning
+	// MinerTemplate is a template for a ScPrime node that has a functioning
 	// miner. The node has a miner and all dependencies, but no other
 	// modules.
 	MinerTemplate = node.NodeParams{

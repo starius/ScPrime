@@ -9,31 +9,81 @@ import (
 	"net/http"
 	"strings"
 
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/node/api"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
-// A Client makes requests to the siad HTTP API.
-type Client struct {
-	// Address is the API address of the siad server.
-	Address string
+type (
+	// A Client makes requests to the spd HTTP API.
+	Client struct {
+		Options
+	}
 
-	// Password must match the password of the siad server.
-	Password string
+	// Options defines the options that are available when creating a
+	// client.
+	Options struct {
+		// Address is the API address of the spd server.
+		Address string
 
-	// UserAgent must match the User-Agent required by the siad server. If not
-	// set, it defaults to "SiaPrime-Agent".
-	UserAgent string
+		// Password must match the password of the spd server.
+		Password string
+
+		// UserAgent must match the User-Agent required by the spd server. If not
+		// set, it defaults to "ScPrime-Agent".
+		UserAgent string
+	}
+
+	// A UnsafeClient is a Client with additional access to unsafe methods that are
+	// easy to misuse. It should only be used for testing.
+	UnsafeClient struct {
+		Client
+	}
+)
+
+// NewUnsafeClient creates a new UnsafeClient using the provided address.
+func NewUnsafeClient(client Client) *UnsafeClient {
+	return &UnsafeClient{client}
 }
 
-// New creates a new Client using the provided address.
-func New(address string) *Client {
+// Post makes a POST request to the resource at `resource`, using `data` as the
+// request body. The response, if provided, will be decoded into `obj`.
+func (uc *UnsafeClient) Post(resource string, data string, obj interface{}) error {
+	return uc.post(resource, data, obj)
+}
+
+// Get requests the specified resource. The response, if provided, will be
+// decoded into obj. The resource path must begin with /.
+func (uc *UnsafeClient) Get(resource string, obj interface{}) error {
+	return uc.get(resource, obj)
+}
+
+// New creates a new Client using the provided address. The password will be set
+// using build.APIPasssword and the user agent will be set to "Sia-Agent". Both
+// can be changed manually by the caller after the client is returned.
+func New(opts Options) *Client {
 	return &Client{
-		Address: address,
+		Options: opts,
 	}
 }
 
-// NewRequest constructs a request to the siad HTTP API, setting the correct
+// DefaultOptions returns the default options for a client. This includes
+// setting the default spd user agent to "Sia-Agent" and setting the password
+// using the build.APIPassword() function.
+func DefaultOptions() (Options, error) {
+	pw, err := build.APIPassword()
+	if err != nil {
+		return Options{}, errors.AddContext(err, "could not locate api password")
+	}
+	return Options{
+		Address:   "localhost:4280",
+		Password:  pw,
+		UserAgent: "ScPrime-Agent",
+	}, nil
+}
+
+// NewRequest constructs a request to the spd HTTP API, setting the correct
 // User-Agent and Basic Auth. The resource path must begin with /.
 func (c *Client) NewRequest(method, resource string, body io.Reader) (*http.Request, error) {
 	url := "http://" + c.Address + resource
@@ -43,7 +93,7 @@ func (c *Client) NewRequest(method, resource string, body io.Reader) (*http.Requ
 	}
 	agent := c.UserAgent
 	if agent == "" {
-		agent = "SiaPrime-Agent"
+		agent = "ScPrime-Agent"
 	}
 	req.Header.Set("User-Agent", agent)
 	if c.Password != "" {
@@ -77,6 +127,22 @@ func readAPIError(r io.Reader) error {
 // getRawResponse requests the specified resource. The response, if provided,
 // will be returned in a byte slice
 func (c *Client) getRawResponse(resource string) (http.Header, []byte, error) {
+	header, reader, err := c.getReaderResponse(resource)
+	if err != nil {
+		return nil, nil, errors.AddContext(err, "failed to get reader response")
+	}
+	// Possible to get a nil reader if there is no response.
+	if reader == nil {
+		return header, nil, nil
+	}
+	defer drainAndClose(reader)
+	d, err := ioutil.ReadAll(reader)
+	return header, d, err
+}
+
+// getReaderResponse requests the specified resource. The response, if provided,
+// will be returned as an io.Reader.
+func (c *Client) getReaderResponse(resource string) (http.Header, io.ReadCloser, error) {
 	req, err := c.NewRequest("GET", resource, nil)
 	if err != nil {
 		return nil, nil, errors.AddContext(err, "failed to construct GET request")
@@ -85,24 +151,28 @@ func (c *Client) getRawResponse(resource string) (http.Header, []byte, error) {
 	if err != nil {
 		return nil, nil, errors.AddContext(err, "GET request failed")
 	}
-	defer drainAndClose(res.Body)
 
+	// Add ErrAPICallNotRecognized if StatusCode is StatusNotFound to allow for
+	// handling of modules that are not loaded
 	if res.StatusCode == http.StatusNotFound {
-		return nil, nil, errors.AddContext(api.ErrAPICallNotRecognized, "unable to perform GET on "+resource)
+		err = errors.Compose(readAPIError(res.Body), api.ErrAPICallNotRecognized)
+		return nil, nil, errors.AddContext(err, "unable to perform GET on "+resource)
 	}
 
 	// If the status code is not 2xx, decode and return the accompanying
 	// api.Error.
 	if res.StatusCode < 200 || res.StatusCode > 299 {
-		return nil, nil, errors.AddContext(readAPIError(res.Body), "GET request error")
+		err := readAPIError(res.Body)
+		drainAndClose(res.Body)
+		return nil, nil, errors.AddContext(err, "GET request error")
 	}
 
 	if res.StatusCode == http.StatusNoContent {
 		// no reason to read the response
-		return res.Header, []byte{}, nil
+		drainAndClose(res.Body)
+		return res.Header, nil, nil
 	}
-	d, err := ioutil.ReadAll(res.Body)
-	return res.Header, d, err
+	return res.Header, res.Body, nil
 }
 
 // getRawResponse requests part of the specified resource. The response, if
@@ -120,8 +190,11 @@ func (c *Client) getRawPartialResponse(resource string, from, to uint64) ([]byte
 	}
 	defer drainAndClose(res.Body)
 
+	// Add ErrAPICallNotRecognized if StatusCode is StatusNotFound to allow for
+	// handling of modules that are not loaded
 	if res.StatusCode == http.StatusNotFound {
-		return nil, errors.AddContext(api.ErrAPICallNotRecognized, "unable to perform GET on "+resource)
+		err = errors.Compose(readAPIError(res.Body), api.ErrAPICallNotRecognized)
+		return nil, errors.AddContext(err, "unable to perform GET on "+resource)
 	}
 
 	// If the status code is not 2xx, decode and return the accompanying
@@ -159,44 +232,77 @@ func (c *Client) get(resource string, obj interface{}) error {
 	return nil
 }
 
-// postRawResponse requests the specified resource. The response, if provided,
-// will be returned in a byte slice
-func (c *Client) postRawResponse(resource string, body io.Reader) ([]byte, error) {
-	req, err := c.NewRequest("POST", resource, body)
+// head makes a HEAD request to the resource at `resource`. The headers that are
+// returned are the headers that would be returned if requesting the same
+// `resource` using a GET request.
+func (c *Client) head(resource string) (int, http.Header, error) {
+	req, err := c.NewRequest("HEAD", resource, nil)
 	if err != nil {
-		return nil, errors.AddContext(err, "failed to construct POST request")
+		return 0, nil, errors.AddContext(err, "failed to construct HEAD request")
 	}
-	// TODO: is this necessary?
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, errors.AddContext(err, "POST request failed")
+		return 0, nil, errors.AddContext(err, "HEAD request failed")
+	}
+	return res.StatusCode, res.Header, nil
+}
+
+// postRawResponse requests the specified resource. The response, if provided,
+// will be returned in a byte slice
+func (c *Client) postRawResponse(resource string, body io.Reader) (http.Header, []byte, error) {
+	// Default the Content-Type header to "application/x-www-form-urlencoded",
+	// if the caller is performing a multipart form-data upload he can do so by
+	// using `postRawResponseWithHeaders` and manually set the Content-Type
+	// header himself.
+	headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
+	return c.postRawResponseWithHeaders(resource, body, headers)
+}
+
+// postRawResponseWithHeaders requests the specified resource and allows to pass
+// custom headers. The response, if provided, will be returned in a byte slice
+func (c *Client) postRawResponseWithHeaders(resource string, body io.Reader, headers map[string]string) (http.Header, []byte, error) {
+	req, err := c.NewRequest("POST", resource, body)
+	if err != nil {
+		return http.Header{}, nil, errors.AddContext(err, "failed to construct POST request")
+	}
+
+	// Decorate the headers on the request object
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return http.Header{}, nil, errors.AddContext(err, "POST request failed")
 	}
 	defer drainAndClose(res.Body)
 
+	// Add ErrAPICallNotRecognized if StatusCode is StatusNotFound to allow for
+	// handling of modules that are not loaded
 	if res.StatusCode == http.StatusNotFound {
-		return nil, errors.AddContext(api.ErrAPICallNotRecognized, "unable to perform POST on "+resource)
+		err = errors.Compose(readAPIError(res.Body), api.ErrAPICallNotRecognized)
+		return http.Header{}, nil, errors.AddContext(err, "unable to perform POST on "+resource)
 	}
 
 	// If the status code is not 2xx, decode and return the accompanying
 	// api.Error.
 	if res.StatusCode < 200 || res.StatusCode > 299 {
-		return nil, errors.AddContext(readAPIError(res.Body), "POST request error")
+		return http.Header{}, nil, errors.AddContext(readAPIError(res.Body), "POST request error")
 	}
 
 	if res.StatusCode == http.StatusNoContent {
 		// no reason to read the response
-		return []byte{}, nil
+		return res.Header, []byte{}, nil
 	}
 	d, err := ioutil.ReadAll(res.Body)
-	return d, err
+	return res.Header, d, err
 }
 
 // post makes a POST request to the resource at `resource`, using `data` as the
 // request body. The response, if provided, will be decoded into `obj`.
 func (c *Client) post(resource string, data string, obj interface{}) error {
 	// Request resource
-	body, err := c.postRawResponse(resource, strings.NewReader(data))
+	_, body, err := c.postRawResponse(resource, strings.NewReader(data))
 	if err != nil {
 		return err
 	}

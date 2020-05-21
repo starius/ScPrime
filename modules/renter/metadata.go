@@ -13,8 +13,8 @@ import (
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siadir"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siadir"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 )
 
 // bubbleStatus indicates the status of a bubble being executed on a
@@ -63,6 +63,7 @@ func (r *Renter) managedCalculateDirectoryMetadata(siaPath modules.SiaPath) (sia
 		AggregateNumFiles:            uint64(0),
 		AggregateNumStuckChunks:      uint64(0),
 		AggregateNumSubDirs:          uint64(0),
+		AggregateRemoteHealth:        siadir.DefaultDirHealth,
 		AggregateSize:                uint64(0),
 		AggregateStuckHealth:         siadir.DefaultDirHealth,
 
@@ -73,6 +74,7 @@ func (r *Renter) managedCalculateDirectoryMetadata(siaPath modules.SiaPath) (sia
 		NumFiles:            uint64(0),
 		NumStuckChunks:      uint64(0),
 		NumSubDirs:          uint64(0),
+		RemoteHealth:        siadir.DefaultDirHealth,
 		Size:                uint64(0),
 		StuckHealth:         siadir.DefaultDirHealth,
 	}
@@ -93,7 +95,7 @@ func (r *Renter) managedCalculateDirectoryMetadata(siaPath modules.SiaPath) (sia
 		}
 
 		// Aggregate Fields
-		var aggregateHealth, aggregateStuckHealth, aggregateMinRedundancy float64
+		var aggregateHealth, aggregateRemoteHealth, aggregateStuckHealth, aggregateMinRedundancy float64
 		var aggregateLastHealthCheckTime, aggregateModTime time.Time
 		var fileMetadata siafile.BubbledMetadata
 		ext := filepath.Ext(fi.Name())
@@ -112,7 +114,8 @@ func (r *Renter) managedCalculateDirectoryMetadata(siaPath modules.SiaPath) (sia
 				continue
 			}
 
-			// If 75% or more of the redundancy are missing, register an alert for the file.
+			// If 75% or more of the redundancy is missing, register an alert
+			// for the file.
 			uid := string(fileMetadata.UID)
 			if maxHealth := math.Max(fileMetadata.Health, fileMetadata.StuckHealth); maxHealth >= AlertSiafileLowRedundancyThreshold {
 				r.staticAlerter.RegisterAlert(modules.AlertIDSiafileLowRedundancy(uid), AlertMSGSiafileLowRedundancy,
@@ -128,6 +131,9 @@ func (r *Renter) managedCalculateDirectoryMetadata(siaPath modules.SiaPath) (sia
 			aggregateMinRedundancy = fileMetadata.Redundancy
 			aggregateLastHealthCheckTime = fileMetadata.LastHealthCheckTime
 			aggregateModTime = fileMetadata.ModTime
+			if !fileMetadata.OnDisk {
+				aggregateRemoteHealth = fileMetadata.Health
+			}
 
 			// Update aggregate fields.
 			metadata.AggregateNumFiles++
@@ -147,6 +153,9 @@ func (r *Renter) managedCalculateDirectoryMetadata(siaPath modules.SiaPath) (sia
 			}
 			metadata.NumFiles++
 			metadata.NumStuckChunks += fileMetadata.NumStuckChunks
+			if !fileMetadata.OnDisk {
+				metadata.RemoteHealth = math.Max(metadata.RemoteHealth, fileMetadata.Health)
+			}
 			metadata.Size += fileMetadata.Size
 			metadata.StuckHealth = math.Max(metadata.StuckHealth, fileMetadata.StuckHealth)
 		} else if fi.IsDir() {
@@ -166,6 +175,7 @@ func (r *Renter) managedCalculateDirectoryMetadata(siaPath modules.SiaPath) (sia
 			aggregateMinRedundancy = dirMetadata.AggregateMinRedundancy
 			aggregateLastHealthCheckTime = dirMetadata.AggregateLastHealthCheckTime
 			aggregateModTime = dirMetadata.AggregateModTime
+			aggregateRemoteHealth = dirMetadata.AggregateRemoteHealth
 
 			// Update aggregate fields.
 			metadata.AggregateNumFiles += dirMetadata.AggregateNumFiles
@@ -173,14 +183,18 @@ func (r *Renter) managedCalculateDirectoryMetadata(siaPath modules.SiaPath) (sia
 			metadata.AggregateNumSubDirs += dirMetadata.AggregateNumSubDirs
 			metadata.AggregateSize += dirMetadata.AggregateSize
 
+			// Add 1 to the AggregateNumSubDirs to account for this subdirectory.
+			metadata.AggregateNumSubDirs++
+
 			// Update siadir fields
 			metadata.NumSubDirs++
 		} else {
 			// Ignore everything that is not a SiaFile or a directory
 			continue
 		}
-		// Track the max value of AggregateHealth and Aggregate StuckHealth
+		// Track the max value of aggregate health values
 		metadata.AggregateHealth = math.Max(metadata.AggregateHealth, aggregateHealth)
+		metadata.AggregateRemoteHealth = math.Max(metadata.AggregateRemoteHealth, aggregateRemoteHealth)
 		metadata.AggregateStuckHealth = math.Max(metadata.AggregateStuckHealth, aggregateStuckHealth)
 		// Track the min value for AggregateMinRedundancy
 		if aggregateMinRedundancy != -1 {
@@ -242,8 +256,10 @@ func (r *Renter) managedCalculateAndUpdateFileMetadata(siaPath modules.SiaPath) 
 	if err != nil {
 		return siafile.BubbledMetadata{}, err
 	}
-	if _, err := os.Stat(sf.LocalPath()); os.IsNotExist(err) && redundancy < 1 {
-		r.log.Debugln("File not found on disk and possibly unrecoverable:", sf.LocalPath())
+	_, err = os.Stat(sf.LocalPath())
+	onDisk := err == nil
+	if !onDisk && redundancy < 1 {
+		r.log.Debugf("File not found on disk and possibly unrecoverable: LocalPath %v; SiaPath %v", sf.LocalPath(), siaPath.String())
 	}
 
 	return siafile.BubbledMetadata{
@@ -251,6 +267,7 @@ func (r *Renter) managedCalculateAndUpdateFileMetadata(siaPath modules.SiaPath) 
 		LastHealthCheckTime: sf.LastHealthCheckTime(),
 		ModTime:             sf.ModTime(),
 		NumStuckChunks:      numStuckChunks,
+		OnDisk:              onDisk,
 		Redundancy:          redundancy,
 		Size:                sf.Size(),
 		StuckHealth:         stuckHealth,
@@ -348,20 +365,6 @@ func (r *Renter) managedDirectoryMetadata(siaPath modules.SiaPath) (siadir.Metad
 // AggregateLastHealthCheckTime fields of the directory metadata by reading all
 // the subdirs of the directory.
 func (r *Renter) managedUpdateLastHealthCheckTime(siaPath modules.SiaPath) error {
-	// Open dir and fetch current metadata.
-	entry, err := r.staticFileSystem.OpenSiaDir(siaPath)
-	if err != nil {
-		return err
-	}
-	metadata, err := entry.Metadata()
-	if err != nil {
-		return err
-	}
-
-	// Set the LastHealthCheckTimes to the current time.
-	metadata.LastHealthCheckTime = time.Now()
-	metadata.AggregateLastHealthCheckTime = time.Now()
-
 	// Read directory
 	fileinfos, err := r.staticFileSystem.ReadDir(siaPath)
 	if err != nil {
@@ -369,7 +372,8 @@ func (r *Renter) managedUpdateLastHealthCheckTime(siaPath modules.SiaPath) error
 		return err
 	}
 
-	// Iterate over directory
+	// Iterate over directory and find the oldest AggregateLastHealthCheckTime
+	aggregateLastHealthCheckTime := time.Now()
 	for _, fi := range fileinfos {
 		// Check to make sure renter hasn't been shutdown
 		select {
@@ -389,8 +393,8 @@ func (r *Renter) managedUpdateLastHealthCheckTime(siaPath modules.SiaPath) error
 				return err
 			}
 			// Update AggregateLastHealthCheckTime.
-			if dirMetadata.AggregateLastHealthCheckTime.Before(metadata.AggregateLastHealthCheckTime) {
-				metadata.AggregateLastHealthCheckTime = dirMetadata.AggregateLastHealthCheckTime
+			if dirMetadata.AggregateLastHealthCheckTime.Before(aggregateLastHealthCheckTime) {
+				aggregateLastHealthCheckTime = dirMetadata.AggregateLastHealthCheckTime
 			}
 		} else {
 			// Ignore everything that is not a directory since files should be updated
@@ -398,8 +402,14 @@ func (r *Renter) managedUpdateLastHealthCheckTime(siaPath modules.SiaPath) error
 			continue
 		}
 	}
+
 	// Write changes to disk.
-	return entry.UpdateMetadata(metadata)
+	entry, err := r.staticFileSystem.OpenSiaDir(siaPath)
+	if err != nil {
+		return err
+	}
+	defer entry.Close()
+	return entry.UpdateLastHealthCheckTime(aggregateLastHealthCheckTime, time.Now())
 }
 
 // callThreadedBubbleMetadata is the thread safe method used to call
@@ -450,7 +460,7 @@ func (r *Renter) managedPerformBubbleMetadata(siaPath modules.SiaPath) (err erro
 		err = errors.AddContext(err, e)
 	} else {
 		defer siaDir.Close()
-		err = siaDir.UpdateMetadata(metadata)
+		err = siaDir.UpdateBubbledMetadata(metadata)
 		if err != nil {
 			e := fmt.Sprintf("could not update the metadata of the directory %v", siaPath.String())
 			err = errors.AddContext(err, e)

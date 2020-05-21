@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/julienschmidt/httprouter"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"github.com/julienschmidt/httprouter"
 )
 
 var (
@@ -21,6 +21,16 @@ var (
 	// storage folder which does not appear to exist within the storage
 	// manager.
 	errStorageFolderNotFound = errors.New("storage folder with the provided path could not be found")
+
+	// ErrInvalidRPCDownloadRatio is returned if the user tries to set a value
+	// for the download price or the base RPC Price that violates the maximum
+	// ratio
+	ErrInvalidRPCDownloadRatio = errors.New("invalid ratio between the download price and the base RPC price, base cost of 100M request should be cheaper than downloading 4TB")
+
+	// ErrInvalidSectorAccessDownloadRatio is returned if the user tries to set
+	// a value for the download price or the Sector Access Price that violates
+	// the maximum ratio
+	ErrInvalidSectorAccessDownloadRatio = errors.New("invalid ratio between the download price and the sector access price, base cost of 10M accesses should be cheaper than downloading 4TB")
 )
 
 type (
@@ -97,6 +107,21 @@ func (api *API) hostHandlerGET(w http.ResponseWriter, req *http.Request, _ httpr
 		PublicKey:            pk,
 	}
 	WriteJSON(w, hg)
+}
+
+// hostsBandwidthHandlerGET handles GET requests to the /host/bandwidth API endpoint,
+// returning bandwidth usage data from the host module
+func (api *API) hostBandwidthHandlerGET(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	sent, receive, startTime, err := api.host.BandwidthCounters()
+	if err != nil {
+		WriteError(w, Error{"failed to get hosts's bandwidth usage " + err.Error()}, http.StatusBadRequest)
+		return
+	}
+	WriteJSON(w, GatewayBandwidthGET{
+		Download:  receive,
+		Upload:    sent,
+		StartTime: startTime,
+	})
 }
 
 // parseHostSettings a request's query strings and returns a
@@ -226,6 +251,42 @@ func (api *API) parseHostSettings(req *http.Request) (modules.HostInternalSettin
 			return modules.HostInternalSettings{}, err
 		}
 		settings.MinUploadBandwidthPrice = x
+	}
+	if req.FormValue("ephemeralaccountexpiry") != "" {
+		var x uint64
+		_, err := fmt.Sscan(req.FormValue("ephemeralaccountexpiry"), &x)
+		if err != nil {
+			return modules.HostInternalSettings{}, err
+		}
+		settings.EphemeralAccountExpiry = x
+	}
+	if req.FormValue("maxephemeralaccountbalance") != "" {
+		var x types.Currency
+		_, err := fmt.Sscan(req.FormValue("maxephemeralaccountbalance"), &x)
+		if err != nil {
+			return modules.HostInternalSettings{}, err
+		}
+		settings.MaxEphemeralAccountBalance = x
+	}
+	if req.FormValue("maxephemeralaccountrisk") != "" {
+		var x types.Currency
+		_, err := fmt.Sscan(req.FormValue("maxephemeralaccountrisk"), &x)
+		if err != nil {
+			return modules.HostInternalSettings{}, err
+		}
+		settings.MaxEphemeralAccountRisk = x
+	}
+
+	// Validate the RPC, Sector Access, and Download Prices
+	minBaseRPCPrice := settings.MinBaseRPCPrice
+	maxBaseRPCPrice := settings.MaxBaseRPCPrice()
+	if minBaseRPCPrice.Cmp(maxBaseRPCPrice) > 0 {
+		return modules.HostInternalSettings{}, ErrInvalidRPCDownloadRatio
+	}
+	minSectorAccessPrice := settings.MinSectorAccessPrice
+	maxSectorAccessPrice := settings.MaxSectorAccessPrice()
+	if minSectorAccessPrice.Cmp(maxSectorAccessPrice) > 0 {
+		return modules.HostInternalSettings{}, ErrInvalidSectorAccessDownloadRatio
 	}
 
 	return settings, nil

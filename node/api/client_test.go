@@ -10,7 +10,7 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 )
 
-// Client holds fields to make requests to a Sia API.
+// Client holds fields to make requests to a ScPrime API.
 //
 //lint:ignore U1000 Ignore unused code, Client type is used externally
 type Client struct {
@@ -39,7 +39,7 @@ func (c *Client) Get(resource string, obj interface{}) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "SiaPrime-Agent")
+	req.Header.Set("User-Agent", "ScPrime-Agent")
 	if c.password != "" {
 		req.SetBasicAuth("", c.password)
 	}
@@ -83,7 +83,7 @@ func (c *Client) Post(resource string, data string, obj interface{}) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "SiaPrime-Agent")
+	req.Header.Set("User-Agent", "ScPrime-Agent")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	if c.password != "" {
 		req.SetBasicAuth("", c.password)

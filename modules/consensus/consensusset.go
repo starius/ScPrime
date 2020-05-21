@@ -9,6 +9,7 @@ package consensus
 import (
 	"errors"
 
+	"gitlab.com/NebulousLabs/demotemutex"
 	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/scpcorp/ScPrime/encoding"
@@ -16,8 +17,6 @@ import (
 	"gitlab.com/scpcorp/ScPrime/persist"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/demotemutex"
 )
 
 var (

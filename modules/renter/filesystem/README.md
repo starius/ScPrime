@@ -9,7 +9,7 @@ the Filesystem's corresponding wrappers instead.
 To refer to a file or folder within the Filesystem, so-called SiaPaths are
 used. They are unix-like paths relative to the specified root of the
 Filesystem except for the fact that they don't start with a leading slash.
-Ideally all parts of the siad codebase only have to interact with SiaPaths
+Ideally all parts of the spd codebase only have to interact with SiaPaths
 instead of system paths and the Filesystem would handle all of the
 translations between SiaPaths and regular system paths. The Filesystem also
 enforces that files and folders can't share the same name.
@@ -34,6 +34,25 @@ to optimize the performance of the data structure.
 
 Locking like this avoids a lot of lock contention and enables us to easily
 and efficiently delete and rename folders.
+
+## Submodules
+The Filesystem has several submodules that each perform a specific function
+for the Renter. This README will provide brief overviews of the submodules,
+but for more detailed descriptions of the inner workings of the submodules
+the respective README files should be reviewed.
+ - SiaDir
+ - SiaFile
+
+### SiaDir
+The SiaDir module is the code that defines what a directory is on the ScPrime
+network. It also manages accesses and updates to the file, ensuring safety and
+ACIDity when performing file operations.
+
+### SiaFile
+The SiaFile module is the code that defines what a file is on the ScPrime network.
+It also manages accesses and updates to the file, ensuring safety and ACIDity
+when performing file operations.
+
 
 # Subsystems
 The Filesystem has the following subsystems.

@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/threadgroup"
+	bolt "go.etcd.io/bbolt"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/threadgroup"
-	bolt "go.etcd.io/bbolt"
 )
 
 const tpoolSyncRate = time.Minute * 2

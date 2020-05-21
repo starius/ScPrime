@@ -8,14 +8,21 @@ import (
 
 // Constants related to the contractor's alerts.
 var (
-	// AlertMSGWalletLockedDuringMaintenance indicates that forming/renewing a
-	// contract during contract maintenance isn't possible due to a locked wallet.
-	AlertMSGWalletLockedDuringMaintenance = "contractor is attempting to renew/form contracts, however the wallet is locked"
+	// AlertCauseInsufficientAllowanceFunds indicates that the cause for the
+	// alert was insufficient allowance funds remaining
+	AlertCauseInsufficientAllowanceFunds = "Insufficient allowance funds remaining"
 
 	// AlertMSGAllowanceLowFunds indicates that forming/renewing a contract during
 	// contract maintenance isn't possible due to the allowance being low on
 	// funds.
 	AlertMSGAllowanceLowFunds = "At least one contract formation/renewal failed due to the allowance being low on funds"
+
+	// AlertMSGFailedContractRenewal indicates that the contract renewal failed
+	AlertMSGFailedContractRenewal = "Contractor is attempting to renew/refresh contracts but failed"
+
+	// AlertMSGWalletLockedDuringMaintenance indicates that forming/renewing a
+	// contract during contract maintenance isn't possible due to a locked wallet.
+	AlertMSGWalletLockedDuringMaintenance = "At least one contract failed to form/renew due to the wallet being locked"
 )
 
 // Constants related to contract formation parameters.
@@ -91,18 +98,18 @@ var (
 // Constants related to the safety values for when the contractor is forming
 // contracts.
 var (
-	maxCollateral   = types.SiacoinPrecision.Mul64(60e3) // 60 SCP
-	maxStoragePrice = build.Select(build.Var{
-		Dev:      types.SiacoinPrecision.Mul64(1e6).Div(modules.BlockBytesPerMonthTerabyte),   // 1 order of magnitude greater
-		Standard: types.SiacoinPrecision.Mul64(100e3).Div(modules.BlockBytesPerMonthTerabyte), // 100KS / TB / Month
-		Testing:  types.SiacoinPrecision.Mul64(1e7).Div(modules.BlockBytesPerMonthTerabyte),   // 2 orders of magnitude greater
+	maxCollateral    = types.ScPrimecoinPrecision.Mul64(200) // 200 SCP
+	maxDownloadPrice = maxStoragePrice.Mul64(3 * uint64(types.BlocksPerMonth))
+	maxStoragePrice  = build.Select(build.Var{
+		Dev:      types.ScPrimecoinPrecision.Mul64(1000).Div(modules.BlockBytesPerMonthTerabyte),  // 1 order of magnitude greater
+		Standard: types.ScPrimecoinPrecision.Mul64(100).Div(modules.BlockBytesPerMonthTerabyte),   // 100SCP / TB / Month
+		Testing:  types.ScPrimecoinPrecision.Mul64(10000).Div(modules.BlockBytesPerMonthTerabyte), // 2 orders of magnitude greater
 	}).(types.Currency)
 	maxUploadPrice = build.Select(build.Var{
 		Dev:      maxStoragePrice.Mul64(30 * uint64(types.BlocksPerMonth)),  // 1 order of magnitude greater
 		Standard: maxStoragePrice.Mul64(3 * uint64(types.BlocksPerMonth)),   // 3 months of storage
 		Testing:  maxStoragePrice.Mul64(300 * uint64(types.BlocksPerMonth)), // 2 orders of magnitude greater
 	}).(types.Currency)
-	maxDownloadPrice = maxStoragePrice.Mul64(3 * uint64(types.BlocksPerMonth))
 
 	// scoreLeewayGoodForRenew defines the factor by which a host can miss the
 	// goal score for a set of hosts and still be GoodForRenew. To determine the

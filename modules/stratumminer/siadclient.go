@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-// SiadClient is a simple client to a siad
+// SiadClient is a simple client to a spd
 type SiadClient struct {
 	siadurl string
 }
@@ -51,7 +51,7 @@ func (sc *SiadClient) GetHeaderForWork() (target []byte, header []byte, deprecat
 		return
 	}
 
-	req.Header.Add("User-Agent", "SiaPrime-Agent")
+	req.Header.Add("User-Agent", "ScPrime-Agent")
 	resp, err := client.Do(req)
 	if err != nil {
 		return
@@ -94,7 +94,7 @@ func (sc *SiadClient) SubmitHeader(header []byte, job interface{}) (err error) {
 		return
 	}
 
-	req.Header.Add("User-Agent", "SiaPrime-Agent")
+	req.Header.Add("User-Agent", "ScPrime-Agent")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

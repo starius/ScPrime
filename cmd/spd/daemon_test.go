@@ -1,10 +1,7 @@
 package main
 
 import (
-	"os"
 	"testing"
-
-	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 // TestUnitProcessNetAddr probes the 'processNetAddr' function.
@@ -153,40 +150,33 @@ func TestUnitProcessConfig(t *testing.T) {
 	}
 }
 
-// TestAPIPassword tests the 'apiPassword' function.
-func TestAPIPassword(t *testing.T) {
-	dir := build.TempDir("spd", t.Name())
-	// If config.Spd.AuthenticateAPI is false, no password should be set
+// TestLoadAPIPassword tests the 'loadAPIPassword' function.
+func TestLoadAPIPassword(t *testing.T) {
+	// If config.Siad.AuthenticateAPI is false, no password should be set
 	var config Config
-	config, err := loadAPIPassword(config, dir)
+
+	config, err := loadAPIPassword(config)
 	if err != nil {
 		t.Fatal(err)
 	} else if config.APIPassword != "" {
 		t.Fatal("loadAPIPassword should not set a password if config.Spd.AuthenticateAPI is false")
 	}
 	config.Spd.AuthenticateAPI = true
-	// On first invocation, loadAPIPassword should generate a new random password
-	config2, err := loadAPIPassword(config, dir)
+	// On first invocation, loadAPIPassword should generate a new random
+	// password
+	config2, err := loadAPIPassword(config)
 	if err != nil {
 		t.Fatal(err)
 	} else if config2.APIPassword == "" {
 		t.Fatal("loadAPIPassword should have generated a random password")
 	}
-	// On subsequent invocations, loadAPIPassword should use the previously-generated password
-	config3, err := loadAPIPassword(config, dir)
+	// On subsequent invocations, loadAPIPassword should use the
+	// previously-generated password
+	config3, err := loadAPIPassword(config)
 	if err != nil {
 		t.Fatal(err)
 	} else if config3.APIPassword != config2.APIPassword {
 		t.Fatal("loadAPIPassword should have used previously-generated password")
-	}
-	// If the environment variable is set, loadAPIPassword should use that
-	defer os.Setenv("SCPRIME_API_PASSWORD", os.Getenv("SCPRIME_API_PASSWORD"))
-	os.Setenv("SCPRIME_API_PASSWORD", "foobar")
-	config4, err := loadAPIPassword(config, dir)
-	if err != nil {
-		t.Fatal(err)
-	} else if config4.APIPassword != "foobar" {
-		t.Fatal("loadAPIPassword should use environment variable SCPRIME_API_PASSWORD")
 	}
 }
 
@@ -213,7 +203,7 @@ func TestVerifyAPISecurity(t *testing.T) {
 
 	// Check that a public hostname is rejected when security is enabled.
 	var securityOnPublic Config
-	securityOnPublic.Spd.APIaddr = "siaprime.net:4280"
+	securityOnPublic.Spd.APIaddr = "scpri.me:4280"
 	err = verifyAPISecurity(securityOnPublic)
 	if err == nil {
 		t.Error("public + securityOn was accepted")
@@ -222,7 +212,7 @@ func TestVerifyAPISecurity(t *testing.T) {
 	// Check that a public hostname is rejected when security is disabled and
 	// there is no api password.
 	var securityOffPublic Config
-	securityOffPublic.Spd.APIaddr = "siaprime.net:4280"
+	securityOffPublic.Spd.APIaddr = "scpri.me:4280"
 	securityOffPublic.Spd.AllowAPIBind = true
 	err = verifyAPISecurity(securityOffPublic)
 	if err == nil {
@@ -232,7 +222,7 @@ func TestVerifyAPISecurity(t *testing.T) {
 	// Check that a public hostname is accepted when security is disabled and
 	// there is an api password.
 	var securityOffPublicAuthenticated Config
-	securityOffPublicAuthenticated.Spd.APIaddr = "siaprime.net:4280"
+	securityOffPublicAuthenticated.Spd.APIaddr = "scpri.me:4280"
 	securityOffPublicAuthenticated.Spd.AllowAPIBind = true
 	securityOffPublicAuthenticated.Spd.AuthenticateAPI = true
 	err = verifyAPISecurity(securityOffPublicAuthenticated)

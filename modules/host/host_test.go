@@ -1,9 +1,16 @@
 package host
 
 import (
+	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
+	"reflect"
+	"sync"
 	"testing"
+	"time"
+
+	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -13,24 +20,33 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/miner"
 	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
 	"gitlab.com/scpcorp/ScPrime/modules/wallet"
+	"gitlab.com/scpcorp/ScPrime/persist"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
 	"gitlab.com/scpcorp/ScPrime/types"
+	"gitlab.com/scpcorp/siamux"
+	"gitlab.com/scpcorp/siamux/mux"
 )
 
 // A hostTester is the helper object for host testing, including helper modules
 // and methods for controlling synchronization.
-type hostTester struct {
-	cs        modules.ConsensusSet
-	gateway   modules.Gateway
-	miner     modules.TestMiner
-	tpool     modules.TransactionPool
-	wallet    modules.Wallet
-	walletKey crypto.CipherKey
+type (
+	closeFn func() error
 
-	host *Host
+	hostTester struct {
+		mux *siamux.SiaMux
 
-	persistDir string
-}
+		cs        modules.ConsensusSet
+		gateway   modules.Gateway
+		miner     modules.TestMiner
+		tpool     modules.TransactionPool
+		wallet    modules.Wallet
+		walletKey crypto.CipherKey
+
+		host *Host
+
+		persistDir string
+	}
+)
 
 /*
 // initRenting prepares the host tester for uploads and downloads by announcing
@@ -106,6 +122,13 @@ func blankHostTester(name string) (*hostTester, error) {
 func blankMockHostTester(d modules.Dependencies, name string) (*hostTester, error) {
 	testdir := build.TempDir(modules.HostDir, name)
 
+	// Create the siamux.
+	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
+	if err != nil {
+		return nil, err
+	}
+
 	// Create the modules.
 	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
@@ -127,7 +150,7 @@ func blankMockHostTester(d modules.Dependencies, name string) (*hostTester, erro
 	if err != nil {
 		return nil, err
 	}
-	h, err := NewCustomHost(d, cs, g, tp, w, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := NewCustomHost(d, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
 	if err != nil {
 		return nil, err
 	}
@@ -140,6 +163,8 @@ func blankMockHostTester(d modules.Dependencies, name string) (*hostTester, erro
 
 	// Assemble all objects into a hostTester
 	ht := &hostTester{
+		mux: mux,
+
 		cs:      cs,
 		gateway: g,
 		miner:   m,
@@ -211,13 +236,474 @@ func (ht *hostTester) Close() error {
 	errs := []error{
 		ht.host.Close(),
 		ht.miner.Close(),
+		ht.wallet.Close(),
 		ht.tpool.Close(),
 		ht.cs.Close(),
 		ht.gateway.Close(),
+		ht.mux.Close(),
 	}
 	if err := build.JoinErrors(errs, "; "); err != nil {
 		panic(err)
 	}
+	return nil
+}
+
+// renterHostPair is a helper struct that contains a secret key, symbolizing the
+// renter, a host and the id of the file contract they share.
+type renterHostPair struct {
+	staticAccountID  modules.AccountID
+	staticAccountKey crypto.SecretKey
+	staticFCID       types.FileContractID
+	staticRenterSK   crypto.SecretKey
+	staticRenterPK   types.SiaPublicKey
+	staticRenterMux  *siamux.SiaMux
+
+	pt *modules.RPCPriceTable
+
+	staticHT *hostTester
+	staticMu sync.Mutex
+}
+
+// newRenterHostPair creates a new host tester and returns a renter host pair,
+// this pair is a helper struct that contains both the host and renter,
+// represented by its secret key. This helper will create a storage
+// obligation emulating a file contract between them.
+func newRenterHostPair(name string) (*renterHostPair, error) {
+	return newCustomRenterHostPair(name, modules.ProdDependencies)
+}
+
+// newCustomRenterHostPair creates a new host tester and returns a renter host
+// pair, this pair is a helper struct that contains both the host and renter,
+// represented by its secret key. This helper will create a storage obligation
+// emulating a file contract between them. It is custom as it allows passing a
+// set of dependencies.
+func newCustomRenterHostPair(name string, deps modules.Dependencies) (*renterHostPair, error) {
+	// setup host
+	ht, err := newMockHostTester(deps, name)
+	if err != nil {
+		return nil, err
+	}
+	return newRenterHostPairCustomHostTester(ht)
+}
+
+// newRenterHostPairCustomHostTester returns a renter host pair, this pair is a
+// helper struct that contains both the host and renter, represented by its
+// secret key. This helper will create a storage obligation emulating a file
+// contract between them. This method requires the caller to pass a hostTester
+// opposed to creating one, which allows setting up multiple renters which each
+// have a contract with the one host.
+func newRenterHostPairCustomHostTester(ht *hostTester) (*renterHostPair, error) {
+	// create a renter key pair
+	sk, pk := crypto.GenerateKeyPair()
+	renterPK := types.SiaPublicKey{
+		Algorithm: types.SignatureEd25519,
+		Key:       pk[:],
+	}
+
+	// setup storage obligation (emulating a renter creating a contract)
+	so, err := ht.newTesterStorageObligation()
+	if err != nil {
+		return nil, errors.AddContext(err, "unable to make the new tester storage obligation")
+	}
+	so, err = ht.addNoOpRevision(so, renterPK)
+	if err != nil {
+		return nil, errors.AddContext(err, "unable to add noop revision")
+	}
+	ht.host.managedLockStorageObligation(so.id())
+	err = ht.host.managedAddStorageObligation(so, false)
+	if err != nil {
+		return nil, errors.AddContext(err, "unable to add the storage obligation")
+	}
+	ht.host.managedUnlockStorageObligation(so.id())
+
+	// prepare an EA without funding it.
+	accountKey, accountID := prepareAccount()
+
+	// prepare a siamux for the renter
+	renterMuxDir := filepath.Join(ht.persistDir, "rentermux")
+	if err := os.MkdirAll(renterMuxDir, 0700); err != nil {
+		return nil, errors.AddContext(err, "unable to mkdirall")
+	}
+	muxLogger, err := persist.NewFileLogger(filepath.Join(renterMuxDir, "siamux.log"))
+	if err != nil {
+		return nil, errors.AddContext(err, "unable to create mux logger")
+	}
+	renterMux, err := siamux.New("127.0.0.1:0", "127.0.0.1:0", muxLogger, renterMuxDir)
+	if err != nil {
+		return nil, errors.AddContext(err, "unable to create renter mux")
+	}
+
+	pair := &renterHostPair{
+		staticAccountID:  accountID,
+		staticAccountKey: accountKey,
+		staticRenterSK:   sk,
+		staticRenterPK:   renterPK,
+		staticRenterMux:  renterMux,
+		staticFCID:       so.id(),
+		staticHT:         ht,
+	}
+
+	// fetch a price table
+	err = pair.managedUpdatePriceTable(true)
+	if err != nil {
+		return nil, errors.AddContext(err, "unable to update price table")
+	}
+
+	// sanity check to verify the refund account used to update the PT is empty
+	// to ensure the test starts with a clean slate
+	am := pair.staticHT.host.staticAccountManager
+	balance := am.callAccountBalance(pair.staticAccountID)
+	if !balance.IsZero() {
+		return nil, errors.New("account balance was not zero after initialising a renter host pair")
+	}
+
+	return pair, nil
+}
+
+// Close closes the underlying host tester.
+func (p *renterHostPair) Close() error {
+	err1 := p.staticRenterMux.Close()
+	err2 := p.staticHT.Close()
+	return errors.Compose(err1, err2)
+}
+
+// executeProgramResponse is a helper struct that wraps the
+// RPCExecuteProgramResponse together with the output data
+type executeProgramResponse struct {
+	modules.RPCExecuteProgramResponse
+	Output []byte
+}
+
+// managedExecuteProgram executes an MDM program on the host using an EA payment
+// and returns the responses received by the host. A failure to execute an
+// instruction won't result in an error. Instead the returned responses need to
+// be inspected for that depending on the testcase.
+func (p *renterHostPair) managedExecuteProgram(epr modules.RPCExecuteProgramRequest, programData []byte, budget types.Currency, updatePriceTable bool) ([]executeProgramResponse, mux.BandwidthLimit, error) {
+	var err error
+
+	pt := p.managedPriceTable()
+	if updatePriceTable {
+		pt, err = p.managedFetchPriceTable()
+		if err != nil {
+			return nil, nil, errors.AddContext(err, "error fetching price table")
+		}
+	}
+
+	// create stream
+	stream := p.managedNewStream()
+	defer stream.Close()
+
+	// Get the limit to track bandwidth.
+	limit := stream.Limit()
+
+	// Write the specifier.
+	err = modules.RPCWrite(stream, modules.RPCExecuteProgram)
+	if err != nil {
+		return nil, limit, errors.AddContext(err, "RPCWrite RPCExecuteProgram failed")
+	}
+
+	// Write the pricetable uid.
+	err = modules.RPCWrite(stream, pt.UID)
+	if err != nil {
+		return nil, limit, errors.AddContext(err, "RPCWrite price table UID failed")
+	}
+
+	// Send the payment request.
+	err = modules.RPCWrite(stream, modules.PaymentRequest{Type: modules.PayByEphemeralAccount})
+	if err != nil {
+		return nil, limit, errors.AddContext(err, "RPCWrite error submitting payment request")
+	}
+
+	// Send the payment details.
+	pbear := newPayByEphemeralAccountRequest(p.staticAccountID, p.staticHT.host.BlockHeight()+6, budget, p.staticAccountKey)
+	err = modules.RPCWrite(stream, pbear)
+	if err != nil {
+		return nil, limit, errors.AddContext(err, "RPCWrite error submitting PayByEphemeralAccountRequest")
+	}
+
+	// Receive payment confirmation.
+	var pc modules.PayByEphemeralAccountResponse
+	err = modules.RPCRead(stream, &pc)
+	if err != nil {
+		return nil, limit, errors.AddContext(err, "Error receiving PayByEphemeralAccount response")
+	}
+
+	// Send the execute program request.
+	err = modules.RPCWrite(stream, epr)
+	if err != nil {
+		return nil, limit, errors.AddContext(err, "RPCWrite error submitting RPCExecuteProgramRequest")
+	}
+
+	// Send the programData.
+	_, err = stream.Write(programData)
+	if err != nil {
+		return nil, limit, errors.AddContext(err, "error writing program data stream")
+	}
+
+	// Read the responses.
+	responses := make([]executeProgramResponse, len(epr.Program))
+	for i := range epr.Program {
+		// Read the response.
+		err = modules.RPCRead(stream, &responses[i])
+		if err != nil {
+			return nil, limit, errors.AddContext(err, "error reading response")
+		}
+
+		// Read the output data.
+		outputLen := responses[i].OutputLength
+		responses[i].Output = make([]byte, outputLen, outputLen)
+		_, err = io.ReadFull(stream, responses[i].Output)
+		if err != nil {
+			return nil, limit, errors.AddContext(err, "error reading response output data")
+		}
+
+		// If the response contains an error we are done.
+		if responses[i].Error != nil {
+			return responses, limit, nil
+		}
+	}
+
+	// The next read should return io.EOF since the host closes the connection
+	// after the RPC is done.
+	err = modules.RPCRead(stream, struct{}{})
+	if !errors.Contains(err, io.ErrClosedPipe) {
+		return nil, limit, err
+	}
+	return responses, limit, nil
+}
+
+// managedFetchPriceTable returns the latest price table, if that price table is
+// expired it will fetch a new one from the host.
+func (p *renterHostPair) managedFetchPriceTable() (*modules.RPCPriceTable, error) {
+	// fetch a new pricetable if it's about to expire, rather than the second it
+	// expires. This ensures calls performed immediately after
+	// `managedFetchPriceTable` is called are set to succeed.
+	var expiryBuffer int64 = 3
+
+	pt := p.managedPriceTable()
+	if pt.Expiry <= time.Now().Unix()+expiryBuffer {
+		err := p.managedUpdatePriceTable(true)
+		if err != nil {
+			return nil, err
+		}
+		return p.managedPriceTable(), nil
+	}
+	return pt, nil
+}
+
+// managedFundEphemeralAccount will deposit the given amount in the pair's
+// ephemeral account using the pair's file contract to provide payment and the
+// given price table.
+func (p *renterHostPair) managedFundEphemeralAccount(amount types.Currency, updatePriceTable bool) (modules.FundAccountResponse, error) {
+	var err error
+
+	pt := p.managedPriceTable()
+	if updatePriceTable {
+		pt, err = p.managedFetchPriceTable()
+		if err != nil {
+			return modules.FundAccountResponse{}, err
+		}
+	}
+
+	// create stream
+	stream := p.managedNewStream()
+	defer stream.Close()
+
+	// Write RPC ID.
+	err = modules.RPCWrite(stream, modules.RPCFundAccount)
+	if err != nil {
+		return modules.FundAccountResponse{}, err
+	}
+
+	// Write price table id.
+	err = modules.RPCWrite(stream, pt.UID)
+	if err != nil {
+		return modules.FundAccountResponse{}, err
+	}
+
+	// send fund account request
+	req := modules.FundAccountRequest{Account: p.staticAccountID}
+	err = modules.RPCWrite(stream, req)
+	if err != nil {
+		return modules.FundAccountResponse{}, err
+	}
+
+	// Pay by contract.
+	err = p.managedPayByContract(stream, amount, modules.ZeroAccountID)
+	if err != nil {
+		return modules.FundAccountResponse{}, err
+	}
+
+	// receive FundAccountResponse
+	var resp modules.FundAccountResponse
+	err = modules.RPCRead(stream, &resp)
+	if err != nil {
+		return modules.FundAccountResponse{}, err
+	}
+	return resp, nil
+}
+
+// managedNewStream opens a stream to the pair's host and returns it
+func (p *renterHostPair) managedNewStream() siamux.Stream {
+	pk := modules.SiaPKToMuxPK(p.staticHT.host.publicKey)
+	address := p.staticHT.host.ExternalSettings().SiaMuxAddress()
+	subscriber := modules.HostSiaMuxSubscriberName
+
+	stream, err := p.staticRenterMux.NewStream(subscriber, address, pk)
+	if err != nil {
+		panic(err)
+	}
+	return stream
+}
+
+// managedPayByContract is a helper that creates a payment revision and uses it
+// to pay the specified amount. It will also verify the signature of the
+// returned response.
+func (p *renterHostPair) managedPayByContract(stream siamux.Stream, amount types.Currency, refundAccount modules.AccountID) error {
+	// create the revision.
+	revision, sig, err := p.managedPaymentRevision(amount)
+	if err != nil {
+		return err
+	}
+
+	// send PaymentRequest & PayByContractRequest
+	pRequest := modules.PaymentRequest{Type: modules.PayByContract}
+	pbcRequest := newPayByContractRequest(revision, sig, refundAccount)
+	err = modules.RPCWriteAll(stream, pRequest, pbcRequest)
+	if err != nil {
+		return err
+	}
+
+	// receive PayByContractResponse
+	var payByResponse modules.PayByContractResponse
+	err = modules.RPCRead(stream, &payByResponse)
+	if err != nil {
+		return err
+	}
+
+	// verify the host signature
+	if err := crypto.VerifyHash(crypto.HashAll(revision), p.staticHT.host.secretKey.PublicKey(), payByResponse.Signature); err != nil {
+		return errors.New("could not verify host signature")
+	}
+	return nil
+}
+
+// managedPayByEphemeralAccount is a helper that makes payment using the pair's
+// EA.
+func (p *renterHostPair) managedPayByEphemeralAccount(stream siamux.Stream, amount types.Currency) (modules.PayByEphemeralAccountResponse, error) {
+	// Send the payment request.
+	err := modules.RPCWrite(stream, modules.PaymentRequest{Type: modules.PayByEphemeralAccount})
+	if err != nil {
+		return modules.PayByEphemeralAccountResponse{}, err
+	}
+
+	// Send the payment details.
+	pbear := newPayByEphemeralAccountRequest(p.staticAccountID, p.staticHT.host.BlockHeight()+6, amount, p.staticAccountKey)
+	err = modules.RPCWrite(stream, pbear)
+	if err != nil {
+		return modules.PayByEphemeralAccountResponse{}, err
+	}
+
+	// Receive payment confirmation.
+	var resp modules.PayByEphemeralAccountResponse
+	err = modules.RPCRead(stream, &resp)
+	if err != nil {
+		return modules.PayByEphemeralAccountResponse{}, err
+	}
+	return resp, nil
+}
+
+// managedPaymentRevision returns a new revision that transfer the given amount
+// to the host. Returns the payment revision together with a signature signed by
+// the pair's renter.
+func (p *renterHostPair) managedPaymentRevision(amount types.Currency) (types.FileContractRevision, crypto.Signature, error) {
+	updated, err := p.staticHT.host.managedGetStorageObligation(p.staticFCID)
+	if err != nil {
+		return types.FileContractRevision{}, crypto.Signature{}, err
+	}
+
+	recent, err := updated.recentRevision()
+	if err != nil {
+		return types.FileContractRevision{}, crypto.Signature{}, err
+	}
+
+	rev, err := recent.PaymentRevision(amount)
+	if err != nil {
+		return types.FileContractRevision{}, crypto.Signature{}, err
+	}
+
+	return rev, p.managedSign(rev), nil
+}
+
+// managedPriceTable returns the latest price table
+func (p *renterHostPair) managedPriceTable() *modules.RPCPriceTable {
+	p.staticMu.Lock()
+	defer p.staticMu.Unlock()
+	return p.pt
+}
+
+// managedSign returns the renter's signature of the given revision
+func (p *renterHostPair) managedSign(rev types.FileContractRevision) crypto.Signature {
+	signedTxn := types.Transaction{
+		FileContractRevisions: []types.FileContractRevision{rev},
+		TransactionSignatures: []types.TransactionSignature{{
+			ParentID:       crypto.Hash(rev.ParentID),
+			CoveredFields:  types.CoveredFields{FileContractRevisions: []uint64{0}},
+			PublicKeyIndex: 0,
+		}},
+	}
+	hash := signedTxn.SigHash(0, p.staticHT.host.BlockHeight())
+	return crypto.SignHash(hash, p.staticRenterSK)
+}
+
+// managedUpdatePriceTable runs the UpdatePriceTableRPC on the host and sets the
+// price table on the pair
+func (p *renterHostPair) managedUpdatePriceTable(payByFC bool) error {
+	stream := p.managedNewStream()
+	defer stream.Close()
+
+	// initiate the RPC
+	err := modules.RPCWrite(stream, modules.RPCUpdatePriceTable)
+	if err != nil {
+		return err
+	}
+
+	// receive the price table response
+	var update modules.RPCUpdatePriceTableResponse
+	err = modules.RPCRead(stream, &update)
+	if err != nil {
+		return err
+	}
+
+	var pt modules.RPCPriceTable
+	err = json.Unmarshal(update.PriceTableJSON, &pt)
+	if err != nil {
+		return err
+	}
+
+	if payByFC {
+		err = p.managedPayByContract(stream, pt.UpdatePriceTableCost, p.staticAccountID)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = p.managedPayByEphemeralAccount(stream, pt.UpdatePriceTableCost)
+		if err != nil {
+			return err
+		}
+	}
+
+	// update the price table
+	p.staticMu.Lock()
+	p.pt = &pt
+	p.staticMu.Unlock()
+
+	// expect clean stream close
+	err = modules.RPCRead(stream, struct{}{})
+	if !errors.Contains(err, io.ErrClosedPipe) {
+		return err
+	}
+
 	return nil
 }
 
@@ -228,28 +714,27 @@ func TestHostInitialization(t *testing.T) {
 		t.SkipNow()
 	}
 	t.Parallel()
-	// Create a blank host tester and check that the height is zero.
-	bht, err := blankHostTester("TestHostInitialization")
+
+	// create a blank host tester
+	ht, err := blankHostTester(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer bht.Close()
-	if bht.host.blockHeight != 0 {
-		t.Error("host initialized to the wrong block height")
+	defer ht.Close()
+
+	// verify its initial block height is zero
+	if ht.host.blockHeight != 0 {
+		t.Fatal("host initialized to the wrong block height")
 	}
 
-	// Initialize the wallet so that a block can be mined, then mine a block
-	// and check that it sets the host height to 1.
-	err = bht.initWallet()
-	if err != nil {
-		t.Fatal(err)
+	// verify its RPC price table was properly initialised
+	ht.host.staticPriceTables.mu.RLock()
+	defer ht.host.staticPriceTables.mu.RUnlock()
+	if reflect.DeepEqual(ht.host.staticPriceTables.current, modules.RPCPriceTable{}) {
+		t.Fatal("RPC price table wasn't initialized")
 	}
-	_, err = bht.miner.AddBlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if bht.host.blockHeight != 1 {
-		t.Fatal("block height did not increase correctly after first block mined:", bht.host.blockHeight, 1)
+	if ht.host.staticPriceTables.current.Expiry == 0 {
+		t.Fatal("RPC price table was not properly initialised")
 	}
 }
 
@@ -281,7 +766,7 @@ func TestHostMultiClose(t *testing.T) {
 	// Set ht.host to something non-nil - nil was returned because startup was
 	// incomplete. If ht.host is nil at the end of the function, the ht.Close()
 	// operation will fail.
-	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
+	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,21 +785,38 @@ func TestNilValues(t *testing.T) {
 	defer ht.Close()
 
 	hostDir := filepath.Join(ht.persistDir, modules.HostDir)
-	_, err = New(nil, ht.gateway, ht.tpool, ht.wallet, "localhost:0", hostDir)
+	_, err = New(nil, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", hostDir)
 	if err != errNilCS {
 		t.Fatal("could not trigger errNilCS")
 	}
-	_, err = New(ht.cs, nil, ht.tpool, ht.wallet, "localhost:0", hostDir)
+	_, err = New(ht.cs, nil, ht.tpool, ht.wallet, ht.mux, "localhost:0", hostDir)
 	if err != errNilGateway {
 		t.Fatal("Could not trigger errNilGateay")
 	}
-	_, err = New(ht.cs, ht.gateway, nil, ht.wallet, "localhost:0", hostDir)
+	_, err = New(ht.cs, ht.gateway, nil, ht.wallet, ht.mux, "localhost:0", hostDir)
 	if err != errNilTpool {
 		t.Fatal("could not trigger errNilTpool")
 	}
-	_, err = New(ht.cs, ht.gateway, ht.tpool, nil, "localhost:0", hostDir)
+	_, err = New(ht.cs, ht.gateway, ht.tpool, nil, ht.mux, "localhost:0", hostDir)
 	if err != errNilWallet {
 		t.Fatal("Could not trigger errNilWallet")
+	}
+}
+
+// TestRenterHostPair tests the newRenterHostPair constructor
+func TestRenterHostPair(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	rhp, err := newRenterHostPair(t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = rhp.Close()
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -337,40 +839,49 @@ func TestSetAndGetInternalSettings(t *testing.T) {
 	if settings.AcceptingContracts != false {
 		t.Error("settings retrieval did not return default value")
 	}
-	if settings.MaxDuration != defaultMaxDuration {
+	if settings.MaxDuration != modules.DefaultMaxDuration {
 		t.Error("settings retrieval did not return default value")
 	}
-	if settings.MaxDownloadBatchSize != uint64(defaultMaxDownloadBatchSize) {
+	if settings.MaxDownloadBatchSize != uint64(modules.DefaultMaxDownloadBatchSize) {
 		t.Error("settings retrieval did not return default value")
 	}
-	if settings.MaxReviseBatchSize != uint64(defaultMaxReviseBatchSize) {
+	if settings.MaxReviseBatchSize != uint64(modules.DefaultMaxReviseBatchSize) {
 		t.Error("settings retrieval did not return default value")
 	}
 	if settings.NetAddress != "" {
 		t.Error("settings retrieval did not return default value")
 	}
-	if settings.WindowSize != defaultWindowSize {
+	if settings.WindowSize != modules.DefaultWindowSize {
 		t.Error("settings retrieval did not return default value")
 	}
-	if !settings.Collateral.Equals(defaultCollateral) {
+	if !settings.Collateral.Equals(modules.DefaultCollateral) {
 		t.Error("settings retrieval did not return default value")
 	}
 	if !settings.CollateralBudget.Equals(defaultCollateralBudget) {
 		t.Error("settings retrieval did not return default value")
 	}
-	if !settings.MaxCollateral.Equals(defaultMaxCollateral) {
+	if !settings.MaxCollateral.Equals(modules.DefaultMaxCollateral) {
 		t.Error("settings retrieval did not return default value")
 	}
-	if !settings.MinContractPrice.Equals(defaultContractPrice) {
+	if !settings.MinContractPrice.Equals(modules.DefaultContractPrice) {
 		t.Error("settings retrieval did not return default value")
 	}
-	if !settings.MinDownloadBandwidthPrice.Equals(defaultDownloadBandwidthPrice) {
+	if !settings.MinDownloadBandwidthPrice.Equals(modules.DefaultDownloadBandwidthPrice) {
 		t.Error("settings retrieval did not return default value")
 	}
-	if !settings.MinStoragePrice.Equals(defaultStoragePrice) {
+	if !settings.MinStoragePrice.Equals(modules.DefaultStoragePrice) {
 		t.Error("settings retrieval did not return default value")
 	}
-	if !settings.MinUploadBandwidthPrice.Equals(defaultUploadBandwidthPrice) {
+	if !settings.MinUploadBandwidthPrice.Equals(modules.DefaultUploadBandwidthPrice) {
+		t.Error("settings retrieval did not return default value")
+	}
+	if settings.EphemeralAccountExpiry != (defaultEphemeralAccountExpiry) {
+		t.Error("settings retrieval did not return default value")
+	}
+	if !settings.MaxEphemeralAccountBalance.Equals(defaultMaxEphemeralAccountBalance) {
+		t.Error("settings retrieval did not return default value")
+	}
+	if !settings.MaxEphemeralAccountRisk.Equals(defaultMaxEphemeralAccountRisk) {
 		t.Error("settings retrieval did not return default value")
 	}
 
@@ -405,7 +916,7 @@ func TestSetAndGetInternalSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rebootHost, err := New(ht.cs, ht.gateway, ht.tpool, ht.wallet, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
+	rebootHost, err := New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -437,16 +948,16 @@ func TestSetAndGetSettings(t *testing.T) {
 
 	// Check the default settings get returned at first call.
 	settings := ht.host.Settings()
-	if settings.MaxDuration != defaultMaxDuration {
+	if settings.MaxDuration != modules.DefaultMaxDuration {
 		t.Error("settings retrieval did not return default value")
 	}
-	if settings.WindowSize != defaultWindowSize {
+	if settings.WindowSize != modules.DefaultWindowSize {
 		t.Error("settings retrieval did not return default value")
 	}
 	if settings.Price.Cmp(defaultPrice) != 0 {
 		t.Error("settings retrieval did not return default value")
 	}
-	if settings.Collateral.Cmp(defaultCollateral) != 0 {
+	if settings.Collateral.Cmp(modules.DefaultCollateral) != 0 {
 		t.Error("settings retrieval did not return default value")
 	}
 
@@ -479,7 +990,7 @@ func TestSetAndGetSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rebootHost, err := New(ht.cs, ht.tpool, ht.wallet, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
+	rebootHost, err := New(ht.cs, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -530,7 +1041,7 @@ func TestPersistentSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h, err := New(ht.cs, ht.tpool, ht.wallet, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
+	h, err := New(ht.cs, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
 	if err != nil {
 		t.Fatal(err)
 	}

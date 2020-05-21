@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/persist"
-
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // ProdDependencies act as a global instance of the production dependencies to
@@ -20,7 +20,7 @@ import (
 // production dependencies.
 var ProdDependencies = new(ProductionDependencies)
 
-// Dependencies defines dependencies used by all of Sia's modules. Custom
+// Dependencies defines dependencies used by all of ScPrime's modules. Custom
 // dependencies can be created to inject certain behavior during testing.
 type (
 	Dependencies interface {

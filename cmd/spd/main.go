@@ -33,10 +33,12 @@ type Config struct {
 	// The Spd variables are referenced directly by cobra, and are set
 	// according to the flags.
 	Spd struct {
-		APIaddr      string
-		RPCaddr      string
-		HostAddr     string
-		AllowAPIBind bool
+		APIaddr       string
+		RPCaddr       string
+		HostAddr      string
+		SiaMuxTCPAddr string
+		SiaMuxWSAddr  string
+		AllowAPIBind  bool
 
 		Modules           string
 		NoBootstrap       bool
@@ -46,7 +48,7 @@ type Config struct {
 
 		Profile    string
 		ProfileDir string
-		SiaDir     string
+		DataDir    string
 	}
 
 	MiningPoolConfig config.MiningPoolConfig
@@ -62,10 +64,6 @@ func die(args ...interface{}) {
 
 // versionCmd is a cobra command that prints the version of spd.
 func versionCmd(*cobra.Command, []string) {
-	version := build.Version
-	if build.ReleaseTag != "" {
-		version += "-" + build.ReleaseTag
-	}
 	switch build.Release {
 	case "dev":
 		fmt.Println("ScPrime Daemon v" + build.Version + "-dev")
@@ -136,6 +134,12 @@ Mining Pool (p):
 	The pool requires the gateway,consensus set, transactions pool and wallet.
 	Example:
 		spd -M gctwp
+FeeManager (f):
+	The FeeManager provides a means for application developers to charge
+	users for the user of their application.
+	The FeeManager requires the consensus set, gateway, transaction pool, and wallet.
+	Example:
+		spd -M gctwf
 Explorer (e):
 	The explorer provides statistics about the blockchain and can be
 	queried for information about specific transactions or other objects on
@@ -178,18 +182,49 @@ func main() {
 	})
 
 	// Set default values, which have the lowest priority.
-	root.Flags().StringVarP(&globalConfig.Spd.RequiredUserAgent, "agent", "", "SiaPrime-Agent", "required substring for the user agent")
+	root.Flags().StringVarP(&globalConfig.Spd.RequiredUserAgent, "agent", "", "ScPrime-Agent", "required substring for the user agent")
 	root.Flags().StringVarP(&globalConfig.Spd.HostAddr, "host-addr", "", ":4282", "which port the host listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.ProfileDir, "profile-directory", "", "profiles", "location of the profiling directory")
 	root.Flags().StringVarP(&globalConfig.Spd.APIaddr, "api-addr", "", "localhost:4280", "which host:port the API server listens on")
-	root.Flags().StringVarP(&globalConfig.Spd.SiaDir, "scprime-directory", "d", "", "location of the metadata directory")
+	root.Flags().StringVarP(&globalConfig.Spd.DataDir, "scprime-directory", "d", "", "location of the metadata directory")
 	root.Flags().BoolVarP(&globalConfig.Spd.NoBootstrap, "no-bootstrap", "", false, "disable bootstrapping on this run")
 	root.Flags().StringVarP(&globalConfig.Spd.Profile, "profile", "", "", "enable profiling with flags 'cmt' for CPU, memory, trace")
 	root.Flags().StringVarP(&globalConfig.Spd.RPCaddr, "rpc-addr", "", ":4281", "which port the gateway listens on")
-	root.Flags().StringVarP(&globalConfig.Spd.Modules, "modules", "M", "cghrtw", "enabled modules, see 'spd modules' for more info")
+	root.Flags().StringVarP(&globalConfig.Spd.SiaMuxTCPAddr, "siamux-addr", "", ":4283", "which port the SiaMux listens on")
+	root.Flags().StringVarP(&globalConfig.Spd.SiaMuxWSAddr, "siamux-addr-ws", "", ":4284", "which port the SiaMux websocket listens on")
+	root.Flags().StringVarP(&globalConfig.Spd.Modules, "modules", "M", "gctwrhf", "enabled modules, see 'spd modules' for more info")
 	root.Flags().BoolVarP(&globalConfig.Spd.AuthenticateAPI, "authenticate-api", "", true, "enable API password protection")
 	root.Flags().BoolVarP(&globalConfig.Spd.TempPassword, "temp-password", "", false, "enter a temporary API password during startup")
 	root.Flags().BoolVarP(&globalConfig.Spd.AllowAPIBind, "disable-api-security", "", false, "allow spd to listen on a non-localhost address (DANGEROUS)")
+
+	// If globalConfig.Spd.DataDir is not set, use the environment variable provided.
+	if globalConfig.Spd.DataDir == "" {
+		globalConfig.Spd.DataDir = build.SiaDir()
+	}
+
+	// Check for existence of datadir and move it if not found
+	// The only possible scenario when this move is expected is when the target
+	// is the default datadir (not specified) && it does not exist yet && there
+	// exists a directory at the old default path.
+	targetpath := globalConfig.Spd.DataDir
+	if targetpath == build.DefaultMetadataDir() {
+		_, err := os.Stat(targetpath)
+		if os.IsNotExist(err) { //Metadata directory does not exist
+			//Check for pre v1.4.3 default data directory
+			oldpath := build.DefaultSiaPrimeDir()
+			info, err := os.Stat(oldpath)
+			if err == nil && info.IsDir() {
+				fmt.Printf("Migrating metadata from %v to %v\n", oldpath, targetpath)
+				err = os.Rename(oldpath, targetpath)
+				if err != nil {
+					//Panic, there is old metadata at the old default path but it can not be moved.
+					die("Can not move existing old SiaPrime metadata directory to new default path", err)
+				} else {
+					fmt.Printf("Done moving data from %v to %v\n", oldpath, targetpath)
+				}
+			}
+		}
+	}
 
 	// Parse cmdline flags, overwriting both the default values and the config
 	// file values.

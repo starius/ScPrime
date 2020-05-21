@@ -28,19 +28,45 @@ func (c *Contractor) badContractCheck(u modules.ContractUtility) (modules.Contra
 	return u, false
 }
 
-// checkHostScore checks host scorebreakdown against minimum accepted scores.
-// forceUpdate is true if the utility change must be taken.
-func (c *Contractor) checkHostScore(contract modules.RenterContract, sb modules.HostScoreBreakdown, minScoreGFR, minScoreGFU types.Currency) (modules.ContractUtility, utilityUpdateStatus) {
+// renewedCheck will return a contract with no utility and a required update if
+// the contract has been renewed, no changes otherwise.
+func (c *Contractor) renewedCheck(u modules.ContractUtility, renewed bool) (modules.ContractUtility, bool) {
+	if renewed {
+		u.GoodForUpload = false
+		u.GoodForRenew = false
+		return u, true
+	}
+	return u, false
+}
+
+// managedCheckHostScore checks host scorebreakdown against minimum accepted
+// scores.  forceUpdate is true if the utility change must be taken.
+func (c *Contractor) managedCheckHostScore(contract modules.RenterContract, sb modules.HostScoreBreakdown, minScoreGFR, minScoreGFU types.Currency) (modules.ContractUtility, utilityUpdateStatus) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	u := contract.Utility
 
-	// Contract has no utility if the score is poor.
-	if !minScoreGFR.IsZero() && sb.Score.Cmp(minScoreGFR) < 0 {
+	// Check whether the contract is a payment contract. Payment contracts
+	// cannot be marked !GFR for poor score.
+	var size uint64
+	if len(contract.Transaction.FileContractRevisions) > 0 {
+		size = contract.Transaction.FileContractRevisions[0].NewFileSize
+	}
+	paymentContract := !c.allowance.PaymentContractInitialFunding.IsZero() && size == 0
+
+	// Contract has no utility if the score is poor. Cannot be marked as bad if
+	// the contract is a payment contract.
+	deadScore := sb.Score.Cmp(types.NewCurrency64(1)) <= 0
+	badScore := !minScoreGFR.IsZero() && sb.Score.Cmp(minScoreGFR) < 0
+	if deadScore || (badScore && !paymentContract) {
 		// Log if the utility has changed.
 		if u.GoodForUpload || u.GoodForRenew {
 			c.log.Printf("Marking contract as having no utility because of host score: %v", contract.ID)
 			c.log.Println("Min Score:", minScoreGFR)
 			c.log.Println("Score:    ", sb.Score)
 			c.log.Println("Age Adjustment:        ", sb.AgeAdjustment)
+			c.log.Println("Base Price Adjustment: ", sb.BasePriceAdjustment)
 			c.log.Println("Burn Adjustment:       ", sb.BurnAdjustment)
 			c.log.Println("Collateral Adjustment: ", sb.CollateralAdjustment)
 			c.log.Println("Duration Adjustment:   ", sb.DurationAdjustment)
@@ -56,7 +82,7 @@ func (c *Contractor) checkHostScore(contract modules.RenterContract, sb modules.
 		// Only force utility updates if the score is the min possible score.
 		// Otherwise defer update decision for low-score contracts to the
 		// churnLimiter.
-		if sb.Score.Cmp(types.NewCurrency64(1)) <= 0 {
+		if deadScore {
 			return u, necessaryUtilityUpdate
 		}
 		c.log.Println("Adding contract utility update to churnLimiter queue")
@@ -70,6 +96,7 @@ func (c *Contractor) checkHostScore(contract modules.RenterContract, sb modules.
 			c.log.Println("Min Score:", minScoreGFU)
 			c.log.Println("Score:    ", sb.Score)
 			c.log.Println("Age Adjustment:        ", sb.AgeAdjustment)
+			c.log.Println("Base Price Adjustment: ", sb.BasePriceAdjustment)
 			c.log.Println("Burn Adjustment:       ", sb.BurnAdjustment)
 			c.log.Println("Collateral Adjustment: ", sb.CollateralAdjustment)
 			c.log.Println("Duration Adjustment:   ", sb.DurationAdjustment)
@@ -78,7 +105,6 @@ func (c *Contractor) checkHostScore(contract modules.RenterContract, sb modules.
 			c.log.Println("Storage Adjustment:    ", sb.StorageRemainingAdjustment)
 			c.log.Println("Uptime Adjustment:     ", sb.UptimeAdjustment)
 			c.log.Println("Version Adjustment:    ", sb.VersionAdjustment)
-
 		}
 		if !u.GoodForRenew {
 			c.log.Println("Marking contract as being good for renew", contract.ID)
@@ -91,8 +117,8 @@ func (c *Contractor) checkHostScore(contract modules.RenterContract, sb modules.
 	return u, noUpdate
 }
 
-// criticalUtilityChecks performs critical checks on a contract that would
-// require, with no exceptions, marking the contract as !GFR and/or !GFU.
+// managedCriticalUtilityChecks performs critical checks on a contract that
+// would require, with no exceptions, marking the contract as !GFR and/or !GFU.
 // Returns true if and only if and of the checks passed and require the utility
 // to be updated.
 //
@@ -100,14 +126,21 @@ func (c *Contractor) checkHostScore(contract modules.RenterContract, sb modules.
 // !GFR and !GFU, even if the contract is already marked as such. If
 // 'needsUpdate' is set to true, other checks which may change those values will
 // be ignored and the contract will remain marked as having no utility.
-func (c *Contractor) criticalUtilityChecks(contract modules.RenterContract, host modules.HostDBEntry) (modules.ContractUtility, bool) {
+func (c *Contractor) managedCriticalUtilityChecks(contract modules.RenterContract, host modules.HostDBEntry) (modules.ContractUtility, bool) {
 	c.mu.RLock()
 	blockHeight := c.blockHeight
 	renewWindow := c.allowance.RenewWindow
 	period := c.allowance.Period
+	_, renewed := c.renewedTo[contract.ID]
 	c.mu.RUnlock()
 
-	u, needsUpdate := c.badContractCheck(contract.Utility)
+	// A contract that has been renewed should be set to !GFU and !GFR.
+	u, needsUpdate := c.renewedCheck(contract.Utility, renewed)
+	if needsUpdate {
+		return u, needsUpdate
+	}
+
+	u, needsUpdate = c.badContractCheck(contract.Utility)
 	if needsUpdate {
 		return u, needsUpdate
 	}
@@ -135,10 +168,10 @@ func (c *Contractor) criticalUtilityChecks(contract modules.RenterContract, host
 	return contract.Utility, false
 }
 
-// hostInHostDBCheck checks if the host is in the hostdb and not filtered.
-// Returns true if a check fails and the utility returned must be used to update
-// the contract state.
-func (c *Contractor) hostInHostDBCheck(contract modules.RenterContract) (modules.HostDBEntry, modules.ContractUtility, bool) {
+// managedHostInHostDBCheck checks if the host is in the hostdb and not
+// filtered.  Returns true if a check fails and the utility returned must be
+// used to update the contract state.
+func (c *Contractor) managedHostInHostDBCheck(contract modules.RenterContract) (modules.HostDBEntry, modules.ContractUtility, bool) {
 	u := contract.Utility
 	host, exists, err := c.hdb.Host(contract.HostPublicKey)
 	// Contract has no utility if the host is not in the database. Or is
@@ -152,6 +185,12 @@ func (c *Contractor) hostInHostDBCheck(contract modules.RenterContract) (modules
 		u.GoodForRenew = false
 		return host, u, true
 	}
+
+	// TODO: If the host is not in the hostdb, we need to do some sort of rescan
+	// to recover the host. The hostdb is not supposed to be dropping hosts that
+	// we have formed contracts with. We should do what we can to get the host
+	// back.
+
 	return host, u, false
 }
 

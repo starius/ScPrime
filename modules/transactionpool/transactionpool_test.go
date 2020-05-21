@@ -570,7 +570,6 @@ func TestHeapFees(t *testing.T) {
 			t.Fatal(err)
 		}
 		graphs = append(graphs, graph)
-
 	}
 	// Accept the parent node of each graph so that its outputs we can test
 	// spending its outputs after mining the next block.
@@ -624,7 +623,6 @@ func TestHeapFees(t *testing.T) {
 	if totalFee1.Cmp(expectedFee1) != 0 {
 		t.Error("totalFee1 different than expected fee.", totalFee1.String(), expectedFee1.String())
 		//t.Log(totalFee1.Sub(expectedFee1).HumanString())
-
 	}
 
 	// Mine the next block so we can check the transactions inside
@@ -1199,7 +1197,6 @@ func TestTpoolRevert(t *testing.T) {
 			t.Fatal(err)
 		}
 		graphs = append(graphs, graph)
-
 	}
 	// Accept the parent node of each graph so that its outputs we can test
 	// spending its outputs after mining the next block.

@@ -20,6 +20,9 @@ func parseModules(config Config) node.NodeParams {
 	if strings.Contains(config.Spd.Modules, "e") {
 		params.CreateExplorer = true
 	}
+	if strings.Contains(config.Spd.Modules, "f") {
+		params.CreateFeeManager = true
+	}
 	if strings.Contains(config.Spd.Modules, "t") {
 		params.CreateTransactionPool = true
 	}
@@ -45,6 +48,8 @@ func parseModules(config Config) node.NodeParams {
 	params.Bootstrap = !config.Spd.NoBootstrap
 	params.HostAddress = config.Spd.HostAddr
 	params.RPCAddress = config.Spd.RPCaddr
-	params.Dir = config.Spd.SiaDir
+	params.SiaMuxTCPAddress = config.Spd.SiaMuxTCPAddr
+	params.SiaMuxWSAddress = config.Spd.SiaMuxWSAddr
+	params.Dir = config.Spd.DataDir
 	return params
 }

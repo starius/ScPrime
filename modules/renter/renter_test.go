@@ -2,17 +2,21 @@ package renter
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
-	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/consensus"
 	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/modules/host"
 	"gitlab.com/scpcorp/ScPrime/modules/miner"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
@@ -30,16 +34,88 @@ type renterTester struct {
 	tpool   modules.TransactionPool
 	wallet  modules.Wallet
 
+	mux *siamux.SiaMux
+
 	renter *Renter
 	dir    string
 }
 
 // Close shuts down the renter tester.
 func (rt *renterTester) Close() error {
-	rt.wallet.Lock()
 	rt.cs.Close()
 	rt.gateway.Close()
+	rt.miner.Close()
+	rt.tpool.Close()
+	rt.wallet.Close()
+	rt.mux.Close()
+	rt.renter.Close()
 	return nil
+}
+
+// addHost adds a host to the test group so that it appears in the host db
+func (rt *renterTester) addHost(name string) (modules.Host, error) {
+	testdir := build.TempDir("renter", name)
+
+	// create a siamux for this particular host
+	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
+	if err != nil {
+		return nil, errors.AddContext(err, "Failed to create SiaMux")
+	}
+
+	h, err := host.New(rt.cs, rt.gateway, rt.tpool, rt.wallet, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	if err != nil {
+		return nil, errors.AddContext(err, "Failed to create host")
+	}
+
+	// configure host to accept contracts
+	settings := h.InternalSettings()
+	settings.AcceptingContracts = true
+	err = h.SetInternalSettings(settings)
+	if err != nil {
+		return nil, errors.AddContext(err, "Could not set host settings")
+	}
+
+	// add storage to host
+	storageFolder := filepath.Join(testdir, "storage")
+	err = os.MkdirAll(storageFolder, 0700)
+	if err != nil {
+		return nil, err
+	}
+	err = h.AddStorageFolder(storageFolder, modules.SectorSize*64)
+	if err != nil {
+		return nil, errors.AddContext(err, "Could not add folder")
+	}
+
+	// announce the host
+	err = h.Announce()
+	if err != nil {
+		return nil, build.ExtendErr("error announcing host", err)
+	}
+
+	// mine a block, processing the announcement
+	_, err = rt.miner.AddBlock()
+	if err != nil {
+		return nil, errors.AddContext(err, "Miner can not Add block")
+	}
+
+	// wait for hostdb to scan host
+	activeHosts, err := rt.renter.ActiveHosts()
+	if err != nil {
+		return nil, errors.AddContext(err, "Could not get Active hosts")
+	}
+	for i := 0; i < 50 && len(activeHosts) == 0; i++ {
+		time.Sleep(time.Millisecond * 100)
+	}
+	activeHosts, err = rt.renter.ActiveHosts()
+	if err != nil {
+		return nil, errors.AddContext(err, "Could not get Active hosts")
+	}
+	if len(activeHosts) == 0 {
+		return nil, errors.New("host did not make it into the contractor hostdb in time")
+	}
+
+	return h, nil
 }
 
 // addRenter adds a renter to the renter tester and then make sure there is
@@ -67,6 +143,33 @@ func (rt *renterTester) createZeroByteFileOnDisk() (string, error) {
 	return path, nil
 }
 
+// reloadRenter closes the given renter and then re-adds it, effectively
+// reloading the renter.
+func (rt *renterTester) reloadRenter(r *Renter) (*Renter, error) {
+	return rt.reloadRenterWithDependency(r, r.deps)
+}
+
+// reloadRenterWithDependency closes the given renter and recreates it using the
+// given dependency, it then re-adds the renter on the renter tester effectively
+// relodaing it.
+func (rt *renterTester) reloadRenterWithDependency(r *Renter, deps modules.Dependencies) (*Renter, error) {
+	err := r.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	r, err = newRenterWithDependency(rt.gateway, rt.cs, rt.wallet, rt.tpool, rt.mux, filepath.Join(rt.dir, modules.RenterDir), deps)
+	if err != nil {
+		return nil, err
+	}
+
+	err = rt.addRenter(r)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
 // newRenterTester creates a ready-to-use renter tester with money in the
 // wallet.
 func newRenterTester(name string) (*renterTester, error) {
@@ -75,7 +178,8 @@ func newRenterTester(name string) (*renterTester, error) {
 	if err != nil {
 		return nil, err
 	}
-	r, errChan := New(rt.gateway, rt.cs, rt.wallet, rt.tpool, filepath.Join(testdir, modules.RenterDir))
+
+	r, errChan := New(rt.gateway, rt.cs, rt.wallet, rt.tpool, rt.mux, filepath.Join(testdir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
@@ -90,6 +194,13 @@ func newRenterTester(name string) (*renterTester, error) {
 // the renter. A renter will need to be added and blocks mined to add money to
 // the wallet.
 func newRenterTesterNoRenter(testdir string) (*renterTester, error) {
+	// Create the siamux
+	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
+	if err != nil {
+		return nil, err
+	}
+
 	// Create the modules.
 	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
@@ -123,6 +234,8 @@ func newRenterTesterNoRenter(testdir string) (*renterTester, error) {
 
 	// Assemble all pieces into a renter tester.
 	return &renterTester{
+		mux: mux,
+
 		cs:      cs,
 		gateway: g,
 		miner:   m,
@@ -133,15 +246,23 @@ func newRenterTesterNoRenter(testdir string) (*renterTester, error) {
 	}, nil
 }
 
-// newRenterTesterWithDependency creates a ready-to-use renter tester with money in the
-// wallet.
+// newRenterTesterWithDependency creates a ready-to-use renter tester with money
+// in the wallet.
 func newRenterTesterWithDependency(name string, deps modules.Dependencies) (*renterTester, error) {
 	testdir := build.TempDir("renter", name)
 	rt, err := newRenterTesterNoRenter(testdir)
 	if err != nil {
 		return nil, err
 	}
-	r, err := newRenterWithDependency(rt.gateway, rt.cs, rt.wallet, rt.tpool, filepath.Join(testdir, modules.RenterDir), deps)
+
+	// Create the siamux
+	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := newRenterWithDependency(rt.gateway, rt.cs, rt.wallet, rt.tpool, mux, filepath.Join(testdir, modules.RenterDir), deps)
 	if err != nil {
 		return nil, err
 	}
@@ -153,8 +274,8 @@ func newRenterTesterWithDependency(name string, deps modules.Dependencies) (*ren
 }
 
 // newRenterWithDependency creates a Renter with custom dependency
-func newRenterWithDependency(g modules.Gateway, cs modules.ConsensusSet, wallet modules.Wallet, tpool modules.TransactionPool, persistDir string, deps modules.Dependencies) (*Renter, error) {
-	hdb, errChan := hostdb.New(g, cs, tpool, persistDir)
+func newRenterWithDependency(g modules.Gateway, cs modules.ConsensusSet, wallet modules.Wallet, tpool modules.TransactionPool, mux *siamux.SiaMux, persistDir string, deps modules.Dependencies) (*Renter, error) {
+	hdb, errChan := hostdb.NewCustomHostDB(g, cs, tpool, persistDir, deps)
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
@@ -162,62 +283,9 @@ func newRenterWithDependency(g modules.Gateway, cs modules.ConsensusSet, wallet 
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
-	renter, errChan := NewCustomRenter(g, cs, tpool, hdb, wallet, hc, persistDir, deps)
+	renter, errChan := NewCustomRenter(g, cs, tpool, hdb, wallet, hc, mux, persistDir, deps)
 	return renter, <-errChan
 }
-
-// stubHostDB is the minimal implementation of the hostDB interface. It can be
-// embedded in other mock hostDB types, removing the need to re-implement all
-// of the hostDB's methods on every mock.
-type stubHostDB struct {
-	iprestriction int
-}
-
-func (stubHostDB) ActiveHosts() ([]modules.HostDBEntry, error) { return nil, nil }
-func (stubHostDB) AllHosts() ([]modules.HostDBEntry, error)    { return nil, nil }
-func (stubHostDB) AverageContractPrice() types.Currency        { return types.Currency{} }
-func (stubHostDB) Close() error                                { return nil }
-func (stubHostDB) Filter() (modules.FilterMode, map[string]types.SiaPublicKey, error) {
-	return 0, make(map[string]types.SiaPublicKey), nil
-}
-func (stubHostDB) SetFilterMode(fm modules.FilterMode, hosts []types.SiaPublicKey) error { return nil }
-func (stubHostDB) IsOffline(modules.NetAddress) bool                                     { return true }
-func (stubHostDB) RandomHosts(int, []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
-	return []modules.HostDBEntry{}, nil
-}
-func (stubHostDB) EstimateHostScore(modules.HostDBEntry, modules.Allowance) (modules.HostScoreBreakdown, error) {
-	return modules.HostScoreBreakdown{}, nil
-}
-func (stubHostDB) Host(types.SiaPublicKey) (modules.HostDBEntry, bool, error) {
-	return modules.HostDBEntry{}, false, nil
-}
-func (stubHostDB) ScoreBreakdown(modules.HostDBEntry) (modules.HostScoreBreakdown, error) {
-	return modules.HostScoreBreakdown{}, nil
-}
-func (sh stubHostDB) IPRestriction() (int, error) { return sh.iprestriction, nil }
-func (sh stubHostDB) SetIPRestriction(numhosts int) error {
-	sh.iprestriction = numhosts
-	return nil
-}
-
-type pricesStub struct {
-	stubHostDB
-
-	dbEntries []modules.HostDBEntry
-}
-
-func (pricesStub) Alerts() []modules.Alert            { return []modules.Alert{} }
-func (pricesStub) InitialScanComplete() (bool, error) { return true, nil }
-func (pricesStub) IPViolationsCheck() (bool, error)   { return true, nil }
-func (pricesStub) IPRestriction() (int, error)        { return 1, nil }
-
-func (ps pricesStub) RandomHosts(_ int, _, _ []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
-	return ps.dbEntries, nil
-}
-func (ps pricesStub) RandomHostsWithAllowance(_ int, _, _ []types.SiaPublicKey, _ modules.Allowance) ([]modules.HostDBEntry, error) {
-	return ps.dbEntries, nil
-}
-func (ps pricesStub) SetIPViolationCheck(enabled bool) error { return nil }
 
 // TestRenterPricesDivideByZero verifies that the Price Estimation catches
 // divide by zero errors.
@@ -237,42 +305,17 @@ func TestRenterPricesDivideByZero(t *testing.T) {
 		t.Fatal("Expected error due to no hosts")
 	}
 
-	// Create a stubbed hostdb, add an entry.
-	hdb := &pricesStub{}
-	id := rt.renter.mu.Lock()
-	rt.renter.hostDB = hdb
-	rt.renter.mu.Unlock(id)
-	dbe := modules.HostDBEntry{}
-	dbe.ContractPrice = types.SiacoinPrecision
-	dbe.DownloadBandwidthPrice = types.SiacoinPrecision
-	dbe.UploadBandwidthPrice = types.SiacoinPrecision
-	dbe.StoragePrice = types.SiacoinPrecision
-	pk := fastrand.Bytes(crypto.EntropySize)
-	dbe.PublicKey = types.SiaPublicKey{Key: pk}
-	hdb.dbEntries = append(hdb.dbEntries, dbe)
+	// Add a host to the test group
+	_, err = rt.addHost(t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Confirm price estimation does not return an error now that there is a
 	// host available
 	_, _, err = rt.renter.PriceEstimation(modules.Allowance{})
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	// Set allowance funds and host contract price such that the allowance funds
-	// are not sufficient to cover the contract price
-	allowance := modules.Allowance{
-		Funds:       types.SiacoinPrecision,
-		Hosts:       1,
-		Period:      3 * types.BlocksPerMonth,
-		RenewWindow: types.BlocksPerMonth,
-	}
-	dbe.ContractPrice = allowance.Funds.Mul64(2)
-
-	// Confirm price estimation returns error because of the contract and
-	// funding prices
-	_, _, err = rt.renter.PriceEstimation(allowance)
-	if err == nil {
-		t.Fatal("Expected error due to allowance funds inefficient")
 	}
 }
 
@@ -288,34 +331,32 @@ func TestRenterPricesVolatility(t *testing.T) {
 	}
 	defer rt.Close()
 
-	// create a stubbed hostdb, query it with one contract, add another, verify
-	// the price estimation remains constant until the timeout has passed.
-	hdb := &pricesStub{}
-	id := rt.renter.mu.Lock()
-	rt.renter.hostDB = hdb
-	rt.renter.mu.Unlock(id)
-	dbe := modules.HostDBEntry{}
-	dbe.ContractPrice = types.SiacoinPrecision
-	dbe.DownloadBandwidthPrice = types.SiacoinPrecision
-	dbe.UploadBandwidthPrice = types.SiacoinPrecision
-	dbe.StoragePrice = types.SiacoinPrecision
 	// Add 4 host entries in the database with different public keys.
-	for len(hdb.dbEntries) < modules.PriceEstimationScope {
-		pk := fastrand.Bytes(crypto.EntropySize)
-		dbe.PublicKey = types.SiaPublicKey{Key: pk}
-		hdb.dbEntries = append(hdb.dbEntries, dbe)
+	hosts := []modules.Host{}
+	for len(hosts) < modules.PriceEstimationScope {
+		// Add a host to the test group
+		h, err := rt.addHost(t.Name())
+		if err != nil {
+			t.Fatal(errors.AddContext(err, "Could not add host"))
+		}
+		hosts = append(hosts, h)
+		defer h.Close()
 	}
 	allowance := modules.Allowance{}
 	initial, _, err := rt.renter.PriceEstimation(allowance)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// Changing the contract price should be enough to trigger a change
 	// if the hosts are not cached.
-	dbe.ContractPrice = dbe.ContractPrice.Mul64(2)
-	pk := fastrand.Bytes(crypto.EntropySize)
-	dbe.PublicKey = types.SiaPublicKey{Key: pk}
-	hdb.dbEntries = append(hdb.dbEntries, dbe)
+	h := hosts[0]
+	settings := h.InternalSettings()
+	settings.MinContractPrice = settings.MinContractPrice.Mul64(2)
+	err = h.SetInternalSettings(settings)
+	if err != nil {
+		t.Fatal(err)
+	}
 	after, _, err := rt.renter.PriceEstimation(allowance)
 	if err != nil {
 		t.Fatal(err)

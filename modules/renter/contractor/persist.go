@@ -5,12 +5,23 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
+)
 
-	"gitlab.com/NebulousLabs/errors"
+var (
+	persistMeta = persist.Metadata{
+		Header:  "Contractor Persistence",
+		Version: "1.3.1",
+	}
+
+	// PersistFilename is the filename to be used when persisting contractor
+	// information to a JSON file
+	PersistFilename = "contractor.json"
 )
 
 // contractorPersist defines what Contractor data persists across sessions.
@@ -74,7 +85,7 @@ func (c *Contractor) persistData() contractorPersist {
 // load loads the Contractor persistence data from disk.
 func (c *Contractor) load() error {
 	var data contractorPersist
-	err := c.persist.load(&data)
+	err := persist.LoadJSON(persistMeta, &data, filepath.Join(c.persistDir, PersistFilename))
 	if err != nil {
 		return err
 	}
@@ -149,7 +160,11 @@ func (c *Contractor) load() error {
 
 // save saves the Contractor persistence data to disk.
 func (c *Contractor) save() error {
-	return c.persist.save(c.persistData())
+	// c.persistData is broken out because stack traces will not include the
+	// function call otherwise.
+	persistData := c.persistData()
+	filename := filepath.Join(c.persistDir, PersistFilename)
+	return persist.SaveJSON(persistMeta, persistData, filename)
 }
 
 // convertPersist converts the pre-v1.3.1 contractor persist formats to the new
@@ -157,7 +172,7 @@ func (c *Contractor) save() error {
 func convertPersist(dir string) error {
 	// Try loading v1.3.1 persist. If it has the correct version number, no
 	// further action is necessary.
-	persistPath := filepath.Join(dir, "contractor.json")
+	persistPath := filepath.Join(dir, PersistFilename)
 	err := persist.LoadJSON(persistMeta, nil, persistPath)
 	if err == nil {
 		return nil

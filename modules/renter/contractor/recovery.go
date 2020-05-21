@@ -4,13 +4,13 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TODO If we already have an active contract with a host for
@@ -45,7 +45,7 @@ func (c *Contractor) newRecoveryScanner(rs proto.RenterSeed) *recoveryScanner {
 // filecontracts belonging to the wallet's seed. Once done, all recoverable
 // contracts should be known to the contractor after which it will periodically
 // try to recover them.
-func (rs *recoveryScanner) threadedScan(cs consensusSet, scanStart modules.ConsensusChangeID, cancel <-chan struct{}) error {
+func (rs *recoveryScanner) threadedScan(cs modules.ConsensusSet, scanStart modules.ConsensusChangeID, cancel <-chan struct{}) error {
 	if err := rs.c.tg.Add(); err != nil {
 		return err
 	}
@@ -79,13 +79,6 @@ func (rs *recoveryScanner) threadedScan(cs consensusSet, scanStart modules.Conse
 // ProcessConsensusChange scans the blockchain for information relevant to the
 // recoveryScanner.
 func (rs *recoveryScanner) ProcessConsensusChange(cc modules.ConsensusChange) {
-	//skip if wallet is not initialised
-	unlocked, err := rs.c.wallet.Unlocked()
-	if err != nil || !unlocked {
-		rs.c.log.Debugln("Skipping contract recovery because wallet is not available or unlocked.")
-		return
-	}
-
 	for _, block := range cc.AppliedBlocks {
 		// Find lost contracts for recovery.
 		rs.c.mu.Lock()
@@ -222,10 +215,10 @@ func (c *Contractor) managedRecoverContract(rc modules.RecoverableContract, rs p
 	defer c.mu.Unlock()
 	_, exists := c.pubKeysToContractID[contract.HostPublicKey.String()]
 	if exists {
-		// NOTE There is a chance that this happens if
-		// c.recoverableContracts contains multiple recoverable contracts for a
-		// single host. In that case we don't update the mapping and let
-		// managedCheckForDuplicates handle that later.
+		// NOTE: There is a chance that this happens if c.recoverableContracts
+		// contains multiple recoverable contracts for a single host. In that
+		// case we don't update the mapping and let managedCheckForDuplicates
+		// and managedUpdatePubKeyToContractIDMap handle that later.
 		return errors.New("can't recover contract with a host that we already have a contract with")
 	}
 	c.pubKeysToContractID[contract.HostPublicKey.String()] = contract.ID

@@ -1,5 +1,5 @@
-The Sia API documentation can be found here:
-[Sia API](https://sia.tech/docs/ "Sia API")
+The ScPrime API documentation can be found here:
+[ScPrime API](https://sia.tech/docs/ "ScPrime API")
 
 Updates to the API documentation can be made here:
-[Sia API markdown](./index.html.md "Sia API markdown")
+[ScPrime API markdown](./index.html.md "ScPrime API markdown")

@@ -14,7 +14,7 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
@@ -287,7 +287,11 @@ func (r *Renter) managedDownload(p modules.RenterDownloadParameters) (*download,
 		if err != nil {
 			return nil, err
 		}
-		dw = &downloadDestinationFile{deps: r.deps, f: osFile, staticChunkSize: int64(entry.ChunkSize())}
+		dw = &downloadDestinationFile{
+			deps:            r.deps,
+			f:               osFile,
+			staticChunkSize: int64(entry.ChunkSize()),
+		}
 		destinationType = "file"
 	}
 

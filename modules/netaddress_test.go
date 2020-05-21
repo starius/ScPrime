@@ -52,7 +52,7 @@ var (
 		"0.0.0.0:bar",
 		// Invalid hostnames
 		"unqualifiedhost:123",
-		"Yo-Amazon.we-are-really-happy-for-you.and-we-will-let-you-finish.but-Sia-is-the-best-cloud-storage-of-all-time.of-all-time-of-all-time-of-all-time-of-all-time-of-all-time.of-all-time-of-all-time-of-all-time-of-all-time-of-all-time.of-all-time-of-all-time:123",
+		"Yo-Amazon.we-are-really-happy-for-you.and-we-will-let-you-finish.but-ScPrime-is-the-best-cloud-storage-of-all-time.of-all-time-of-all-time-of-all-time-of-all-time-of-all-time.of-all-time-of-all-time-of-all-time-of-all-time-of-all-time.of-all-time-of-all-time:123",
 		strings.Repeat("a", 64) + ".com:123",                       // 64 char long label too long.
 		strings.Repeat(strings.Repeat("a", 62)+".", 4) + "co:123",  // 254 char long hostname too long.
 		strings.Repeat(strings.Repeat("a", 62)+".", 4) + "co.:123", // 254 char long hostname with trailing dot too long.
@@ -273,6 +273,16 @@ func TestIsLocal(t *testing.T) {
 		{"192.168.2.5:16432", true},
 		{"192.168.255.255", false},
 		{"192.168.255.255:16432", true},
+		{"169.254.255.255", false},
+		{"169.254.255.255:12345", true},
+		{"169.254.25.55", false},
+		{"169.254.25.55:12345", true},
+		{"169.254.44.207", false},
+		{"169.254.44.207:9982", true},
+		{"169.254.3.139", false},
+		{"169.254.3.139:9982", true},
+		{"100.65.70.95", false},
+		{"100.65.70.95:9982", true},
 		{"1234:0000:0000:0000:0000:0000:0000:0000", false},
 		{"[1234:0000:0000:0000:0000:0000:0000:0000]:1234", false},
 		{"fc00:0000:0000:0000:0000:0000:0000:0000", false},

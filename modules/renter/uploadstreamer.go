@@ -11,7 +11,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
@@ -119,7 +119,7 @@ func (ss *StreamShard) Read(b []byte) (int, error) {
 }
 
 // UploadStreamFromReader reads from the provided reader until io.EOF is reached and
-// upload the data to the Sia network.
+// upload the data to the ScPrime network.
 func (r *Renter) UploadStreamFromReader(up modules.FileUploadParams, reader io.Reader) error {
 	if err := r.tg.Add(); err != nil {
 		return err
@@ -127,7 +127,7 @@ func (r *Renter) UploadStreamFromReader(up modules.FileUploadParams, reader io.R
 	defer r.tg.Done()
 
 	// Perform the upload, close the filenode, and return.
-	fileNode, err := r.managedUploadStreamFromReader(up, reader, false)
+	fileNode, err := r.callUploadStreamFromReader(up, reader, false)
 	if err != nil {
 		return errors.AddContext(err, "unable to stream an upload from a reader")
 	}
@@ -179,25 +179,32 @@ func (r *Renter) managedInitUploadStream(up modules.FileUploadParams, backup boo
 	if numContracts < requiredContracts && build.Release != "testing" {
 		return nil, fmt.Errorf("not enough contracts to upload file: got %v, needed %v", numContracts, (ec.NumPieces()+ec.MinPieces())/2)
 	}
+
+	// If there's a cipherKey defined already use that, otherwise generate a new
+	// key of the given cipherType.
+	cipherKey := up.CipherKey
+	if up.CipherKey == nil {
+		cipherKey = crypto.GenerateSiaKey(cipherType)
+	}
+
 	// Create the Siafile and add to renter
-	sk := crypto.GenerateSiaKey(cipherType)
-	err = r.staticFileSystem.NewSiaFile(siaPath, up.Source, up.ErasureCode, sk, 0, defaultFilePerm, up.DisablePartialChunk)
+	err = r.staticFileSystem.NewSiaFile(siaPath, up.Source, up.ErasureCode, cipherKey, 0, defaultFilePerm, up.DisablePartialChunk)
 	if err != nil {
 		return nil, err
 	}
 	return r.staticFileSystem.OpenSiaFile(siaPath)
 }
 
-// managedUploadStreamFromReader reads from the provided reader until io.EOF is
-// reached and upload the data to the Sia network. Depending on whether backup
+// callUploadStreamFromReader reads from the provided reader until io.EOF is
+// reached and upload the data to the ScPrime network. Depending on whether backup
 // is true or false, the siafile for the upload will be stored in the siafileset
 // or backupfileset.
 //
-// managedUploadStreamFromReader will return as soon as the data is available on
-// the Sia network, this will happen faster than the entire upload is complete -
+// callUploadStreamFromReader will return as soon as the data is available on
+// the ScPrime network, this will happen faster than the entire upload is complete -
 // the streamer may continue uploading in the background after returning while
 // it is boosting redundancy.
-func (r *Renter) managedUploadStreamFromReader(up modules.FileUploadParams, reader io.Reader, backup bool) (fileNode *filesystem.FileNode, err error) {
+func (r *Renter) callUploadStreamFromReader(up modules.FileUploadParams, reader io.Reader, backup bool) (fileNode *filesystem.FileNode, err error) {
 	// Check the upload params first.
 	fileNode, err = r.managedInitUploadStream(up, backup)
 	if err != nil {
@@ -229,8 +236,7 @@ func (r *Renter) managedUploadStreamFromReader(up modules.FileUploadParams, read
 	availableWorkers := len(r.staticWorkerPool.workers)
 	r.staticWorkerPool.mu.RUnlock()
 	if availableWorkers < minWorkers {
-		return nil, fmt.Errorf("Need at least %v workers for upload but got only %v",
-			minWorkers, availableWorkers)
+		return nil, fmt.Errorf("Need at least %v workers for upload but got only %v", minWorkers, availableWorkers)
 	}
 
 	// Read the chunks we want to upload one by one from the input stream using
@@ -239,8 +245,8 @@ func (r *Renter) managedUploadStreamFromReader(up modules.FileUploadParams, read
 	var peek []byte
 	var chunks []*unfinishedUploadChunk
 	for chunkIndex := uint64(0); ; chunkIndex++ {
-		// Disrupt the upload by closing the reader and simulating losing connectivity
-		// during the upload.
+		// Disrupt the upload by closing the reader and simulating losing
+		// connectivity during the upload.
 		if r.deps.Disrupt("DisruptUploadStream") {
 			c, ok := reader.(io.Closer)
 			if ok {

@@ -5,12 +5,12 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
-
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 )
 
 // downloadPieceInfo contains all the information required to download and
@@ -250,7 +250,6 @@ func bytesToRecover(chunkFetchOffset, chunkFetchLength, chunkSize uint64, rs mod
 	recoveredSegmentSize := uint64(rs.MinPieces() * crypto.SegmentSize)
 	_, numSegments := segmentsForRecovery(chunkFetchOffset, chunkFetchLength, rs)
 	return numSegments * recoveredSegmentSize
-
 }
 
 // recoveredDataOffset translates the fetch offset of the chunk into the offset

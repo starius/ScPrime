@@ -323,7 +323,7 @@ func TestThreadGroupClosedAfterStop(t *testing.T) {
 }
 
 // TestThreadGroupSiaExample tries to use a thread group as it might be
-// expected to be used by a module of Sia.
+// expected to be used by a module of ScPrime.
 func TestThreadGroupSiaExample(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()

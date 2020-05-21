@@ -29,7 +29,7 @@ func (cs *ConsensusSet) loadDB() error {
 		return err
 	}
 
-	// Walk through initialization for Sia.
+	// Walk through initialization for ScPrime.
 	return cs.db.Update(func(tx *bolt.Tx) error {
 		// Check if the database has been initialized.
 		err = cs.initDB(tx)

@@ -71,13 +71,13 @@ func (pd *programData) threadedFetchData() {
 	remainingData := int64(pd.staticLength)
 	quit := func(err error) {
 		pd.mu.Lock()
+		defer pd.mu.Unlock()
 		// Remember the error and close all open requests before stopping
 		// the loop.
 		pd.readErr = err
 		for _, r := range pd.requests {
 			close(r.c)
 		}
-		pd.mu.Unlock()
 	}
 	for remainingData > 0 {
 		select {
@@ -94,7 +94,7 @@ func (pd *programData) threadedFetchData() {
 		n, err := pd.r.Read(d)
 		if err != nil {
 			quit(err)
-			break
+			return
 		}
 		pd.mu.Lock()
 		remainingData -= int64(n)
@@ -128,7 +128,7 @@ func (pd *programData) managedBytes(offset, length uint64) ([]byte, error) {
 	// Check if data is available already.
 	if uint64(len(pd.data)) >= offset+length {
 		defer pd.mu.Unlock()
-		return pd.data[offset:], nil
+		return pd.data[offset:][:length], nil
 	}
 	// Check for previous error.
 	if pd.readErr != nil {
@@ -152,7 +152,6 @@ func (pd *programData) managedBytes(offset, length uint64) ([]byte, error) {
 		err := errors.New("requested data was out of bounds even though there was no readErr")
 		build.Critical(err)
 		return nil, err
-
 	} else if outOfBounds && pd.readErr != nil {
 		return nil, pd.readErr
 	}
@@ -181,6 +180,11 @@ func (pd *programData) Hash(offset uint64) (crypto.Hash, error) {
 	var h crypto.Hash
 	copy(h[:], d)
 	return h, nil
+}
+
+// Bytes returns 'length' bytes from offset 'offset' from the programData.
+func (pd *programData) Bytes(offset, length uint64) ([]byte, error) {
+	return pd.managedBytes(offset, length)
 }
 
 // Len returns the length of the program data.

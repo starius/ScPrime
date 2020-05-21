@@ -12,6 +12,8 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/encoding"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // MarshalSia implements the encoding.SiaMarshaler interface.
@@ -234,7 +236,7 @@ func (c *Currency) UnmarshalSia(r io.Reader) error {
 // will be the largest unit that results in a value greater than 1. The value is
 // rounded to 4 significant digits.
 func (c Currency) HumanString() string {
-	pico := SiacoinPrecision.Div64(1e12)
+	pico := ScPrimecoinPrecision.Div64(1e12)
 	if c.Cmp(pico) < 0 {
 		return c.String() + " H"
 	}
@@ -242,7 +244,7 @@ func (c Currency) HumanString() string {
 	// iterate until we find a unit greater than c
 	mag := pico
 	unit := ""
-	for _, unit = range []string{"pS", "nS", "uS", "mS", "SC", "KS", "MS", "GS", "TS"} {
+	for _, unit = range []string{"pS", "nS", "uS", "mS", "SCP", "KS", "MS", "GS", "TS"} {
 		if c.Cmp(mag.Mul64(1e3)) < 0 {
 			break
 		} else if unit != "TS" {
@@ -558,18 +560,23 @@ func (spk *SiaPublicKey) UnmarshalSia(r io.Reader) error {
 }
 
 // LoadString is the inverse of SiaPublicKey.String().
-func (spk *SiaPublicKey) LoadString(s string) {
+func (spk *SiaPublicKey) LoadString(s string) error {
 	parts := strings.Split(s, ":")
 	if len(parts) != 2 {
-		return
+		return errors.New("LoadString failed due to missing specifier")
 	}
 	var err error
 	spk.Key, err = hex.DecodeString(parts[1])
 	if err != nil {
 		spk.Key = nil
-		return
+		return errors.AddContext(err, "LoadString failed due to invalid hex encoding")
 	}
-	copy(spk.Algorithm[:], []byte(parts[0]))
+	specifierBytes := parts[0]
+	if len(spk.Algorithm) < len(specifierBytes) {
+		return errors.New("LoadString failed due to specifier having invalid length")
+	}
+	copy(spk.Algorithm[:], specifierBytes)
+	return nil
 }
 
 // String defines how to print a SiaPublicKey - hex is used to keep things

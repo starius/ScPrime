@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"gitlab.com/scpcorp/ScPrime/modules"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -36,9 +36,9 @@ func (n *FileNode) Close() error {
 		parent.removeFile(n)
 	}
 	// Unlock child and parent.
-	n.mu.Unlock()
+	n.node.mu.Unlock()
 	if parent != nil {
-		parent.mu.Unlock()
+		parent.node.mu.Unlock()
 		// Check if the parent needs to be removed from its parent too.
 		parent.managedTryRemoveFromParentsIteratively()
 	}
@@ -53,8 +53,8 @@ func (n *FileNode) Copy() *FileNode {
 
 // managedCopy copies a file node and returns the copy.
 func (n *FileNode) managedCopy() *FileNode {
-	n.mu.Lock()
-	defer n.mu.Unlock()
+	n.node.mu.Lock()
+	defer n.node.mu.Unlock()
 	newNode := *n
 	newNode.threadUID = newThreadUID()
 	newNode.threads[newNode.threadUID] = struct{}{}
@@ -63,15 +63,15 @@ func (n *FileNode) managedCopy() *FileNode {
 
 // Delete deletes the fNode's underlying file from disk.
 func (n *FileNode) managedDelete() error {
-	n.mu.Lock()
-	defer n.mu.Unlock()
+	n.node.mu.Lock()
+	defer n.node.mu.Unlock()
 	return n.SiaFile.Delete()
 }
 
 // managedMode returns the underlying file's os.FileMode.
 func (n *FileNode) managedMode() os.FileMode {
-	n.mu.Lock()
-	defer n.mu.Unlock()
+	n.node.mu.Lock()
+	defer n.node.mu.Unlock()
 	return n.SiaFile.Mode()
 }
 
@@ -112,6 +112,7 @@ func (n *FileNode) managedFileInfo(siaPath modules.SiaPath, offline map[string]b
 		Recoverable:      onDisk || redundancy >= 1,
 		Redundancy:       redundancy,
 		Renewing:         true,
+		Publinks:         n.Metadata().Publinks,
 		SiaPath:          siaPath,
 		Stuck:            numStuckChunks > 0,
 		StuckHealth:      stuckHealth,
@@ -126,16 +127,16 @@ func (n *FileNode) managedFileInfo(siaPath modules.SiaPath, offline map[string]b
 func (n *FileNode) managedRename(newName string, oldParent, newParent *DirNode) error {
 	// Lock the parents. If they are the same, only lock one.
 	if oldParent.staticUID == newParent.staticUID {
-		oldParent.mu.Lock()
-		defer oldParent.mu.Unlock()
+		oldParent.node.mu.Lock()
+		defer oldParent.node.mu.Unlock()
 	} else {
-		oldParent.mu.Lock()
-		defer oldParent.mu.Unlock()
-		newParent.mu.Lock()
-		defer newParent.mu.Unlock()
+		oldParent.node.mu.Lock()
+		defer oldParent.node.mu.Unlock()
+		newParent.node.mu.Lock()
+		defer newParent.node.mu.Unlock()
 	}
-	n.mu.Lock()
-	defer n.mu.Unlock()
+	n.node.mu.Lock()
+	defer n.node.mu.Unlock()
 	// Check that newParent doesn't have a file or folder with that name
 	// already.
 	if exists := newParent.childExists(newName); exists {
@@ -194,6 +195,7 @@ func (n *FileNode) staticCachedInfo(siaPath modules.SiaPath) (modules.FileInfo, 
 		Recoverable:      onDisk || md.CachedUserRedundancy >= 1,
 		Redundancy:       md.CachedUserRedundancy,
 		Renewing:         true,
+		Publinks:         md.Publinks,
 		SiaPath:          siaPath,
 		Stuck:            md.NumStuckChunks > 0,
 		StuckHealth:      md.CachedStuckHealth,

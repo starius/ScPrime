@@ -1,4 +1,4 @@
-# Contributing to SiaPrime
+# Contributing to ScPrime
 
 #### Table of Contents
 - [Contributing to ScPrime](#Contributing-to-ScPrime)
@@ -90,7 +90,7 @@ $ git config --global credential.helper "cache --timeout=[seconds]"
 While logged into your GitLab account, navigate to the [ScPrime repository][siaprime] 
 and click the 'Fork' button in the upper right hand corner.  Your account now 
 has a 'forked' copy of the original repo at 
-`https://gitlab.com/<your GitLab username>/SiaPrime`.
+`https://gitlab.com/<your GitLab username>/ScPrime`.
 
 When you installed ScPrime using `go get`, the go tool put the ScPrime source code in 
 $GOPATH/src/gitlab.com/scpcorp/ScPrime. Change to that directory and set up
@@ -100,9 +100,9 @@ your fork as a git [remote][remote]:
 $ cd $GOPATH/src/gitlab.com/scpcorp/ScPrime
 # Add your fork as a remote.  Name it whatever is convenient,
 # e.g your GitLab username
-$ git remote add <remote name> https://gitlab.com/<username>/SiaPrime.git
+$ git remote add <remote name> https://gitlab.com/<username>/ScPrime.git
 # Or if you use an SSH key, create the remote with the following
-$ git remote add <remote name> git@gitlab.com:<username>/SiaPrime.git
+$ git remote add <remote name> git@gitlab.com:<username>/ScPrime.git
 ```
 
 ### Write some code
@@ -123,11 +123,10 @@ $ git checkout -b <branch>
 ```
 Now write some code while the new branch is checked out.
 
-Only implement one logical change per branch. If you're working on several 
-things at once, make multiple branches. To switch between branches you're 
-working on, you have to stash the changes in the branch you're switching from 
-by running `git stash`, which tucks away all changes since the last 
-commit.
+Only implement one logical change per branch. If you're working on several
+things at once, make multiple branches. To switch between branches you're
+working on, you have to stash the changes in the branch you're switching from by
+running `git stash`, which tucks away all changes since the last commit.
 
 ```bash
 # Stash changes to current branch.
@@ -146,10 +145,9 @@ $ git stash list
 $ git stash pop <hash>
 ```
 
-To learn more about branching, see 
-[Using the Fork-and-Branch Git Workflow][branch] and 
-[Pro Git - Branches in a Nutshell][nutshell].
-For more on stashing, see [Pro Git - Stashing and Cleaning][stashing].
+To learn more about branching, see [Using the Fork-and-Branch Git
+Workflow][branch] and [Pro Git - Branches in a Nutshell][nutshell]. For more on
+stashing, see [Pro Git - Stashing and Cleaning][stashing].
   
 Be sure to follow the conventions detailed in 
 [docs/Developers.md][developers.md].  We will reject merge requests that do not 
@@ -183,7 +181,7 @@ $ git push <fork remote> <branch>
 ### Submit your code for review
 
 Once you've tested your new code and pushed changes to your fork, navigate to 
-your fork at `https://gitlab.com/<username>/Sia` in your browser.  
+your fork at `https://gitlab.com/<username>/ScPrime` in your browser.  
 Switch to the branch you've made changes on by selecting it from the list on 
 the upper left.  Then click 'New merge request' on the upper right.
 
@@ -193,17 +191,17 @@ outlined in our [Developers][developers.md] document.
 
 If you want to tweak code for which you've already submitted a pull request,
 push the updated code to your fork with `git push -f <fork remote> <branch>` and
-summarize the changes you've made in a comment on the pull request page on 
+summarize the changes you've made in a comment on the merge request page on
 GitLab.
 
-Once we have accepted your changes and merged them into the original repo, you 
+Once we have accepted your changes and merged them into the original repo, you
 have some cleanup to do:
 
 ```bash
 # Update local master branch to reflect changes in origin (the original 
 # repo).
 $ git pull origin master
-# Delete the branch you made the pull request from.
+# Delete the branch you made the merge request from.
 $ git branch -d <branch>
 # Delete the remote branch on your fork.
 $ git push <fork remote> :<branch>
@@ -219,7 +217,7 @@ $ git push <fork remote> master
 ## Where to start
 
 If you'd like to contribute to ScPrime but don't have any specific ideas, writing 
-tests is a good way to get your feet wet.  See [doc/Running and Writing Tests for SiaPrime.md](Running%20and%20Writing%20Tests%20for%20SiaPrime.md) to get started.
+tests is a good way to get your feet wet.  See [doc/Running and Writing Tests for ScPrime.md](Running%20and%20Writing%20Tests%20for%20SiaPrime.md) to get started.
 
 To learn more about how various parts of the code base work, head over to our [Resources](resources.md) page in our [doc](docs) folder.
 

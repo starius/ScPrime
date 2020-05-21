@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
@@ -24,7 +25,7 @@ var (
 		RenewWindow: types.BlockHeight(2 * types.BlocksPerWeek), // 2 Weeks
 
 		ExpectedStorage:    1e12,                                         // 1 TB
-		ExpectedUpload:     uint64(200e9) / uint64(types.BlocksPerMonth), // 200 GB per month
+		ExpectedUpload:     uint64(300e9) / uint64(types.BlocksPerMonth), // 300 GB per month
 		ExpectedDownload:   uint64(200e9) / uint64(types.BlocksPerMonth), // 200 GB per month
 		ExpectedRedundancy: 3.0,                                          // default is 10/30 erasure coding
 		MaxPeriodChurn:     uint64(250e9),                                // 250 GB
@@ -70,6 +71,11 @@ const (
 	// permissions are supplied. Changing this value is a compatibility issue
 	// since users expect dirs to have these permissions.
 	DefaultDirPerm = 0755
+
+	// DefaultFilePerm defines the default permissions used for a new file if no
+	// permissions are supplied. Changing this value is a compatibility issue
+	// since users expect files to have these permissions.
+	DefaultFilePerm = 0644
 )
 
 // String returns the string value for the FilterMode
@@ -117,18 +123,6 @@ const (
 	// FileSystemRoot is the name of the directory that is used as the root of
 	// the renter's filesystem.
 	FileSystemRoot = "fs"
-
-	// HomeFolderRoot is the name of the directory that is used to store all of
-	// the user accessible data.
-	HomeFolderRoot = "home"
-
-	// UserRoot is the name of the directory that is used to store the
-	// renter's siafiles.
-	UserRoot = "user"
-
-	// BackupRoot is the name of the directory that is used to store the renter's
-	// snapshot siafiles.
-	BackupRoot = "snapshots"
 
 	// CombinedChunksRoot is the name of the directory that contains combined
 	// chunks consisting of multiple partial chunks.
@@ -236,6 +230,13 @@ type Allowance struct {
 	Period      types.BlockHeight `json:"period"`
 	RenewWindow types.BlockHeight `json:"renewwindow"`
 
+	// PaymentContractInitialFunding establishes the amount of money that the a
+	// Pubaccess portal will put into a brand new payment contract. If this value
+	// is set to zero, this node will not act as a Pubaccess portal. When this
+	// value is non-zero, this node will act as a Pubaccess portal, and form
+	// contracts with every reasonably priced host.
+	PaymentContractInitialFunding types.Currency `json:"paymentcontractinitialfunding"`
+
 	// ExpectedStorage is the amount of data that we expect to have in a contract.
 	ExpectedStorage uint64 `json:"expectedstorage"`
 
@@ -287,19 +288,19 @@ func (a Allowance) Active() bool {
 // ContractUtility contains metrics internal to the contractor that reflect the
 // utility of a given contract.
 type ContractUtility struct {
-	GoodForUpload bool
-	GoodForRenew  bool
+	GoodForUpload bool `json:"goodforupload"`
+	GoodForRenew  bool `json:"goodforrenew"`
 
 	// BadContract will be set to true if there's good reason to believe that
 	// the contract is unusable and will continue to be unusable. For example,
 	// if the host is claiming that the contract does not exist, the contract
 	// should be marked as bad.
-	BadContract bool
-	LastOOSErr  types.BlockHeight // OOS means Out Of Storage
+	BadContract bool              `json:"badcontract"`
+	LastOOSErr  types.BlockHeight `json:"lastooserr"` // OOS means Out Of Storage
 
 	// If a contract is locked, the utility should not be updated. 'Locked' is a
 	// value that gets persisted.
-	Locked bool
+	Locked bool `json:"locked"`
 }
 
 // ContractWatchStatus provides information about the status of a contract in
@@ -399,6 +400,11 @@ type FileUploadParams struct {
 	// CipherType was added later. If it is left blank, the renter will use the
 	// default encryption method (as of writing, Threefish)
 	CipherType crypto.CipherType
+
+	// CipherKey was added in v1.5.0. If it is left blank, the renter will use it
+	// to create a CipherKey with the given CipherType. This value override
+	// CipherType if it is set.
+	CipherKey crypto.CipherKey
 }
 
 // FileInfo provides information about a file.
@@ -421,6 +427,7 @@ type FileInfo struct {
 	Recoverable      bool              `json:"recoverable"`
 	Redundancy       float64           `json:"redundancy"`
 	Renewing         bool              `json:"renewing"`
+	Publinks         []string          `json:"publinks"`
 	SiaPath          SiaPath           `json:"siapath"`
 	Stuck            bool              `json:"stuck"`
 	StuckHealth      float64           `json:"stuckhealth"`
@@ -501,6 +508,7 @@ type HostScoreBreakdown struct {
 	ConversionRate float64        `json:"conversionrate"`
 
 	AgeAdjustment              float64 `json:"ageadjustment"`
+	BasePriceAdjustment        float64 `json:"basepriceadjustment"`
 	BurnAdjustment             float64 `json:"burnadjustment"`
 	CollateralAdjustment       float64 `json:"collateraladjustment"`
 	DurationAdjustment         float64 `json:"durationadjustment"`
@@ -538,7 +546,8 @@ type RenterPriceEstimation struct {
 
 // RenterSettings control the behavior of the Renter.
 type RenterSettings struct {
-	Allowance        Allowance     `json:"allowance"`
+	Allowance Allowance `json:"allowance"`
+	// TODO: remove IPViolationCheck field eventually as it is included in the IPrestriction
 	IPViolationCheck bool          `json:"ipviolationcheck"`
 	IPrestriction    int           `json:"iprestriction"`
 	MaxUploadSpeed   int64         `json:"maxuploadspeed"`
@@ -718,6 +727,45 @@ type UploadedBackup struct {
 	Size           uint64 // size of snapshot .sia file
 	UploadProgress float64
 }
+
+type (
+	// WorkerPoolStatus contains information about the status of the workerPool
+	// and the workers
+	WorkerPoolStatus struct {
+		NumWorkers            int            `json:"numworkers"`
+		TotalDownloadCoolDown int            `json:"totaldownloadcooldown"`
+		TotalUploadCoolDown   int            `json:"totaluploadcooldown"`
+		Workers               []WorkerStatus `json:"workers"`
+	}
+
+	// WorkerStatus contains information about the status of a worker
+	WorkerStatus struct {
+		// Worker contract information
+		ContractID      types.FileContractID `json:"contractid"`
+		ContractUtility ContractUtility      `json:"contractutility"`
+		HostPubKey      types.SiaPublicKey   `json:"hostpubkey"`
+
+		// Download status information
+		DownloadOnCoolDown bool `json:"downloadoncooldown"`
+		DownloadQueueSize  int  `json:"downloadqueuesize"`
+		DownloadTerminated bool `json:"downloadterminated"`
+
+		// Upload status information
+		UploadCoolDownError string        `json:"uploadcooldownerror"`
+		UploadCoolDownTime  time.Duration `json:"uploadcooldowntime"`
+		UploadOnCoolDown    bool          `json:"uploadoncooldown"`
+		UploadQueueSize     int           `json:"uploadqueuesize"`
+		UploadTerminated    bool          `json:"uploadterminated"`
+
+		// Ephemeral Account information
+		AvailableBalance types.Currency `json:"availablebalance"`
+		BalanceTarget    types.Currency `json:"balancetarget"`
+
+		// Job Queues
+		BackupJobQueueSize       int `json:"backupjobqueuesize"`
+		DownloadRootJobQueueSize int `json:"downloadrootjobqueuesize"`
+	}
+)
 
 // A Renter uploads, tracks, repairs, and downloads a set of files for the
 // user.
@@ -919,6 +967,62 @@ type Renter interface {
 
 	// DirList lists the directories in a siadir
 	DirList(siaPath SiaPath) ([]DirectoryInfo, error)
+
+	// AddSkykey adds the pubaccesskey to the renter's pubaccesskey manager.
+	AddSkykey(pubaccesskey.Pubaccesskey) error
+
+	// CreateSkykey creates a new Pubaccesskey with the given name and ciphertype.
+	CreateSkykey(string, crypto.CipherType) (pubaccesskey.Pubaccesskey, error)
+
+	// SkykeyByName gets the Pubaccesskey with the given name from the renter's pubaccesskey
+	// manager if it exists.
+	SkykeyByName(string) (pubaccesskey.Pubaccesskey, error)
+
+	// SkykeyByID gets the Pubaccesskey with the given ID from the renter's pubaccesskey
+	// manager if it exists.
+	SkykeyByID(pubaccesskey.SkykeyID) (pubaccesskey.Pubaccesskey, error)
+
+	// SkykeyIDByName gets the SkykeyID of the key with the given name if it
+	// exists.
+	SkykeyIDByName(string) (pubaccesskey.SkykeyID, error)
+
+	// CreatePublinkFromSiafile will create a publink from a siafile. This will
+	// result in some uploading - the base sector pubfile needs to be uploaded
+	// separately, and if there is a fanout expansion that needs to be uploaded
+	// separately as well.
+	CreatePublinkFromSiafile(SkyfileUploadParameters, SiaPath) (Publink, error)
+
+	// DownloadPublink will fetch a file from the ScPrime network using the publink.
+	DownloadPublink(Publink, time.Duration) (SkyfileMetadata, Streamer, error)
+
+	// UploadSkyfile will upload data to the ScPrime network from a reader and
+	// create a pubfile, returning the publink that can be used to access the
+	// file.
+	//
+	// NOTE: A pubfile is a file that is tracked and repaired by the renter.  A
+	// pubfile contains more than just the file data, it also contains metadata
+	// about the file and other information which is useful in fetching the
+	// file.
+	UploadSkyfile(SkyfileUploadParameters) (Publink, error)
+
+	// Blacklist returns the merkleroots that are blacklisted
+	Blacklist() ([]crypto.Hash, error)
+
+	// UpdateSkynetBlacklist updates the list of publinks that are blacklisted
+	UpdateSkynetBlacklist(additions, removals []Publink) error
+
+	// PinPublink re-uploads the data stored at the file under that publink with
+	// the given parameters.
+	PinPublink(Publink, SkyfileUploadParameters, time.Duration) error
+
+	// Portals returns the list of known pubaccess portals.
+	Portals() ([]SkynetPortal, error)
+
+	// UpdateSkynetPortals updates the list of known pubaccess portals.
+	UpdateSkynetPortals(additions []SkynetPortal, removals []NetAddress) error
+
+	// WorkerPoolStatus returns the current status of the Renter's worker pool
+	WorkerPoolStatus() (WorkerPoolStatus, error)
 }
 
 // Streamer is the interface implemented by the Renter's streamer type which
@@ -956,4 +1060,83 @@ func HealthPercentage(health float64) float64 {
 		healthPercent = 0
 	}
 	return healthPercent
+}
+
+// A HostDB is a database of hosts that the renter can use for figuring out who
+// to upload to, and download from.
+type HostDB interface {
+	Alerter
+
+	// ActiveHosts returns the list of hosts that are actively being selected
+	// from.
+	ActiveHosts() ([]HostDBEntry, error)
+
+	// AllHosts returns the full list of hosts known to the hostdb, sorted in
+	// order of preference.
+	AllHosts() ([]HostDBEntry, error)
+
+	// CheckForIPViolations accepts a number of host public keys and returns the
+	// ones that violate the rules of the addressFilter.
+	CheckForIPViolations([]types.SiaPublicKey) ([]types.SiaPublicKey, error)
+
+	// Close closes the hostdb.
+	Close() error
+
+	// EstimateHostScore returns the estimated score breakdown of a host with the
+	// provided settings.
+	EstimateHostScore(HostDBEntry, Allowance) (HostScoreBreakdown, error)
+
+	// Filter returns the hostdb's filterMode and filteredHosts
+	Filter() (FilterMode, map[string]types.SiaPublicKey, error)
+
+	// SetFilterMode sets the renter's hostdb filter mode
+	SetFilterMode(lm FilterMode, hosts []types.SiaPublicKey) error
+
+	// Host returns the HostDBEntry for a given host.
+	Host(pk types.SiaPublicKey) (HostDBEntry, bool, error)
+
+	// IncrementSuccessfulInteractions increments the number of successful
+	// interactions with a host for a given key
+	IncrementSuccessfulInteractions(types.SiaPublicKey) error
+
+	// IncrementFailedInteractions increments the number of failed interactions with
+	// a host for a given key
+	IncrementFailedInteractions(types.SiaPublicKey) error
+
+	// initialScanComplete returns a boolean indicating if the initial scan of the
+	// hostdb is completed.
+	InitialScanComplete() (bool, error)
+
+	// IPRestriction returns the number of hosts from same IP address subnet that
+	// the renter is allowed to form contracts with. Value of zero means the
+	// IP restriction is disabled
+	IPRestriction() (int, error)
+
+	// RandomHosts returns a set of random hosts, weighted by their estimated
+	// usefulness / attractiveness to the renter. RandomHosts will not return
+	// any offline or inactive hosts.
+	RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey) ([]HostDBEntry, error)
+
+	// RandomHostsWithAllowance is the same as RandomHosts but accepts an
+	// allowance as an argument to be used instead of the allowance set in the
+	// renter.
+	RandomHostsWithAllowance(int, []types.SiaPublicKey, []types.SiaPublicKey, Allowance) ([]HostDBEntry, error)
+
+	// ScoreBreakdown returns a detailed explanation of the various properties
+	// of the host.
+	ScoreBreakdown(HostDBEntry) (HostScoreBreakdown, error)
+
+	// SetAllowance updates the allowance used by the hostdb for weighing hosts by
+	// updating the host weight function. It will completely rebuild the hosttree so
+	// it should be used with care.
+	SetAllowance(Allowance) error
+
+	// SetIPRestriction sets the number of hosts from same IP address subnet that
+	// the renter is allowed to form contracts with. Setting it to 0 disables the
+	// IP restriction
+	SetIPRestriction(numhosts int) error
+
+	// UpdateContracts rebuilds the knownContracts of the HostBD using the provided
+	// contracts.
+	UpdateContracts([]RenterContract) error
 }

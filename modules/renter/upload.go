@@ -16,14 +16,14 @@ import (
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 
 	"gitlab.com/NebulousLabs/errors"
 )
 
 var (
-	// errUploadDirectory is returned if the user tries to upload a directory.
-	errUploadDirectory = errors.New("cannot upload directory")
+	// ErrUploadDirectory is returned if the user tries to upload a directory.
+	ErrUploadDirectory = errors.New("cannot upload directory")
 )
 
 // Upload instructs the renter to start tracking a file. The renter will
@@ -40,7 +40,7 @@ func (r *Renter) Upload(up modules.FileUploadParams) error {
 		return errors.AddContext(err, "unable to stat input file")
 	}
 	if sourceInfo.IsDir() {
-		return errUploadDirectory
+		return ErrUploadDirectory
 	}
 
 	// Check for read access.
@@ -80,8 +80,17 @@ func (r *Renter) Upload(up modules.FileUploadParams) error {
 		return err
 	}
 
+	// Determine what type of encryption key to use. If no cipher type has been
+	// set, the default renter type will be used.
+	var ct crypto.CipherType
+	if up.CipherType == ct {
+		up.CipherType = crypto.TypeDefaultRenter
+	}
+	// Generate a key using the cipher type.
+	cipherKey := crypto.GenerateSiaKey(up.CipherType)
+
 	// Create the Siafile and add to renter
-	err = r.staticFileSystem.NewSiaFile(up.SiaPath, up.Source, up.ErasureCode, crypto.GenerateSiaKey(crypto.TypeDefaultRenter), uint64(sourceInfo.Size()), sourceInfo.Mode(), up.DisablePartialChunk)
+	err = r.staticFileSystem.NewSiaFile(up.SiaPath, up.Source, up.ErasureCode, cipherKey, uint64(sourceInfo.Size()), sourceInfo.Mode(), up.DisablePartialChunk)
 	if err != nil {
 		return errors.AddContext(err, "could not create a new sia file")
 	}

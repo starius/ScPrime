@@ -12,18 +12,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/julienschmidt/httprouter"
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"github.com/julienschmidt/httprouter"
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 var (
@@ -40,7 +40,7 @@ var (
 	// must be used when uploading a file. This minimum exists to prevent users
 	// from shooting themselves in the foot.
 	requiredParityPieces = build.Select(build.Var{
-		Standard: int(12),
+		Standard: int(9),
 		Dev:      int(0),
 		Testing:  int(0),
 	}).(int)
@@ -95,7 +95,7 @@ type (
 		Fees types.Currency `json:"fees"`
 		// Public key of the host the contract was formed with.
 		HostPublicKey types.SiaPublicKey `json:"hostpublickey"`
-		// HostVersion is the version of Sia that the host is running
+		// HostVersion is the version of ScPrime that the host is running
 		HostVersion string `json:"hostversion"`
 		// ID of the file contract.
 		ID types.FileContractID `json:"id"`
@@ -247,14 +247,28 @@ type (
 	}
 )
 
+// Returns the boolean value of the 'root' parameter of req or an error if
+// it exists but is not parsable as bool.
+func isCalledWithRootFlag(req *http.Request) (bool, error) {
+	rootStr := req.FormValue("root")
+	if rootStr == "" {
+		return false, nil
+	}
+	root, err := strconv.ParseBool(rootStr)
+	if err != nil {
+		return false, errors.New("unable to parse 'root' arg: " + err.Error())
+	}
+	return root, nil
+}
+
 // rebaseInputSiaPath rebases the SiaPath provided by the user to one that is
 // prefix by the user's home directory.
 func rebaseInputSiaPath(siaPath modules.SiaPath) (modules.SiaPath, error) {
 	// Prepend the provided siapath with the /home/siafiles dir.
 	if siaPath.IsRoot() {
-		return modules.UserSiaPath(), nil
+		return modules.UserFolder, nil
 	}
-	return modules.UserSiaPath().Join(siaPath.String())
+	return modules.UserFolder.Join(siaPath.String())
 }
 
 // trimSiaDirFolder is a helper method to trim /home/siafiles off of the
@@ -262,7 +276,7 @@ func rebaseInputSiaPath(siaPath modules.SiaPath) (modules.SiaPath, error) {
 // /home/siafiles and not relative to root.
 func trimSiaDirFolder(dis ...modules.DirectoryInfo) (_ []modules.DirectoryInfo, err error) {
 	for i := range dis {
-		dis[i].SiaPath, err = dis[i].SiaPath.Rebase(modules.UserSiaPath(), modules.RootSiaPath())
+		dis[i].SiaPath, err = dis[i].SiaPath.Rebase(modules.UserFolder, modules.RootSiaPath())
 		if err != nil {
 			return nil, err
 		}
@@ -275,9 +289,9 @@ func trimSiaDirFolder(dis ...modules.DirectoryInfo) (_ []modules.DirectoryInfo, 
 // /home/siafiles and not relative to root.
 func trimSiaDirFolderOnFiles(fis ...modules.FileInfo) (_ []modules.FileInfo, err error) {
 	for i := range fis {
-		fis[i].SiaPath, err = fis[i].SiaPath.Rebase(modules.UserSiaPath(), modules.RootSiaPath())
+		fis[i].SiaPath, err = fis[i].SiaPath.Rebase(modules.UserFolder, modules.RootSiaPath())
 		if err != nil {
-			return nil, err
+			return nil, errors.AddContext(err, "unable to trim the user sia path from a provided fileinfo")
 		}
 	}
 	return fis, nil
@@ -288,7 +302,7 @@ func trimSiaDirFolderOnFiles(fis ...modules.FileInfo) (_ []modules.FileInfo, err
 // /home/siafiles and not relative to root.
 func trimDownloadInfo(dis ...modules.DownloadInfo) (_ []modules.DownloadInfo, err error) {
 	for i := range dis {
-		dis[i].SiaPath, err = dis[i].SiaPath.Rebase(modules.UserSiaPath(), modules.RootSiaPath())
+		dis[i].SiaPath, err = dis[i].SiaPath.Rebase(modules.UserFolder, modules.RootSiaPath())
 		if err != nil {
 			return nil, err
 		}
@@ -499,7 +513,7 @@ func (api *API) renterLoadBackupHandlerPOST(w http.ResponseWriter, req *http.Req
 // defaults.
 func parseErasureCodingParameters(strDataPieces, strParityPieces string) (modules.ErasureCoder, error) {
 	// Parse data and parity pieces
-	dataPieces, parityPieces, err := parseDataAndParityPieces(strDataPieces, strParityPieces)
+	dataPieces, parityPieces, err := ParseDataAndParityPieces(strDataPieces, strParityPieces)
 	if err != nil {
 		return nil, err
 	}
@@ -512,12 +526,12 @@ func parseErasureCodingParameters(strDataPieces, strParityPieces string) (module
 	// Verify that sane values for parityPieces and redundancy are being
 	// supplied.
 	if parityPieces < requiredParityPieces {
-		err := fmt.Errorf("a minimum of %v parity pieces is required, but %v parity pieces requested", parityPieces, requiredParityPieces)
+		err := fmt.Errorf("a minimum of %v parity pieces is required, but %v parity pieces requested", requiredParityPieces, parityPieces)
 		return nil, err
 	}
 	redundancy := float64(dataPieces+parityPieces) / float64(dataPieces)
 	if float64(dataPieces+parityPieces)/float64(dataPieces) < requiredRedundancy {
-		err := fmt.Errorf("a redundancy of %.2f is required, but redundancy of %.2f supplied", redundancy, requiredRedundancy)
+		err := fmt.Errorf("a redundancy of %.2f is required, but redundancy of %.2f supplied", requiredRedundancy, redundancy)
 		return nil, err
 	}
 
@@ -525,9 +539,9 @@ func parseErasureCodingParameters(strDataPieces, strParityPieces string) (module
 	return siafile.NewRSSubCode(dataPieces, parityPieces, crypto.SegmentSize)
 }
 
-// parseDataAndParityPieces parse the numeric values for dataPieces and
+// ParseDataAndParityPieces parse the numeric values for dataPieces and
 // parityPieces from the input strings
-func parseDataAndParityPieces(strDataPieces, strParityPieces string) (dataPieces, parityPieces int, err error) {
+func ParseDataAndParityPieces(strDataPieces, strParityPieces string) (dataPieces, parityPieces int, err error) {
 	// Check that both values have been supplied.
 	if (strDataPieces == "") != (strParityPieces == "") {
 		return 0, 0, errNeedBothDataAndParityPieces
@@ -634,6 +648,14 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 		}
 		settings.Allowance.RenewWindow = types.BlockHeight(renewWindow)
 		renewWindowSet = true
+	}
+	if pcipStr := req.FormValue("paymentcontractinitialfunding"); pcipStr != "" {
+		vcip, ok := scanAmount(pcipStr)
+		if !ok {
+			WriteError(w, Error{"unable to parse paymentcontractinitialfunding"}, http.StatusBadRequest)
+			return
+		}
+		settings.Allowance.PaymentContractInitialFunding = vcip
 	}
 	if es := req.FormValue("expectedstorage"); es != "" {
 		var expectedStorage uint64
@@ -845,6 +867,7 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 	}
 
 	// Scan the checkforipviolation flag.
+	// NOTE: checkforipviolation is deprecated, use iprestriction
 	if ipc := req.FormValue("checkforipviolation"); ipc != "" {
 		var ipviolationcheck bool
 		if _, err := fmt.Sscan(ipc, &ipviolationcheck); err != nil {
@@ -859,7 +882,7 @@ func (api *API) renterHandlerPOST(w http.ResponseWriter, req *http.Request, _ ht
 		}
 	}
 
-	// Scan the checkforipviolation flag.
+	// Scan the iprestriction flag.
 	if ipc := req.FormValue("iprestriction"); ipc != "" {
 		var iprestriction int
 		if _, err := fmt.Sscan(ipc, &iprestriction); err != nil {
@@ -1231,7 +1254,7 @@ func (api *API) renterFuseHandlerGET(w http.ResponseWriter, req *http.Request, _
 		MountPoints: api.renter.MountInfo(),
 	}
 	for i := 0; i < len(rfi.MountPoints); i++ {
-		rebased, err := rfi.MountPoints[i].SiaPath.Rebase(modules.UserSiaPath(), modules.RootSiaPath())
+		rebased, err := rfi.MountPoints[i].SiaPath.Rebase(modules.UserFolder, modules.RootSiaPath())
 		if err != nil {
 			WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 			return
@@ -1318,26 +1341,36 @@ func (api *API) renterRecoveryScanHandlerGET(w http.ResponseWriter, req *http.Re
 // renterRenameHandler handles the API call to rename a file entry in the
 // renter.
 func (api *API) renterRenameHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	newSiaPathStr := req.FormValue("newsiapath")
+	// Parse the siaPath and the newSiaPath
 	siaPath, err := modules.NewSiaPath(ps.ByName("siapath"))
 	if err != nil {
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return
 	}
-	newSiaPath, err := modules.NewSiaPath(newSiaPathStr)
+	newSiaPath, err := modules.NewSiaPath(req.FormValue("newsiapath"))
 	if err != nil {
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return
 	}
-	siaPath, err = rebaseInputSiaPath(siaPath)
+
+	// Determine whether the user is requesting a user siapath, or a root siapath.
+	root, err := isCalledWithRootFlag(req)
 	if err != nil {
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return
 	}
-	newSiaPath, err = rebaseInputSiaPath(newSiaPath)
-	if err != nil {
-		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
-		return
+	// Rebase the user's input to the user folder if the user is requesting a user siapath.
+	if !root {
+		siaPath, err = rebaseInputSiaPath(siaPath)
+		if err != nil {
+			WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+			return
+		}
+		newSiaPath, err = rebaseInputSiaPath(newSiaPath)
+		if err != nil {
+			WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+			return
+		}
 	}
 	err = api.renter.RenameFile(siaPath, newSiaPath)
 	if err != nil {
@@ -1347,35 +1380,54 @@ func (api *API) renterRenameHandler(w http.ResponseWriter, req *http.Request, ps
 	WriteSuccess(w)
 }
 
-// renterFileHandler handles GET requests to the /renter/file/:siapath API endpoint.
+// renterFileHandlerGET handles GET requests to the /renter/file/:siapath API endpoint.
 func (api *API) renterFileHandlerGET(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	// Determine the siapath that the user wants to get the file from.
 	siaPath, err := modules.NewSiaPath(ps.ByName("siapath"))
 	if err != nil {
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return
 	}
-	siaPath, err = rebaseInputSiaPath(siaPath)
+
+	// Determine whether the user is requesting a user siapath, or a root siapath.
+	root, err := isCalledWithRootFlag(req)
 	if err != nil {
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return
 	}
+	// Rebase the user's input to the user folder if the user is requesting a user siapath.
+	if !root {
+		siaPath, err = rebaseInputSiaPath(siaPath)
+		if err != nil {
+			WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Fetch the file.
 	file, err := api.renter.File(siaPath)
 	if err != nil {
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return
 	}
-	files, err := trimSiaDirFolderOnFiles(file)
-	if err != nil {
-		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
-		return
+
+	// If the user requested the user siapath, trim the dir folder so that the
+	// output is all centered around the user's folder.
+	if !root {
+		files, err := trimSiaDirFolderOnFiles(file)
+		if err != nil {
+			WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+			return
+		}
+		file = files[0]
 	}
-	file = files[0]
+
 	WriteJSON(w, RenterFile{
 		File: file,
 	})
 }
 
-// renterFileHandler handles POST requests to the /renter/file/:siapath API endpoint.
+// renterFileHandlerPOST handles POST requests to the /renter/file/:siapath API endpoint.
 func (api *API) renterFileHandlerPOST(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	newTrackingPath := req.FormValue("trackingpath")
 	stuck := req.FormValue("stuck")
@@ -1422,7 +1474,7 @@ func (api *API) renterFilesHandler(w http.ResponseWriter, req *http.Request, _ h
 			return
 		}
 	}
-	files, err := api.renter.FileList(modules.UserSiaPath(), true, c)
+	files, err := api.renter.FileList(modules.UserFolder, true, c)
 	if err != nil {
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return
@@ -1527,11 +1579,22 @@ func (api *API) renterDeleteHandler(w http.ResponseWriter, req *http.Request, ps
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return
 	}
-	siaPath, err = rebaseInputSiaPath(siaPath)
+
+	// Determine whether the user is requesting a user siapath, or a root siapath.
+	root, err := isCalledWithRootFlag(req)
 	if err != nil {
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return
 	}
+	// Rebase the user's input to the user folder if the user is requesting a user siapath.
+	if !root {
+		siaPath, err = rebaseInputSiaPath(siaPath)
+		if err != nil {
+			WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+			return
+		}
+	}
+
 	err = api.renter.DeleteFile(siaPath)
 	if err != nil {
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
@@ -1790,7 +1853,7 @@ func (api *API) renterUploadReadyHandler(w http.ResponseWriter, req *http.Reques
 	parityPiecesStr := req.FormValue("paritypieces")
 
 	// Check params
-	dataPieces, parityPieces, err := parseDataAndParityPieces(dataPiecesStr, parityPiecesStr)
+	dataPieces, parityPieces, err := ParseDataAndParityPieces(dataPiecesStr, parityPiecesStr)
 	if err != nil {
 		WriteError(w, Error{"failed to parse query params" + err.Error()}, http.StatusBadRequest)
 		return
@@ -1928,6 +1991,14 @@ func (api *API) renterValidateSiaPathHandler(w http.ResponseWriter, _ *http.Requ
 func (api *API) renterDirHandlerGET(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var siaPath modules.SiaPath
 	var err error
+
+	// Check whether the user is requesting the directory from the root path.
+	root, err := isCalledWithRootFlag(req)
+	if err != nil {
+		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+		return
+	}
+
 	str := ps.ByName("siapath")
 	if str == "" || str == "/" {
 		siaPath = modules.RootSiaPath()
@@ -1938,31 +2009,43 @@ func (api *API) renterDirHandlerGET(w http.ResponseWriter, req *http.Request, ps
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return
 	}
-	siaPath, err = rebaseInputSiaPath(siaPath)
-	if err != nil {
-		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
-		return
+
+	if !root {
+		siaPath, err = rebaseInputSiaPath(siaPath)
+		if err != nil {
+			WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+			return
+		}
 	}
+
 	directories, err := api.renter.DirList(siaPath)
 	if err != nil {
 		WriteError(w, Error{"failed to get directory contents:" + err.Error()}, http.StatusInternalServerError)
 		return
 	}
-	directories, err = trimSiaDirFolder(directories...)
-	if err != nil {
-		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
-		return
+
+	if !root {
+		directories, err = trimSiaDirFolder(directories...)
+		if err != nil {
+			WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+			return
+		}
 	}
+
 	files, err := api.renter.FileList(siaPath, false, true)
 	if err != nil {
 		WriteError(w, Error{"failed to get file infos:" + err.Error()}, http.StatusInternalServerError)
 		return
 	}
-	files, err = trimSiaDirFolderOnFiles(files...)
-	if err != nil {
-		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
-		return
+
+	if !root {
+		files, err = trimSiaDirFolderOnFiles(files...)
+		if err != nil {
+			WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+			return
+		}
 	}
+
 	WriteJSON(w, RenterDirectory{
 		Directories: directories,
 		Files:       files,
@@ -1970,8 +2053,8 @@ func (api *API) renterDirHandlerGET(w http.ResponseWriter, req *http.Request, ps
 	return
 }
 
-// renterDirHandlerPOST handles the API call to create, delete and rename a
-// directory
+// renterDirHandlerPOST handles POST requests to /renter/dir/:siapath?action=<>
+// in order to create, delete, and rename a directory
 func (api *API) renterDirHandlerPOST(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	// Parse action
 	action := req.FormValue("action")
@@ -1994,11 +2077,22 @@ func (api *API) renterDirHandlerPOST(w http.ResponseWriter, req *http.Request, p
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return
 	}
-	siaPath, err = rebaseInputSiaPath(siaPath)
+
+	// Determine whether the user is requesting a user siapath, or a root siapath.
+	root, err := isCalledWithRootFlag(req)
 	if err != nil {
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
 		return
 	}
+	// Rebase the user's input to the user folder if the user is requesting a user siapath.
+	if !root {
+		siaPath, err = rebaseInputSiaPath(siaPath)
+		if err != nil {
+			WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+			return
+		}
+	}
+
 	if action == "create" {
 		// Call the renter to create directory
 		err := api.renter.CreateDir(siaPath, mode)
@@ -2059,4 +2153,16 @@ func (api *API) renterContractStatusHandler(w http.ResponseWriter, req *http.Req
 	}
 
 	WriteJSON(w, contractStatus)
+}
+
+// renterWorkersHandler handles the API call to check the status of the renter's
+// workers
+func (api *API) renterWorkersHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	workerPoolStatus, err := api.renter.WorkerPoolStatus()
+	if err != nil {
+		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
+		return
+	}
+
+	WriteJSON(w, workerPoolStatus)
 }

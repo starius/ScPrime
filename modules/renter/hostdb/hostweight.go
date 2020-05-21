@@ -83,6 +83,28 @@ const (
 	priceFloor = 0.1
 )
 
+// basePriceAdjustments will adjust the weight of the entry according to the prices
+// that it has set for BaseRPCPrice and SectorAccessPrice
+func (hdb *HostDB) basePriceAdjustments(entry modules.HostDBEntry) float64 {
+	// Check for BaseRPCPrice violations
+	maxBaseRPCPrice := entry.MaxBaseRPCPrice()
+	baseRPCPrice := entry.HostExternalSettings.BaseRPCPrice
+	if baseRPCPrice.Cmp(maxBaseRPCPrice) > 0 {
+		hdb.staticLog.Debugf("Host getting 0 score for BaseRPCPrice: Host %v, BaseRPCPrice %v, MaxBaseRPCPrice %v", entry.PublicKey.String(), baseRPCPrice.HumanString(), maxBaseRPCPrice.HumanString())
+		return math.SmallestNonzeroFloat64
+	}
+
+	// Check for SectorAccessPrice violations
+	maxSectorAccessPrice := entry.MaxSectorAccessPrice()
+	sectorAccessPrice := entry.HostExternalSettings.SectorAccessPrice
+	if sectorAccessPrice.Cmp(maxSectorAccessPrice) > 0 {
+		hdb.staticLog.Debugf("Host getting 0 score for SectorAccessPrice: Host %v, SectorAccessPrice %v, MaxSectorAccessPrice %v", entry.PublicKey.String(), sectorAccessPrice.HumanString(), maxSectorAccessPrice.HumanString())
+		return math.SmallestNonzeroFloat64
+	}
+
+	return 1
+}
+
 // collateralAdjustments improves the host's weight according to the amount of
 // collateral that they have provided.
 func (hdb *HostDB) collateralAdjustments(entry modules.HostDBEntry, allowance modules.Allowance) float64 {
@@ -261,7 +283,7 @@ func (hdb *HostDB) priceAdjustments(entry modules.HostDBEntry, allowance modules
 		// happens.
 		if !strings.Contains(err.Error(), "exceeds funding") {
 			info := fmt.Sprintf("Error while estimating collateral for host: Host %v, ContractPrice %v, TxnFees %v, Funds %v", entry.PublicKey.String(), entry.ContractPrice.HumanString(), txnFees.HumanString(), allowance.Funds.HumanString())
-			hdb.log.Debugln(errors.AddContext(err, info))
+			hdb.staticLog.Debugln(errors.AddContext(err, info))
 		}
 		return math.SmallestNonzeroFloat64
 	}
@@ -356,19 +378,29 @@ func (hdb *HostDB) storageRemainingAdjustments(entry modules.HostDBEntry, allowa
 	return math.Pow(storageRatio, storagePenaltyExponentitaion)
 }
 
-// versionAdjustments will adjust the weight of the entry according to the siad
+// versionAdjustments will adjust the weight of the entry according to the spd
 // version reported by the host.
 // TODO move hardcoded version strings to build package or somewhere else
 // so this has not to be altered on every new version
 func versionAdjustments(entry modules.HostDBEntry) float64 {
 	base := float64(1)
+
+	// This needs to give a very tiny penalty to the current version. The reason
+	// we give the current version a very tiny penalty is so that the test suite
+	// complains if we forget to update this file when we bump the version next
+	// time. The value compared against must be higher than the current version.
 	if build.VersionCmp(entry.Version, build.Version) <= 0 {
 		base = base * 0.99999 // Safety value to make sure we update the version penalties every time we update the host.
 	}
+
+	if build.VersionCmp(entry.Version, "1.4.2.0") < 0 {
+		base = base * 0.8 // Slight penalty against slightly out of date hosts.
+	}
+
 	// Penalty for hosts that are below version v1.4.1.2 because there were
 	// transaction pool updates which reduces overall network congestion.
 	if build.VersionCmp(entry.Version, "1.4.1.2") < 0 {
-		base = base * 0.75
+		base = base * 0.60
 	}
 	// Heavy penalty for hosts that cannot use the current renter-host protocol.
 	if build.VersionCmp(entry.Version, modules.MinimumSupportedRenterHostProtocolVersion) < 0 {
@@ -454,9 +486,9 @@ func (hdb *HostDB) uptimeAdjustments(entry modules.HostDBEntry) float64 {
 	for _, scan := range entry.ScanHistory[1:] {
 		if recentTime.After(scan.Timestamp) {
 			if build.DEBUG {
-				hdb.log.Critical("Host entry scan history not sorted.")
+				hdb.staticLog.Critical("Host entry scan history not sorted.")
 			} else {
-				hdb.log.Print("WARN: Host entry scan history not sorted.")
+				hdb.staticLog.Print("WARN: Host entry scan history not sorted.")
 			}
 			// Ignore the unsorted scan entry.
 			continue
@@ -515,7 +547,11 @@ func (hdb *HostDB) uptimeAdjustments(entry modules.HostDBEntry) float64 {
 	return math.Pow(uptimeRatio, exp)
 }
 
-// managedCalculateHostWeightFn creates a hosttree.WeightFunc given an Allowance.
+// managedCalculateHostWeightFn creates a hosttree.WeightFunc given an
+// Allowance.
+//
+// NOTE: the hosttree.WeightFunc that is returned accesses fields of the hostdb.
+// The hostdb lock must be held while utilizing the WeightFunc
 func (hdb *HostDB) managedCalculateHostWeightFn(allowance modules.Allowance) hosttree.WeightFunc {
 	// Get the txnFees.
 	hdb.mu.RLock()
@@ -524,11 +560,12 @@ func (hdb *HostDB) managedCalculateHostWeightFn(allowance modules.Allowance) hos
 	// Create the weight function.
 	return func(entry modules.HostDBEntry) hosttree.ScoreBreakdown {
 		return hosttree.HostAdjustments{
+			AgeAdjustment:              hdb.lifetimeAdjustments(entry),
+			BasePriceAdjustment:        hdb.basePriceAdjustments(entry),
 			BurnAdjustment:             1,
 			CollateralAdjustment:       hdb.collateralAdjustments(entry, allowance),
 			DurationAdjustment:         hdb.durationAdjustments(entry, allowance),
 			InteractionAdjustment:      hdb.interactionAdjustments(entry),
-			AgeAdjustment:              hdb.lifetimeAdjustments(entry),
 			PriceAdjustment:            hdb.priceAdjustments(entry, allowance, txnFees),
 			StorageRemainingAdjustment: hdb.storageRemainingAdjustments(entry, allowance),
 			UptimeAdjustment:           hdb.uptimeAdjustments(entry),

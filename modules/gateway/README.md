@@ -6,7 +6,7 @@ broadcasts outgoing blocks and transactions to peers. In a broad sense, it is
 responsible for ensuring that the local consensus set is consistent with the
 "network" consensus set.
 
-The gateway connects a Sia node to the Sia flood network. The flood network is
+The gateway connects a ScPrime node to the ScPrime flood network. The flood network is
 used to propagate blocks and transactions. The gateway is the primary avenue
 that a node uses to hear about transactions and blocks, and is the primary
 avenue used to tell the network about blocks that you have mined or about

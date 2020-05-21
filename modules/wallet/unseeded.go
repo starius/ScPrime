@@ -50,7 +50,7 @@ type siagKeyPair struct {
 }
 
 // savedKey033x is the persist structure that was used to save and load private
-// keys in versions v0.3.3.x for siad.
+// keys in versions v0.3.3.x for spd.
 type savedKey033x struct {
 	SecretKey        crypto.SecretKey
 	UnlockConditions types.UnlockConditions

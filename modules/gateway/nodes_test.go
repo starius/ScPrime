@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
-
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 const dummyNode = "111.111.111.111:1111"

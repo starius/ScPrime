@@ -1,83 +1,64 @@
 package contractor
 
 import (
-	"errors"
+	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/consensus"
+	"gitlab.com/scpcorp/ScPrime/modules/gateway"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
+	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
+	"gitlab.com/scpcorp/ScPrime/modules/wallet"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
-// newStub is used to test the New function. It implements all of the contractor's
-// dependencies.
-type newStub struct{ iprestriction int }
+// Create a closeFn type that allows helpers which need to be closed to return
+// methods that close the helpers.
+type closeFn func() error
 
-// consensus set stubs
-func (newStub) ConsensusSetSubscribe(modules.ConsensusSetSubscriber, modules.ConsensusChangeID, <-chan struct{}) error {
-	return nil
-}
-func (newStub) Synced() bool                               { return true }
-func (newStub) Unsubscribe(modules.ConsensusSetSubscriber) { return }
-func (newStub) TryTransactionSet([]types.Transaction) (modules.ConsensusChange, error) {
-	return modules.ConsensusChange{}, nil
-}
-
-// wallet stubs
-func (newStub) NextAddress() (uc types.UnlockConditions, err error) { return }
-func (newStub) PrimarySeed() (modules.Seed, uint64, error)          { return modules.Seed{}, 0, nil }
-func (newStub) RegisterTransaction(types.Transaction, []types.Transaction) (modules.TransactionBuilder, error) {
-	return nil, nil
-}
-func (newStub) StartTransaction() (tb modules.TransactionBuilder, err error) { return }
-func (newStub) Unlocked() (bool, error)                                      { return true, nil }
-
-// transaction pool stubs
-func (newStub) AcceptTransactionSet([]types.Transaction) error      { return nil }
-func (newStub) FeeEstimation() (a types.Currency, b types.Currency) { return }
-
-// hdb stubs
-func (newStub) AllHosts() ([]modules.HostDBEntry, error)    { return nil, nil }
-func (newStub) ActiveHosts() ([]modules.HostDBEntry, error) { return nil, nil }
-func (newStub) CheckForIPViolations([]types.SiaPublicKey) ([]types.SiaPublicKey, error) {
-	return nil, nil
-}
-func (newStub) Filter() (modules.FilterMode, map[string]types.SiaPublicKey, error) {
-	return 0, make(map[string]types.SiaPublicKey), nil
-}
-func (newStub) SetFilterMode(fm modules.FilterMode, hosts []types.SiaPublicKey) error      { return nil }
-func (newStub) Host(types.SiaPublicKey) (settings modules.HostDBEntry, ok bool, err error) { return }
-func (newStub) IncrementSuccessfulInteractions(key types.SiaPublicKey) error               { return nil }
-func (newStub) IncrementFailedInteractions(key types.SiaPublicKey) error                   { return nil }
-func (newStub) InitialScanComplete() (complete bool, err error) {
-	return true, nil
-}
-func (newStub) RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey) ([]modules.HostDBEntry, error) {
-	return nil, nil
-}
-func (newStub) ScoreBreakdown(modules.HostDBEntry) (modules.HostScoreBreakdown, error) {
-	return modules.HostScoreBreakdown{}, nil
-}
-func (newStub) SetAllowance(allowance modules.Allowance) error { return nil }
-func (newStub) UpdateContracts([]modules.RenterContract) error { return nil }
-func (sh newStub) SetIPViolationCheck(enabled bool) error {
-	if enabled {
-		sh.iprestriction = 1
-	} else {
-		sh.iprestriction = 0
+// tryClose is shorthand to run a t.Error() if a closeFn fails.
+func tryClose(cf closeFn, t *testing.T) {
+	err := cf()
+	if err != nil {
+		t.Error(err)
 	}
-	return nil
 }
-func (sh newStub) IPViolationsCheck() (bool, error) {
-	return sh.iprestriction > 0, nil
-}
-func (sh newStub) IPRestriction() (int, error) { return sh.iprestriction, nil }
-func (sh newStub) SetIPRestriction(numhosts int) error {
-	sh.iprestriction = numhosts
-	return nil
+
+// newModules initializes the modules needed to test creating a new contractor
+func newModules(testdir string) (modules.ConsensusSet, modules.Wallet, modules.TransactionPool, modules.HostDB, closeFn, error) {
+	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
+	if err := <-errChan; err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+	w, err := wallet.New(cs, tp, filepath.Join(testdir, modules.WalletDir))
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+	hdb, errChanHDB := hostdb.New(g, cs, tp, testdir)
+	if err := <-errChanHDB; err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+	cf := func() error {
+		return errors.Compose(hdb.Close(), w.Close(), tp.Close(), cs.Close(), g.Close())
+	}
+	return cs, w, tp, hdb, cf, nil
 }
 
 // TestNew tests the New function.
@@ -85,37 +66,45 @@ func TestNew(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	// Using a stub implementation of the dependencies is fine, as long as its
-	// non-nil.
-	var stub newStub
+	// Create the modules.
 	dir := build.TempDir("contractor", t.Name())
+	cs, w, tpool, hdb, closeFn, err := newModules(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tryClose(closeFn, t)
 
 	// Sane values.
-	_, errChan := New(stub, stub, stub, stub, dir)
+	_, errChan := New(cs, w, tpool, hdb, dir)
 	if err := <-errChan; err != nil {
 		t.Fatalf("expected nil, got %v", err)
 	}
 
 	// Nil consensus set.
-	_, errChan = New(nil, stub, stub, stub, dir)
+	_, errChan = New(nil, w, tpool, hdb, dir)
 	if err := <-errChan; err != errNilCS {
 		t.Fatalf("expected %v, got %v", errNilCS, err)
 	}
 
 	// Nil wallet.
-	_, errChan = New(stub, nil, stub, stub, dir)
+	_, errChan = New(cs, nil, tpool, hdb, dir)
 	if err := <-errChan; err != errNilWallet {
 		t.Fatalf("expected %v, got %v", errNilWallet, err)
 	}
 
 	// Nil transaction pool.
-	_, errChan = New(stub, stub, nil, stub, dir)
+	_, errChan = New(cs, w, nil, hdb, dir)
 	if err := <-errChan; err != errNilTpool {
 		t.Fatalf("expected %v, got %v", errNilTpool, err)
 	}
+	// Nil hostdb.
+	_, errChan = New(cs, w, tpool, nil, dir)
+	if err := <-errChan; err != errNilHDB {
+		t.Fatalf("expected %v, got %v", errNilHDB, err)
+	}
 
 	// Bad persistDir.
-	_, errChan = New(stub, stub, stub, stub, "")
+	_, errChan = New(cs, w, tpool, hdb, "")
 	if err := <-errChan; !os.IsNotExist(err) {
 		t.Fatalf("expected invalid directory, got %v", err)
 	}
@@ -138,71 +127,34 @@ func TestAllowance(t *testing.T) {
 	}
 }
 
-// stubHostDB mocks the hostDB dependency using zero-valued implementations of
-// its methods.
-type stubHostDB struct {
-	iprestriction int
-}
-
-func (stubHostDB) AllHosts() (hs []modules.HostDBEntry, err error)    { return }
-func (stubHostDB) ActiveHosts() (hs []modules.HostDBEntry, err error) { return }
-func (stubHostDB) CheckForIPViolations([]types.SiaPublicKey) ([]types.SiaPublicKey, error) {
-	return nil, nil
-}
-func (stubHostDB) Filter() (modules.FilterMode, map[string]types.SiaPublicKey, error) {
-	return 0, make(map[string]types.SiaPublicKey), nil
-}
-func (stubHostDB) SetFilterMode(fm modules.FilterMode, hosts []types.SiaPublicKey) error { return nil }
-func (stubHostDB) Host(types.SiaPublicKey) (h modules.HostDBEntry, ok bool, err error)   { return }
-func (stubHostDB) IncrementSuccessfulInteractions(key types.SiaPublicKey) error          { return nil }
-func (stubHostDB) IncrementFailedInteractions(key types.SiaPublicKey) error              { return nil }
-func (stubHostDB) PublicKey() (spk types.SiaPublicKey)                                   { return }
-
-func (stubHostDB) InitialScanComplete() (complete bool, err error) {
-	return true, nil
-}
-func (stubHostDB) RandomHosts(int, []types.SiaPublicKey, []types.SiaPublicKey) (hs []modules.HostDBEntry, _ error) {
-	return
-}
-func (stubHostDB) ScoreBreakdown(modules.HostDBEntry) (modules.HostScoreBreakdown, error) {
-	return modules.HostScoreBreakdown{}, nil
-}
-func (stubHostDB) SetAllowance(allowance modules.Allowance) error { return nil }
-func (stubHostDB) UpdateContracts([]modules.RenterContract) error { return nil }
-
-func (sh stubHostDB) SetIPViolationCheck(enabled bool) error {
-	if enabled {
-		sh.iprestriction = 1
-	} else {
-		sh.iprestriction = 0
-	}
-	return nil
-}
-func (sh stubHostDB) IPViolationsCheck() (bool, error) {
-	return sh.iprestriction > 0, nil
-}
-func (sh stubHostDB) IPRestriction() (int, error) { return sh.iprestriction, nil }
-func (sh stubHostDB) SetIPRestriction(numhosts int) error {
-	sh.iprestriction = numhosts
-	return nil
-}
-
 // TestIntegrationSetAllowance tests the SetAllowance method.
 func TestIntegrationSetAllowance(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	// create testing trio
-	_, c, m, err := newTestingTrio(t.Name())
+
+	// create a siamux
+	testdir := build.TempDir("contractor", t.Name())
+	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer tryClose(mux.Close, t)
+
+	// create testing trio
+	h, c, m, cf, err := newTestingTrio(t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tryClose(cf, t)
 
 	// this test requires two hosts: create another one
-	h, err := newTestingHost(build.TempDir("hostdata", ""), c.cs.(modules.ConsensusSet), c.tpool.(modules.TransactionPool))
+	h, hostCF, err := newTestingHost(build.TempDir("hostdata", ""), c.cs.(modules.ConsensusSet), c.tpool.(modules.TransactionPool), mux)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer tryClose(hostCF, t)
 
 	// announce the extra host
 	err = h.Announce()
@@ -238,7 +190,7 @@ func TestIntegrationSetAllowance(t *testing.T) {
 	if err != ErrAllowanceZeroFunds {
 		t.Errorf("expected %q, got %q", ErrAllowanceZeroFunds, err)
 	}
-	a.Funds = types.SiacoinPrecision
+	a.Funds = types.ScPrimecoinPrecision
 	a.Hosts = 0
 	err = c.SetAllowance(a)
 	if err != ErrAllowanceNoHosts {
@@ -283,15 +235,20 @@ func TestIntegrationSetAllowance(t *testing.T) {
 	a.MaxPeriodChurn = modules.DefaultAllowance.MaxPeriodChurn
 
 	// reasonable values; should succeed
-	a.Funds = types.SiacoinPrecision.Mul64(100)
+	a.Funds = types.ScPrimecoinPrecision.Mul64(300)
+	a.ExpectedStorage = 8192
+	a.ExpectedUpload = 2048
+	a.ExpectedDownload = 2048
 	err = c.SetAllowance(a)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = build.Retry(50, 100*time.Millisecond, func() error {
-		if len(c.Contracts()) != 1 {
-			return errors.New("allowance forming seems to have failed")
+	err = build.Retry(50, 250*time.Millisecond, func() error {
+		if len(c.Contracts()) < 1 {
+			message := fmt.Sprintf("allowance \n%+v\nforming seems to have failed\n hosts:\n%+v\n", a, hosts)
+			return errors.New(message)
 		}
+		_, err = m.AddBlock()
 		return nil
 	})
 	if err != nil {
@@ -377,10 +334,11 @@ func TestHostMaxDuration(t *testing.T) {
 	t.Parallel()
 
 	// create testing trio
-	h, c, m, err := newTestingTrio(t.Name())
+	h, c, m, cf, err := newTestingTrio(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer tryClose(cf, t)
 
 	// Set host's MaxDuration to 5 to test if host will be skipped when contract
 	// is formed
@@ -406,7 +364,7 @@ func TestHostMaxDuration(t *testing.T) {
 
 	// Create allowance
 	a := modules.Allowance{
-		Funds:              types.SiacoinPrecision.Mul64(100),
+		Funds:              types.ScPrimecoinPrecision.Mul64(100),
 		Hosts:              1,
 		Period:             30,
 		RenewWindow:        20,
@@ -510,6 +468,159 @@ func TestHostMaxDuration(t *testing.T) {
 	}
 }
 
+// TestPayment verifies the PaymentProvider interface on the contractor. It does
+// this by trying to pay the host using a filecontract and verifying if payment
+// can be made successfully.
+func TestPayment(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	// create a siamux
+	testdir := build.TempDir("contractor", t.Name())
+	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create a testing trio with our mux injected
+	h, c, _, cf, err := newCustomTestingTrio(t.Name(), mux)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tryClose(cf, t)
+	hpk := h.PublicKey()
+
+	// set an allowance and wait for contracts
+	err = c.SetAllowance(modules.DefaultAllowance)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = build.Retry(50, 100*time.Millisecond, func() error {
+		if len(c.Contracts()) == 0 {
+			return errors.New("no contract created")
+		}
+		return nil
+	})
+
+	// create a refund account
+	aid, _ := modules.NewAccountID()
+
+	// Fetch the contracts, there's a race condition between contract creation
+	// and the contractor knowing the contract exists, so do this in a retry.
+	var contract modules.RenterContract
+	err = build.Retry(200, 100*time.Millisecond, func() error {
+		var ok bool
+		contract, ok = c.ContractByPublicKey(hpk)
+		if !ok {
+			return errors.New("contract not found")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// backup the amount renter funds
+	initial := contract.RenterFunds
+
+	// write the rpc id
+	stream, err := modules.NewHostStream(mux, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = modules.RPCWrite(stream, modules.RPCUpdatePriceTable)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// read the updated response
+	var update modules.RPCUpdatePriceTableResponse
+	err = modules.RPCRead(stream, &update)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// unmarshal the JSON into a price table
+	var pt modules.RPCPriceTable
+	err = json.Unmarshal(update.PriceTableJSON, &pt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// provide payment
+	err = c.ProvidePayment(stream, contract.HostPublicKey, modules.RPCUpdatePriceTable, pt.UpdatePriceTableCost, aid, c.blockHeight)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// verify the contract was updated
+	contract, _ = c.ContractByPublicKey(hpk)
+	remaining := contract.RenterFunds
+	expected := initial.Sub(pt.UpdatePriceTableCost)
+	if !remaining.Equals(expected) {
+		t.Fatalf("Expected renter contract to reflect the payment, the renter funds should be %v but were %v", expected.HumanString(), remaining.HumanString())
+	}
+
+	// write the rpc id
+	stream, err = modules.NewHostStream(mux, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = modules.RPCWrite(stream, modules.RPCFundAccount)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// write the price table uid
+	err = modules.RPCWrite(stream, pt.UID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// send fund account request (re-use the refund account)
+	err = modules.RPCWrite(stream, modules.FundAccountRequest{Account: aid})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// provide payment
+	funding := remaining.Div64(2)
+	if funding.Cmp(h.InternalSettings().MaxEphemeralAccountBalance) > 0 {
+		funding = h.InternalSettings().MaxEphemeralAccountBalance
+	}
+
+	err = c.ProvidePayment(stream, hpk, modules.RPCFundAccount, funding.Add(pt.FundAccountCost), modules.ZeroAccountID, c.blockHeight)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// receive response
+	var resp modules.FundAccountResponse
+	err = modules.RPCRead(stream, &resp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// verify the receipt
+	receipt := resp.Receipt
+	err = crypto.VerifyHash(crypto.HashAll(receipt), hpk.ToPublicKey(), resp.Signature)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !receipt.Amount.Equals(funding) {
+		t.Fatalf("Unexpected funded amount in the receipt, expected %v but received %v", funding.HumanString(), receipt.Amount.HumanString())
+	}
+	if receipt.Account != aid {
+		t.Fatalf("Unexpected account id in the receipt, expected %v but received %v", aid, receipt.Account)
+	}
+	if !receipt.Host.Equals(hpk) {
+		t.Fatalf("Unexpected host pubkey in the receipt, expected %v but received %v", hpk, receipt.Host)
+	}
+}
+
 // TestLinkedContracts tests that the contractors maps are updated correctly
 // when renewing contracts
 func TestLinkedContracts(t *testing.T) {
@@ -519,14 +630,15 @@ func TestLinkedContracts(t *testing.T) {
 	t.Parallel()
 
 	// create testing trio
-	h, c, m, err := newTestingTrio(t.Name())
+	h, c, m, cf, err := newTestingTrio(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer tryClose(cf, t)
 
 	// Create allowance
 	a := modules.Allowance{
-		Funds:              types.SiacoinPrecision.Mul64(100),
+		Funds:              types.ScPrimecoinPrecision.Mul64(100),
 		Hosts:              1,
 		Period:             20,
 		RenewWindow:        10,
@@ -617,44 +729,5 @@ func TestLinkedContracts(t *testing.T) {
 		map[%v:%v]
 		got:
 		%v`, c.OldContracts()[0].ID, c.Contracts()[0].ID, c.renewedTo)
-	}
-}
-
-// testWalletShim is used to test the walletBridge type.
-type testWalletShim struct {
-	nextAddressCalled bool
-	startTxnCalled    bool
-}
-
-// These stub implementations for the walletShim interface set their respective
-// booleans to true, allowing tests to verify that they have been called.
-func (ws *testWalletShim) NextAddress() (types.UnlockConditions, error) {
-	ws.nextAddressCalled = true
-	return types.UnlockConditions{}, nil
-}
-func (ws *testWalletShim) PrimarySeed() (modules.Seed, uint64, error) {
-	return modules.Seed{}, 0, nil
-}
-func (ws *testWalletShim) StartTransaction() (modules.TransactionBuilder, error) {
-	ws.startTxnCalled = true
-	return nil, nil
-}
-func (ws *testWalletShim) Unlocked() (bool, error) { return true, nil }
-
-func (ws *testWalletShim) RegisterTransaction(types.Transaction, []types.Transaction) (modules.TransactionBuilder, error) {
-	return nil, nil
-}
-
-// TestWalletBridge tests the walletBridge type.
-func TestWalletBridge(t *testing.T) {
-	shim := new(testWalletShim)
-	bridge := WalletBridge{shim}
-	bridge.NextAddress()
-	if !shim.nextAddressCalled {
-		t.Error("NextAddress was not called on the shim")
-	}
-	bridge.StartTransaction()
-	if !shim.startTxnCalled {
-		t.Error("StartTransaction was not called on the shim")
 	}
 }

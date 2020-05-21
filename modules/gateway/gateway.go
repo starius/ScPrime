@@ -1,4 +1,4 @@
-// Package gateway connects a Sia node to the Sia flood network. The flood
+// Package gateway connects a ScPrime node to the ScPrime flood network. The flood
 // network is used to propagate blocks and transactions. The gateway is the
 // primary avenue that a node uses to hear about transactions and blocks, and
 // is the primary avenue used to tell the network about blocks that you have
@@ -99,14 +99,14 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/scpcorp/ScPrime/modules"
-	"gitlab.com/scpcorp/ScPrime/persist"
-	siasync "gitlab.com/scpcorp/ScPrime/sync"
-
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 	connmonitor "gitlab.com/NebulousLabs/monitor"
 	"gitlab.com/NebulousLabs/ratelimit"
+
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
+	siasync "gitlab.com/scpcorp/ScPrime/sync"
 )
 
 var errNoPeers = errors.New("no peers")
@@ -244,7 +244,7 @@ func (g *Gateway) BandwidthCounters() (uint64, uint64, time.Time, error) {
 		return 0, 0, time.Time{}, err
 	}
 	defer g.threads.Done()
-	writeBytes, readBytes := g.m.Counts()
+	readBytes, writeBytes := g.m.Counts()
 	startTime := g.m.StartTime()
 	return writeBytes, readBytes, startTime, nil
 }

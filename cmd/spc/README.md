@@ -12,16 +12,16 @@ while `spc host help` will list the commands that can be called
 pertaining to hosting. `spc help` will list all of the top level
 command groups that can be used.
 
-You can change the address of where siad is pointing using the `-a`
+You can change the address of where spd is pointing using the `-a`
 flag. For example, `spc -a :9000 status` will display the status of
-the siad instance launched on the local machine with `siad -a :9000`.
+the spd instance launched on the local machine with `spd -a :9000`.
 
 Common tasks
 ------------
 * `spc consensus` view block height
 
 Wallet:
-* `spc wallet init [-p]` initilize a wallet
+* `spc wallet init [-p]` initialize a wallet
 * `spc wallet unlock` unlock a wallet
 * `spc wallet balance` retrieve wallet balance
 * `spc wallet address` get a wallet address
@@ -73,8 +73,8 @@ Example:
 user@hostname:~$ spc wallet balance
 Wallet status:
 Encrypted, Unlocked
-Confirmed Balance:   61516458.00 SPC
-Unconfirmed Balance: 64516461.00 SPC
+Confirmed Balance:   61516.46 SCP
+Unconfirmed Balance: 64516.46 SCP
 Exact:               61516457999999999999999999999999 H
 ```
 
@@ -101,19 +101,22 @@ seed into itself. This can be used for wallet recovery and merging.
 
 is used to configure hosting.
 
-In version `1.4.1`, scprime hosting is configured as follows:
+In version `1.4.3.0`, scprime hosting is configured as follows:
 
-| Setting                  | Value                                           |
-| -------------------------|-------------------------------------------------|
-| acceptingcontracts       | Yes or No                                       |
-| maxduration              | in weeks, at least 12                           |
-| collateral               | in SPC / TB / Month, 10-1000                    |
-| collateralbudget         | in SPC                                          |
-| maxcollateral            | in SPC, max per contract                        |
-| mincontractprice         | minimum price in SC per contract                |
-| mindownloadbandwidthprice| in SPC / TB                                     |
-| minstorageprice          | in SPC / TB                                     |
-| minuploadbandwidthprice  | in SPC / TB                                     |
+| Setting                    | Value                                           |
+| ---------------------------|-------------------------------------------------|
+| acceptingcontracts         | Yes or No                                       |
+| collateral                 | in SCP / TB / Month, 10-1000                    |
+| collateralbudget           | in SCP                                          |
+| ephemeralaccountexpiry     | in seconds                                      |
+| maxcollateral              | in SCP, max per contract                        |
+| maxduration                | in weeks, at least 12                           |
+| maxephemeralaccountbalance | in SCP                                          |
+| maxephemeralaccountrisk    | in SCP                                          |
+| mincontractprice           | minimum price in SCP per contract               |
+| mindownloadbandwidthprice  | in SCP / TB                                     |
+| minstorageprice            | in SCP / TB                                     |
+| minuploadbandwidthprice    | in SCP / TB                                     |
 
 You can call this many times to configure you host before
 announcing. Alternatively, you can manually adjust these parameters
@@ -131,7 +134,7 @@ Example:
 user@hostname:~$ spc host -v
 Host settings:
 Storage:      2.0000 TB (1.524 GB used)
-Price:        0.000 SPC per GB per month
+Price:        0.000 SCP per GB per month
 Collateral:   0
 Max Filesize: 10000000000
 Max Duration: 8640
@@ -167,6 +170,47 @@ your saved list.
 * `spc renter queue` shows the download queue. This is only relevant
 if you have multiple downloads happening simultaneously.
 
+* `spc renter setallowance` sets the amount of money that can be spent over a
+  given period. If no flags are set you will be walked through the interactive
+  allowance setting. To update only certain fields, pass in those values with
+  the corresponding field flag, for example '--amount 500SCP'.
+
+* `spc renter allowance` views the current allowance, which controls how much
+  money is spent on file contracts.
+
+#### Pubaccess tasks
+* `spc pubaccess upload [source filepath] [destination siapath]` uploads a file or
+  directory to Pubaccess. A publink will be produced for each file. The link can be
+  shared and used to retrieve the file. The file(s) that get uploaded will be
+  pinned to this ScPrime node, meaning that this node will pay for storage and 
+  repairs until the file(s) are manually deleted.
+
+* `spc pubaccess ls` lists all pubfiles that the user has pinned along with the
+  corresponding publinks. By default, only files in var/pubaccess/ will be
+  displayed.
+
+* `spc pubaccess download [publink] [destination]` downloads a file from Pubaccess
+  using a publink.
+
+* `spc pubaccess pin [publink] [destination siapath]` pins the file associated
+  with this publink by re-uploading an exact copy. This ensures that the file
+  will still be available on pubaccess as long as you continue maintaining the file
+  in your renter.
+
+* `spc pubaccess unpin [siapath]` unpins a pubfile, deleting it from your list of
+  stored files.
+
+* `spc pubaccess convert [source siaPath] [destination siaPath]` converts a
+  siafile to a pubfile and then generates its publink. A new publink will be
+  created in the user's pubfile directory. The pubfile and the original siafile
+  are both necessary to pin the file and keep the publink active. The pubfile
+  will consume an additional 40 MiB of storage.
+
+* `spc pubaccess blacklist [publink]` will add or remove a publink from the
+  Renter's Pubaccess Blacklist
+
+
+
 #### Gateway tasks
 * `spc gateway` prints info about the gateway, including its address and how
 many peers it's connected to.
@@ -181,7 +225,7 @@ leaves it in the gateway's node list.
 
 #### Miner tasks
 * `spc miner status` returns information about the miner. It is only
-valid for when siad is running.
+valid for when spd is running.
 
 * `spc miner start` starts running the CPU miner on one thread. This
 is virtually useless outside of debugging.

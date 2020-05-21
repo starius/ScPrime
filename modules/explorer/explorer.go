@@ -1,4 +1,4 @@
-// Package explorer provides a glimpse into what the Sia network currently
+// Package explorer provides a glimpse into what the ScPrime network currently
 // looks like.
 package explorer
 

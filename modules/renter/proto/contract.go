@@ -2,41 +2,57 @@ package proto
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
+
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/writeaheadlog"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-	"gitlab.com/scpcorp/writeaheadlog"
-
-	"gitlab.com/NebulousLabs/errors"
 )
 
 const (
-	// contractHeaderSize is the maximum amount of space that the non-Merkle-root
-	// portion of a contract can consume.
-	contractHeaderSize = writeaheadlog.MaxPayloadSize // TODO: test this
+	updateNameInsertContract = "insertContract"
+	updateNameSetHeader      = "setHeader"
+	updateNameSetRoot        = "setRoot"
 
-	updateNameSetHeader = "setHeader"
-	updateNameSetRoot   = "setRoot"
+	// decodeMaxSizeMultiplier is multiplied with the size of an encoded object
+	// to allocated a bit of extra space for decoding.
+	decodeMaxSizeMultiplier = 3
 )
 
+// updateInsertContract is an update that inserts a contract into the
+// contractset with the given header and roots.
+type updateInsertContract struct {
+	Header contractHeader
+	Roots  []crypto.Hash
+}
+
+// updateSetHeader is an update that updates the header of the filecontract with
+// the given id.
 type updateSetHeader struct {
 	ID     types.FileContractID
 	Header contractHeader
 }
 
+// updateSetRoot is an update which updates the sector root at the given index
+// of a filecontract with the specified id.
 type updateSetRoot struct {
 	ID    types.FileContractID
 	Root  crypto.Hash
 	Index int
 }
 
+// contractHeader holds all the information about a contract apart from the
+// sector roots themselves.
 type contractHeader struct {
 	// transaction is the signed transaction containing the most recent
 	// revision of the file contract.
@@ -72,27 +88,34 @@ func (h *contractHeader) validate() error {
 	return nil
 }
 
+// copyTransaction creates a deep copy of the txn struct.
 func (h *contractHeader) copyTransaction() (txn types.Transaction) {
 	encoding.Unmarshal(encoding.Marshal(h.Transaction), &txn)
 	return
 }
 
+// LastRevision returns the last revision of the contract.
 func (h *contractHeader) LastRevision() types.FileContractRevision {
 	return h.Transaction.FileContractRevisions[0]
 }
 
+// ID returns the contract's ID.
 func (h *contractHeader) ID() types.FileContractID {
 	return h.LastRevision().ID()
 }
 
+// HostPublicKey returns the host's public key from the last contract revision.
 func (h *contractHeader) HostPublicKey() types.SiaPublicKey {
 	return h.LastRevision().HostPublicKey()
 }
 
+// RenterFunds returns the remaining renter funds as per the last contract
+// revision.
 func (h *contractHeader) RenterFunds() types.Currency {
-	return h.LastRevision().RenterFunds()
+	return h.LastRevision().ValidRenterPayout()
 }
 
+// EndHeight returns the block height of the last constract revision.
 func (h *contractHeader) EndHeight() types.BlockHeight {
 	return h.LastRevision().EndHeight()
 }
@@ -109,15 +132,48 @@ type SafeContract struct {
 	// applied to the contract file.
 	unappliedTxns []*writeaheadlog.Transaction
 
-	headerFile *fileSection
+	headerFile *os.File
 	wal        *writeaheadlog.WAL
 	mu         sync.Mutex
+
+	staticRC *RefCounter
 
 	// revisionMu serializes revisions to the contract. It is acquired by
 	// (ContractSet).Acquire and released by (ContractSet).Return. When holding
 	// revisionMu, it is still necessary to lock mu when modifying fields of the
 	// SafeContract.
 	revisionMu sync.Mutex
+}
+
+// CommitPaymentIntent will commit the intent to pay a host for an rpc by
+// committing the signed txn in the contract's header.
+func (c *SafeContract) CommitPaymentIntent(t *writeaheadlog.Transaction, signedTxn types.Transaction, amount types.Currency, rpc types.Specifier) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// construct new header
+	newHeader := c.header
+	newHeader.Transaction = signedTxn
+
+	// TODO update contract header to support 'FundAccountSpending' or
+	// 'UnknownSpending', depending on the RPC
+
+	if err := c.applySetHeader(newHeader); err != nil {
+		return err
+	}
+	if err := c.headerFile.Sync(); err != nil {
+		return err
+	}
+	if err := t.SignalUpdatesApplied(); err != nil {
+		return err
+	}
+	c.unappliedTxns = nil
+	return nil
+}
+
+// LastRevision returns the most recent revision
+func (c *SafeContract) LastRevision() types.FileContractRevision {
+	return c.header.LastRevision()
 }
 
 // Metadata returns the metadata of a renter contract
@@ -141,6 +197,37 @@ func (c *SafeContract) Metadata() modules.RenterContract {
 		SiafundFee:       h.SiafundFee,
 		Utility:          h.Utility,
 	}
+}
+
+// RecordPaymentIntent will records the changes we are about to make to the
+// revision in order to pay a host for an RPC.
+func (c *SafeContract) RecordPaymentIntent(rev types.FileContractRevision, amount types.Currency, rpc types.Specifier) (*writeaheadlog.Transaction, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	newHeader := c.header
+	newHeader.Transaction.FileContractRevisions = []types.FileContractRevision{rev}
+	newHeader.Transaction.TransactionSignatures = nil
+
+	// TODO update contract header to support 'FundAccountSpending' or
+	// 'UnknownSpending', depending on the RPC
+
+	t, err := c.wal.NewTransaction([]writeaheadlog.Update{
+		c.makeUpdateSetHeader(newHeader),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := <-t.SignalSetupComplete(); err != nil {
+		return nil, err
+	}
+	c.unappliedTxns = append(c.unappliedTxns, t)
+	return t, nil
+}
+
+// Sign will sign the given hash using the safecontract's secret key
+func (c *SafeContract) Sign(hash crypto.Hash) crypto.Signature {
+	return crypto.SignHash(hash, c.header.SecretKey)
 }
 
 // UpdateUtility updates the utility field of a contract.
@@ -184,6 +271,24 @@ func (c *SafeContract) Utility() modules.ContractUtility {
 	return c.header.Utility
 }
 
+// makeUpdateInsertContract creates a writeaheadlog.Update to insert a new
+// contract into the contractset.
+func makeUpdateInsertContract(h contractHeader, roots []crypto.Hash) (writeaheadlog.Update, error) {
+	// Validate header.
+	if err := h.validate(); err != nil {
+		return writeaheadlog.Update{}, err
+	}
+	// Create update.
+	return writeaheadlog.Update{
+		Name: updateNameInsertContract,
+		Instructions: encoding.Marshal(updateInsertContract{
+			Header: h,
+			Roots:  roots,
+		}),
+	}, nil
+}
+
+// makeUpdateSetHeader creates an update that changes the header.
 func (c *SafeContract) makeUpdateSetHeader(h contractHeader) writeaheadlog.Update {
 	id := c.header.ID()
 	return writeaheadlog.Update{
@@ -195,6 +300,7 @@ func (c *SafeContract) makeUpdateSetHeader(h contractHeader) writeaheadlog.Updat
 	}
 }
 
+// makeUpdateSetRoot creates an update that sets a given root, existing or not.
 func (c *SafeContract) makeUpdateSetRoot(root crypto.Hash, index int) writeaheadlog.Update {
 	id := c.header.ID()
 	return writeaheadlog.Update{
@@ -207,13 +313,52 @@ func (c *SafeContract) makeUpdateSetRoot(root crypto.Hash, index int) writeahead
 	}
 }
 
+// makeUpdateRefCounterAppend creates a WAL update that sets a given
+// refcounter value. If there is no open refcounter update session this method
+// will open one. This update session will be closed when we apply the update.
+func (c *SafeContract) makeUpdateRefCounterAppend() (writeaheadlog.Update, error) {
+	if c.staticRC == nil {
+		return writeaheadlog.Update{}, ErrRefCounterNotExist
+	}
+
+	// TODO This hidden retry is a problem that we need to refactor away, most
+	// 	probably by refactoring the entire `contract` workflow. The same applies
+	// 	to `applyRefCounterUpdate`.
+	u, err := c.staticRC.callAppend()
+	// If we don't have an update session open one and try again.
+	if errors.Contains(err, ErrUpdateWithoutUpdateSession) {
+		if err = c.staticRC.callStartUpdate(); err != nil {
+			return writeaheadlog.Update{}, err
+		}
+		u, err = c.staticRC.callAppend()
+	}
+	return u, err
+}
+
+// applyRefCounterUpdate applies a refcounter WAL update. If there is no open
+// update session, it will open one and it will leave it open. This update
+// session must be closed by the calling method.
+func (c *SafeContract) applyRefCounterUpdate(u writeaheadlog.Update) error {
+	err := c.staticRC.callCreateAndApplyTransaction(u)
+	// If we don't have an open update session open one and try again.
+	if errors.Contains(err, ErrUpdateWithoutUpdateSession) {
+		if err = c.staticRC.callStartUpdate(); err != nil {
+			return err
+		}
+		err = c.staticRC.callCreateAndApplyTransaction(u)
+	}
+	return err
+}
+
+// applySetHeader directly makes changes to the contract header on disk without
+// going through a WAL transaction.
 func (c *SafeContract) applySetHeader(h contractHeader) error {
 	if build.DEBUG {
 		// read the existing header on disk, to make sure we aren't overwriting
 		// it with an older revision
 		var oldHeader contractHeader
-		headerBytes := make([]byte, contractHeaderSize)
-		if _, err := c.headerFile.ReadAt(headerBytes, 0); err == nil {
+		headerBytes, err := ioutil.ReadAll(c.headerFile)
+		if err == nil {
 			if err := encoding.Unmarshal(headerBytes, &oldHeader); err == nil {
 				if oldHeader.LastRevision().NewRevisionNumber > h.LastRevision().NewRevisionNumber {
 					build.Critical("overwriting a newer revision:", oldHeader.LastRevision().NewRevisionNumber, h.LastRevision().NewRevisionNumber)
@@ -221,9 +366,7 @@ func (c *SafeContract) applySetHeader(h contractHeader) error {
 			}
 		}
 	}
-
-	headerBytes := make([]byte, contractHeaderSize)
-	copy(headerBytes, encoding.Marshal(h))
+	headerBytes := encoding.Marshal(h)
 	if _, err := c.headerFile.WriteAt(headerBytes, 0); err != nil {
 		return err
 	}
@@ -231,11 +374,15 @@ func (c *SafeContract) applySetHeader(h contractHeader) error {
 	return nil
 }
 
+// applySetRoot directly sets a given root hash at a given index on disk without
+// going through a WAL transaction.
 func (c *SafeContract) applySetRoot(root crypto.Hash, index int) error {
 	return c.merkleRoots.insert(index, root)
 }
 
-func (c *SafeContract) managedRecordUploadIntent(rev types.FileContractRevision, root crypto.Hash, storageCost, bandwidthCost types.Currency) (*writeaheadlog.Transaction, error) {
+// managedRecordAppendIntent creates a WAL update that adds a new sector to the
+// contract and queues this update for application.
+func (c *SafeContract) managedRecordAppendIntent(rev types.FileContractRevision, root crypto.Hash, storageCost, bandwidthCost types.Currency) (*writeaheadlog.Transaction, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	// construct new header
@@ -246,9 +393,14 @@ func (c *SafeContract) managedRecordUploadIntent(rev types.FileContractRevision,
 	newHeader.StorageSpending = newHeader.StorageSpending.Add(storageCost)
 	newHeader.UploadSpending = newHeader.UploadSpending.Add(bandwidthCost)
 
+	rcUpdate, err := c.makeUpdateRefCounterAppend()
+	if err != nil || len(rcUpdate.Name) == 0 {
+		return nil, errors.AddContext(err, "failed to create a refcounter update")
+	}
 	t, err := c.wal.NewTransaction([]writeaheadlog.Update{
 		c.makeUpdateSetHeader(newHeader),
 		c.makeUpdateSetRoot(root, c.merkleRoots.len()),
+		rcUpdate,
 	})
 	if err != nil {
 		return nil, err
@@ -260,7 +412,10 @@ func (c *SafeContract) managedRecordUploadIntent(rev types.FileContractRevision,
 	return t, nil
 }
 
-func (c *SafeContract) managedCommitUpload(t *writeaheadlog.Transaction, signedTxn types.Transaction, root crypto.Hash, storageCost, bandwidthCost types.Currency) error {
+// managedCommitAppend ignores the header update in the given transaction and
+// instead applies a new one based on the provided signedTxn. This is necessary
+// if we run into a desync of contract revisions between renter and host.
+func (c *SafeContract) managedCommitAppend(t *writeaheadlog.Transaction, signedTxn types.Transaction, storageCost, bandwidthCost types.Currency) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	// construct new header
@@ -269,22 +424,52 @@ func (c *SafeContract) managedCommitUpload(t *writeaheadlog.Transaction, signedT
 	newHeader.StorageSpending = newHeader.StorageSpending.Add(storageCost)
 	newHeader.UploadSpending = newHeader.UploadSpending.Add(bandwidthCost)
 
-	if err := c.applySetHeader(newHeader); err != nil {
+	// we need this declaration so we don't shadow useful variables further down
+	var err error
+	if err = c.applySetHeader(newHeader); err != nil {
 		return err
 	}
-	if err := c.applySetRoot(root, c.merkleRoots.len()); err != nil {
+	if c.staticRC == nil {
+		return ErrRefCounterNotExist
+	}
+
+	// pluck the refcounter and setRoot updates from the WAL txn
+	for _, u := range t.Updates {
+		switch u.Name {
+		case updateNameSetHeader:
+			// do nothing - we already applied a new version of this update
+		case updateNameSetRoot:
+			var sru updateSetRoot
+			if err := encoding.Unmarshal(u.Instructions, &sru); err != nil {
+				return err
+			}
+			if err := c.applySetRoot(sru.Root, sru.Index); err != nil {
+				return err
+			}
+		case UpdateNameWriteAt:
+			if err = c.applyRefCounterUpdate(u); err != nil {
+				return errors.AddContext(err, "failed to apply refcounter update")
+			}
+			if err = c.staticRC.callUpdateApplied(); err != nil {
+				return err
+			}
+		default:
+			build.Critical("unexpected update", u.Name)
+		}
+	}
+
+	if err = c.headerFile.Sync(); err != nil {
 		return err
 	}
-	if err := c.headerFile.Sync(); err != nil {
-		return err
-	}
-	if err := t.SignalUpdatesApplied(); err != nil {
+	if err = t.SignalUpdatesApplied(); err != nil {
 		return err
 	}
 	c.unappliedTxns = nil
 	return nil
 }
 
+// managedRecordDownloadIntent creates a WAL update that updates the header with
+// the new download costs.
 func (c *SafeContract) managedRecordDownloadIntent(rev types.FileContractRevision, bandwidthCost types.Currency) (*writeaheadlog.Transaction, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -308,6 +493,8 @@ func (c *SafeContract) managedRecordDownloadIntent(rev types.FileContractRevisio
 	return t, nil
 }
 
+// managedCommitDownload *ignores* all updates in the given transaction and
+// instead applies the provided signedTxn. See managedCommitAppend.
 func (c *SafeContract) managedCommitDownload(t *writeaheadlog.Transaction, signedTxn types.Transaction, bandwidthCost types.Currency) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -329,11 +516,64 @@ func (c *SafeContract) managedCommitDownload(t *writeaheadlog.Transaction, signe
 	return nil
 }
 
+// managedRecordClearContractIntent records the changes we are about to make to
+// the revision in the WAL of the contract.
+func (c *SafeContract) managedRecordClearContractIntent(rev types.FileContractRevision, bandwidthCost types.Currency) (*writeaheadlog.Transaction, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	// construct new header
+	// NOTE: this header will not include the host signature
+	newHeader := c.header
+	newHeader.Transaction.FileContractRevisions = []types.FileContractRevision{rev}
+	newHeader.Transaction.TransactionSignatures = nil
+	newHeader.UploadSpending = newHeader.UploadSpending.Add(bandwidthCost)
+
+	t, err := c.wal.NewTransaction([]writeaheadlog.Update{
+		c.makeUpdateSetHeader(newHeader),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := <-t.SignalSetupComplete(); err != nil {
+		return nil, err
+	}
+	c.unappliedTxns = append(c.unappliedTxns, t)
+	return t, nil
+}
+
+// managedCommitClearContract commits the changes we made to the revision when
+// clearing a contract to the WAL of the contract.
+func (c *SafeContract) managedCommitClearContract(t *writeaheadlog.Transaction, signedTxn types.Transaction, bandwidthCost types.Currency) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	// construct new header
+	newHeader := c.header
+	newHeader.Transaction = signedTxn
+	newHeader.UploadSpending = newHeader.UploadSpending.Add(bandwidthCost)
+
+	if err := c.applySetHeader(newHeader); err != nil {
+		return err
+	}
+	if err := c.headerFile.Sync(); err != nil {
+		return err
+	}
+	if err := t.SignalUpdatesApplied(); err != nil {
+		return err
+	}
+	c.unappliedTxns = nil
+	return nil
+}
+
 // managedCommitTxns commits the unapplied transactions to the contract file and marks
 // the transactions as applied.
 func (c *SafeContract) managedCommitTxns() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	// We need a way of finding out whether we need to close the refcounter's
+	// update session here. This will only be necessary if there are refcounter
+	// updates in the queue. We don't want to close the session in other cases
+	// because that can close someone else's session.
+	rcUpdatesApplied := false
 	for _, t := range c.unappliedTxns {
 		for _, update := range t.Updates {
 			switch update.Name {
@@ -353,12 +593,22 @@ func (c *SafeContract) managedCommitTxns() error {
 				if err := c.applySetRoot(u.Root, u.Index); err != nil {
 					return err
 				}
+			case UpdateNameWriteAt:
+				if err := c.applyRefCounterUpdate(update); err != nil {
+					return err
+				}
+				rcUpdatesApplied = true
 			}
 		}
 		if err := c.headerFile.Sync(); err != nil {
 			return err
 		}
 		if err := t.SignalUpdatesApplied(); err != nil {
+			return err
+		}
+	}
+	if rcUpdatesApplied {
+		if err := c.staticRC.callUpdateApplied(); err != nil {
 			return err
 		}
 	}
@@ -459,37 +709,100 @@ func (c *SafeContract) managedSyncRevision(rev types.FileContractRevision, sigs 
 	return nil
 }
 
+// managedInsertContract inserts a contract into the set in an ACID fashion
+// using the set's WAL.
 func (cs *ContractSet) managedInsertContract(h contractHeader, roots []crypto.Hash) (modules.RenterContract, error) {
-	if err := h.validate(); err != nil {
-		return modules.RenterContract{}, err
-	}
-	f, err := os.Create(filepath.Join(cs.dir, h.ID().String()+contractExtension))
+	insertUpdate, err := makeUpdateInsertContract(h, roots)
 	if err != nil {
 		return modules.RenterContract{}, err
 	}
-	// create fileSections
-	headerSection := newFileSection(f, 0, contractHeaderSize)
-	rootsSection := newFileSection(f, contractHeaderSize, -1)
-	// write header
-	if _, err := headerSection.WriteAt(encoding.Marshal(h), 0); err != nil {
+	txn, err := cs.wal.NewTransaction([]writeaheadlog.Update{insertUpdate})
+	if err != nil {
 		return modules.RenterContract{}, err
 	}
+	err = <-txn.SignalSetupComplete()
+	if err != nil {
+		return modules.RenterContract{}, err
+	}
+	rc, err := cs.managedApplyInsertContractUpdate(insertUpdate)
+	if err != nil {
+		return modules.RenterContract{}, err
+	}
+	err = txn.SignalUpdatesApplied()
+	if err != nil {
+		return modules.RenterContract{}, err
+	}
+	return rc, nil
+}
+
+// managedApplyInsertContractUpdate applies the update to insert a contract into
+// a set. This will overwrite existing contracts of the same name to make sure
+// the update is idempotent.
+func (cs *ContractSet) managedApplyInsertContractUpdate(update writeaheadlog.Update) (modules.RenterContract, error) {
+	// Sanity check update.
+	if update.Name != updateNameInsertContract {
+		return modules.RenterContract{}, fmt.Errorf("can't call managedApplyInsertContractUpdate on update of type '%v'", update.Name)
+	}
+	// Decode update.
+	var insertUpdate updateInsertContract
+	if err := encoding.UnmarshalAll(update.Instructions, &insertUpdate); err != nil {
+		return modules.RenterContract{}, err
+	}
+	h := insertUpdate.Header
+	roots := insertUpdate.Roots
+	// Validate header.
+	if err := h.validate(); err != nil {
+		return modules.RenterContract{}, err
+	}
+	headerFilePath := filepath.Join(cs.dir, h.ID().String()+contractHeaderExtension)
+	rootsFilePath := filepath.Join(cs.dir, h.ID().String()+contractRootsExtension)
+	rcFilePath := filepath.Join(cs.dir, h.ID().String()+refCounterExtension)
+	// create the files.
+	headerFile, err := os.OpenFile(headerFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, modules.DefaultFilePerm)
+	if err != nil {
+		return modules.RenterContract{}, err
+	}
+	rootsFile, err := os.OpenFile(rootsFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, modules.DefaultFilePerm)
+	if err != nil {
+		return modules.RenterContract{}, err
+	}
+	// write header
+	if _, err := headerFile.Write(encoding.Marshal(h)); err != nil {
+		return modules.RenterContract{}, err
+	}
+	// Interrupt if necessary.
+	if cs.deps.Disrupt("InterruptContractInsertion") {
+		return modules.RenterContract{}, errors.New("interrupted")
+	}
 	// write roots
-	merkleRoots := newMerkleRoots(rootsSection)
+	merkleRoots := newMerkleRoots(rootsFile)
 	for _, root := range roots {
 		if err := merkleRoots.push(root); err != nil {
 			return modules.RenterContract{}, err
 		}
 	}
-	if err := f.Sync(); err != nil {
+	// sync both files
+	if err := headerFile.Sync(); err != nil {
 		return modules.RenterContract{}, err
 	}
+	if err := rootsFile.Sync(); err != nil {
+		return modules.RenterContract{}, err
+	}
+	var rc *RefCounter
+
+	rc, err = newRefCounter(rcFilePath, uint64(len(roots)), cs.wal)
+	if err != nil {
+		return modules.RenterContract{}, errors.AddContext(err, "failed to create a refcounter")
+	}
+
 	sc := &SafeContract{
 		header:      h,
 		merkleRoots: merkleRoots,
-		headerFile:  headerSection,
+		headerFile:  headerFile,
 		wal:         cs.wal,
+		staticRC:    rc,
 	}
+	// Compatv144 fix missing void output.
 	cs.mu.Lock()
 	cs.contracts[sc.header.ID()] = sc
 	cs.pubKeys[h.HostPublicKey().String()] = sc.header.ID()
@@ -524,32 +837,31 @@ func loadSafeContractHeader(f io.ReadSeeker, decodeMaxSize int) (contractHeader,
 
 // loadSafeContract loads a contract from disk and adds it to the contractset
 // if it is valid.
-func (cs *ContractSet) loadSafeContract(filename string, walTxns []*writeaheadlog.Transaction) (err error) {
-	f, err := os.OpenFile(filename, os.O_RDWR, 0600)
+func (cs *ContractSet) loadSafeContract(headerFileName, rootsFileName, refCountFileName string, walTxns []*writeaheadlog.Transaction) (err error) {
+	headerFile, err := os.OpenFile(headerFileName, os.O_RDWR, modules.DefaultFilePerm)
+	if err != nil {
+		return err
+	}
+	rootsFile, err := os.OpenFile(rootsFileName, os.O_RDWR, modules.DefaultFilePerm)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		if err != nil {
-			f.Close()
+			err = errors.Compose(err, headerFile.Close(), rootsFile.Close())
 		}
 	}()
-	stat, err := f.Stat()
+	headerStat, err := headerFile.Stat()
 	if err != nil {
 		return err
 	}
-	decodeMaxSize := int(stat.Size() * 3)
-
-	headerSection := newFileSection(f, 0, contractHeaderSize)
-	rootsSection := newFileSection(f, contractHeaderSize, remainingFile)
-
-	header, err := loadSafeContractHeader(f, decodeMaxSize)
+	header, err := loadSafeContractHeader(headerFile, int(headerStat.Size())*decodeMaxSizeMultiplier)
 	if err != nil {
 		return errors.AddContext(err, "unable to load contract header")
 	}
 
 	// read merkleRoots
-	merkleRoots, applyTxns, err := loadExistingMerkleRoots(rootsSection)
+	merkleRoots, applyTxns, err := loadExistingMerkleRoots(rootsFile)
 	if err != nil {
 		return errors.AddContext(err, "unable to load the merkle roots of the contract")
 	}
@@ -580,13 +892,25 @@ func (cs *ContractSet) loadSafeContract(filename string, walTxns []*writeaheadlo
 			unappliedTxns = append(unappliedTxns, t)
 		}
 	}
+	var rc *RefCounter
+
+	// load the reference counter or create a new one if it doesn't exist
+	rc, err = loadRefCounter(refCountFileName, cs.wal)
+	if errors.Contains(err, ErrRefCounterNotExist) {
+		rc, err = newRefCounter(refCountFileName, uint64(merkleRoots.numMerkleRoots), cs.wal)
+	}
+	if err != nil {
+		return errors.AddContext(err, "failed to load or create a refcounter")
+	}
+
 	// add to set
 	sc := &SafeContract{
 		header:        header,
 		merkleRoots:   merkleRoots,
 		unappliedTxns: unappliedTxns,
-		headerFile:    headerSection,
+		headerFile:    headerFile,
 		wal:           cs.wal,
+		staticRC:      rc,
 	}
 
 	// apply the wal txns if necessary.
@@ -626,7 +950,7 @@ func (cs *ContractSet) ConvertV130Contract(c V130Contract, cr V130CachedRevision
 		defer cs.Return(sc)
 		if len(cr.MerkleRoots) == sc.merkleRoots.len()+1 {
 			root := cr.MerkleRoots[len(cr.MerkleRoots)-1]
-			_, err = sc.managedRecordUploadIntent(cr.Revision, root, types.ZeroCurrency, types.ZeroCurrency)
+			_, err = sc.managedRecordAppendIntent(cr.Revision, root, types.ZeroCurrency, types.ZeroCurrency)
 		} else {
 			_, err = sc.managedRecordDownloadIntent(cr.Revision, types.ZeroCurrency)
 		}
@@ -667,7 +991,7 @@ func (c *V130Contract) RenterFunds() types.Currency {
 	if len(c.LastRevision.NewValidProofOutputs) < 2 {
 		return types.ZeroCurrency
 	}
-	return c.LastRevision.NewValidProofOutputs[0].Value
+	return c.LastRevision.ValidRenterPayout()
 }
 
 // A V130CachedRevision contains changes that would be applied to a
@@ -721,7 +1045,7 @@ func (mrs *MerkleRootSet) UnmarshalJSON(b []byte) error {
 // of the contract until it either succeeds or it runs out of decoding
 // strategies to try.
 func unmarshalHeader(b []byte, u *updateSetHeader) error {
-	// Try unmarshaling the header.
+	// Try unmarshalling the header.
 	if err := encoding.Unmarshal(b, u); err != nil {
 		// Try unmarshalling the update
 		v132Err := updateSetHeaderUnmarshalV132ToV1420(b, u)

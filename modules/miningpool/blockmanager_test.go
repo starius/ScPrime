@@ -31,5 +31,4 @@ func TestBlockForWork(t *testing.T) {
 	if len(b.Transactions) != 0 {
 		t.Fatal(errors.New(fmt.Sprintf("wrong tx number %d", len(b.Transactions))))
 	}
-
 }

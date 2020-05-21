@@ -13,7 +13,7 @@ var (
 	SiaTestingDir = filepath.Join(os.TempDir(), "SiaTesting")
 )
 
-// TestDir joins the provided directories and prefixes them with the Sia
+// TestDir joins the provided directories and prefixes them with the ScPrime
 // testing directory, removing any files or directories that previously existed
 // at that location.
 func TestDir(dirs ...string) string {
@@ -40,6 +40,11 @@ func (tn *TestNode) DownloadDir() *LocalDir {
 	return tn.downloadDir
 }
 
+// FilesDir returns the LocalDir that is the testnodes upload directory
+func (tn *TestNode) FilesDir() *LocalDir {
+	return tn.filesDir
+}
+
 // RenterDir returns the renter directory for the renter
 func (tn *TestNode) RenterDir() string {
 	return filepath.Join(tn.Dir, "renter")
@@ -48,9 +53,4 @@ func (tn *TestNode) RenterDir() string {
 // RenterFilesDir returns the renter's files directory
 func (tn *TestNode) RenterFilesDir() string {
 	return filepath.Join(tn.RenterDir(), "siafiles")
-}
-
-// FilesDir returns the LocalDir that is the testnodes upload directory
-func (tn *TestNode) FilesDir() *LocalDir {
-	return tn.filesDir
 }

@@ -17,7 +17,7 @@ var (
 	SiaTestingDir = filepath.Join(os.TempDir(), "SiaTesting")
 )
 
-// TempDir joins the provided directories and prefixes them with the Sia
+// TempDir joins the provided directories and prefixes them with the ScPrime
 // testing directory.
 func TempDir(dirs ...string) string {
 	path := filepath.Join(SiaTestingDir, filepath.Join(dirs...))

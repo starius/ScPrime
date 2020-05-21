@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"math"
 	"math/big"
 	"os"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -418,7 +418,7 @@ func walletsendsiacoinscmd(amount, dest string) {
 	if _, err := fmt.Sscan(dest, &hash); err != nil {
 		die("Failed to parse destination address", err)
 	}
-	_, err = httpClient.WalletSiacoinsPost(value, hash)
+	_, err = httpClient.WalletSiacoinsPost(value, hash, walletTxnFeeIncluded)
 	if err != nil {
 		die("Could not send scprimecoins:", err)
 	}
@@ -547,13 +547,13 @@ func walletsigncmd(cmd *cobra.Command, args []string) {
 	if err == nil {
 		txn = wspr.Transaction
 	} else {
-		// if siad is running, but the wallet is locked, assume the user
-		// wanted to sign with siad
+		// if spd is running, but the wallet is locked, assume the user
+		// wanted to sign with spd
 		if strings.Contains(err.Error(), modules.ErrLockedWallet.Error()) {
 			die("Signing via API failed: spd is running, but the wallet is locked.")
 		}
 
-		// siad is not running; fallback to offline keygen
+		// spd is not running; fallback to offline keygen
 		walletsigncmdoffline(&txn, toSign)
 	}
 
@@ -566,7 +566,7 @@ func walletsigncmd(cmd *cobra.Command, args []string) {
 }
 
 // walletsigncmdoffline is a helper for walletsigncmd that handles signing
-// transactions without siad.
+// transactions without spd.
 func walletsigncmdoffline(txn *types.Transaction, toSign []crypto.Hash) {
 	fmt.Println("Enter your wallet seed to generate the signing key(s) now and sign without spd.")
 	seedString, err := passwordPrompt("Seed: ")
@@ -598,7 +598,7 @@ func walletsigncmdoffline(txn *types.Transaction, toSign []crypto.Hash) {
 // wallettransactionscmd lists all of the transactions related to the wallet,
 // providing a net flow of siacoins and siafunds for each.
 func wallettransactionscmd() {
-	wtg, err := httpClient.WalletTransactionsGet(0, math.MaxInt64)
+	wtg, err := httpClient.WalletTransactionsGet(types.BlockHeight(walletStartHeight), types.BlockHeight(walletEndHeight))
 	if err != nil {
 		die("Could not fetch transaction history:", err)
 	}
@@ -658,9 +658,9 @@ func wallettransactionscmd() {
 func walletunlockcmd() {
 	// try reading from environment variable first, then fallback to
 	// interactive method. Also allow overriding auto-unlock via -p
-	password := os.Getenv("SCPRIME_WALLET_PASSWORD")
+	password := build.WalletPassword()
 	if password != "" && !initPassword {
-		fmt.Println("Using SCPRIME_WALLET_PASSWORD environment variable")
+		fmt.Printf("Using %v environment variable", build.EnvvarAPIPassword)
 		err := httpClient.WalletUnlockPost(password)
 		if err != nil {
 			fmt.Println("Automatic unlock failed!")

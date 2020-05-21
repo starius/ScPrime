@@ -5,14 +5,14 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/ratelimit"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/ratelimit"
 )
 
 // cachedMerkleRoot calculates the root of a set of existing Merkle roots.
@@ -92,8 +92,8 @@ func (he *Editor) Upload(data []byte) (_ modules.RenterContract, _ crypto.Hash, 
 	if contract.RenterFunds().Cmp(sectorPrice) < 0 {
 		return modules.RenterContract{}, crypto.Hash{}, errors.New("contract has insufficient funds to support upload")
 	}
-	if contract.LastRevision().NewMissedProofOutputs[1].Value.Cmp(sectorCollateral) < 0 {
-		sectorCollateral = contract.LastRevision().NewMissedProofOutputs[1].Value
+	if contract.LastRevision().MissedHostOutput().Value.Cmp(sectorCollateral) < 0 {
+		sectorCollateral = contract.LastRevision().MissedHostOutput().Value
 	}
 
 	// calculate the new Merkle root
@@ -106,7 +106,10 @@ func (he *Editor) Upload(data []byte) (_ modules.RenterContract, _ crypto.Hash, 
 		SectorIndex: uint64(sc.merkleRoots.len()),
 		Data:        data,
 	}}
-	rev := newUploadRevision(contract.LastRevision(), merkleRoot, sectorPrice, sectorCollateral)
+	rev, err := newUploadRevision(contract.LastRevision(), merkleRoot, sectorPrice, sectorCollateral)
+	if err != nil {
+		return modules.RenterContract{}, crypto.Hash{}, errors.AddContext(err, "Error creating new upload revision")
+	}
 
 	// run the revision iteration
 	defer func() {
@@ -138,7 +141,7 @@ func (he *Editor) Upload(data []byte) (_ modules.RenterContract, _ crypto.Hash, 
 	// record the change we are about to make to the contract. If we lose power
 	// mid-revision, this allows us to restore either the pre-revision or
 	// post-revision contract.
-	walTxn, err := sc.managedRecordUploadIntent(rev, sectorRoot, sectorStoragePrice, sectorBandwidthPrice)
+	walTxn, err := sc.managedRecordAppendIntent(rev, sectorRoot, sectorStoragePrice, sectorBandwidthPrice)
 	if err != nil {
 		return modules.RenterContract{}, crypto.Hash{}, err
 	}
@@ -173,7 +176,7 @@ func (he *Editor) Upload(data []byte) (_ modules.RenterContract, _ crypto.Hash, 
 	}
 
 	// update contract
-	err = sc.managedCommitUpload(walTxn, signedTxn, sectorRoot, sectorStoragePrice, sectorBandwidthPrice)
+	err = sc.managedCommitAppend(walTxn, signedTxn, sectorStoragePrice, sectorBandwidthPrice)
 	if err != nil {
 		return modules.RenterContract{}, crypto.Hash{}, err
 	}

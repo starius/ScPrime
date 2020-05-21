@@ -55,7 +55,7 @@ func NewCachedTree(height uint64) *CachedMerkleTree {
 	return &CachedMerkleTree{*merkletree.NewCachedTree(height)}
 }
 
-// Prove is a redefinition of merkletree.CachedTree.Prove, so that Sia-specific
+// Prove is a redefinition of merkletree.CachedTree.Prove, so that ScPrime-specific
 // types are used instead of the generic types used by the parent package. The
 // base is not a return value because the base is used as input.
 func (ct *CachedMerkleTree) Prove(base []byte, cachedHashSet []Hash) []Hash {
@@ -194,7 +194,10 @@ func MerkleSectorRangeProof(roots []Hash, start, end int) []Hash {
 		leafHashes[i] = [32]byte(roots[i])
 	}
 	sh := merkletree.NewCachedSubtreeHasher(leafHashes)
-	proof, _ := merkletree.BuildRangeProof(start, end, sh)
+	proof, err := merkletree.BuildRangeProof(start, end, sh)
+	if err != nil {
+		build.Critical("BuildRangeProof failed", err)
+	}
 	proofHashes := make([]Hash, len(proof))
 	for i := range proofHashes {
 		proofHashes[i] = Hash(proof[i])

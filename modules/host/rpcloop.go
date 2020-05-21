@@ -6,14 +6,14 @@ import (
 	"net"
 	"time"
 
+	"gitlab.com/NebulousLabs/fastrand"
+	"golang.org/x/crypto/chacha20poly1305"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/fastrand"
-	"golang.org/x/crypto/chacha20poly1305"
 )
 
 // An rpcSession contains the state of an RPC session with a renter.
@@ -115,21 +115,23 @@ func (h *Host) managedRPCLoop(conn net.Conn) error {
 	defer func() {
 		if len(s.so.OriginTransactionSet) != 0 {
 			h.managedUnlockStorageObligation(s.so.id())
+			s.so = storageObligation{}
 		}
 	}()
 
 	// enter RPC loop
 	rpcs := map[types.Specifier]func(*rpcSession) error{
-		modules.RPCLoopLock:              h.managedRPCLoopLock,
-		modules.RPCLoopUnlock:            h.managedRPCLoopUnlock,
-		modules.RPCLoopSettings:          h.managedRPCLoopSettings,
-		modules.RPCLoopFormContract:      h.managedRPCLoopFormContract,
-		modules.RPCLoopRenewContract:     h.managedRPCLoopRenewContract,
-		modules.RPCLoopWrite:             h.managedRPCLoopWrite,
-		modules.RPCLoopRead:              h.managedRPCLoopRead,
-		modules.RPCLoopSectorRoots:       h.managedRPCLoopSectorRoots,
-		modules.RPCLoopTopUpToken:        h.managedRPCLoopTopUpToken,
-		modules.RPCLoopDownloadWithToken: h.managedRPCLoopDownloadWithToken,
+		modules.RPCLoopLock:               h.managedRPCLoopLock,
+		modules.RPCLoopUnlock:             h.managedRPCLoopUnlock,
+		modules.RPCLoopSettings:           h.managedRPCLoopSettings,
+		modules.RPCLoopFormContract:       h.managedRPCLoopFormContract,
+		modules.RPCLoopRenewContract:      h.managedRPCLoopRenewContract,
+		modules.RPCLoopRenewClearContract: h.managedRPCLoopRenewAndClearContract,
+		modules.RPCLoopWrite:              h.managedRPCLoopWrite,
+		modules.RPCLoopRead:               h.managedRPCLoopRead,
+		modules.RPCLoopSectorRoots:        h.managedRPCLoopSectorRoots,
+		modules.RPCLoopTopUpToken:         h.managedRPCLoopTopUpToken,
+		modules.RPCLoopDownloadWithToken:  h.managedRPCLoopDownloadWithToken,
 	}
 	for {
 		conn.SetDeadline(time.Now().Add(rpcRequestInterval))

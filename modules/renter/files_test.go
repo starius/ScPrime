@@ -14,7 +14,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
@@ -145,9 +145,8 @@ func TestRenterDeleteFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	siapath2 := rt.renter.staticFileSystem.FileSiaPath(entry2)
 	entry2.Close()
-	siapath2 = rt.renter.staticFileSystem.FileSiaPath(entry2)
+	siapath2 := rt.renter.staticFileSystem.FileSiaPath(entry2)
 	err = rt.renter.RenameFile(siapath2, siaPathOne)
 	if err != nil {
 		t.Fatal(err)

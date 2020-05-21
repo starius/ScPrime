@@ -1,12 +1,12 @@
 package contractor
 
 import (
+	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // hasFCIdentifier checks the transaction for a ContractSignedIdentifier and
@@ -71,6 +71,8 @@ func (c *Contractor) managedArchiveContracts() {
 			c.staticContracts.Delete(sc)
 		}
 	}
+	//Ensure the archived contracts doesn't interfere with forming new contracts
+	c.managedUpdatePubKeyToContractIDMap()
 }
 
 // ProcessConsensusChange will be called by the consensus set every time there

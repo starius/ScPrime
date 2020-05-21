@@ -10,7 +10,7 @@ import (
 
 // Version and system parameters.
 const (
-	// persistVersion defines the Sia version that the persistence was
+	// persistVersion defines the ScPrime version that the persistence was
 	// last updated
 	persistVersion = "1.4.2"
 )
@@ -26,7 +26,7 @@ const (
 // AlertCauseSiafileLowRedundancy creates a customized "cause" for a siafile
 // with a certain path and health.
 func AlertCauseSiafileLowRedundancy(siaPath modules.SiaPath, health float64) string {
-	siaPath, _ = siaPath.Rebase(modules.UserSiaPath(), modules.RootSiaPath())
+	siaPath, _ = siaPath.Rebase(modules.UserFolder, modules.RootSiaPath())
 	return fmt.Sprintf("Siafile '%v' has a health of %v", siaPath.String(), health)
 }
 
@@ -55,6 +55,16 @@ var (
 		Standard: 0.25,
 		Testing:  0.25,
 	}).(float64)
+
+	// syncCheckInterval is how often the repair heap checks the consensus code
+	// to see if the renter is synced. This is created because the contractor
+	// may not update the synced channel until a block is received under some
+	// conditions.
+	syncCheckInterval = build.Select(build.Var{
+		Dev:      time.Second * 3,
+		Standard: time.Second * 5,
+		Testing:  time.Second,
+	}).(time.Duration)
 )
 
 // Default memory usage parameters.
@@ -78,7 +88,7 @@ var (
 	// growth.
 	initialStreamerCacheSize = build.Select(build.Var{
 		Dev:      int64(1 << 13), // 8 KiB
-		Standard: int64(1 << 18), // 256 KiB
+		Standard: int64(1 << 19), // 512 KiB
 		Testing:  int64(1 << 10), // 1 KiB
 	}).(int64)
 
@@ -86,7 +96,7 @@ var (
 	// will use before it no longer increases its own cache size. The value has
 	// been set fairly low because some applications like mpv will request very
 	// large buffer sizes, taking as much data as fast as they can. This results
-	// in the cache size on Sia's end growing to match the size of the
+	// in the cache size on ScPrime's end growing to match the size of the
 	// requesting application's buffer, and harms seek times. Maintaining a low
 	// maximum ensures that runaway growth is kept under at least a bit of
 	// control.

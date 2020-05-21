@@ -203,7 +203,6 @@ func (mp *Pool) hasSettings() bool {
 
 // load loads the Hosts's persistent data from disk.
 func (mp *Pool) load() error {
-
 	// Load the old persistence object from disk. Simple task if the version is
 	// the most recent version, but older versions need to be updated to the
 	// more recent structures.

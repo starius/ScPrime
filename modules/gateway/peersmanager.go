@@ -1,10 +1,10 @@
 package gateway
 
 import (
+	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
-
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // managedPeerManagerConnect is a blocking function which tries to connect to

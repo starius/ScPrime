@@ -8,11 +8,12 @@ import (
 )
 
 type (
-	// RemoteFile is a helper struct that represents a file uploaded to the Sia
+	// RemoteFile is a helper struct that represents a file uploaded to the ScPrime
 	// network.
 	RemoteFile struct {
 		checksum crypto.Hash
 		siaPath  modules.SiaPath
+		root     bool
 		mu       sync.Mutex
 	}
 )
@@ -22,6 +23,13 @@ func (rf *RemoteFile) Checksum() crypto.Hash {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	return rf.checksum
+}
+
+// Root returns whether the siapath needs to be treated as an absolute path.
+func (rf *RemoteFile) Root() bool {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+	return rf.root
 }
 
 // SiaPath returns the siaPath of a remote file.

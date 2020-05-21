@@ -1,8 +1,8 @@
 package host
 
 import (
+	"crypto/rand"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"testing"
 
@@ -23,10 +23,10 @@ func TestAddResources(t *testing.T) {
 	stor, path := createTokenStorage(t)
 
 	defer func() {
-		err := os.RemoveAll(path)
-		assert.NoError(t, err, "failed to clean test data dir")
-		err = stor.close()
+		err := stor.close()
 		assert.NoError(t, err, "failed to close tokenStorage")
+		err = os.RemoveAll(path)
+		assert.NoError(t, err, "failed to clean test data dir")
 	}()
 
 	amount := int64(100500)

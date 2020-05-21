@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"gitlab.com/scpcorp/ScPrime/analysis/jsontag"
+
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 

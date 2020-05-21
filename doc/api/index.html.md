@@ -17,22 +17,20 @@ search: true
 > Example GET curl call 
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/transactions?startheight=1&endheight=250"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/transactions?startheight=1&endheight=250"
 ```
 
 > Example POST curl call with data
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "amount=123&destination=abcd" "localhost:4280/wallet/siacoins"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "amount=123&destination=abcd" "localhost:4280/wallet/siacoins"
 ```
 
 > Example POST curl call without data or authentication
 
 ```go
-curl -A "SiaPrime-Agent" -X POST "localhost:4280/gateway/connect/123.456.789.0:4281"
+curl -A "ScPrime-Agent" -X POST "localhost:4280/gateway/connect/123.456.789.0:4281"
 ```
-
-ScPrime uses semantic versioning and is backwards compatible to version v1.0.0.
 
 API calls return either JSON or no content. Success is indicated by 2xx HTTP
 status codes, while errors are indicated by 4xx and 5xx HTTP status codes. If an
@@ -46,9 +44,9 @@ production.
 **Notes:**
 
 - Requests must set their User-Agent string to contain the substring
-  "SiaPrime-Agent".
-- By default, siad listens on "localhost:4280". This can be changed using the
-  `--api-addr` flag when running siad.
+  "ScPrime-Agent".
+- By default, spd listens on "localhost:4280". This can be changed using the
+  `--api-addr` flag when running spd.
 - **Do not bind or expose the API to a non-loopback address unless you are aware
   of the possible dangers.**
 
@@ -60,17 +58,23 @@ The following details the documentation standards for the API endpoints.
     - Parameters
     - Response
  - Each endpoint should have a corresponding curl example
+   - For formatting there needs to be a newline between `> curl example` and the
+     example
  - All non-standard responses should have a JSON Response example with units
+   - For formatting there needs to be a newline between `> JSON Response
+     Example` and the example
  - There should be detailed descriptions of all JSON response fields
  - There should be detailed descriptions of all query string parameters
  - Query String Parameters should be separated into **REQUIRED** and
    **OPTIONAL** sections
- - Detailed descriptions should be structured as "**field** | units"
+   - Detailed descriptions should be structured as "**field** | units"
+   - For formatting there needs to be two spaces after the units so that the
+     description is on a new line
+ - All code blocks should specify `go` as the language for consistent formatting
 
 Contributors should follow these standards when submitting updates to the API
 documentation.  If you find API endpoints that do not adhere to these
 documentation standards please let the ScPrime team know by submitting an issue
-[here](https://gitlab.com/NebulousLabs/Sia/issues)
 
 # Standard Responses
 
@@ -97,16 +101,16 @@ The standard error response indicating the request failed for any reason, is a
 > Example POST curl call with Authentication
 
 ```go
-curl -A "SiaPrime-Agent" --user "":<apipassword> --data "amount=123&destination=abcd" "localhost:4280/wallet/siacoins"
+curl -A "ScPrime-Agent" --user "":<apipassword> --data "amount=123&destination=abcd" "localhost:4280/wallet/siacoins"
+
 ```
 
 API authentication is enabled by default, using a password stored in a flat
 file. The location of this file is:
 
- - Linux:   `$HOME/.sia/apipassword`
+ - Linux:   `$HOME/.scprime/apipassword`
  - MacOS:   `$HOME/Library/Application Support/ScPrime/apipassword`
  - Windows: `%LOCALAPPDATA%\ScPrime\apipassword`
-
 
 Note that the file contains a trailing newline, which must be trimmed before
 use.
@@ -126,9 +130,9 @@ And for a curl call the following would be included
 `--user "":<apipassword>`
 
 Authentication can be disabled by passing the `--authenticate-api=false` flag to
-siad. You can change the password by modifying the password file, setting the
+spd. You can change the password by modifying the password file, setting the
 `SIA_API_PASSWORD` environment variable, or passing the `--temp-password` flag
-to siad.
+to spd.
 
 # Units
 
@@ -142,6 +146,17 @@ arbitrary-precision number (bignum), and it should be parsed with your
 language's corresponding bignum library. Currency values are the most common
 example where this is necessary.
 
+# Environment Variables
+There are three environment variables supported by spd.
+ - `SCPRIME_API_PASSWORD` is the environment variable that sets a custom API
+   password if the default is not used
+ - `SCPRIME_DATA_DIR` is the environment variable that tells spd where to put the
+   general ScPrime node data, e.g. api password, configuration, logs, etc.
+ - `DAEMON_DATA_DIR` is the environment variable that tells spd where to put the
+   spd-specific data
+ - `SCPRIME_WALLET_PASSWORD` is the environment variable that can be set to enable
+   auto unlocking the wallet
+
 # Consensus
 
 The consensus set manages everything related to consensus and keeps the
@@ -152,7 +167,7 @@ endpoint returns information about the state of the blockchain.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/consensus"
+curl -A "ScPrime-Agent" "localhost:4280/consensus"
 ```
 
 Returns information about the consensus set, such as the current block height.
@@ -259,10 +274,10 @@ Number of Hastings in one Siacoin.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/consensus/blocks?height=20032"
+curl -A "ScPrime-Agent" "localhost:4280/consensus/blocks?height=20032"
 ```
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/consensus/blocks?id=00000000000033b9eb57fa63a51adeea857e70f6415ebbfe5df2a01f0d0477f4"
+curl -A "ScPrime-Agent" "localhost:4280/consensus/blocks?id=00000000000033b9eb57fa63a51adeea857e70f6415ebbfe5df2a01f0d0477f4"
 ```
 
 Returns the block for a given id or height.
@@ -384,7 +399,7 @@ Transactions contained within the block
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" --data "[JSON-encoded-txnset]" "localhost:4280/validate/transactionset"
+curl -A "ScPrime-Agent" --data "[JSON-encoded-txnset]" "localhost:4280/validate/transactionset"
 ```
 
 validates a set of transactions using the current utxo set.
@@ -402,23 +417,23 @@ responses](#standard-responses).
 # Daemon
 
 The daemon is responsible for starting and stopping the modules which make up
-the rest of Sia.
+the rest of ScPrime.
 
 ## /daemon/alerts [GET]
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/daemon/alerts"
+curl -A "ScPrime-Agent" "localhost:4280/daemon/alerts"
 ```
 
-Returns the alerts of the Sia instance.
+Returns all alerts of all severities of the ScPrime instance sorted by severity from highest to lowest in `alerts` and the alerts sorted by category in `criticalalerts`, `erroralerts` and `warningalerts`.
 
 ### JSON Response
 > JSON Response Example
  
 ```go
 {
-  "alerts": [
+    "alerts": [
     {
       "cause": "wallet is locked",
       "msg": "user's contracts need to be renewed but a locked wallet prevents renewal",
@@ -426,6 +441,16 @@ Returns the alerts of the Sia instance.
       "severity": "warning",
     }
   ],
+  "criticalalerts": [],
+  "erroralerts": [],
+  "warningalerts": [
+    {
+      "cause": "wallet is locked",
+      "msg": "user's contracts need to be renewed but a locked wallet prevents renewal",
+      "module": "contractor",
+      "severity": "warning",
+    }
+  ]
 }
 ```
 **cause** | string  
@@ -446,10 +471,10 @@ that are about to expire due to that.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/constants"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/constants"
 ```
 
-Returns the some of the constants that the Sia daemon uses. 
+Returns the some of the constants that the ScPrime daemon uses. 
 
 ### JSON Response
 > JSON Response Example
@@ -491,6 +516,7 @@ Returns the some of the constants that the Sia daemon uses.
   "maxtargetadjustmentdown":"2/5",  // big.Rat
   
   "siacoinprecision":"1000000000000000000000000"  // currency
+  "scprimecoinprecision":"1000000000000000000000000000"  // currency
 }
 ```
 **blockfrequency** | blockheight  
@@ -532,7 +558,7 @@ spending the payout. File contract payouts also are subject to a maturity delay.
 MedianTimestampWindow tells us how many blocks to look back when calculating the
 median timestamp over the previous n blocks. The timestamp of a block is not
 allowed to be less than or equal to the median timestamp of the previous n
-blocks, where for Sia this number is typically 11.
+blocks, where for ScPrime this number is typically 11.
 
 **siafundcount** | currency  
 SiafundCount is the total number of Siafunds in existence.
@@ -577,15 +603,20 @@ MaxTargetAdjustmentDown restrict how much the block difficulty is allowed to
 change in a single step, which is important to limit the effect of difficulty
 raising and lowering attacks.
 
-**siacoinprecision** | currency  
-SiacoinPrecision is the number of base units in a siacoin. The Sia network has a
-very large number of base units. We call 10^24 of these a siacoin.
+**siacoinprecision** | currency 
+SiacoinPrecision is the number of base units in a siacoin. This field is kept
+for compatibility reasons. 10^24 of these a siacoin.
+
+**scprimecoinprecision** | currency  
+ScPrimecoinPrecision is the number of base units in a scprimecoin. The ScPrime 
+network has a very large number of base units. For trading and accounting we 
+define 10^27 of these a scprimecoin.
 
 ## /daemon/settings [GET]
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/settings"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/settings"
 ```
 Returns the settings for the daemon
 
@@ -611,7 +642,7 @@ set.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "maxdownloadspeed=1000000&maxuploadspeed=20000" "localhost:4280/daemon/settings"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "maxdownloadspeed=1000000&maxuploadspeed=20000" "localhost:4280/daemon/settings"
 ```
 
 Modify settings that control the daemon's behavior.
@@ -632,7 +663,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/stop"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/stop"
 ```
 
 Cleanly shuts down the daemon. This may take a few seconds.
@@ -645,7 +676,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/update"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/update"
 ```
 Returns the the status of any updates available for the daemon
 
@@ -669,7 +700,7 @@ Version is the version of the latest release.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/update"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/update"
 ```
 Updates the daemon to the latest available version release.
 
@@ -681,10 +712,10 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/version"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/daemon/version"
 ```
 
-Returns the version of the Sia daemon currently running. 
+Returns the version of the ScPrime daemon currently running. 
 
 ### JSON Response
 > JSON Response Example
@@ -696,6 +727,223 @@ Returns the version of the Sia daemon currently running.
 ```
 **version** | string  
 This is the version number that is visible to its peers on the network.
+
+# FeeManager
+
+The feemanager allows applications built on top of ScPrime to charge the ScPrime user a
+fee. The feemanager's API endpoints expose methods for viewing information about
+the feemanager and for adding and canceling fees. 
+
+## /feemanager [GET]
+> curl example
+
+```go
+curl -A "ScPrime-Agent" "localhost:4280/feemanager"
+```
+
+returns information about the feemanager.
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+  "payoutheight":249854 // blockheight
+}
+```
+
+**payoutheight** | blockheight  
+Height at which the FeeManager will payout the pending fees.
+
+## /feemanager/add [POST]
+> curl example  
+
+```go
+// Required Fields Only
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "amount=1000&address=1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab&appuid=supercoolapp" "localhost:4280/feemanager/add"
+
+// All Fields
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "amount=1000&address=1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab&appuid=supercoolapp&recurring=true" "localhost:4280/feemanager/add"
+```
+sets a fee and associates it with the provided application UID.
+
+### Query String Parameters
+### REQUIRED
+**amount** | hastings  
+The amount is how much the fee will charge the user.
+
+**address** | address  
+The address is the application developer's wallet address that the fee should be
+paid out to.
+
+**appuid** | string  
+The unique application identifier for the application that set the fee.
+
+### OPTIONAL
+**recurring** | bool  
+Indicates whether or not this fee will be a recurring fee. 
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+  "feeuid":"9ce7ff6c2b65a760b7362f5a041d3e84e65e22dd"  // string
+}
+```
+
+**feeuid** | string  
+This is the unique identifier for the fee that was just added
+
+## /feemanager/cancel [POST]
+> curl example  
+
+```go
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "feeuid=9ce7ff6c2b65a760b7362f5a041d3e84e65e22dd" "localhost:4280/feemanager/cancel"
+```
+
+cancels a fee.
+
+### Query String Parameters
+### REQUIRED
+**feeuid** | string  
+The unique identifier for the fee.
+
+### Response
+
+standard success or error response. See [standard
+responses](#standard-responses).
+
+## /feemanager/paidfees [GET]
+> curl example
+
+```go
+curl -A "ScPrime-Agent" "localhost:4280/feemanager/paidfees"
+```
+
+returns the paid fees that the feemanager managed.
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+  "paidfees": [
+    {
+      "address":            "f063edc8412e3d17f0e130f38bc6f25d134fae46b760b829e09a762c400fbd641a0c1539a056", // hash
+      "amount":             "1000",  // hastings
+      "appuid":             "okapp", // string
+      "feeuid":             "9ce7ff6c2b65a760b7362f5a041d3e84e65e22dd" // string
+      "paymentcompleted":   true,    // bool
+      "payoutheight":       12345,   // types.BlockHeight
+      "recurring":          false,   // bool
+      "timestamp":          "2018-09-23T08:00:00.000000000+04:00",     // Unix timestamp
+      "transactioncreated": true,    // bool
+    }
+  ]
+}
+
+```
+
+**paidfees** | []AppFee  
+List of historical fees that have been paid out by the FeeManager. 
+
+**address** | address  
+The application developer's wallet address that the fee should be paid out to.
+
+**amount** | hastings  
+The number of hastings the fee will charge the user.
+
+**appuid** | string  
+Indicates the uid of the application requesting the fee.  
+
+**feeuid** | string  
+This is the unique identifier for the fee
+
+**paymentcompleted** | bool  
+Indicates whether or not the payment has been confirmed on-chain  
+
+**payoutheight** | bool  
+Indicates the height at which the fee is supposed to be paid out. The fee may be
+paid out (or have been paid out for completed fees) at a later height than this,
+but not earlier.  
+
+**recurring** | bool  
+Indicates whether or not this fee will be a recurring fee. 
+
+**timestamp** | Unix timestamp  
+This is the moment that the fee was requested.  
+
+**transactioncreated** | bool  
+Indicates whether the transaction to pay the fee has been created. If this is
+set to true and paymentcompleted is set to false, it means that the transaction
+has not yet been confirmed on-chain  
+
+## /feemanager/pendingfees [GET]
+> curl example
+
+```go
+curl -A "ScPrime-Agent" "localhost:4280/feemanager/pendingfees"
+```
+
+returns the pending fees that the feemanager is managing.
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+  "pendingfees": [
+    {
+      "address":            "f063edc8412e3d17f0e130f38bc6f25d134fae46b760b829e09a762c400fbd641a0c1539a056", // hash
+      "amount":             "1000",  // hastings
+      "appuid":             "okapp", // string
+      "feeuid":             "9ce7ff6c2b65a760b7362f5a041d3e84e65e22dd" // string
+      "paymentcompleted":   true,    // bool
+      "payoutheight":       12345,   // types.BlockHeight
+      "recurring":          false,   // bool
+      "timestamp":          "2018-09-23T08:00:00.000000000+04:00",     // Unix timestamp
+      "transactioncreated": true,    // bool
+    }
+  ]
+}
+
+```
+
+**pendingfees** | []AppFee  
+List of pending fees that the FeeManager is managing that will pay out this
+period. 
+
+**address** | address  
+The application developer's wallet address that the fee should be paid out to.
+
+**amount** | hastings  
+The number of hastings the fee will charge the user.
+
+**appuid** | string  
+The unique application identifier for the application that set the fee.
+
+**feeuid** | string  
+This is the unique identifier for the fee
+
+**paymentcompleted** | bool  
+Indicates whether or not the payment has been confirmed on-chain  
+
+**payoutheight** | bool  
+Indicates the height at which the fee is supposed to be paid out. The fee may be
+paid out (or have been paid out for completed fees) at a later height than this,
+but not earlier.  
+
+**recurring** | bool  
+Indicates whether or not this fee will be a recurring fee. 
+
+**timestamp** | Unix timestamp  
+This is the moment that the fee was requested.  
+
+**transactioncreated** | bool  
+Indicates whether the transaction to pay the fee has been created. If this is
+set to true and paymentcompleted is set to false, it means that the transaction
+has not yet been confirmed on-chain  
 
 # Gateway
 
@@ -709,7 +957,7 @@ peers on its own.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/gateway"
+curl -A "ScPrime-Agent" "localhost:4280/gateway"
 ```
 
 returns information about the gateway, including the list of connected peers.
@@ -717,7 +965,7 @@ returns information about the gateway, including the list of connected peers.
 ### JSON Response
 > JSON Response Example
  
-```go
+```JSON
 {
     "netaddress":"333.333.333.333:4281",  // string
     "peers":[
@@ -735,7 +983,7 @@ returns information about the gateway, including the list of connected peers.
 ```
 **netaddress** | string  
 netaddress is the network address of the gateway as seen by the rest of the
-network. The address consists of the external IP address and the port Sia is
+network. The address consists of the external IP address and the port ScPrime is
 listening on. It represents a `modules.NetAddress`.  
 
 **peers** | array  
@@ -771,7 +1019,7 @@ Max upload speed permitted in bytes per second
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "maxdownloadspeed=1000000&maxuploadspeed=20000" "localhost:4280/gateway"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "maxdownloadspeed=1000000&maxuploadspeed=20000" "localhost:4280/gateway"
 ```
 
 Modify settings that control the gateway's behavior.
@@ -791,14 +1039,17 @@ responses](#standard-responses).
 
 ## /gateway/bandwidth [GET]
 > curl example
-```go
-curl -A "SiaPrime-Agent" "localhost:4280/gateway/bandwidth"
+
+```sh
+curl -A "ScPrime-Agent" "localhost:4280/gateway/bandwidth"
 ```
 
 returns the total upload and download bandwidth usage for the gateway
 
 ### JSON Response
-```go
+> JSON Response Example
+
+```JSON
 {
   "download":  12345                                  // bytes
   "upload":    12345                                  // bytes
@@ -822,7 +1073,7 @@ bandwidth is not currently persisted this will be startup timestamp.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -X POST "localhost:4280/gateway/connect/123.456.789.0:4281"
+curl -A "ScPrime-Agent" -X POST "localhost:4280/gateway/connect/123.456.789.0:4281"
 ```
 
 connects the gateway to a peer. The peer is added to the node list if it is not
@@ -847,7 +1098,7 @@ responses](#Standard-Responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/gateway/disconnect/123.456.789.0:4281"
+curl -A "ScPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/gateway/disconnect/123.456.789.0:4281"
 ```
 
 disconnects the gateway from a peer. The peer remains in the node list.
@@ -872,21 +1123,22 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/gateway/blacklist"
+curl -A "ScPrime-Agent" "localhost:4280/gateway/blacklist"
 ```
 
 fetches the list of blacklisted addresses.
 
 ### JSON Response
 > JSON Response Example
-```go
+
+```JSON
 {
-"blacklist":
-[
-"123.123.123.123",  // string
-"123.123.123.123",  // string
-"123.123.123.123",  // string
-],
+  "blacklist":
+    [
+    "123.123.123.123",  // string
+    "123.123.123.123",  // string
+    "123.123.123.123",  // string
+    ],
 }
 ```
 **blacklist** | string  
@@ -896,10 +1148,10 @@ blacklist is a list of blacklisted address
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data '{"action":"append","addresses":["123.123.123.123","123.123.123.123","123.123.123.123"]}' "localhost:4280/gateway/blacklist"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data '{"action":"append","addresses":["123.123.123.123","123.123.123.123","123.123.123.123"]}' "localhost:4280/gateway/blacklist"
 ```
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data '{"action":"set","addresses":[]}' "localhost:4280/gateway/blacklist"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data '{"action":"set","addresses":[]}' "localhost:4280/gateway/blacklist"
 ```
 
 performs actions on the Gateway's blacklist. There are three `actions` that can
@@ -935,7 +1187,7 @@ announcing to the network, and managing how files are stored on disk.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/host"
+curl -A "ScPrime-Agent" "localhost:4280/host"
 ```
 
 fetches status information about the host.
@@ -943,14 +1195,14 @@ fetches status information about the host.
 ### JSON Response
 > JSON Response Example
  
-```go
+```JSON
 {
   "externalsettings": {
     "acceptingcontracts":   true,                 // boolean
     "maxdownloadbatchsize": 17825792,             // bytes
     "maxduration":          25920,                // blocks
     "maxrevisebatchsize":   17825792,             // bytes
-    "netaddress":           "123.456.789.0:9982", // string
+    "netaddress":           "123.456.789.0:4282", // string
     "remainingstorage":     35000000000,          // bytes
     "sectorsize":           4194304,              // bytes
     "totalstorage":         35000000000,          // bytes
@@ -993,7 +1245,7 @@ fetches status information about the host.
     "maxdownloadbatchsize": 17825792,             // bytes
     "maxduration":          25920,                // blocks
     "maxrevisebatchsize":   17825792,             // bytes
-    "netaddress":           "123.456.789.0:9982", // string
+    "netaddress":           "123.456.789.0:4282", // string
     "windowsize":           144,                  // blocks
     
     "collateral":       "57870370370",                     // hastings / byte / block
@@ -1006,6 +1258,10 @@ fetches status information about the host.
     "minsectoraccessprice":      "123",                        //hastings
     "minstorageprice":           "231481481481",               // hastings / byte / block
     "minuploadbandwidthprice":   "100000000000000"             // hastings / byte
+
+    "ephemeralaccountexpiry":     "604800",                          // seconds
+    "maxephemeralaccountbalance": "2000000000000000000000000000000", // hastings
+    "maxephemeralaccountrisk":    "2000000000000000000000000000000", // hastings
   },
 
   "networkmetrics": {
@@ -1266,6 +1522,39 @@ The minimum price that the host will demand from a renter when the renter is
 uploading data. If the host is saturated, the host may increase the price from
 the minimum.  
 
+**ephemeralaccountexpiry** | seconds  
+The  maximum amount of time an ephemeral account can be inactive before it is
+considered to be expired and gets deleted. After an account has expired, the
+account owner has no way of retrieving the funds. Setting this value to 0 means
+ephemeral accounts never expire, regardless of how long they have been inactive.
+
+**maxephemeralaccountbalance** | hastings  
+The maximum amount of money that the host will allow a user to deposit into a
+single ephemeral account.
+
+**maxephemeralaccountrisk** | hastings  
+To increase performance, the host will allow a user to withdraw from an
+ephemeral account without requiring the user to wait until the host has
+persisted the updated ephemeral account balance to complete a transaction. This
+means that the user can perform actions such as downloads with significantly
+less latency. This also means that if the host loses power at that exact moment,
+the host will forget that the user has spent money and the user will be able to
+spend that money again.
+
+maxephemeralaccountrisk is the maximum amount of money that the host is willing
+to risk to a system failure. The account manager will keep track of the total
+amount of money that has been withdrawn, but has not yet been persisted to disk.
+If a user's withdrawal would put the host over the maxephemeralaccountrisk, the
+host will wait to complete the user's transaction until it has persisted the
+widthdrawal, to prevent the host from having too much money at risk.
+
+Note that money is only at risk if the host experiences an unclean shutdown
+while in the middle of a transaction with a user, and generally the amount at
+risk will be minuscule unless the host experiences an unclean shutdown while in
+the middle of many transactions with many users at once. This value should be
+larger than maxephemeralaccountbalance but does not need to be significantly
+larger.
+
 **networkmetrics**    
 Information about the network, specifically various ways in which renters have
 contacted the host.  
@@ -1304,16 +1593,46 @@ and indicates if the host can connect to itself on its configured NetAddress.
 
 **workingstatus** | string  
 workingstatus is one of "checking", "working", or "not working" and indicates if
-the host is being actively used by renters.  
+the host is being actively used by renters.
 
 **publickey** | SiaPublicKey  
-Public key used to identify the host.  
+Public key used to identify the host.
+
+## /host/bandwidth [GET]
+> curl example
+
+```go
+curl -A "ScPrime-Agent" "localhost:4280/host/bandwidth"
+```
+
+returns the total upload and download bandwidth usage for the host
+
+### JSON Response
+```JSON
+{
+  "download":  12345                                  // bytes
+  "upload":    12345                                  // bytes
+  "starttime": "2018-09-23T08:00:00.000000000+04:00", // Unix timestamp
+}
+```
+
+**download** | bytes  
+the total number of bytes that have been sent from the host to renters since the
+starttime.
+
+**upload** | bytes  
+the total number of bytes that have been received by the host from renters since the
+starttime.
+
+**starttime** | Unix timestamp  
+the time at which the host started monitoring the bandwidth, since the
+bandwidth is not currently persisted this will be startup timestamp.
 
 ## /host [POST]
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host?acceptingcontracts=true&maxduration=12096&windowsize=1008"
+curl -A "ScPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host?acceptingcontracts=true&maxduration=12096&windowsize=1008"
 ```
 
 Configures hosting parameters. All parameters are optional; unspecified
@@ -1404,6 +1723,33 @@ The minimum price that the host will demand from a renter when the renter is
 uploading data. If the host is saturated, the host may increase the price from
 the minimum.  
 
+**maxephemeralaccountbalance** | hastings  
+The maximum amount of money that the host will allow a user to deposit into a
+single ephemeral account.
+
+**maxephemeralaccountrisk** | hastings  
+To increase performance, the host will allow a user to withdraw from an
+ephemeral account without requiring the user to wait until the host has
+persisted the updated ephemeral account balance to complete a transaction. This
+means that the user can perform actions such as downloads with significantly
+less latency. This also means that if the host loses power at that exact moment,
+the host will forget that the user has spent money and the user will be able to
+spend that money again.
+
+maxephemeralaccountrisk is the maximum amount of money that the host is willing
+to risk to a system failure. The account manager will keep track of the total
+amount of money that has been withdrawn, but has not yet been persisted to disk.
+If a user's withdrawal would put the host over the maxephemeralaccountrisk, the
+host will wait to complete the user's transaction until it has persisted the
+widthdrawal, to prevent the host from having too much money at risk.
+
+Note that money is only at risk if the host experiences an
+unclean shutdown while in the middle of a transaction with a user, and generally
+the amount at risk will be minuscule unless the host experiences an unclean
+shutdown while in the middle of many transactions with many users at once. This
+value should be larger than 'maxephemeralaccountbalance but does not need to be
+significantly larger.
+
 ### Response
 
 standard success or error response. See [standard
@@ -1413,12 +1759,12 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host/announce"
+curl -A "ScPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host/announce"
 ```
 > curl example with a custom netaddress
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host/announce?netaddress=siahost.example.net"
+curl -A "ScPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host/announce?netaddress=siahost.example.net"
 ```
 
 Announce the host to the network as a source of storage. Generally only needs to
@@ -1443,7 +1789,7 @@ responses](#Standard-Responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/host/contracts"
+curl -A "ScPrime-Agent" "localhost:4280/host/contracts"
 ```
 
 
@@ -1462,10 +1808,12 @@ based on their needs.
       "datasize":                 500000,             // bytes
       "lockedcollateral":         "1234",             // hastings
       "obligationid": "fff48010dcbbd6ba7ffd41bc4b25a3634ee58bbf688d2f06b7d5a0c837304e13", // hash
+      "potentialaccountfunding":  "1234",             // hastings
       "potentialdownloadrevenue": "1234",             // hastings
       "potentialstoragerevenue":  "1234",             // hastings
       "potentialuploadrevenue":   "1234",             // hastings
       "riskedcollateral":         "1234",             // hastings
+      "revisionnumber":           0,                  // int
       "sectorrootscount":         2,                  // int
       "transactionfeesadded":     "1234",             // hastings
       "expirationheight":         123456,             // blocks
@@ -1477,6 +1825,8 @@ based on their needs.
       "proofconstructed":         true,               // boolean
       "revisionconfirmed":        false,              // boolean
       "revisionconstructed":      false,              // boolean
+      "validproofoutputs":        [],                 // []SiacoinOutput
+      "missedproofoutputs":       [],                 // []SiacoinOutput
     }
   ]
 }
@@ -1494,6 +1844,9 @@ Amount that is locked as collateral for this storage obligation.
 Id of the storageobligation, which is defined by the file contract id of the
 file contract that governs the storage obligation.
 
+**potentialaccountfunding** | hastings  
+Amount in hastings that went to funding ephemeral accounts with.
+
 **potentialdownloadrevenue** | hastings  
 Potential revenue for downloaded data that the host will receive upon successful
 completion of the obligation.
@@ -1509,6 +1862,9 @@ completion of the obligation.
 **riskedcollateral** | hastings  
 Amount that the host might lose if the submission of the storage proof is not
 successful.
+
+**revisionnumber** | int  
+The last revision of the contract
 
 **sectorrootscount** | int  
 Number of sector roots.
@@ -1555,11 +1911,17 @@ the blockchain for this storage obligation.
 Revision constructed indicates whether there was a file contract revision
 constructed for this storage obligation.
 
+**validproofoutputs** | []SiacoinOutput   
+The payouts that the host and renter will receive if a valid proof is confirmed on the blockchain
+
+**missedproofoutputs** | []SiacoinOutput  
+The payouts that the host and renter will receive if a proof is not confirmed on the blockchain
+
 ## /host/storage [GET]
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/host/storage"
+curl -A "ScPrime-Agent" "localhost:4280/host/storage"
 ```
 
 Gets a list of folders tracked by the host's storage manager.
@@ -1607,7 +1969,7 @@ Number of successful read & write operations.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "path=foo/bar&size=1000000000000" "localhost:4280/host/storage/folders/add"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "path=foo/bar&size=1000000000000" "localhost:4280/host/storage/folders/add"
 ```
 
 adds a storage folder to the manager. The manager may not check that there is
@@ -1636,7 +1998,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "path=foo/bar&force=false" "localhost:4280/host/storage/folders/remove"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "path=foo/bar&force=false" "localhost:4280/host/storage/folders/remove"
 ```
 
 Remove a storage folder from the manager. All storage on the folder will be
@@ -1664,8 +2026,8 @@ responses](#standard-responses).
 ## /host/storage/folders/resize [POST]
 > curl example  
 
-```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "path=foo/bar&newsize=1000000000000" "localhost:4280/host/storage/folders/resize"
+```sh
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "path=foo/bar&newsize=1000000000000" "localhost:4280/host/storage/folders/resize"
 ```
 
 Grows or shrinks a storage file in the manager. The manager may not check that
@@ -1695,8 +2057,8 @@ responses](#standard-responses).
 ## /host/storage/sectors/delete/:*merkleroot* [POST]
 > curl example  
 
-```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host/storage/sectors/delete/[merkleroot]"
+```sh
+curl -A "ScPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/host/storage/sectors/delete/[merkleroot]"
 ```
 
 Deletes a sector, meaning that the manager will be unable to upload that sector
@@ -1718,8 +2080,8 @@ responses](#standard-responses).
 ## /host/estimatescore [GET]
 > curl example  
 
-```go
-curl -A "SiaPrime-Agent" "localhost:4280/host/estimatescore"
+```sh
+curl -A "ScPrime-Agent" "localhost:4280/host/estimatescore"
 ```
 
 Returns the estimated HostDB score of the host using its current settings,
@@ -1740,12 +2102,15 @@ See [host internal settings](#internalsettings)
  - mincontractprice          
  - mindownloadbandwidthprice  
  - minstorageprice            
- - minuploadbandwidthprice    
+ - minuploadbandwidthprice
+ - ephemeralaccountexpiry    
+ - maxephemeralaccountbalance
+ - maxephemeralaccountrisk
 
 ### JSON Response
 > JSON Response Example
 
-```go
+```JSON
 {
   "estimatedscore": "123456786786786786786786786742133",  // big int
   "conversionrate": 95  // float64
@@ -1768,7 +2133,7 @@ identifies hosts by their public key and keeps track of metrics such as price.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/hostdb"
+curl -A "ScPrime-Agent" "localhost:4280/hostdb"
 ```
 
 Shows some general information about the state of the hostdb.
@@ -1788,7 +2153,7 @@ indicates if all known hosts have been scanned at least once.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/hostdb/active"
+curl -A "ScPrime-Agent" "localhost:4280/hostdb/active"
 ```
 
 lists all of the active hosts known to the renter, sorted by preference.
@@ -1811,7 +2176,7 @@ there are insufficient active hosts. Optional, the default is all active hosts.
       "maxdownloadbatchsize":   17825792,             // bytes
       "maxduration":            25920,                // blocks
       "maxrevisebatchsize":     17825792,             // bytes
-      "netaddress":             "123.456.789.0:9982"  // string 
+      "netaddress":             "123.456.789.0:4282"  // string 
       "remainingstorage":       35000000000,          // bytes
       "sectorsize":             4194304,              // bytes
       "totalstorage":           35000000000,          // bytes
@@ -1885,7 +2250,7 @@ Maximum size in bytes of a single batch of file contract revisions. Larger batch
 sizes allow for higher throughput as there is significant communication overhead
 associated with performing a batch upload.  
 
-**netaddress** | sting  
+**netaddress** | string  
 Remote address of the host. It can be an IPv4, IPv6, or hostname, along with the
 port. IPv6 addresses are enclosed in square brackets.  
 
@@ -1998,7 +2363,7 @@ Indicates if the host is currently being filtered from the HostDB
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/hostdb/all"
+curl -A "ScPrime-Agent" "localhost:4280/hostdb/all"
 ```
 
 Lists all of the hosts known to the renter. Hosts are not guaranteed to be in
@@ -2011,7 +2376,7 @@ Response is the same as [`/hostdb/active`](#hosts)
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/hostdb/hosts/ed25519:8a95848bc71e9689e2f753c82c35dc47a1d62867f77c0113ebb6fa5b51723215"
+curl -A "ScPrime-Agent" "localhost:4280/hostdb/hosts/ed25519:8a95848bc71e9689e2f753c82c35dc47a1d62867f77c0113ebb6fa5b51723215"
 ```
 
 fetches detailed information about a particular host, including metrics
@@ -2024,7 +2389,7 @@ overall.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/hostdb/hosts/<pubkey>"
+curl -A "ScPrime-Agent" "localhost:4280/hostdb/hosts/<pubkey>"
 ```
 ### REQUIRED
 **pubkey**  
@@ -2043,11 +2408,12 @@ ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
   },
   "scorebreakdown": {
     "score":                      1,        // big int
-    "conversionrate":             9.12345,  // float64
     "ageadjustment":              0.1234,   // float64
+    "basepriceadjustment":        1,        // float64
     "burnadjustment":             0.1234,   // float64
     "collateraladjustment":       23.456,   // float64
-  "durationadjustment":         1,        // float64
+    "conversionrate":             9.12345,  // float64
+    "durationadjustment":         1,        // float64
     "interactionadjustment":      0.1234,   // float64
     "priceadjustment":            0.1234,   // float64
     "storageremainingadjustment": 0.1234,   // float64
@@ -2075,13 +2441,13 @@ be off by many orders of magnitude. When displaying to a human, some form of
 normalization with respect to the other hosts (for example, divide all scores by
 the median score of the hosts) is recommended.  
 
-**conversionrate** | float64  
-conversionrate is the likelihood that the host will be selected by renters
-forming contracts.  
-
 **ageadjustment** | float64  
 The multiplier that gets applied to the host based on how long it has been a
 host. Older hosts typically have a lower penalty.  
+
+**basepriceadjustment** | float64  
+The multiplier that gets applied to the host based on if the `BaseRPCPRice` and
+the `SectorAccessPrice` are reasonable.  
 
 **burnadjustment** | float64  
 The multiplier that gets applied to the host based on how much proof-of-burn the
@@ -2091,6 +2457,10 @@ host has performed. More burn causes a linear increase in score.
 The multiplier that gets applied to a host based on how much collateral the host
 is offering. More collateral is typically better, though above a point it can be
 detrimental.  
+
+**conversionrate** | float64  
+conversionrate is the likelihood that the host will be selected by renters
+forming contracts.  
 
 **durationadjustment** | float64  
 The multiplier that gets applied to a host based on the max duration it accepts
@@ -2118,7 +2488,7 @@ The multiplier that gets applied to a host based on the uptime percentage of the
 host. The penalty increases extremely quickly as uptime drops below 90%.  
 
 **versionadjustment** | float64  
-The multiplier that gets applied to a host based on the version of Sia that they
+The multiplier that gets applied to a host based on the version of ScPrime that they
 are running. Versions get penalties if there are known bugs, scaling
 limitations, performance limitations, etc. Generally, the most recent version is
 always the one with the highest score.  
@@ -2127,7 +2497,7 @@ always the one with the highest score.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" --user "":<apipassword> "localhost:4280/hostdb/filtermode"
+curl -A "ScPrime-Agent" --user "":<apipassword> "localhost:4280/hostdb/filtermode"
 ```  
 Returns the current filter mode of the hostDB and any filtered hosts.
 
@@ -2154,10 +2524,10 @@ Comma separated pubkeys.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" --user "":<apipassword> --data '{"filtermode" : "whitelist","hosts" : ["ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"]}' "localhost:4280/hostdb/filtermode"
+curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"filtermode" : "whitelist","hosts" : ["ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","ed25519:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"]}' "localhost:4280/hostdb/filtermode"
 ```  
 ```go
-curl -A "SiaPrime-Agent" --user "":<apipassword> --data '{"filtermode" : "disable"}' "localhost:4280/hostdb/filtermode"
+curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"filtermode" : "disable"}' "localhost:4280/hostdb/filtermode"
 ```
 Lets you enable and disable a filter mode for the hostdb. Currently the two
 modes supported are `blacklist` mode and `whitelist` mode. In `blacklist` mode,
@@ -2203,7 +2573,7 @@ basic CPU mining implementation.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/miner"
+curl -A "ScPrime-Agent" "localhost:4280/miner"
 ```
 returns the status of the miner.
 
@@ -2236,8 +2606,8 @@ had its chain extended first.
 ## /miner/start [GET]
 > curl example  
 
-```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/miner/start"
+```sh
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/miner/start"
 ```
 
 Starts a single threaded CPU miner. Does nothing if the CPU miner is already
@@ -2251,8 +2621,8 @@ responses](#standard-responses).
 ## /miner/stop [GET]
 > curl example  
 
-```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/miner/stop"
+```sh
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/miner/stop"
 ```
 
 stops the cpu miner. Does nothing if the cpu miner is not running.
@@ -2265,15 +2635,15 @@ responses](#standard-responses).
 ## /miner/block [POST]
 > curl example  
 
-```
-curl -A "SiaPrime-Agent" -data "<byte-encoded-block>" -u "":<apipassword> "localhost:4280/miner/block"
+```sh
+curl -A "ScPrime-Agent" -data "<byte-encoded-block>" -u "":<apipassword> "localhost:4280/miner/block"
 ```
 
 Submits a solved block and broadcasts it.
 
 ### Byte Request
 
-For efficiency the block is submitted in a raw byte encoding using the Sia
+For efficiency the block is submitted in a raw byte encoding using the ScPrime
 encoding.
 
 ### Response
@@ -2286,7 +2656,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/miner/header"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/miner/header"
 ```
 
 provides a block header that is ready to be grinded on for work.
@@ -2305,7 +2675,7 @@ root. The above process can then be repeated for the new block header.
 The other fields can generally be ignored. The parent block ID field is the hash
 of the parent block's header. Modifying this field will result in an orphan
 block. The timestamp is the time at which the block was mined and is set by the
-Sia Daemon. Modifying this field can result in invalid block. The merkle root is
+ScPrime Daemon. Modifying this field can result in invalid block. The merkle root is
 the merkle root of a merkle tree consisting of the timestamp, the miner outputs
 (one leaf per payout), and the transactions (one leaf per transaction).
 Modifying this field will result in an invalid block.
@@ -2323,7 +2693,7 @@ merkle root | [80-112) | [48-80)
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -data "<byte-encoded-header>" -u "":<apipassword> "localhost:4280/miner"
+curl -A "ScPrime-Agent" -data "<byte-encoded-header>" -u "":<apipassword> "localhost:4280/miner"
 ```
 
 submits a header that has passed the POW.
@@ -2344,7 +2714,7 @@ root. The above process can then be repeated for the new block header.
 The other fields can generally be ignored. The parent block ID field is the hash
 of the parent block's header. Modifying this field will result in an orphan
 block. The timestamp is the time at which the block was mined and is set by the
-Sia Daemon. Modifying this field can result in invalid block. The merkle root is
+ScPrime Daemon. Modifying this field can result in invalid block. The merkle root is
 the merkle root of a merkle tree consisting of the timestamp, the miner outputs
 (one leaf per payout), and the transactions (one leaf per transaction).
 Modifying this field will result in an invalid block.
@@ -2368,7 +2738,7 @@ allocated funds.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter"
+curl -A "ScPrime-Agent" "localhost:4280/renter"
 ```
 
 Returns the current settings along with metrics on the renter's spending.
@@ -2427,7 +2797,7 @@ period is reached. If there are not enough funds to repair all files, then files
 may be at risk of getting lost.
 
 **hosts** | int  
-Hosts sets the number of hosts that will be used to form the allowance. Sia
+Hosts sets the number of hosts that will be used to form the allowance. ScPrime
 gains most of its resiliancy from having a large number of hosts. More hosts
 will mean both more robustness and higher speeds when using the network, however
 will also result in more memory consumption and higher blockchain fees. It is
@@ -2441,7 +2811,7 @@ period is over, the contracts will be renewed and the spending will be reset.
 
 **renewwindow** | blocks  
 The renew window is how long the user has to renew their contracts. At the end
-of the period, all of the contracts expire. The contracts need to be renewewd
+of the period, all of the contracts expire. The contracts need to be renewed
 before they expire, otherwise the user will lose all of their files. The renew
 window is the window of time at the end of the period during which the renter
 will renew the users contracts. For example, if the renew window is 1 week long,
@@ -2457,41 +2827,41 @@ begin at week 20.
 
 **expectedstorage** | bytes  
 Expected storage is the amount of storage that the user expects to keep on the
-Sia network. This value is important to calibrate the spending habits of siad.
-Because Sia is decentralized, there is no easy way for siad to know what the
+ScPrime network. This value is important to calibrate the spending habits of spd.
+Because ScPrime is decentralized, there is no easy way for spd to know what the
 real world cost of storage is, nor what the real world price of a siacoin is. To
-overcome this deficiency, siad depends on the user for guidance.
+overcome this deficiency, spd depends on the user for guidance.
 
-If the user has a low allowance and a high amount of expected storage, siad will
+If the user has a low allowance and a high amount of expected storage, spd will
 more heavily prioritize cheaper hosts, and will also be more comfortable with
 hosts that post lower amounts of collateral. If the user has a high allowance
-and a low amount of expected storage, siad will prioritize hosts that post more
+and a low amount of expected storage, spd will prioritize hosts that post more
 collateral, as well as giving preference to hosts better overall traits such as
 uptime and age.
 
 Even when the user has a large allowance and a low amount of expected storage,
-siad will try to optimize for saving money; siad tries to meet the users storage
+spd will try to optimize for saving money; spd tries to meet the users storage
 and bandwidth needs while spending significantly less than the overall
 allowance.
 
 **expectedupload** | bytes  
-Expected upload tells siad how much uploading the user expects to do each month.
-If this value is high, siad will more strongly prefer hosts that have a low
-upload bandwidth price. If this value is low, siad will focus on other metrics
+Expected upload tells spd how much uploading the user expects to do each month.
+If this value is high, spd will more strongly prefer hosts that have a low
+upload bandwidth price. If this value is low, spd will focus on other metrics
 than upload bandwidth pricing, because even if the host charges a lot for upload
 bandwidth, it will not impact the total cost to the user very much.
 
-The user should not consider upload bandwidth used during repairs, siad will
+The user should not consider upload bandwidth used during repairs, spd will
 consider repair bandwidth separately.
 
 **expecteddownload** | bytes  
-Expected download tells siad how much downloading the user expects to do each
-month. If this value is high, siad will more strongly prefer hosts that have a
-low download bandwidth price. If this value is low, siad will focus on other
+Expected download tells spd how much downloading the user expects to do each
+month. If this value is high, spd will more strongly prefer hosts that have a
+low download bandwidth price. If this value is low, spd will focus on other
 metrics than download bandwidth pricing, because even if the host charges a lot
 for downloads, it will not impact the total cost to the user very much.
 
-The user should not consider download bandwidth used during repairs, siad will
+The user should not consider download bandwidth used during repairs, spd will
 consider repair bandwidth separately.
 
 **expectedredundancy** | bytes  
@@ -2564,7 +2934,7 @@ The time at which the pause will end.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "period=12096&renewwindow=4032&funds=1000&hosts=50" "localhost:4280/renter"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "period=12096&renewwindow=4032&funds=1000&hosts=50" "localhost:4280/renter"
 ```
 
 Modify settings that control the renter's behavior.
@@ -2580,7 +2950,7 @@ Any of the renter settings can be set, see fields [here](#settings)
 
 **checkforipviolation** | boolean  
 Enables or disables the check for hosts using the same ip subnets within the
-hostdb. It's turned on by default and causes Sia to not form contracts with
+hostdb. It's turned on by default and causes ScPrime to not form contracts with
 hosts from the same subnet and if such contracts already exist, it will
 deactivate the contract which has occupied that subnet for the shorter time.  
 
@@ -2593,7 +2963,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword>  "localhost:4280/renter/allowance/cancel"
+curl -A "ScPrime-Agent" -u "":<apipassword>  "localhost:4280/renter/allowance/cancel"
 ```
 
 Cancel the Renter's allowance.
@@ -2607,7 +2977,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "id=bd7ef21b13fb85eda933a9ff2874ec50a1ffb4299e98210bf0dd343ae1632f80" "localhost:4280/renter/contract/cancel"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "id=bd7ef21b13fb85eda933a9ff2874ec50a1ffb4299e98210bf0dd343ae1632f80" "localhost:4280/renter/contract/cancel"
 ```
 
 cancels a specific contract of the Renter.
@@ -2626,7 +2996,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "destination=/home/backups/01-01-1968.backup" "localhost:4280/renter/backup"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "destination=/home/backups/01-01-1968.backup" "localhost:4280/renter/backup"
 ```
 
 Creates a backup of all siafiles in the renter at the specified path.
@@ -2650,7 +3020,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "source=/home/backups/01-01-1968.backup" "localhost:4280/renter/recoverbackup"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "source=/home/backups/01-01-1968.backup" "localhost:4280/renter/recoverbackup"
 ```
 
 Recovers an existing backup from the specified path by adding all the siafiles
@@ -2677,7 +3047,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploadedbackups"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploadedbackups"
 ```
 
 Lists the backups that have been uploaded to hosts.
@@ -2710,7 +3080,7 @@ Unix timestamp of when the backup was created.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter/contracts?disabled=true&expired=true&recoverable=false"
+curl -A "ScPrime-Agent" "localhost:4280/renter/contracts?disabled=true&expired=true&recoverable=false"
 ```
 
 Returns the renter's contracts. Active, passive, and refreshed contracts are
@@ -2860,7 +3230,7 @@ acknowldege that the contract exists.
 > curl example
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter/contractstatus?id=<filecontractid>"
+curl -A "ScPrime-Agent" "localhost:4280/renter/contractstatus?id=<filecontractid>"
 ```
 
 ### Query String Parameters
@@ -2917,7 +3287,7 @@ The height at which the storage proof window for this contract ends.
 > curl example
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter/contractorchurnstatus"
+curl -A "ScPrime-Agent" "localhost:4280/renter/contractorchurnstatus"
 ```
 
 Returns the churn status for the renter's contractor.
@@ -2944,7 +3314,7 @@ Maximum allowed aggregate churn per period.
 > curl example
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/setmaxperiodchurn?newmax=123456789"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/renter/setmaxperiodchurn?newmax=123456789"
 ```
 
 sets the new max churn per period.
@@ -2958,25 +3328,25 @@ New maximum churn per period.
 standard success or error response. See [standard responses](#standard-responses).
 
 
-## /renter/dir/*siapath [GET]
+## /renter/dir/*siapath* [GET]
 > curl example  
 
 > The root siadir path is "" so submitting the API call without an empty siapath
 will return the root siadir information.  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter/dir/"
+curl -A "ScPrime-Agent" "localhost:4280/renter/dir/"
 ```  
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter/dir/mydir"
+curl -A "ScPrime-Agent" "localhost:4280/renter/dir/mydir"
 ```
 
-retrieves the contents of a directory on the sia network
+retrieves the contents of a directory on the ScPrime network
 
 ### Path Parameters
 ### REQUIRED
 **siapath** | string  
-Path to the directory on the sia network  
+Path to the directory on the ScPrime network  
 
 ### JSON Response
 > JSON Response Example
@@ -2985,25 +3355,25 @@ Path to the directory on the sia network
 {
   "directories": [
     {
-      "aggregatenumfiles":        2,    // uint64
-      "aggregatenumstuckchunks":  4,    // uint64
-      "aggregatesize":            4096, // uint64
-      "heatlh":                   1.0,  // float64
-      "lasthealtchecktime": "2018-09-23T08:00:00.000000000+04:00" // timestamp
-      "maxhealth":                0.5,  // float64
-      "minredundancy":            2.6,  // float64
-      "mostrecentmodtime":  "2018-09-23T08:00:00.000000000+04:00" // timestamp
-      "stuckhealth":              1.0,  // float64
+      "aggregatenumfiles":       2,    // uint64
+      "aggregatenumstuckchunks": 4,    // uint64
+      "aggregatesize":           4096, // uint64
 
-      "numfiles":   3,        // uint64
-      "numsubdirs": 2,        // uint64
-      "siapath":    "foo/bar" // string
+      "health":             1.0,      // float64
+      "lasthealtchecktime": "2018-09-23T08:00:00.000000000+04:00" // timestamp
+      "maxhealth":          0.5,      // float64
+      "minredundancy":      2.6,      // float64
+      "mostrecentmodtime":  "2018-09-23T08:00:00.000000000+04:00" // timestamp
+      "numfiles":           3,        // uint64
+      "numsubdirs":         2,        // uint64
+      "siapath":            "foo/bar" // string
+      "stuckhealth":        1.0,      // float64
     }
   ],
   "files": []
 }
 ```
-**directories** An array of sia directories
+**directories** An array of directories
 
 **aggregatenumfiles** | uint64  
 the total number of files in the sub directory tree
@@ -3041,15 +3411,21 @@ the number of files in the directory
 the number of directories in the directory
 
 **siapath** | string  
-The path to the directory on the sia network
+The path to the directory on the ScPrime network
+
+**size** | string
+The size in bytes of files in the directory
+
+**stuckhealth** | string
+The health of the most in need siafile in the directory, stuck or not stuck
 
 **files** Same response as [files](#files)
 
-## /renter/dir/*siapath [POST]
+## /renter/dir/*siapath* [POST]
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "action=delete" "localhost:4280/renter/dir/mydir"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "action=delete" "localhost:4280/renter/dir/mydir"
 ```
 
 performs various functions on the renter's directories
@@ -3061,14 +3437,19 @@ Location where the directory will reside in the renter on the network. The path
 must be non-empty, may not include any path traversal strings ("./", "../"), and
 may not begin with a forward-slash character.  
 
+**root** | bool
+Whether or not to treat the siapath as being relative to the user's home
+directory. If this field is not set, the siapath will be interpreted as
+relative to 'home/user/'.  
+
 ### Query String Parameters
 ### REQUIRED
 **action** | string  
 Action can be either `create`, `delete` or `rename`.
- - `create` will create an empty directory on the sia network
- - `delete` will remove a directory and its contents from the sia network. Will
+ - `create` will create an empty directory on the ScPrime network
+ - `delete` will remove a directory and its contents from the ScPrime network. Will
    return an error if the target is a file.
- - `rename` will rename a directory on the sia network
+ - `rename` will rename a directory on the ScPrime network
 
  **newsiapath** | string  
  The new siapath of the renamed folder. Only required for the `rename` action.
@@ -3084,11 +3465,11 @@ Action can be either `create`, `delete` or `rename`.
 standard success or error response. See [standard
 responses](#standard-responses).
 
-## /renter/downloadinfo/*uid [GET]
+## /renter/downloadinfo/*uid* [GET]
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter/downloadinfo/9d8dd0d5b306f5bb412230bd12b590ae"
+curl -A "ScPrime-Agent" "localhost:4280/renter/downloadinfo/9d8dd0d5b306f5bb412230bd12b590ae"
 ```
 
 Lists a file in the download history by UID.
@@ -3169,7 +3550,7 @@ well as data from failed piece downloads.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter/downloads"
+curl -A "ScPrime-Agent" "localhost:4280/renter/downloads"
 ```
 
 Lists all files in the download queue.
@@ -3248,7 +3629,7 @@ well as data from failed piece downloads.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/downloads/clear?before=1551398400&after=1552176000"
+curl -A "ScPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/downloads/clear?before=1551398400&after=1552176000"
 ```
 
 Clears the download history of the renter for a range of unix time stamps.  Both
@@ -3275,7 +3656,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter/prices"
+curl -A "ScPrime-Agent" "localhost:4280/renter/prices"
 ```
 
 Lists the estimated prices of performing various storage and data operations. An
@@ -3327,7 +3708,7 @@ The allowance settings used for the estimation are also returned, see the fields
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter/files?cached=false"
+curl -A "ScPrime-Agent" "localhost:4280/renter/files?cached=false"
 ```
 
 ### Query String Parameters
@@ -3404,6 +3785,10 @@ the siafile is the health of the worst unstuck chunk.
 
 **localpath** | string  
 Path to the local file on disk.  
+**NOTE** `spd` will set the localpath to an empty string if the local file is
+not found on disk. This is done to avoid the siafile being corrupted in the
+future by a different file being placed on disk at the original localpath
+location.  
 
 **maxhealth** | float64  
 the maxhealth is either the health or the stuckhealth of the siafile, whichever
@@ -3425,7 +3810,7 @@ indicates if the source file is found on disk
 
 **recoverable** | boolean  
 indicates if the siafile is recoverable. A file is recoverable if it has at
-least 1x redundancy or if `siad` knows the location of a local copy of the file.
+least 1x redundancy or if `spd` knows the location of a local copy of the file.
 
 **redundancy** | float64  
 When a file is uploaded, it is first broken into a series of chunks. Each chunk
@@ -3461,7 +3846,7 @@ progress is 100.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter/file/myfile"
+curl -A "ScPrime-Agent" "localhost:4280/renter/file/myfile"
 ```
 
 Lists the status of specified file.
@@ -3478,7 +3863,7 @@ Same response as [files](#files)
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "trackingpath=/home/myfile" "localhost:4280/renter/file/myfile"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "trackingpath=/home/myfile" "localhost:4280/renter/file/myfile"
 ```
 
 endpoint for changing file metadata.
@@ -3505,7 +3890,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/delete/myfile"
+curl -A "ScPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/delete/myfile"
 ```
 
 deletes a renter file entry. Does not delete any downloads or original files,
@@ -3516,6 +3901,12 @@ only the entry in the renter. Will return an error if the target is a folder.
 **siapath** | string  
 Path to the file in the renter on the network.
 
+### OPTIONAL
+**root** | bool  
+Whether or not to treat the siapath as being relative to the user's home
+directory. If this field is not set, the siapath will be interpreted as relative
+to 'home/user/'.
+
 ### Response
 
 standard success or error response. See [standard
@@ -3525,7 +3916,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/download/myfile?httpresp=true"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/renter/download/myfile?httpresp=true"
 ```
 
 downloads a file to the local filesystem. The call will block until the file has
@@ -3573,7 +3964,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/download/cancel?id=<downloadid>"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/renter/download/cancel?id=<downloadid>"
 ```
 
 cancels the download with the given id.
@@ -3592,7 +3983,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/downloadasync/myfile?destination=/home/myfile"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/renter/downloadasync/myfile?destination=/home/myfile"
 ```
 
 downloads a file to the local filesystem. The call will return immediately.
@@ -3616,7 +4007,7 @@ responses](#standard-responses).
 > curl example  
 
 ```bash
-curl -A "SiaPrime-Agent" "localhost:4280/renter/fuse"
+curl -A "ScPrime-Agent" "localhost:4280/renter/fuse"
 ```
 
 Lists the set of folders that have been mounted to the user's filesystem and
@@ -3650,10 +4041,10 @@ The siapath that has been mounted to the mountpoint.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/fuse/mount?readonly=true"
+curl -A "ScPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/fuse/mount?readonly=true"
 ```
 
-Mounts a Sia directory to the local filesystem using FUSE.
+Mounts a ScPrime directory to the local filesystem using FUSE.
 
 ### Query String Parameters
 ### REQUIRED
@@ -3702,7 +4093,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/fuse/unmount?mount=/home/user/videos"
+curl -A "ScPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/fuse/unmount?mount=/home/user/videos"
 ```
 
 ### Query String Parameters
@@ -3719,7 +4110,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/recoveryscan"
+curl -A "ScPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/renter/recoveryscan"
 ```
 
 starts a rescan of the whole blockchain to find recoverable contracts. The
@@ -3735,7 +4126,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter/recoveryscan"
+curl -A "ScPrime-Agent" "localhost:4280/renter/recoveryscan"
 ```
 
 Returns some information about a potentially ongoing recovery scan.
@@ -3743,7 +4134,7 @@ Returns some information about a potentially ongoing recovery scan.
 ### JSON Response
 > JSON Response Example
 
-```go
+```json
 {
   "scaninprogress": true // boolean
   "scannedheight" : 1000 // uint64
@@ -3759,9 +4150,13 @@ that have already been scanned.
 ## /renter/rename/*siapath* [POST]
 > curl example  
 
-```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "newsiapath=myfile2" "localhost:4280/renter/rename/myfile"
+```sh
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "newsiapath=myfile2" "localhost:4280/renter/rename/myfile"
+
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "newsiapath=myfile2&root=true" "localhost:4280/renter/rename/myfile"
 ```
+
+change the siaPath for a file that is being managed by the renter.
 
 ### Path Parameters
 ### REQUIRED
@@ -3773,6 +4168,12 @@ Path to the file in the renter on the network.
 **newsiapath** | string  
 New location of the file in the renter on the network.  
 
+### OPTIONAL
+**root** | bool  
+Whether or not to treat the siapath as being relative to the user's home
+directory. If this field is not set, the siapath will be interpreted as
+relative to 'home/user/'.
+
 ### Response
 
 standard success or error response. See [standard
@@ -3783,18 +4184,19 @@ responses](#standard-responses).
 
 > Stream the whole file.  
 
-```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter/stream/myfile"
+```sh
+curl -A "ScPrime-Agent" "localhost:4280/renter/stream/myfile"
 ```  
+
 > The file can be streamed partially by using standard partial http requests
 > which means setting the "Range" field in the http header.  
 
-```go
-curl -A "SiaPrime-Agent" -H "Range: bytes=0-1023" "localhost:4280/renter/stream/myfile"
+```sh
+curl -A "ScPrime-Agent" -H "Range: bytes=0-1023" "localhost:4280/renter/stream/myfile"
 ```
 
 downloads a file using http streaming. This call blocks until the data is
-received. The streaming endpoint also uses caching internally to prevent siad
+received. The streaming endpoint also uses caching internally to prevent spd
 from re-downloading the same chunk multiple times when only parts of a file are
 requested at once. This might lead to a substantial increase in ram usage and
 therefore it is not recommended to stream multiple files in parallel at the
@@ -3822,7 +4224,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "source=/home/myfile" "localhost:4280/renter/upload/myfile"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "source=/home/myfile" "localhost:4280/renter/upload/myfile"
 ```
 
 uploads a file to the network from the local filesystem.
@@ -3859,9 +4261,9 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploadstream/myfile?datapieces=10&paritypieces=20" --data-binary @myfile.dat
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploadstream/myfile?datapieces=10&paritypieces=20" --data-binary @myfile.dat
 
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploadstream/myfile?repair=true" --data-binary @myfile.dat
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploadstream/myfile?repair=true" --data-binary @myfile.dat
 ```
 
 uploads a file to the network using a stream. If the upload stream POST call
@@ -3900,7 +4302,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/renter/uploadready?datapieces=10&paritypieces=20"
+curl -A "ScPrime-Agent" "localhost:4280/renter/uploadready?datapieces=10&paritypieces=20"
 ```
 
 Returns the whether or not the renter is ready for upload.
@@ -3919,6 +4321,7 @@ The number of parity pieces to use when erasure coding the file.
 
 ### JSON Response
 > JSON Response Example
+
 ```go
 {
 "ready":false,            // bool
@@ -3948,7 +4351,7 @@ The number of parity pieces to use when erasure coding the file.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "duration=10m" "localhost:4280/renter/uploads/pause"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "duration=10m" "localhost:4280/renter/uploads/pause"
 ```
 
 This endpoint will pause any future uploads or repairs for the duration
@@ -3974,7 +4377,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploads/resume"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/renter/uploads/resume"
 ```
 
 This endpoint will resume uploads and repairs.
@@ -3987,13 +4390,11 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/renter/validatesiapath/isthis-aval_idsiapath"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/renter/validatesiapath/isthis-aval_idsiapath"
 ```
 
-validates whether or not the provided siapaht is a valid siapath. SiaPaths
-cannot contain traversal strings or be empty. Valid characters are:
-
-$, &, `, :, ;, #, %, @, <, >, =, ?, [, ], {, }, ^, |, ~, -, +, _, comma, ', "
+validates whether or not the provided siapath is a valid siapath. Every path
+valid under Unix is valid as a SiaPath.
 
 ### Path Parameters
 ### REQUIRED
@@ -4004,13 +4405,649 @@ siapath to test.
 standard success or error response, a successful response means a valid siapath.
 See [standard responses](#standard-responses).
 
+## /renter/wokers [GET]
+> curl example
+
+```go
+curl -A "ScPrime-Agent" "localhost:4280/renter/workers"
+```
+
+returns the the status of all the workers in the renter's workerpool.
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+  "numworkers":            2, // int
+  "totaldownloadcooldown": 0, // int
+  "totaluploadcooldown":   0, // int
+  
+  "workers": [ // []WorkerStatus
+    {
+      "contractid": "e93de33cc04bb1f27a412ecdf57b3a7345b9a4163a33e03b4cb23edeb922822c", // hash
+      "contractutility": {      // ContractUtility
+        "goodforupload": true,  // boolean
+        "goodforrenew":  true,  // boolean
+        "badcontract":   false, // boolean
+        "lastooserr":    0,     // BlockHeight
+        "locked":        false  // boolean
+      },
+      "hostpubkey": {
+        "algorithm": "ed25519", // string
+        "key": "BervnaN85yB02PzIA66y/3MfWpsjRIgovCU9/L4d8zQ=" // hash
+      },
+      
+      "downloadoncooldown": false, // boolean
+      "downloadqueuesize":  0,     // int
+      "downloadterminated": false, // boolean
+      
+      "uploadcooldownerror": "",                   // string
+      "uploadcooldowntime":  -9223372036854775808, // time.Duration
+      "uploadoncooldown":    false,                // boolean
+      "uploadqueuesize":     0,                    // int
+      "uploadterminated":    false,                // boolean
+      
+      "availablebalance":    "0", // hastings
+      "balancetarget":       "0", // hastings
+      "fundaccountjobqueuesize": 0,   // int
+      
+      "backupjobqueuesize":       0, // int
+      "downloadrootjobqueuesize": 0  // int
+    }
+  ]
+}
+```
+
+**numworkers** | int  
+Number of workers in the workerpool
+
+**totaldownloadcooldown** | int  
+Number of workers on download cooldown
+
+**totaluploadcooldown** | int  
+Number of workers on upload cooldown
+
+**workers** | []WorkerStatus  
+List of workers
+
+**contractid** | hash  
+The ID of the File Contract that the worker is associated with
+
+**contractutility** | ContractUtility  
+
+**goodforupload** | boolean  
+The worker's contract can be uploaded to
+
+**goodforrenew** | boolean  
+The worker's contract will be renewed
+
+**badcontract** | boolean  
+The worker's contract is marked as bad and won't be used
+
+**lastooserr** | BlockHeight  
+The blockheight when the host the worker represents was out of storage
+
+**locked** | boolean  
+The worker's contract's utility is locked
+
+**hostpublickey** | SiaPublicKey  
+Public key of the host that the file contract is formed with.  
+
+**downloadoncooldown** | boolean  
+Indicates if the worker is on download cooldown
+
+**downloadqueuesize** | int  
+The size of the worker's download queue
+
+**downloadterminated** | boolean  
+Downloads for the worker have been terminated
+
+**uploadcooldownerror** | error  
+The error reason for the worker being on upload cooldown
+
+**uploadcooldowntime** | time.Duration  
+How long the worker is on upload cooldown
+
+**uploadoncooldown** | boolean  
+Indicates if the worker is on upload cooldown
+
+**uploadqueuesize** | int  
+The size of the worker's upload queue
+
+**uploadterminated** | boolean  
+Uploads for the worker have been terminated
+
+**availablebalance** | hastings  
+The worker's Ephemeral Account available balance
+
+**balancetarget** | hastings  
+The worker's Ephemeral Account target balance
+
+**fundaccountjobqueuesize** | int  
+The size of the worker's Ephemeral Account fund account job queue
+
+**backupjobqueuesize** | int  
+The size of the worker's backup job queue
+
+**downloadrootjobqueuesize** | int  
+The size of the worker's download by root job queue
+
+# Pubaccess
+
+## /pubaccess/blacklist [GET]
+> curl example
+
+```go
+curl -A "ScPrime-Agent" "localhost:4280/pubaccess/blacklist"
+```
+
+returns the list of merkleroots that are blacklisted.
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+  "blacklist": {
+    "QAf9Q7dBSbMarLvyeE6HTQmwhr7RX9VMrP9xIMzpU3I" // hash
+    "QAf9Q7dBSbMarLvyeE6HTQmwhr7RX9VMrP9xIMzpU3I" // hash
+    "QAf9Q7dBSbMarLvyeE6HTQmwhr7RX9VMrP9xIMzpU3I" // hash
+  }
+}
+```
+**blacklist** | Hashes  
+The blacklist is a list of merkle roots, which are hashes, that are blacklisted.
+
+## /pubaccess/blacklist [POST]
+> curl example
+
+```go
+curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"add" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:4280/pubaccess/blacklist"
+
+curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"remove" : ["GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g","GAC38Gan6YHVpLl-bfefa7aY85fn4C0EEOt5KJ6SPmEy4g"]}' "localhost:4280/pubaccess/blacklist"
+```
+
+updates the list of publinks that should be blacklisted from Pubaccess. This
+endpoint can be used to both add and remove publinks from the blacklist.
+
+### Path Parameters
+### REQUIRED
+At least one of the following fields needs to be non empty.
+
+**add** | array of strings  
+add is an array of publinks that should be added to the blacklisted
+
+**remove** | array of strings  
+remove is an array of publinks that should be removed from the blacklist
+
+### Response
+
+standard success or error response. See [standard
+responses](#standard-responses).
+
+## /pubaccess/portals [GET]
+> curl example
+
+```go
+curl -A "ScPrime-Agent" "localhost:4280/pubaccess/portals"
+```
+
+returns the list of known Pubaccess portals.
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+  "portals": [ // []SkynetPortal | null
+    {
+      "address": "siasky.net:443", // string
+      "public":  true              // bool
+    }
+  ]
+}
+```
+**address** | string  
+The IP or domain name and the port of the portal. Must be a valid network address.
+
+**public** | bool  
+Indicates whether the portal can be accessed publicly or not.
+
+## /pubaccess/portals [POST]
+> curl example
+
+```go
+curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"add" : [{"address":"siasky.net:443","public":true}]}' "localhost:4280/pubaccess/portals"
+
+curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"remove" : ["siasky.net:443"]}' "localhost:4280/pubaccess/portals"
+```
+
+updates the list of known Public access portals. This endpoint can be used to both add
+and remove portals from the list.
+
+### Path Parameters
+### REQUIRED
+At least one of the following fields needs to be non empty.
+
+**add** | array of PubaccessPortal  
+add is an array of portal info that should be added to the list of portals.
+
+**remove** | array of string  
+remove is an array of portal network addresses that should be removed from the
+list of portals.
+
+### Response
+
+standard success or error response. See [standard
+responses](#standard-responses).
+
+## /pubaccess/publink/*publink* [HEAD]
+> curl example
+
+```bash
+curl -I -A "ScPrime-Agent" "localhost:4280/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
+```
+
+This curl command performs a HEAD request that fetches the headers for
+the given publink. These headers are identical to the ones that would be
+returned if the request had been a GET request.
+
+### Path Parameters
+See [/pubaccess/publink/publink](#pubaccesspublinkpublink-get)
+
+### Query String Parameters
+See [/pubaccess/publink/publink](#pubaccesspublinkpublink-get)
+
+### Response Header
+See [/pubaccess/publink/publink](#pubaccesspublinkpublink-get)
+
+### Response Body
+
+This request has an empty response body.
+
+## /pubaccess/publink/*publink* [GET]
+> curl example  
+
+> Stream the whole file.  
+
+```bash
+# entire file
+curl -A "ScPrime-Agent" "localhost:4280/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg"
+
+# directory
+curl -A "ScPrime-Agent" "localhost:4280/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder"
+
+# sub file
+curl -A "ScPrime-Agent" "localhost:4280/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg/folder/file.txt"
+```  
+
+downloads a publink using http streaming. This call blocks until the data is
+received. There is a 30s default timeout applied to downloading a publink. If
+the data can not be found within this 30s time constraint, a 404 will be
+returned. This timeout is configurable through the query string parameters.
+
+### Path Parameters 
+### Required
+**publink** | string  
+The publink that should be downloaded. The publink can contain an optional path.
+This path can specify a directory or a particular file. If specified, only that
+file or directory will be returned.
+
+### Query String Parameters
+### OPTIONAL
+
+**attachment** | bool  
+If 'attachment' is set to true, the Content-Disposition http header will be set
+to 'attachment' instead of 'inline'. This will cause web browsers to download
+the file as though it is an attachment instead of rendering it.
+
+**format** | string  
+If 'format' is set, the publink can point to a directory and it will return the
+data inside that directory. Format will decide the format in which it is
+returned. Currently we only support 'concat', which will return the concatenated
+data of all subfiles in that directory.
+
+**timeout** | int  
+If 'timeout' is set, the download will fail if the Pubfile can not be retrieved 
+before it expires. Note that this timeout does not cover the actual download 
+time, but rather covers the TTFB. Timeout is specified in seconds, a timeout 
+value of 0 will be ignored. If no timeout is given, the default will be used,
+which is a 30 second timeout. The maximum allowed timeout is 900s (15 minutes).
+
+### Response Header
+
+**Pubaccess-File-Metadata** | SkyfileMetadata
+
+The header field "Pubaccess-FileMetadata" will be set such that it has an encoded
+json object which matches the modules.SkyfileMetadata struct. If a path was
+supplied, this metadata will be relative to the given path.
+
+> Pubaccess-File-Metadata Response Header Example 
+
+```go
+{
+"mode":     640,      // os.FileMode
+"filename": "folder", // string
+"subfiles": [         // []SkyfileSubfileMetadata | null
+  {
+  "mode":         640,                // os.FileMode
+  "filename":     "folder/file1.txt", // string
+  "contenttype":  "text/plain",       // string
+  "offset":       0,                  // uint64
+  "len":          6                   // uint64
+  }
+]
+}
+```
+
+### Response Body
+
+The response body is the raw data for the file.
+
+## /pubaccess/pubfile/*siapath* [POST]
+> curl example  
+
+```go
+// This command uploads the file 'myImage.png' to the ScPrime folder
+// 'var/pubaccess/images/myImage.png'. Users who download the file will see the name
+// 'image.png'.
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/pubaccess/pubfile/images/myImage.png?filename=image.png" --data-binary @myImage.png
+```
+
+uploads a file to the network using a stream. If the upload stream POST call
+fails or quits before the file is fully uploaded, the file can be repaired by a
+subsequent call to the upload stream endpoint using the `repair` flag.
+
+### Path Parameters
+### REQUIRED
+**siapath** | string  
+Location where the file will reside in the renter on the network. The path must
+be non-empty, may not include any path traversal strings ("./", "../"), and may
+not begin with a forward-slash character. If the 'root' flag is not set, the
+path will be prefixed with 'var/pubaccess/', placing the pubfile into the ScPrime
+system's default pubaccess folder.
+
+### Query String Parameters
+### OPTIONAL
+**basechunkredundancy** | uint8  
+The amount of redundancy to use when uploading the base chunk. The base chunk is
+the first chunk of the file, and is always uploaded using 1-of-N redundancy.
+
+**convertpath** string  
+The siapath of an existing siafile that should be converted to a publink. A new
+pubfile will be created. Both the new pubfile and the existing siafile are
+required to be maintained on the network in order for the publink to remain
+active. This field is mutually exclusive with uploading streaming.
+
+**filename** | string  
+The name of the file. This name will be encoded into the pubfile metadata, and
+will be a part of the publink. If the name changes, the publink will change as
+well.
+
+**dryrun** | bool  
+If dryrun is set to true, the request will return the Publink of the file
+without uploading the actual file to the ScPrime network.
+
+**force** | bool  
+If there is already a file that exists at the provided siapath, setting this
+flag will cause the new file to overwrite/delete the existing file. If this flag
+is not set, an error will be returned preventing the user from destroying
+existing data.
+
+**mode** | uint32  
+The file mode / permissions of the file. Users who download this file will be
+presented a file with this mode. If no mode is set, the default of 0644 will be
+used.
+
+**root** | bool  
+Whether or not to treat the siapath as being relative to the root directory. If
+this field is not set, the siapath will be interpreted as relative to
+'var/pubaccess'.
+
+
+**UNSTABLE - subject to change in v1.4.9**
+**skykeyname** | string  
+The name of the pubaccesskey that will be used to encrypt this pubfile. Only the
+name or the ID of the pubaccesskey should be specified.
+
+**OR**
+
+**UNSTABLE - subject to change in v1.4.9**
+**skykeyid** | string  
+The ID of the pubaccesskey that will be used to encrypt this pubfile. Only the
+name or the ID of the pubaccesskey should be specified.
+
+
+### Http Headers
+### OPTIONAL
+**Content-Disposition** | string  
+If the filename is set in the Content-Disposition field, that filename will be
+used as the filename of the object being uploaded. Note that this header is only
+taken into consideration when using a multipart form upload.
+
+For more details on setting Content-Disposition:
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
+
+**Pubaccess-Disable-Force** | bool  
+This request header allows overruling the behaviour of the `force` parameter
+that can be passed in through the query string parameters. This header is useful
+for Pubaccess portal operators that would like to have some control over the
+requests that are being passed to spd. To avoid having to parse query string
+parameters and overrule them that way, this header can be set to disable the
+force flag and disallow overwriting the file at the given siapath.
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+"publink":    "CABAB_1Dt0FJsxqsu_J4TodNCbCGvtFf1Uys_3EgzOlTcg" // string
+"merkleroot": "QAf9Q7dBSbMarLvyeE6HTQmwhr7RX9VMrP9xIMzpU3I" // hash
+"bitfield":   2048 // int
+}
+```
+**publink** | string  
+This is the publink that can be used with the `/pubaccess/publink` GET endpoint to
+retrieve the file that has been uploaded.
+
+**merkleroot** | hash  
+This is the hash that is encoded into the publink.
+
+**bitfield** | int  
+This is the bitfield that gets encoded into the publink. The bitfield contains a
+version, an offset and a length in a heavily compressed and optimized format.
+
+
+## /pubaccess/stats [GET]
+> curl example
+
+```go
+curl -A "ScPrime-Agent" "localhost:4280/pubaccess/stats"
+```
+
+returns statistical information about Pubaccess, e.g. number of files uploaded
+
+### JSON Response
+```json
+{
+  "uploadstats": {
+    "numfiles": 2,         // int
+    "totalsize": 44527895  // int
+  },
+  "versioninfo": {
+    "version":     "1.4.3-master", // string
+    "gitrevision": "cd5a83712"     // string
+  },
+  "performancestats": {
+  }
+}
+```
+
+**uploadstats** | object
+Uploadstats is an object with statistics about the data uploaded to Pubaccess.
+
+**numfiles** | int  
+Numfiles is the total number of files uploaded to Pubaccess.
+
+**totalsize** | int  
+Totalsize is the total amount of data in bytes uploaded to Pubaccess.
+
+**versioninfo** | object  
+Versioninfo is an object that contains the node's version information.
+
+**version** | string  
+Version is the spd version the node is running.
+
+**gitrevision** | string  
+Gitrevision refers to the commit hash used to build said.
+
+**performancestats** | object - api.SkynetPerforamnceStats  
+PerformanceStats is an object that contains a breakdown of performance metrics
+for the pubaccess endpoints. Things are broken down into containers based on the
+type of action performed. For example, there is a container for downloads less
+than 64kb in size.
+
+Within each container, there is a bucket of half lives. Every time a data point
+is added to a container, it is put in to every bucket, counting up the total
+number of requests. The buckets decay at the stated half life, which means they
+give a good representation of how much activity there has been over twice their
+halflife. So for the one minute bucket, the total number of datapoints in the
+bucket is a good representation of how many things have happened in the past two
+minutes.
+
+Within each bucket, there are several fields. For example, the n60ms field
+represents the number of requests that finished in under 60ms. There is an NErr
+field which gets incremented if there is a failure that can be attributed to
+spd.
+
+Every download request will go into the TimeToFirstByte container, as well as
+the appropriate download container based on the size of the download. Within the
+chosen containers, every bucket will have the same field incremented. The field
+that gets incremented is the one that corresponds to the amount of time the
+request took.
+
+The performance stats fields are not protected by a compatibility promise, and
+may change over time.
+
+
+## /pubaccess/addpubaccesskey [POST]
+> curl example
+
+```go
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "pubaccesskey=BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a" "localhost:4280/pubaccess/addpubaccesskey"
+```
+
+Stores the given pubaccesskey with the renter's pubaccesskey manager.
+
+### Path Parameters
+### REQUIRED
+**pubaccesskey** | string  
+base-64 encoded pubaccesskey
+
+### Response
+
+standard success or error response. See [standard
+responses](#standard-responses).
+
+
+## /pubaccess/createpubaccesskey [POST]
+> curl example
+
+```go
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:4280/pubaccess/createpubaccesskey"
+```
+
+Returns a new pubaccesskey created and stored under that name.
+
+### Path Parameters
+### REQUIRED
+**name** | string  
+desired name of the pubaccesskey
+
+### JSON Response
+> JSON Response Example
+
+```go
+{
+  "pubaccesskey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
+}
+```
+
+**pubaccesskey** | string  
+base-64 encoded pubaccesskey
+
+
+## /pubaccess/pubaccesskey [GET]
+> curl example
+
+```go
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:4280/pubaccess/pubaccesskey"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "id=gi5z8cf5NWbcvPBaBn0DFQ==" "localhost:4280/pubaccess/pubaccesskey"
+```
+
+Returns the base-64 encoded pubaccesskey stored under that name, or with that ID.
+
+
+### Path Parameters
+### REQUIRED
+**name** | string  
+name of the pubaccesskey being queried
+
+or
+
+**id** | string  
+base-64 encoded ID of the pubaccesskey being queried
+
+
+### JSON Response
+
+```go
+{
+  "pubaccesskey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
+}
+```
+
+**pubaccesskey** | string  
+base-64 encoded pubaccesskey
+
+
+## /pubaccess/pubaccesskeyid [GET]
+> curl example
+
+```go
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:4280/pubaccess/pubaccesskeyid"
+```
+
+Returns the base-64 encoded ID of the pubaccesskey stored under that name.
+
+### Path Parameters
+### REQUIRED
+**name** | string  
+name of the pubaccesskey being queried
+
+
+### JSON Response
+> JSON Response Example
+ 
+```go
+{
+  "pubaccesskeyid": "gi5z8cf5NWbcvPBaBn0DFQ=="
+}
+```
+
+**pubaccesskeyid** | string  
+base-64 encoded pubaccesskey ID
+
+
+
 # Transaction Pool
 
 ## /tpool/confirmed/:id [GET]
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/tpool/confirmed/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/tpool/confirmed/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
 ```
 
 returns whether the requested transaction has been seen on the blockchain. Note,
@@ -4037,7 +5074,7 @@ indicates if a transaction is confirmed on the blockchain
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/tpool/fee"
+curl -A "ScPrime-Agent" "localhost:4280/tpool/fee"
 ```
 
 returns the minimum and maximum estimated fees expected by the transaction pool.
@@ -4061,7 +5098,7 @@ the maximum estimated fee
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/tpool/raw/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
+curl -A "ScPrime-Agent" "localhost:4280/tpool/raw/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
 ```
 
 returns the ID for the requested transaction and its raw encoded parents and
@@ -4095,7 +5132,7 @@ raw, base64 encoded transaction data
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" --data "<raw-encoded-tset>" "localhost:4280/tpool/raw"
+curl -A "ScPrime-Agent" --data "<raw-encoded-tset>" "localhost:4280/tpool/raw"
 ```
 
 submits a raw transaction to the transaction pool, broadcasting it to the
@@ -4118,7 +5155,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/tpool/transactions"
+curl -A "ScPrime-Agent" "localhost:4280/tpool/transactions"
 ```
 
 returns the transactions of the transaction pool.
@@ -4190,7 +5227,7 @@ transaction fields.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/wallet"
+curl -A "ScPrime-Agent" "localhost:4280/wallet"
 ```
 
 Returns basic information about the wallet, such as whether the wallet is locked
@@ -4268,7 +5305,7 @@ cannot be used because the wallet considers it a dust output.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "source=/home/legacy-wallet&encryptionpassword=mypassword" "localhost:4280/wallet/033x"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "source=/home/legacy-wallet&encryptionpassword=mypassword" "localhost:4280/wallet/033x"
 ```
 
 Loads a v0.3.3.x wallet into the current wallet, harvesting all of the secret
@@ -4292,7 +5329,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/address"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/address"
 ```
 
 Gets a new address from the wallet generated by the primary seed. An error will
@@ -4314,7 +5351,7 @@ long hex strings.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/wallet/addresses"
+curl -A "ScPrime-Agent" "localhost:4280/wallet/addresses"
 ```
 
 Fetches the list of addresses from the wallet. If the wallet has not been
@@ -4341,7 +5378,7 @@ Array of wallet addresses owned by the wallet.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/wallet/seedaddrs"
+curl -A "ScPrime-Agent" "localhost:4280/wallet/seedaddrs"
 ```
 
 Fetches addresses generated by the wallet in reverse order. The last address
@@ -4375,7 +5412,7 @@ Array of wallet addresses previously generated by the wallet.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/backup?destination=/home/wallet-settings.backup"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/backup?destination=/home/wallet-settings.backup"
 ```
 
 Creates a backup of the wallet settings file. Though this can easily be done
@@ -4397,7 +5434,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/wallet/changepassword?encryptionpassword=<currentpassword>&newpassword=<newpassword>"
+curl -A "ScPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/wallet/changepassword?encryptionpassword=<currentpassword>&newpassword=<newpassword>"
 ```
 
 Changes the wallet's encryption key.  
@@ -4420,7 +5457,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "encryptionpassword=<password>&force=false" "localhost:4280/wallet/init"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "encryptionpassword=<password>&force=false" "localhost:4280/wallet/init"
 ```
 
 Initializes the wallet. After the wallet has been initialized once, it does not
@@ -4458,7 +5495,7 @@ Wallet seed used to generate addresses that the wallet is able to spend.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "seed=<seed>&encryptionpassword=<password>&force=false" "localhost:4280/wallet/init/seed"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "seed=<seed>&encryptionpassword=<password>&force=false" "localhost:4280/wallet/init/seed"
 ```
 
 Initializes the wallet using a preexisting seed. After the wallet has been
@@ -4487,7 +5524,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "seed=<seed>" "localhost:4280/wallet/seed"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "seed=<seed>" "localhost:4280/wallet/seed"
 ```
 
 Gives the wallet a seed to track when looking for incoming transactions. The
@@ -4511,7 +5548,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/seeds"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/seeds"
 ```
 
 Returns the list of seeds in use by the wallet. The primary seed is the only
@@ -4555,19 +5592,19 @@ however only the primary seed is being used to generate new addresses.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "amount=1000&destination=c134a8372bd250688b36867e6522a37bdc391a344ede72c2a79206ca1c34c84399d9ebf17773" "localhost:4280/wallet/siacoins"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "amount=1000&destination=c134a8372bd250688b36867e6522a37bdc391a344ede72c2a79206ca1c34c84399d9ebf17773" "localhost:4280/wallet/siacoins"
 ```
 
 Sends siacoins to an address or set of addresses. The outputs are arbitrarily
-selected from addresses in the wallet. If 'outputs' is supplied, 'amount' and
-'destination' must be empty.  
+selected from addresses in the wallet. If 'outputs' is supplied, 'amount',
+'destination' and 'feeIncluded' must be empty.
 
 ### Query String Parameters
 ### REQUIRED
 Amount and Destination or Outputs are required
 
 **amount** | hastings  
-Number of hastings being sent. A hasting is the smallest unit in Sia. There are
+Number of hastings being sent. A hasting is the smallest unit in ScPrime. There are
 10^24 hastings in a siacoin.
 
 **destination** | address  
@@ -4577,7 +5614,11 @@ Address that is receiving the coins.
 
 **outputs**  
 JSON array of outputs. The structure of each output is: {"unlockhash":
-"<destination>", "value": "<amount>"}  
+"<destination>", "value": "<amount>"}
+
+### OPTIONAL
+**feeIncluded** | boolean  
+Take the transaction fee out of the balance being submitted instead of the fee being additional.
 
 ### JSON Response
 > JSON Response Example
@@ -4653,7 +5694,7 @@ Array of IDs of the transactions that were created when sending the coins.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "amount=10&destination=c134a8372bd250688b36867e6522a37bdc391a344ede72c2a79206ca1c34c84399d9ebf17773" "localhost:4280/wallet/siafunds"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "amount=10&destination=c134a8372bd250688b36867e6522a37bdc391a344ede72c2a79206ca1c34c84399d9ebf17773" "localhost:4280/wallet/siafunds"
 ```
 
 Sends siafunds to an address. The outputs are arbitrarily selected from
@@ -4747,7 +5788,7 @@ Array of IDs of the transactions that were created when sending the coins.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "encryptionpassword=<password>&keyfiles=/file1,/home/file2" "localhost:4280/wallet/siagkey"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "encryptionpassword=<password>&keyfiles=/file1,/home/file2" "localhost:4280/wallet/siagkey"
 ```
 
 Loads a key into the wallet that was generated by siag. Most siafunds are
@@ -4773,7 +5814,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:4280/wallet/sign"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:4280/wallet/sign"
 ```
 
 Signs a transaction. The wallet will attempt to sign each input specified. The
@@ -4870,7 +5911,7 @@ will add signatures for every TransactionSignature that it has keys for.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "seed=<seed>" "localhost:4280/wallet/sweep/seed"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "seed=<seed>" "localhost:4280/wallet/sweep/seed"
 ```
 
 Scans the blockchain for outputs belonging to a seed and send them to an address
@@ -4888,7 +5929,8 @@ Name of the dictionary that should be used when decoding the seed. 'english' is
 the most common choice when picking a dictionary.  
 
 ### JSON Response
- > JSON  Response Example
+> JSON  Response Example
+
 ```go
 {
 "coins": "123456", // hastings, big int
@@ -4906,7 +5948,7 @@ Number of siafunds transferred to the wallet as a result of the sweep.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/wallet/lock"
+curl -A "ScPrime-Agent" -u "":<apipassword> -X POST "localhost:4280/wallet/lock"
 ```
 
 Locks the wallet, wiping all secret keys. After being locked, the keys are
@@ -4923,7 +5965,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/wallet/transaction/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
+curl -A "ScPrime-Agent" "localhost:4280/wallet/transaction/22e8d5428abc184302697929f332fa0377ace60d405c39dd23c0327dc694fae7"
 ```
 
 Gets the transaction associated with a specific transaction id.
@@ -4940,7 +5982,7 @@ ID of the transaction being requested.
 {
   "transaction": {
     "transaction": {
-      // See types.Transaction in https://gitlab.com/NebulousLabs/Sia/blob/master/types/transactions.go
+      // See types.Transaction in https://gitlab.com/scpcorp/ScPrime/blob/master/types/transactions.go
     },
     "transactionid":         "1234567890abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "confirmationheight":    50000,
@@ -4973,7 +6015,7 @@ raw transaction. It is left undocumented here as the processed transaction (the
 rest of the fields in this object) are usually what is desired.  
 
 See types.Transaction in
-https://gitlab.com/NebulousLabs/Sia/blob/master/types/transactions.go  
+https://gitlab.com/scpcorp/ScPrime/blob/master/types/transactions.go  
 
 **transactionid**  
 ID of the transaction from which the wallet transaction was derived.  
@@ -4996,7 +6038,7 @@ The id of the output being spent.
 Type of fund represented by the input. Possible values are 'siacoin input' and
 'siafund input'.  
 
-**walletaddress** | Boolean  
+**walletaddress** | boolean  
 true if the address is owned by the wallet.  
 
 **relatedaddress**  
@@ -5047,7 +6089,7 @@ Amount of funds that have been moved in the output.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/wallet/transactions"
+curl -A "ScPrime-Agent" "localhost:4280/wallet/transactions"
 ```
 
 Returns a list of transactions related to the wallet in chronological order.
@@ -5094,7 +6136,7 @@ See the documentation for '/wallet/transaction/:id' for more information.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/wallet/transactions/abf1ba4ad65820ce2bd5d63466b8555d0ec9bfe5f5fa920b4fef6ad98f443e2809e5ae619b74"
+curl -A "ScPrime-Agent" "localhost:4280/wallet/transactions/abf1ba4ad65820ce2bd5d63466b8555d0ec9bfe5f5fa920b4fef6ad98f443e2809e5ae619b74"
 ```
 
 Returns all of the transactions related to a specific address.
@@ -5125,7 +6167,7 @@ See the documentation for '/wallet/transaction/:id' for more information.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "encryptionpassword=<password>" "localhost:4280/wallet/unlock"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "encryptionpassword=<password>" "localhost:4280/wallet/unlock"
 ```
 
 Unlocks the wallet. The wallet is capable of knowing whether the correct
@@ -5146,7 +6188,7 @@ responses](#standard-responses).
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/unlockconditions/2d6c6d705c80f17448d458e47c3fb1a02a24e018a82d702cda35262085a3167d98cc7a2ba339"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/unlockconditions/2d6c6d705c80f17448d458e47c3fb1a02a24e018a82d702cda35262085a3167d98cc7a2ba339"
 ```
 
 Returns the unlock conditions of :addr, if they are known to the wallet.
@@ -5184,7 +6226,7 @@ The set of keys whose signatures count towards signaturesrequired.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/unspent"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/unspent"
 ```
 
 Returns a list of outputs that the wallet can spend.
@@ -5233,7 +6275,7 @@ Whether the output comes from a watched address or from the wallet's seed.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/wallet/verify/address/75d9a7351022681ba3539d7e0c5699d143ab5a7747604998cace1299ab6c04c5ea2aa2e87aac"
+curl -A "ScPrime-Agent" "localhost:4280/wallet/verify/address/75d9a7351022681ba3539d7e0c5699d143ab5a7747604998cace1299ab6c04c5ea2aa2e87aac"
 ```
 
 Takes the address specified by :addr and returns a JSON response indicating if
@@ -5259,7 +6301,7 @@ valid indicates if the address supplied to :addr is a valid UnlockHash.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" "localhost:4280/wallet/verifypassword?password=<password>"
+curl -A "ScPrime-Agent" "localhost:4280/wallet/verifypassword?password=<password>"
 ```
 
 Takes a password and verifies if it is the password used to encrypt the wallet.
@@ -5285,7 +6327,7 @@ wallet.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/watch"
+curl -A "ScPrime-Agent" -u "":<apipassword> "localhost:4280/wallet/watch"
 ```
 
 Returns the set of addresses that the wallet is watching. This set only includes
@@ -5310,7 +6352,7 @@ The addresses currently watched by the wallet.
 > curl example  
 
 ```go
-curl -A "SiaPrime-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:4280/wallet/watch"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data "<requestbody>" "localhost:4280/wallet/watch"
 ```
 
 Update the set of addresses for the wallet to watch.
@@ -5341,3 +6383,5 @@ addresses have never appeared in the blockchain.
 ### Response
 
 standard success or error response. See [standard responses](#standard-responses).
+
+# Versions

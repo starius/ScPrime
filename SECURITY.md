@@ -8,7 +8,7 @@ We recommend to only use the most recent minor release.
 
 **Please do not file a public ticket** mentioning the vulnerability.
 
-To disclose a vulnerability in Sia email the developers and support team at hello@sia.tech
+To disclose a vulnerability in ScPrime email the developers and support team at hello@sia.tech
 
 The following keys may be used to communicate sensitive information to developers.
 You can import a key by running the following command with that individual’s fingerprint: `gpg --recv-keys "<fingerprint>"` Ensure that you put quotes around fingerprints containing spaces.
@@ -17,7 +17,7 @@ You can also import directly using the ASCII pubkeys from the [developer pubkeys
 | Name | Fingerprint | Public Key |
 |------|-------------|-------------|
 | Luke Champine | 99C2 18A7 FA3C C119 562B D6C5 A5C1 CE07 4CBF 1D60 | [public key file](doc/developer-pubkeys/luke-champine-pubkey.asc) |
-| Steve Funk | DC06 2FB0 872C B88F 295C 59CD 1158 B926 BBD4 62BF |  [public key file](doc/developer-pubkeys/steve-funk-pubkey.asc) |
+| Steve Funk | DC06 2FB0 872C B88F 295C 59CD 1158 B926 BBD4 62BF |  [public key file](doc/developer-pubkeys/steve-funk-pubkey.asc) |
 | David Vorick | 7DB7 4718 3258 F448 64D2 D254 8323 331E 0787 6D0D | [public key file](doc/developer-pubkeys/david-vorick-pubkey.asc) |
  
 ## Disclosure Policy
@@ -45,7 +45,7 @@ If you have suggestions on how this process could be improved please submit a me
 
 
 ## Commitment to disclose.io Core Terms
-Below are the disclose.io Core Terms which the Sia project is committed to upholding.
+Below are the disclose.io Core Terms which the ScPrime project is committed to upholding.
 
 ### Introduction 
 Security is core to our values, and we value the input of hackers acting in good

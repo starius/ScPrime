@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"gitlab.com/scpcorp/ScPrime/modules"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 )
 
 // TestRenterUploadDirectory verifies that the renter returns an error if a
@@ -40,7 +40,7 @@ func TestRenterUploadDirectory(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected Upload to fail with empty directory as source")
 	}
-	if err != errUploadDirectory {
-		t.Fatal("expected errUploadDirectory, got", err)
+	if err != ErrUploadDirectory {
+		t.Fatal("expected ErrUploadDirectory, got", err)
 	}
 }

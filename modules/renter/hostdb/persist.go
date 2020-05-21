@@ -25,8 +25,9 @@ var (
 
 // hdbPersist defines what HostDB data persists across sessions.
 type hdbPersist struct {
-	AllHosts                 []modules.HostDBEntry
-	BlockHeight              types.BlockHeight
+	AllHosts    []modules.HostDBEntry
+	BlockHeight types.BlockHeight
+	//TODO: Remove obsolete DisableIPViolationsCheck field
 	DisableIPViolationsCheck bool
 	IPRestriction            int
 	KnownContracts           map[string]contractInfo
@@ -37,10 +38,10 @@ type hdbPersist struct {
 
 // persistData returns the data in the hostdb that will be saved to disk.
 func (hdb *HostDB) persistData() (data hdbPersist) {
-	data.AllHosts = hdb.hostTree.All()
+	data.AllHosts = hdb.staticHostTree.All()
 	data.BlockHeight = hdb.blockHeight
-	data.DisableIPViolationsCheck = hdb.hostTree.IPRestriction() < 1
-	data.IPRestriction = hdb.hostTree.IPRestriction()
+	data.DisableIPViolationsCheck = hdb.staticHostTree.IPRestriction() < 1
+	data.IPRestriction = hdb.staticHostTree.IPRestriction()
 	data.KnownContracts = hdb.knownContracts
 	data.LastChange = hdb.lastChange
 	data.FilteredHosts = hdb.filteredHosts
@@ -50,7 +51,7 @@ func (hdb *HostDB) persistData() (data hdbPersist) {
 
 // saveSync saves the hostdb persistence data to disk and then syncs to disk.
 func (hdb *HostDB) saveSync() error {
-	return hdb.deps.SaveFileSync(persistMetadata, hdb.persistData(), filepath.Join(hdb.persistDir, persistFilename))
+	return hdb.staticDeps.SaveFileSync(persistMetadata, hdb.persistData(), filepath.Join(hdb.persistDir, persistFilename))
 }
 
 // load loads the hostdb persistence data from disk.
@@ -58,7 +59,7 @@ func (hdb *HostDB) load() error {
 	// Fetch the data from the file.
 	var data hdbPersist
 	data.FilteredHosts = make(map[string]types.SiaPublicKey)
-	err := hdb.deps.LoadFile(persistMetadata, &data, filepath.Join(hdb.persistDir, persistFilename))
+	err := hdb.staticDeps.LoadFile(persistMetadata, &data, filepath.Join(hdb.persistDir, persistFilename))
 	if err != nil {
 		return err
 	}
@@ -77,9 +78,8 @@ func (hdb *HostDB) load() error {
 	hdb.knownContracts = data.KnownContracts
 	hdb.filteredHosts = data.FilteredHosts
 	hdb.filterMode = data.FilterMode
-
 	if len(hdb.filteredHosts) > 0 {
-		hdb.filteredTree = hosttree.New(hdb.weightFunc, modules.ProdDependencies.Resolver())
+		hdb.staticFilteredTree = hosttree.New(hdb.weightFunc, modules.ProdDependencies.Resolver())
 	}
 
 	// Load each of the hosts into the host trees.
@@ -95,7 +95,7 @@ func (hdb *HostDB) load() error {
 
 		err := hdb.insert(host)
 		if err != nil {
-			hdb.log.Debugln("ERROR: could not insert host into hosttree while loading:", host.NetAddress)
+			hdb.staticLog.Debugln("ERROR: could not insert host into hosttree while loading:", host.NetAddress)
 		}
 
 		// Make sure that all hosts have gone through the initial scanning.
@@ -124,7 +124,7 @@ func (hdb *HostDB) threadedSaveLoop() {
 			err = hdb.saveSync()
 			hdb.mu.Unlock()
 			if err != nil {
-				hdb.log.Println("Difficulties saving the hostdb:", err)
+				hdb.staticLog.Println("Difficulties saving the hostdb:", err)
 			}
 		}
 	}

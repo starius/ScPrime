@@ -9,8 +9,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-
 	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/node/api"
@@ -63,11 +63,19 @@ Available settings:
      minstorageprice:           currency / TB / Month
      minuploadbandwidthprice:   currency / TB
 
+     ephemeralaccountexpiry:     seconds
+     maxephemeralaccountbalance: currency
+     maxephemeralaccountrisk:    currency
+
 Currency units can be specified, e.g. 10SCP; run 'spc help wallet' for details.
 
 Durations (maxduration and windowsize) must be specified in either blocks (b),
 hours (h), days (d), or weeks (w). A block is approximately 10 minutes, so one
 hour is six blocks, a day is 144 blocks, and a week is 1008 blocks.
+
+Timeouts (ephemeralaccountexpiry) must be specified in either seconds (s),
+hours (h), days (d), or weeks (w). One hour is 3600 seconds, a day is 86400
+seconds, and a week is 604800 seconds.
 
 For a description of each parameter, see doc/API.md.
 
@@ -136,7 +144,7 @@ sector may impact host revenue.`,
 	}
 )
 
-// hostcmd is the handler for the command `siac host`.
+// hostcmd is the handler for the command `spc host`.
 // Prints info about the host and its storage folders.
 func hostcmd() {
 	hg, err := httpClient.HostGet()
@@ -203,8 +211,8 @@ func hostcmd() {
 
 Host Internal Settings:
 	acceptingcontracts:   %v
-	maxduration:          %v Weeks
 	maxdownloadbatchsize: %v
+	maxduration:          %v Weeks
 	maxrevisebatchsize:   %v
 	netaddress:           %v
 	windowsize:           %v Hours
@@ -213,10 +221,16 @@ Host Internal Settings:
 	collateralbudget: %v
 	maxcollateral:    %v Per Contract
 
+	minbaserpcprice:           %v
 	mincontractprice:          %v
 	mindownloadbandwidthprice: %v / TB
+	minsectoraccessprice:      %v
 	minstorageprice:           %v / TB / Month
 	minuploadbandwidthprice:   %v / TB
+
+	ephemeralaccountexpiry:     %v
+	maxephemeralaccountbalance: %v
+	maxephemeralaccountrisk:    %v
 
 Host Financials:
 	Contract Count:               %v
@@ -248,19 +262,27 @@ RPC Stats:
 			connectabilityString,
 			es.Version,
 
-			yesNo(is.AcceptingContracts), periodUnits(is.MaxDuration),
+			yesNo(is.AcceptingContracts),
 			modules.FilesizeUnits(is.MaxDownloadBatchSize),
-			modules.FilesizeUnits(is.MaxReviseBatchSize), netaddr,
+			periodUnits(is.MaxDuration),
+			modules.FilesizeUnits(is.MaxReviseBatchSize),
+			netaddr,
 			is.WindowSize/6,
 
 			currencyUnits(is.Collateral.Mul(modules.BlockBytesPerMonthTerabyte)),
 			currencyUnits(is.CollateralBudget),
 			currencyUnits(is.MaxCollateral),
 
+			currencyUnits(is.MinBaseRPCPrice),
 			currencyUnits(is.MinContractPrice),
 			currencyUnits(is.MinDownloadBandwidthPrice.Mul(modules.BytesPerTerabyte)),
+			currencyUnits(is.MinSectorAccessPrice),
 			currencyUnits(is.MinStoragePrice.Mul(modules.BlockBytesPerMonthTerabyte)),
 			currencyUnits(is.MinUploadBandwidthPrice.Mul(modules.BytesPerTerabyte)),
+
+			is.EphemeralAccountExpiry,
+			currencyUnits(is.MaxEphemeralAccountBalance),
+			currencyUnits(is.MaxEphemeralAccountRisk),
 
 			fm.ContractCount, currencyUnits(fm.ContractCompensation),
 			currencyUnits(fm.PotentialContractCompensation),
@@ -295,6 +317,7 @@ RPC Stats:
 	Revenue:              %v
 `,
 			connectabilityString,
+
 			modules.FilesizeUnits(totalstorage),
 			modules.FilesizeUnits(totalstorage-storageremaining), price,
 			periodUnits(is.MaxDuration),
@@ -333,13 +356,13 @@ RPC Stats:
 	w.Flush()
 }
 
-// hostconfigcmd is the handler for the command `siac host config [setting] [value]`.
+// hostconfigcmd is the handler for the command `spc host config [setting] [value]`.
 // Modifies host settings.
 func hostconfigcmd(param, value string) {
 	var err error
 	switch param {
 	// currency (convert to hastings)
-	case "collateralbudget", "maxcollateral", "minbaserpcprice", "mincontractprice", "minsectoraccessprice":
+	case "collateralbudget", "maxcollateral", "minbaserpcprice", "mincontractprice", "minsectoraccessprice", "maxephemeralaccountbalance", "maxephemeralaccountrisk":
 		value, err = parseCurrency(value)
 		if err != nil {
 			die("Could not parse "+param+":", err)
@@ -381,6 +404,13 @@ func hostconfigcmd(param, value string) {
 			die("Could not parse "+param+":", err)
 		}
 
+	// timeout (convert to seconds)
+	case "ephemeralaccountexpiry":
+		value, err = parseTimeout(value)
+		if err != nil {
+			die("Could not parse "+param+":", err)
+		}
+
 	// other valid settings
 	case "maxdownloadbatchsize", "maxrevisebatchsize", "netaddress":
 
@@ -406,7 +436,7 @@ func hostconfigcmd(param, value string) {
 	fmt.Printf("Estimated conversion rate: %v%%\n", eg.ConversionRate)
 }
 
-// hostcontractcmd is the handler for the command `siac host contracts [type]`.
+// hostcontractcmd is the handler for the command `spc host contracts [type]`.
 func hostcontractcmd() {
 	cg, err := httpClient.HostContractInfoGet()
 	if err != nil {
@@ -418,7 +448,7 @@ func hostcontractcmd() {
 	case "value":
 		fmt.Fprintf(w, "Obligation Id\tObligation Status\tContract Cost\tLocked Collateral\tRisked Collateral\tPotential Revenue\tExpiration Height\tTransaction Fees\n")
 		for _, so := range cg.Contracts {
-			potentialRevenue := so.PotentialDownloadRevenue.Add(so.PotentialUploadRevenue).Add(so.PotentialStorageRevenue)
+			potentialRevenue := so.PotentialDownloadRevenue.Add(so.PotentialUploadRevenue).Add(so.PotentialStorageRevenue).Add(so.PotentialAccountFunding)
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%d\t%s\n", so.ObligationId, strings.TrimPrefix(so.ObligationStatus, "obligation"), currencyUnits(so.ContractCost), currencyUnits(so.LockedCollateral),
 				currencyUnits(so.RiskedCollateral), currencyUnits(potentialRevenue), so.ExpirationHeight, currencyUnits(so.TransactionFeesAdded))
 		}
@@ -434,7 +464,7 @@ func hostcontractcmd() {
 	w.Flush()
 }
 
-// hostannouncecmd is the handler for the command `siac host announce`.
+// hostannouncecmd is the handler for the command `spc host announce`.
 // Announces yourself as a host to the network. Optionally takes an address to
 // announce as.
 func hostannouncecmd(cmd *cobra.Command, args []string) {
@@ -484,7 +514,6 @@ func hostfolderaddcmd(path, size string) {
 
 // hostfolderremovecmd removes a folder from the host.
 func hostfolderremovecmd(path string) {
-
 	// Ask for confirm for dangerous --force flag
 	if hostFolderRemoveForce {
 		fmt.Println(`Forced removing will completely destroy your renter's data,

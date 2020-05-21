@@ -20,12 +20,12 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 const (
-	testFunds        = "300000000000000000000000000000" // 300k SC
+	testFunds        = "300000000000000000000000000000" // 300k SCP
 	testPeriod       = "10"
 	testRenewWindow  = "5"
 	hosts            = "10"
@@ -833,7 +833,6 @@ func TestRenterLoadNonexistent(t *testing.T) {
 	allowanceValues.Set("expectedstorage", expectedstorage)
 	allowanceValues.Set("expectedupload", expectedupload)
 	allowanceValues.Set("expecteddownload", expecteddownload)
-	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
 	if err = st.stdPostAPI("/renter", allowanceValues); err != nil {
 		t.Fatal(err)
 	}
@@ -1015,7 +1014,6 @@ func TestRenterHandlerDelete(t *testing.T) {
 	allowanceValues.Set("expectedstorage", expectedstorage)
 	allowanceValues.Set("expectedupload", expectedupload)
 	allowanceValues.Set("expecteddownload", expecteddownload)
-	allowanceValues.Set("hosts", fmt.Sprint(modules.DefaultAllowance.Hosts))
 	if err = st.stdPostAPI("/renter", allowanceValues); err != nil {
 		t.Fatal(err)
 	}
@@ -1566,8 +1564,7 @@ func TestHealthLoop(t *testing.T) {
 	allowanceValues.Set("expecteddownload", expecteddownload)
 	allowanceValues.Set("hosts", "2")
 	allowanceValues.Set("period", "15")
-	err = st1.stdPostAPI("/renter", allowanceValues)
-	if err != nil {
+	if err = st1.stdPostAPI("/renter", allowanceValues); err != nil {
 		t.Fatal(err)
 	}
 

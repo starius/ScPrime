@@ -7,8 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-
-	"gitlab.com/scpcorp/ScPrime/build"
+	"unicode/utf8"
 
 	"gitlab.com/NebulousLabs/fastrand"
 )
@@ -41,9 +40,26 @@ var (
 	ChunkMetadataExtension = ".ccmd"
 )
 
+var (
+	// SkynetFolder is the ScPrime folder where all of the pubfiles are stored by
+	// default.
+	SkynetFolder = NewGlobalSiaPath("/var/pubaccess")
+
+	// BackupFolder is the Sia folder where all of the renter's snapshot
+	// siafiles are stored by default.
+	BackupFolder = NewGlobalSiaPath("/snapshots")
+
+	// HomeFolder is the Sia folder that is used to store all of the user
+	// accessible data.
+	HomeFolder = NewGlobalSiaPath("/home")
+
+	// UserFolder is the Sia folder that is used to store the renter's siafiles.
+	UserFolder = NewGlobalSiaPath("/home/user")
+)
+
 type (
 	// SiaPath is the struct used to uniquely identify siafiles and siadirs across
-	// Sia
+	// ScPrime
 	SiaPath struct {
 		Path string `json:"path"`
 	}
@@ -78,34 +94,6 @@ func RootSiaPath() SiaPath {
 	return SiaPath{}
 }
 
-// HomeSiaPath returns a siapath to /home
-func HomeSiaPath() SiaPath {
-	sp, err := RootSiaPath().Join(HomeFolderRoot)
-	if err != nil {
-		build.Critical(err)
-	}
-	return sp
-}
-
-// UserSiaPath returns a siapath to /home/user
-func UserSiaPath() SiaPath {
-	sp := HomeSiaPath()
-	sp, err := sp.Join(UserRoot)
-	if err != nil {
-		build.Critical(err)
-	}
-	return sp
-}
-
-// SnapshotsSiaPath returns a siapath to /snapshots
-func SnapshotsSiaPath() SiaPath {
-	sp, err := RootSiaPath().Join(BackupRoot)
-	if err != nil {
-		build.Critical(err)
-	}
-	return sp
-}
-
 // CombinedSiaFilePath returns the SiaPath to a hidden siafile which is used to
 // store chunks that contain pieces of multiple siafiles.
 func CombinedSiaFilePath(ec ErasureCoder) SiaPath {
@@ -138,11 +126,18 @@ func (sp SiaPath) AddSuffix(suffix uint) SiaPath {
 
 // Dir returns the directory of the SiaPath
 func (sp SiaPath) Dir() (SiaPath, error) {
-	str := filepath.Dir(sp.Path)
-	if str == "." {
+	pathElements := strings.Split(sp.Path, "/")
+	// If there is only one path element, then the Siapath was just a filename
+	// and did not have a directory, return the root Siapath
+	if len(pathElements) <= 1 {
 		return RootSiaPath(), nil
 	}
-	return newSiaPath(str)
+	dir := strings.Join(pathElements[:len(pathElements)-1], "/")
+	// If dir is empty or a dot, return the root Siapath
+	if dir == "" || dir == "." {
+		return RootSiaPath(), nil
+	}
+	return newSiaPath(dir)
 }
 
 // Equals compares two SiaPath types for equality
@@ -163,10 +158,11 @@ func (sp SiaPath) IsRoot() bool {
 // Join joins the string to the end of the SiaPath with a "/" and returns the
 // new SiaPath.
 func (sp SiaPath) Join(s string) (SiaPath, error) {
-	if s == "" {
+	cleanStr := clean(s)
+	if s == "" || cleanStr == "" {
 		return SiaPath{}, errors.New("cannot join an empty string to a siapath")
 	}
-	return newSiaPath(sp.Path + "/" + clean(s))
+	return newSiaPath(sp.Path + "/" + cleanStr)
 }
 
 // LoadString sets the path of the SiaPath to the provided string
@@ -193,7 +189,12 @@ func (sp SiaPath) MarshalJSON() ([]byte, error) {
 
 // Name returns the name of the file.
 func (sp SiaPath) Name() string {
-	_, name := filepath.Split(sp.Path)
+	pathElements := strings.Split(sp.Path, "/")
+	name := pathElements[len(pathElements)-1]
+	// If name is a dot, return the root Siapath name
+	if name == "." {
+		name = ""
+	}
 	return name
 }
 
@@ -297,5 +298,11 @@ func (sp SiaPath) Validate(isRoot bool) error {
 		}
 		prevElem = pathElem
 	}
+
+	// Final check for a valid utf8
+	if !utf8.ValidString(sp.Path) {
+		return errors.New("SiaPath is not a valid utf8 path")
+	}
+
 	return nil
 }

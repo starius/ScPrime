@@ -5,11 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
+	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/types"
 
@@ -17,17 +21,50 @@ import (
 )
 
 var (
-	// errUnableToParseSize is returned when the input is unable to be parsed
-	// into a file size unit
-	errUnableToParseSize = errors.New("unable to parse size")
+	// ErrParseCurrencyAmount is returned when the input is unable to be parsed
+	// into a currency unit due to a malformed amount.
+	ErrParseCurrencyAmount = errors.New("malformed amount")
+	// ErrParseCurrencyInteger is returned when the input is unable to be parsed
+	// into a currency unit due to a non-integer value.
+	ErrParseCurrencyInteger = errors.New("non-integer number of hastings")
+	// ErrParseCurrencyUnits is returned when the input is unable to be parsed
+	// into a currency unit due to missing units.
+	ErrParseCurrencyUnits = errors.New("amount is missing currency units; run 'wallet --help' for a list of units. Currency units are case sensitive")
 
-	// errUnableToParseRateLimit is returned when the input is unable to be
-	// parsed into a rate limit unit
-	errUnableToParseRateLimit = errors.New("unable to parse ratelimit")
+	// ErrParsePeriodAmount is returned when the input is unable to be parsed
+	// into a period unit due to a malformed amount.
+	ErrParsePeriodAmount = errors.New("malformed amount")
+	// ErrParsePeriodUnits is returned when the input is unable to be parsed
+	// into a period unit due to missing units.
+	ErrParsePeriodUnits = errors.New("amount is missing period units")
+
+	// ErrParseRateLimitAmount is returned when the input is unable to be parsed into
+	// a rate limit unit due to a malformed amount.
+	ErrParseRateLimitAmount = errors.New("malformed amount")
+	// ErrParseRateLimitNoAmount is returned when the input is unable to be
+	// parsed into a rate limit unit due to no amount being given.
+	ErrParseRateLimitNoAmount = errors.New("amount is missing")
+	// ErrParseRateLimitUnits is returned when the input is unable to be parsed
+	// into a rate limit unit due to missing units.
+	ErrParseRateLimitUnits = errors.New("amount is missing rate limit units")
+
+	// ErrParseSizeAmount is returned when the input is unable to be parsed into
+	// a file size unit due to a malformed amount.
+	ErrParseSizeAmount = errors.New("malformed amount")
+	// ErrParseSizeUnits is returned when the input is unable to be parsed into
+	// a file size unit due to missing units.
+	ErrParseSizeUnits = errors.New("amount is missing filesize units")
+
+	// ErrParseTimeoutAmount is returned when the input is unable to be parsed
+	// into a timeout unit due to a malformed amount.
+	ErrParseTimeoutAmount = errors.New("malformed amount")
+	// ErrParseTimeoutUnits is returned when the input is unable to be parsed
+	// into a timeout unit due to missing units.
+	ErrParseTimeoutUnits = errors.New("amount is missing timeout units")
 )
 
-// parseFilesize converts strings of form 10GB to a size in bytes. Fractional
-// sizes are truncated at the byte size.
+// parseFilesize converts strings of form '10GB' or '10 gb' to a size in bytes.
+// Fractional sizes are truncated at the byte size.
 func parseFilesize(strSize string) (string, error) {
 	units := []struct {
 		suffix     string
@@ -44,12 +81,15 @@ func parseFilesize(strSize string) (string, error) {
 		{"b", 1}, // must be after others else it'll match on them all
 	}
 
-	strSize = strings.ToLower(strSize)
+	strSize = strings.ToLower(strings.TrimSpace(strSize))
 	for _, unit := range units {
 		if strings.HasSuffix(strSize, unit.suffix) {
-			r, ok := new(big.Rat).SetString(strings.TrimSuffix(strSize, unit.suffix))
+			// Trim spaces after removing the suffix to allow spaces between the
+			// value and the unit.
+			value := strings.TrimSpace(strings.TrimSuffix(strSize, unit.suffix))
+			r, ok := new(big.Rat).SetString(value)
 			if !ok {
-				return "", errUnableToParseSize
+				return "", ErrParseSizeAmount
 			}
 			r.Mul(r, new(big.Rat).SetInt(big.NewInt(unit.multiplier)))
 			if !r.IsInt() {
@@ -60,7 +100,7 @@ func parseFilesize(strSize string) (string, error) {
 		}
 	}
 
-	return "", errUnableToParseSize
+	return "", ErrParseSizeUnits
 }
 
 // periodUnits turns a period in terms of blocks to a number of weeks.
@@ -89,20 +129,58 @@ func parsePeriod(period string) (string, error) {
 		{"weeks", 1008}, // weeks
 	}
 
-	period = strings.ToLower(period)
+	period = strings.ToLower(strings.TrimSpace(period))
 	for _, unit := range units {
 		if strings.HasSuffix(period, unit.suffix) {
 			var base float64
 			_, err := fmt.Sscan(strings.TrimSuffix(period, unit.suffix), &base)
 			if err != nil {
-				return "", errUnableToParseSize
+				return "", ErrParsePeriodAmount
 			}
 			blocks := int(base * unit.multiplier)
 			return fmt.Sprint(blocks), nil
 		}
 	}
 
-	return "", errUnableToParseSize
+	return "", ErrParsePeriodUnits
+}
+
+// parseTimeout converts a duration specified in seconds, hours, days or weeks
+// to a number of seconds
+func parseTimeout(duration string) (string, error) {
+	units := []struct {
+		suffix     string
+		multiplier float64
+	}{
+		{"s", 1},          // seconds
+		{"second", 1},     // seconds
+		{"seconds", 1},    // seconds
+		{"h", 3600},       // hours
+		{"hour", 3600},    // hours
+		{"hours", 3600},   // hours
+		{"d", 86400},      // days
+		{"day", 86400},    // days
+		{"days", 86400},   // days
+		{"w", 604800},     // weeks
+		{"week", 604800},  // weeks
+		{"weeks", 604800}, // weeks
+	}
+
+	duration = strings.ToLower(strings.TrimSpace(duration))
+	for _, unit := range units {
+		if strings.HasSuffix(duration, unit.suffix) {
+			value := strings.TrimSpace(strings.TrimSuffix(duration, unit.suffix))
+			var base float64
+			_, err := fmt.Sscan(value, &base)
+			if err != nil {
+				return "", ErrParseTimeoutAmount
+			}
+			seconds := int(base * unit.multiplier)
+			return fmt.Sprint(seconds), nil
+		}
+	}
+
+	return "", ErrParseTimeoutUnits
 }
 
 // currencyUnits converts a types.Currency to a string with human-readable
@@ -134,15 +212,19 @@ func currencyUnits(c types.Currency) string {
 	return fmt.Sprintf("%.4g %s", res, unit)
 }
 
-// parseCurrency converts a siacoin amount to base units.
+// parseCurrency converts a scprimecoin amount to base units.
 func parseCurrency(amount string) (string, error) {
 	units := []string{"pS", "nS", "uS", "mS", "SCP", "KS", "MS", "GS", "TS"}
+	amount = strings.TrimSpace(amount)
 	for i, unit := range units {
 		if strings.HasSuffix(amount, unit) {
+			// Trim spaces after removing the suffix to allow spaces between the
+			// value and the unit.
+			value := strings.TrimSpace(strings.TrimSuffix(amount, unit))
 			// scan into big.Rat
-			r, ok := new(big.Rat).SetString(strings.TrimSuffix(amount, unit))
+			r, ok := new(big.Rat).SetString(value)
 			if !ok {
-				return "", errors.New("malformed amount")
+				return "", ErrParseCurrencyAmount
 			}
 			// convert units
 			exp := 27 + 3*(int64(i)-4)
@@ -150,7 +232,7 @@ func parseCurrency(amount string) (string, error) {
 			r.Mul(r, new(big.Rat).SetInt(mag))
 			// r must be an integer at this point
 			if !r.IsInt() {
-				return "", errors.New("non-integer number of hastings")
+				return "", ErrParseCurrencyInteger
 			}
 			return r.RatString(), nil
 		}
@@ -160,7 +242,7 @@ func parseCurrency(amount string) (string, error) {
 		return strings.TrimSuffix(amount, "H"), nil
 	}
 
-	return "", errors.New("amount is missing units; run 'wallet --help' for a list of units")
+	return "", ErrParseCurrencyUnits
 }
 
 // parseRatelimit converts a ratelimit input string of to an int64 representing
@@ -187,6 +269,7 @@ func parseRatelimit(rateLimitStr string) (int64, error) {
 		{"Kbps", 1e3 / 8},
 		{"Bps", 1e0 / 8},
 	}
+	rateLimitStr = strings.TrimSpace(rateLimitStr)
 	for _, rate := range rates {
 		if !strings.HasSuffix(rateLimitStr, rate.unit) {
 			continue
@@ -198,27 +281,27 @@ func parseRatelimit(rateLimitStr string) (int64, error) {
 
 		// Check for empty string meaning only the units were provided
 		if rateLimitStr == "" {
-			return 0, errUnableToParseRateLimit
+			return 0, ErrParseRateLimitNoAmount
 		}
 
 		// convert string to float for exponation
 		rateLimitFloat, err := strconv.ParseFloat(rateLimitStr, 64)
 		if err != nil {
-			return 0, errors.Compose(errUnableToParseRateLimit, err)
+			return 0, errors.Compose(ErrParseRateLimitAmount, err)
 		}
 		// Check for Bps to make sure it is greater than 8 Bps meaning that it is at
 		// least 1 B/s
 		if rateLimitFloat < 8 && rate.unit == "Bps" {
-			return 0, errors.AddContext(errUnableToParseRateLimit, "Bps rate limit cannot be < 8 Bps")
+			return 0, errors.AddContext(ErrParseRateLimitAmount, "Bps rate limit cannot be < 8 Bps")
 		}
 
-		// Determine factor and convert to in64 for bps
+		// Determine factor and convert to int64 for bps
 		rateLimit := int64(rateLimitFloat * rate.factor)
 
 		return rateLimit, nil
 	}
 
-	return 0, errUnableToParseRateLimit
+	return 0, ErrParseRateLimitUnits
 }
 
 // ratelimitUnits converts an int64 to a string with human-readable ratelimit
@@ -281,6 +364,82 @@ func parseTxn(s string) (types.Transaction, error) {
 		}
 	}
 	return txn, nil
+}
+
+// fmtDuration converts a time.Duration into a days,hours,minutes string
+func fmtDuration(dur time.Duration) string {
+	dur = dur.Round(time.Minute)
+	d := dur / time.Hour / 24
+	dur -= d * time.Hour * 24
+	h := dur / time.Hour
+	dur -= h * time.Hour
+	m := dur / time.Minute
+	return fmt.Sprintf("%02d days %02d hours %02d minutes", d, h, m)
+}
+
+// parsePercentages takes a range of floats and returns them rounded to
+// percentages that add up to 100. They will be returned in the same order that
+// they were provided
+func parsePercentages(values []float64) []float64 {
+	// Create a slice of percentInfo to track information of the values in the
+	// slice and calculate the subTotal of the floor values
+	type percentInfo struct {
+		index       int
+		floorVal    float64
+		originalVal float64
+	}
+	var percentages []*percentInfo
+	var subTotal float64
+	for i, v := range values {
+		fv := math.Floor(v)
+		percentages = append(percentages, &percentInfo{
+			index:       i,
+			floorVal:    fv,
+			originalVal: v,
+		})
+		subTotal += fv
+	}
+
+	// Sanity check and regression check that all values were added. Fine to
+	// continue through in production as result will only be a minor UX
+	// descrepency
+	if len(percentages) != len(values) {
+		build.Critical("Not all values added to percentage slice; potential duplicate value error")
+	}
+
+	// Determine the difference to 100 from the subTotal of the floor values
+	diff := 100 - subTotal
+
+	// Diff should always be smaller than the number of values. Sanity check for
+	// developers, fine to continue through in production as result will only be
+	// a minor UX descrepency
+	if int(diff) > len(values) {
+		build.Critical(fmt.Errorf("Unexpected diff value %v, number of values %v", diff, len(values)))
+	}
+
+	// Sort the slice based on the size of the decimal value
+	sort.Slice(percentages, func(i, j int) bool {
+		_, a := math.Modf(percentages[i].originalVal)
+		_, b := math.Modf(percentages[j].originalVal)
+		return a > b
+	})
+
+	// Divide the diff amongst the floor values from largest decimal value to
+	// the smallest to decide which values get rounded up.
+	for _, pi := range percentages {
+		if diff <= 0 {
+			break
+		}
+		pi.floorVal++
+		diff--
+	}
+
+	// Reorder the slice and return
+	for _, pi := range percentages {
+		values[pi.index] = pi.floorVal
+	}
+
+	return values
 }
 
 // parseBoolean returns true if supplied string is either yes, enabled or true

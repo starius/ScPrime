@@ -41,12 +41,12 @@ type hdbTester struct {
 func bareHostDB() *HostDB {
 	hdb := &HostDB{
 		allowance:      modules.DefaultAllowance,
-		log:            persist.NewLogger(ioutil.Discard),
+		staticLog:      persist.NewLogger(ioutil.Discard),
 		knownContracts: make(map[string]contractInfo),
 	}
 	hdb.weightFunc = hdb.managedCalculateHostWeightFn(hdb.allowance)
-	hdb.hostTree = hosttree.New(hdb.weightFunc, &modules.ProductionResolver{})
-	hdb.filteredTree = hosttree.New(hdb.weightFunc, &modules.ProductionResolver{})
+	hdb.staticHostTree = hosttree.New(hdb.weightFunc, &modules.ProductionResolver{})
+	hdb.staticFilteredTree = hosttree.New(hdb.weightFunc, &modules.ProductionResolver{})
 	return hdb
 }
 
@@ -141,6 +141,7 @@ func TestNew(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	testDir := build.TempDir("HostDB", t.Name())
 	g, err := gateway.New("localhost:0", false, filepath.Join(testDir, modules.GatewayDir))
 	if err != nil {
@@ -202,6 +203,7 @@ func TestRandomHosts(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	hdbt, err := newHDBTesterDeps(t.Name(), &disableScanLoopDeps{})
 	if err != nil {
 		t.Fatal(err)
@@ -212,24 +214,12 @@ func TestRandomHosts(t *testing.T) {
 	for i := 0; i < nEntries; i++ {
 		entry := makeHostDBEntry()
 		entries[entry.PublicKey.String()] = entry
-		err := hdbt.hdb.filteredTree.Insert(entry)
+		err := hdbt.hdb.staticFilteredTree.Insert(entry)
 		if err != nil {
 			t.Error(err)
 		}
 	}
-	insertedEntries := hdbt.hdb.filteredTree.All()
-	if len(insertedEntries) != len(entries) {
-		t.Errorf("Inserted %v entries and got stored %v entries.", len(entries), len(insertedEntries))
-	}
 
-	hdbt.hdb.initialScanComplete = true
-	complete, err := hdbt.hdb.InitialScanComplete()
-	if !complete {
-		t.Error("InitialScanComplete should be true")
-	}
-	if err != nil {
-		t.Fatal("Failed to get InitialScanComplete()", err)
-	}
 	// Check that all hosts can be queried.
 	for i := 0; i < 25; i++ {
 		hosts, err := hdbt.hdb.RandomHosts(nEntries, nil, nil)
@@ -302,7 +292,6 @@ func TestRandomHosts(t *testing.T) {
 				disjoint = true
 			}
 			dupCheck2[host.PublicKey.String()] = host
-
 		}
 		if !overlap || !disjoint {
 			t.Error("Random hosts does not seem to be random")
@@ -424,13 +413,14 @@ func TestRemoveNonexistingHostFromHostTree(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	hdbt, err := newHDBTester(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Remove a host that doesn't exist from the tree.
-	err = hdbt.hdb.hostTree.Remove(types.SiaPublicKey{})
+	err = hdbt.hdb.staticHostTree.Remove(types.SiaPublicKey{})
 	if err == nil {
 		t.Fatal("There should be an error, but not a panic:", err)
 	}
@@ -442,6 +432,7 @@ func TestUpdateHistoricInteractions(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 
 	// create a HostDB tester without scanloop to be able to manually increment
 	// the interactions without interference.
@@ -452,7 +443,7 @@ func TestUpdateHistoricInteractions(t *testing.T) {
 
 	// create a HostDBEntry and add it to the tree
 	host := makeHostDBEntry()
-	err = hdbt.hdb.hostTree.Insert(host)
+	err = hdbt.hdb.staticHostTree.Insert(host)
 	if err != nil {
 		t.Error(err)
 	}
@@ -629,6 +620,7 @@ func TestSetIPRestriction(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 
 	// Prepare a few hosts for the test
 	entry1 := makeHostDBEntry()

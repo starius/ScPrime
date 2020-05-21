@@ -17,41 +17,42 @@ package renter
 // as well.
 
 import (
-	"errors"
+	"bufio"
 	"io"
 	"os"
 	"sync"
 	"time"
 
-	"gitlab.com/NebulousLabs/fastrand"
-
 	"gitlab.com/scpcorp/ScPrime/modules"
+
+	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // skipWriter is a helper type that ignores the first 'skip' bytes written to it.
 type skipWriter struct {
-	w    io.Writer
-	skip int
+	writer io.Writer
+	skip   int
 }
 
 // Write will write bytes to the skipWriter, being sure to skip over any bytes
 // which the skipWriter was initialized to skip
 func (sw *skipWriter) Write(p []byte) (int, error) {
 	if sw.skip == 0 {
-		return sw.w.Write(p)
+		return sw.writer.Write(p)
 	} else if sw.skip > len(p) {
 		sw.skip -= len(p)
 		return len(p), nil
 	}
-	n, err := sw.w.Write(p[sw.skip:])
+	n, err := sw.writer.Write(p[sw.skip:])
 	n += sw.skip
 	sw.skip = 0
 	return n, err
 }
 
-// SectionWriter implements Write on a section
+// sectionWriter implements Write on a section
 // of an underlying WriterAt.
-type SectionWriter struct {
+type sectionWriter struct {
 	w     io.WriterAt
 	base  int64
 	off   int64
@@ -62,18 +63,15 @@ type SectionWriter struct {
 // write would cross the boundaries between section.
 var errSectionWriteOutOfBounds = errors.New("section write is out of bounds")
 
-// NewSectionWriter returns a SectionWriter that writes to w
+// NewSectionWriter returns a sectionWriter that writes to w
 // starting at offset off and stops with EOF after n bytes.
-func NewSectionWriter(w io.WriterAt, off int64, n int64) *SectionWriter {
-	return &SectionWriter{w, off, off, off + n}
+func NewSectionWriter(w io.WriterAt, off int64, n int64) *sectionWriter {
+	return &sectionWriter{w, off, off, off + n}
 }
 
 // Write implements the io.Writer interface using WriteAt.
-func (s *SectionWriter) Write(p []byte) (n int, err error) {
-	if s.off >= s.limit {
-		return 0, errSectionWriteOutOfBounds
-	}
-	if int64(len(p)) > s.limit-s.off {
+func (s *sectionWriter) Write(p []byte) (n int, err error) {
+	if s.off >= s.limit || int64(len(p)) > s.limit-s.off {
 		return 0, errSectionWriteOutOfBounds
 	}
 	n, err = s.w.WriteAt(p, s.off)
@@ -94,8 +92,7 @@ type downloadDestination interface {
 	// pieces - the downloadDestination can check and determine if a recovery is
 	// required.
 	//
-	// The pieces are provided decrypted. If we did not need to decrypt the
-	// data, there would be little point in fetching the data.
+	// The pieces are provided decrypted.
 	WritePieces(ec modules.ErasureCoder, pieces [][]byte, dataOffset uint64, writeOffset int64, length uint64) error
 }
 
@@ -136,7 +133,14 @@ func (ddf *downloadDestinationFile) WritePieces(ec modules.ErasureCoder, pieces 
 	if ddf.deps.Disrupt("PostponeWritePiecesRecovery") {
 		time.Sleep(time.Duration(fastrand.Intn(1000)) * time.Millisecond)
 	}
-	return ec.Recover(pieces, dataOffset+length, &skipWriter{w: sw, skip: int(dataOffset)})
+	skipWriter := &skipWriter{
+		writer: sw,
+		skip:   int(dataOffset),
+	}
+	bufioWriter := bufio.NewWriter(skipWriter)
+	err := ec.Recover(pieces, dataOffset+length, bufioWriter)
+	err2 := bufioWriter.Flush()
+	return errors.AddContext(errors.Compose(err, err2), "unable to write pieces to destination file")
 }
 
 // downloadDestinationWriter is a downloadDestination that writes to an
@@ -225,13 +229,12 @@ func (ddw *downloadDestinationWriter) WritePieces(ec modules.ErasureCoder, piece
 		}
 		// Error if the stream has progressed beyond 'offset'.
 		if offset < ddw.progress {
-			ddw.mu.Unlock()
 			return errOffsetAlreadyWritten
 		}
 
 		// Write the data to the stream, and the update the progress and unblock
 		// the next write.
-		err := ec.Recover(pieces, dataOffset+length, &skipWriter{w: ddw, skip: int(dataOffset)})
+		err := ec.Recover(pieces, dataOffset+length, &skipWriter{writer: ddw, skip: int(dataOffset)})
 		ddw.progress += int64(length)
 		ddw.unblockNextWrites()
 		return err

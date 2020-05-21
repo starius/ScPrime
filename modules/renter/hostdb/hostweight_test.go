@@ -1,14 +1,15 @@
 package hostdb
 
 import (
+	"math"
 	"testing"
 	"time"
+
+	"gitlab.com/NebulousLabs/fastrand"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 var (
@@ -30,17 +31,17 @@ var (
 		HostExternalSettings: modules.HostExternalSettings{
 			AcceptingContracts: true,
 			MaxDuration:        26e3,
-			RemainingStorage:   2e12,
+			RemainingStorage:   1e12,
 			WindowSize:         144,
-			//TODO: Adjust new values here!
+
 			Collateral:    types.ScPrimecoinPrecision.Mul64(50).Div(modules.BlockBytesPerMonthTerabyte),
 			MaxCollateral: types.ScPrimecoinPrecision.Mul64(25),
 
-			ContractPrice: types.NewCurrency64(1).Mul(types.SiacoinPrecision), //0.001SCP
-			StoragePrice:  types.NewCurrency64(50).Mul(types.SiacoinPrecision).Div(modules.BlockBytesPerMonthTerabyte),
-
-			BaseRPCPrice:      types.SiacoinPrecision.Mul64(100).Div64(1e9),
-			SectorAccessPrice: types.SiacoinPrecision.Mul64(2).Div64(1e6),
+			BaseRPCPrice:           types.ScPrimecoinPrecision.Div64(1e12),                                       //1pS
+			ContractPrice:          types.ScPrimecoinPrecision.Div64(1e3),                                        //0.001SCP
+			DownloadBandwidthPrice: types.ScPrimecoinPrecision.Mul64(2).Div64(1e12),                              //2SCP/TB
+			SectorAccessPrice:      types.ScPrimecoinPrecision.Mul64(2).Div64(1e9),                               //2nS
+			StoragePrice:           types.ScPrimecoinPrecision.Mul64(50).Div(modules.BlockBytesPerMonthTerabyte), //50 SCP/TB/month
 
 			Version: build.Version,
 		},
@@ -61,6 +62,87 @@ func calculateWeightFromUInt64Price(price, collateral uint64) (weight types.Curr
 	return hdb.weightFunc(entry).Score()
 }
 
+// TestHostDBBasePriceAdjustment ensures that the basePriceAdjustment is impacted by
+// changes to BaseRPCPrice, SectorAccessPrice, and MinDownloadBandwidthPrice.
+func TestHostDBBasePriceAdjustment(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+	hdb := bareHostDB()
+	entry := DefaultHostDBEntry
+
+	// Confirm default entry has score of 1
+	bpa := hdb.basePriceAdjustments(entry)
+	if bpa != 1 {
+		t.Error("BasePriceAdjustment for default entry should be 1 but was", bpa)
+	}
+
+	// Confirm a higher BaseRPCPrice results in an almost zero score
+	entry.BaseRPCPrice = entry.MaxBaseRPCPrice().Mul64(2)
+	bpa = hdb.basePriceAdjustments(entry)
+	if bpa != math.SmallestNonzeroFloat64 {
+		t.Errorf("BasePriceAdjustment should have been %v but was %v", math.SmallestNonzeroFloat64, bpa)
+	}
+	entry.BaseRPCPrice = DefaultHostDBEntry.BaseRPCPrice
+
+	// Confirm a higher SectorAccessPrice results in an almost zero score
+	entry.SectorAccessPrice = entry.MaxSectorAccessPrice().Mul64(2)
+	bpa = hdb.basePriceAdjustments(entry)
+	if bpa != math.SmallestNonzeroFloat64 {
+		t.Errorf("BasePriceAdjustment should have been %v but was %v", math.SmallestNonzeroFloat64, bpa)
+	}
+	entry.SectorAccessPrice = DefaultHostDBEntry.SectorAccessPrice
+
+	// Confirm a lower DownloadBandwidthPrice results in an almost zero score.
+	// Check by adjusting the price with both constants
+	entry.DownloadBandwidthPrice = DefaultHostDBEntry.DownloadBandwidthPrice.Div64(modules.MaxBaseRPCPriceVsBandwidth)
+	bpa = hdb.basePriceAdjustments(entry)
+	if bpa != math.SmallestNonzeroFloat64 {
+		t.Errorf("BasePriceAdjustment should have been %v but was %v", math.SmallestNonzeroFloat64, bpa)
+	}
+	entry.DownloadBandwidthPrice = DefaultHostDBEntry.DownloadBandwidthPrice.Div64(modules.MaxSectorAccessPriceVsBandwidth)
+	bpa = hdb.basePriceAdjustments(entry)
+	if bpa != math.SmallestNonzeroFloat64 {
+		t.Errorf("BasePriceAdjustment should have been %v but was %v", math.SmallestNonzeroFloat64, bpa)
+	}
+}
+
+// TestHostWeightBasePrice checks that a host with an unacceptable BaseRPCPrice
+// or SectorAccessPrice has a lower score.
+func TestHostWeightBasePrice(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+	hdb := bareHostDB()
+
+	entry := DefaultHostDBEntry
+	entry2 := DefaultHostDBEntry
+	entry2.BaseRPCPrice = entry.MaxBaseRPCPrice().Mul64(2)
+	entry3 := DefaultHostDBEntry
+	entry3.SectorAccessPrice = entry.MaxSectorAccessPrice().Mul64(2)
+
+	sDefault := hdb.weightFunc(entry).Score()
+	sInsaneBRPCPrice := hdb.weightFunc(entry2).Score()
+	sInsaneSAPrice := hdb.weightFunc(entry3).Score()
+	if sDefault.Cmp(sInsaneBRPCPrice) <= 0 {
+		t.Log("Default Score", sDefault)
+		t.Log("Bad BaseRPCPrice Score", sInsaneBRPCPrice)
+		t.Error("Default host should have higher score")
+	}
+	if sDefault.Cmp(sInsaneSAPrice) <= 0 {
+		t.Log("Default Score", sDefault)
+		t.Log("Bad SectorAccess Score", sInsaneSAPrice)
+		t.Error("Default host should have higher score")
+	}
+	if sInsaneBRPCPrice.Cmp(sInsaneSAPrice) != 0 {
+		t.Log("Bad BaseRPCPrice Score", sInsaneBRPCPrice)
+		t.Log("Bad SectorAccess Score", sInsaneSAPrice)
+		t.Error("Hosts should have the same score")
+	}
+}
+
 // TestHostWeightDistinctPrices ensures that the host weight is different if the
 // prices are different, and that a higher price has a lower score.
 func TestHostWeightDistinctPrices(t *testing.T) {
@@ -69,6 +151,7 @@ func TestHostWeightDistinctPrices(t *testing.T) {
 	}
 	weight1 := calculateWeightFromUInt64Price(50000, 1e5)
 	weight2 := calculateWeightFromUInt64Price(50100, 1e5)
+	t.Parallel()
 	if weight1.Cmp(weight2) <= 0 {
 		t.Log(weight1)
 		t.Log(weight2)
@@ -85,6 +168,7 @@ func TestHostWeightDistinctCollateral(t *testing.T) {
 	}
 	weight1 := calculateWeightFromUInt64Price(300, 500)
 	weight2 := calculateWeightFromUInt64Price(300, 450)
+	t.Parallel()
 	if weight1.Cmp(weight2) <= 0 {
 		t.Log(weight1)
 		t.Log(weight2)
@@ -98,6 +182,7 @@ func TestHostWeightCollateralBelowCutoff(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	weight1 := calculateWeightFromUInt64Price(300, 10)
 	weight2 := calculateWeightFromUInt64Price(150, 5)
 	if weight1.Cmp(weight2) <= 0 {
@@ -115,6 +200,7 @@ func TestHostWeightCollateralAboveCutoff(t *testing.T) {
 	}
 	weight1 := calculateWeightFromUInt64Price(30000, 100000)
 	weight2 := calculateWeightFromUInt64Price(15000, 50000)
+	t.Parallel()
 	if weight1.Cmp(weight2) >= 0 {
 		t.Log(weight1)
 		t.Log(weight2)
@@ -129,6 +215,7 @@ func TestHostWeightIdenticalPrices(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	weight1 := calculateWeightFromUInt64Price(42, 100)
 	weight2 := calculateWeightFromUInt64Price(42, 100)
 	if weight1.Cmp(weight2) != 0 {
@@ -143,6 +230,7 @@ func TestHostWeightWithOnePricedZero(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	weight1 := calculateWeightFromUInt64Price(5, 10)
 	weight2 := calculateWeightFromUInt64Price(0, 10)
 	if weight1.Cmp(weight2) >= 0 {
@@ -158,6 +246,7 @@ func TestHostWeightWithBothPricesZero(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	weight1 := calculateWeightFromUInt64Price(0, 100)
 	weight2 := calculateWeightFromUInt64Price(0, 100)
 	if weight1.Cmp(weight2) != 0 {
@@ -171,6 +260,7 @@ func TestHostWeightWithNoCollateral(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	weight1 := calculateWeightFromUInt64Price(300, 1)
 	weight2 := calculateWeightFromUInt64Price(300, 0)
 	if weight1.Cmp(weight2) <= 0 {
@@ -186,6 +276,7 @@ func TestHostWeightMaxDuration(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	hdb := bareHostDB()
 	hdb.SetAllowance(DefaultTestAllowance)
 
@@ -206,6 +297,7 @@ func TestHostWeightCollateralDifferences(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	hdb := bareHostDB()
 	hdb.SetAllowance(DefaultTestAllowance)
 
@@ -226,6 +318,7 @@ func TestHostWeightStorageRemainingDifferences(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	hdb := bareHostDB()
 
 	// Create two entries with different host keys.
@@ -271,6 +364,7 @@ func TestHostWeightVersionDifferences(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	hdb := bareHostDB()
 
 	entry := DefaultHostDBEntry
@@ -292,6 +386,7 @@ func TestHostWeightLifetimeDifferences(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	hdb := bareHostDB()
 	hdb.blockHeight = 10000
 
@@ -314,6 +409,7 @@ func TestHostWeightUptimeDifferences(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	hdb := bareHostDB()
 	hdb.blockHeight = 10000
 
@@ -351,6 +447,7 @@ func TestHostWeightUptimeDifferences2(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	hdb := bareHostDB()
 	hdb.blockHeight = 10000
 
@@ -397,6 +494,7 @@ func TestHostWeightUptimeDifferences3(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	hdb := bareHostDB()
 	hdb.blockHeight = 10000
 
@@ -443,6 +541,7 @@ func TestHostWeightUptimeDifferences4(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	hdb := bareHostDB()
 	hdb.blockHeight = 10000
 
@@ -526,6 +625,7 @@ func TestHostWeightExtraPriceAdjustments(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 	hdb := bareHostDB()
 
 	allowance := DefaultTestAllowance

@@ -85,159 +85,6 @@ func (ac *addressCounter) managedNextNodeAddress() (string, error) {
 	return ac.address.String(), nil
 }
 
-// PrintDebugInfo prints out helpful debug information when debug tests and ndfs, the
-// boolean arguments dictate what is printed
-func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterInfo bool) {
-	if contractInfo {
-		rc, err := tn.RenterAllContractsGet()
-		if err != nil {
-			t.Log(err)
-		}
-		t.Log("Active Contracts")
-		for _, c := range rc.ActiveContracts {
-			t.Log("    ID", c.ID)
-			t.Log("    HostPublicKey", c.HostPublicKey)
-			t.Log("    GoodForUpload", c.GoodForUpload)
-			t.Log("    GoodForRenew", c.GoodForRenew)
-			t.Log("    EndHeight", c.EndHeight)
-		}
-		t.Log()
-		t.Log("Passive Contracts")
-		for _, c := range rc.PassiveContracts {
-			t.Log("    ID", c.ID)
-			t.Log("    HostPublicKey", c.HostPublicKey)
-			t.Log("    GoodForUpload", c.GoodForUpload)
-			t.Log("    GoodForRenew", c.GoodForRenew)
-			t.Log("    EndHeight", c.EndHeight)
-		}
-		t.Log()
-		t.Log("Refreshed Contracts")
-		for _, c := range rc.RefreshedContracts {
-			t.Log("    ID", c.ID)
-			t.Log("    HostPublicKey", c.HostPublicKey)
-			t.Log("    GoodForUpload", c.GoodForUpload)
-			t.Log("    GoodForRenew", c.GoodForRenew)
-			t.Log("    EndHeight", c.EndHeight)
-		}
-		t.Log()
-		t.Log("Disabled Contracts")
-		for _, c := range rc.DisabledContracts {
-			t.Log("    ID", c.ID)
-			t.Log("    HostPublicKey", c.HostPublicKey)
-			t.Log("    GoodForUpload", c.GoodForUpload)
-			t.Log("    GoodForRenew", c.GoodForRenew)
-			t.Log("    EndHeight", c.EndHeight)
-		}
-		t.Log()
-		t.Log("Expired Contracts")
-		for _, c := range rc.ExpiredContracts {
-			t.Log("    ID", c.ID)
-			t.Log("    HostPublicKey", c.HostPublicKey)
-			t.Log("    GoodForUpload", c.GoodForUpload)
-			t.Log("    GoodForRenew", c.GoodForRenew)
-			t.Log("    EndHeight", c.EndHeight)
-		}
-		t.Log()
-		t.Log("Expired Refreshed Contracts")
-		for _, c := range rc.ExpiredRefreshedContracts {
-			t.Log("    ID", c.ID)
-			t.Log("    HostPublicKey", c.HostPublicKey)
-			t.Log("    GoodForUpload", c.GoodForUpload)
-			t.Log("    GoodForRenew", c.GoodForRenew)
-			t.Log("    EndHeight", c.EndHeight)
-		}
-		t.Log()
-	}
-
-	if hostInfo {
-		hdbag, err := tn.HostDbAllGet()
-		if err != nil {
-			t.Log(err)
-		}
-		t.Log("Active Hosts from HostDB")
-		for _, host := range hdbag.Hosts {
-			hostInfo, err := tn.HostDbHostsGet(host.PublicKey)
-			if err != nil {
-				t.Log(err)
-			}
-			t.Log("    Host:", host.NetAddress)
-			t.Log("        score", hostInfo.ScoreBreakdown.Score)
-			t.Log("        breakdown", hostInfo.ScoreBreakdown)
-			t.Log("        pk", host.PublicKey)
-			t.Log("        Accepting Contracts", host.HostExternalSettings.AcceptingContracts)
-			t.Log("        Filtered", host.Filtered)
-			t.Log("        LastIPNetChange", host.LastIPNetChange.String())
-			t.Log("        Subnets")
-			for _, subnet := range host.IPNets {
-				t.Log("            ", subnet)
-			}
-			t.Log()
-		}
-		t.Log()
-	}
-
-	if renterInfo {
-		t.Log("Renter Info")
-		rg, err := tn.RenterGet()
-		if err != nil {
-			t.Log(err)
-		}
-		t.Log("CP:", rg.CurrentPeriod)
-		cg, err := tn.ConsensusGet()
-		if err != nil {
-			t.Log(err)
-		}
-		t.Log("BH:", cg.Height)
-		settings := rg.Settings
-		t.Log("Allowance Funds:", settings.Allowance.Funds.HumanString())
-		fm := rg.FinancialMetrics
-		t.Log("Unspent Funds:", fm.Unspent.HumanString())
-		t.Log()
-	}
-}
-
-// RestartNode restarts a TestNode
-func (tn *TestNode) RestartNode() error {
-	err := tn.StopNode()
-	if err != nil {
-		return errors.AddContext(err, "Could not stop node")
-	}
-	err = tn.StartNode()
-	if err != nil {
-		return errors.AddContext(err, "Could not start node")
-	}
-	return nil
-}
-
-// StartNode starts a TestNode from an active group
-func (tn *TestNode) StartNode() error {
-	// Create server
-	s, err := server.New(":0", tn.UserAgent, tn.Password, tn.params, time.Now())
-	if err != nil {
-		return err
-	}
-	tn.Server = s
-	tn.Client.Address = s.APIAddress()
-	if !tn.params.CreateWallet && tn.params.Wallet == nil {
-		return nil
-	}
-	return tn.WalletUnlockPost(tn.primarySeed)
-}
-
-// StartNodeCleanDeps restarts a node from an active group without its
-// previously assigned dependencies.
-func (tn *TestNode) StartNodeCleanDeps() error {
-	tn.params.ContractSetDeps = nil
-	tn.params.ContractorDeps = nil
-	tn.params.RenterDeps = nil
-	return tn.StartNode()
-}
-
-// StopNode stops a TestNode
-func (tn *TestNode) StopNode() error {
-	return errors.AddContext(tn.Close(), "failed to stop node")
-}
-
 // NewNode creates a new funded TestNode
 func NewNode(nodeParams node.NodeParams) (*TestNode, error) {
 	// We can't create a funded node without a miner
@@ -245,7 +92,7 @@ func NewNode(nodeParams node.NodeParams) (*TestNode, error) {
 		return nil, errors.New("Can't create funded node without miner")
 	}
 	// Create clean node
-	tn, err := newCleanNode(nodeParams, false)
+	tn, err := NewCleanNode(nodeParams)
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +118,7 @@ func NewCleanNodeAsync(nodeParams node.NodeParams) (*TestNode, error) {
 
 // newCleanNode creates a new TestNode that's not yet funded
 func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error) {
-	userAgent := "SiaPrime-Agent"
+	userAgent := "ScPrime-Agent"
 	password := "password"
 
 	// Check if an RPC address is set
@@ -282,6 +129,16 @@ func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error)
 		}
 		nodeParams.RPCAddress = addr + ":0"
 	}
+
+	// Check if the SiaMuxAddress is set, if not we want to set it to use a
+	// random port in testing
+	if nodeParams.SiaMuxTCPAddress == "" {
+		nodeParams.SiaMuxTCPAddress = "localhost:0"
+	}
+	if nodeParams.SiaMuxWSAddress == "" {
+		nodeParams.SiaMuxWSAddress = "localhost:0"
+	}
+
 	// Create server
 	var s *server.Server
 	var err error
@@ -297,9 +154,12 @@ func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error)
 	}
 
 	// Create client
-	c := client.New(s.APIAddress())
-	c.UserAgent = userAgent
-	c.Password = password
+	opts := client.Options{
+		Address:   s.APIAddress(),
+		Password:  password,
+		UserAgent: userAgent,
+	}
+	c := client.New(opts)
 
 	// Create TestNode
 	tn := &TestNode{
@@ -346,34 +206,6 @@ func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error)
 	return tn, nil
 }
 
-// initRootDirs creates the download and upload directories for the TestNode
-func (tn *TestNode) initRootDirs() error {
-	tn.downloadDir = &LocalDir{
-		path: filepath.Join(tn.RenterDir(), "downloads"),
-	}
-	if err := os.MkdirAll(tn.downloadDir.path, persist.DefaultDiskPermissionsTest); err != nil {
-		return err
-	}
-	tn.filesDir = &LocalDir{
-		path: filepath.Join(tn.RenterDir(), "uploads"),
-	}
-	if err := os.MkdirAll(tn.filesDir.path, persist.DefaultDiskPermissionsTest); err != nil {
-		return err
-	}
-	return nil
-}
-
-// SiaPath returns the siapath of a local file or directory to be used for
-// uploading
-func (tn *TestNode) SiaPath(path string) modules.SiaPath {
-	s := strings.TrimPrefix(path, tn.filesDir.path+string(filepath.Separator))
-	sp, err := modules.NewSiaPath(s)
-	if err != nil {
-		build.Critical("This shouldn't happen", err)
-	}
-	return sp
-}
-
 // IsAlertRegistered returns an error if the given alert is not found
 func (tn *TestNode) IsAlertRegistered(a modules.Alert) error {
 	return build.Retry(10, 100*time.Millisecond, func() error {
@@ -405,4 +237,202 @@ func (tn *TestNode) IsAlertUnregistered(a modules.Alert) error {
 		}
 		return nil
 	})
+}
+
+// PrintDebugInfo prints out helpful debug information when debug tests and ndfs, the
+// boolean arguments dictate what is printed
+func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterInfo bool) {
+	if contractInfo {
+		rc, err := tn.RenterAllContractsGet()
+		if err != nil {
+			t.Log(err)
+		}
+		t.Log("Active Contracts")
+		for _, c := range rc.ActiveContracts {
+			t.Log("    ID", c.ID)
+			t.Log("    HostPublicKey", c.HostPublicKey)
+			t.Log("    GoodForUpload", c.GoodForUpload)
+			t.Log("    GoodForRenew", c.GoodForRenew)
+			t.Log("    EndHeight", c.EndHeight)
+			t.Log("    Size", c.Size)
+		}
+		t.Log()
+		t.Log("Passive Contracts")
+		for _, c := range rc.PassiveContracts {
+			t.Log("    ID", c.ID)
+			t.Log("    HostPublicKey", c.HostPublicKey)
+			t.Log("    GoodForUpload", c.GoodForUpload)
+			t.Log("    GoodForRenew", c.GoodForRenew)
+			t.Log("    EndHeight", c.EndHeight)
+			t.Log("    Size", c.Size)
+		}
+		t.Log()
+		t.Log("Refreshed Contracts")
+		for _, c := range rc.RefreshedContracts {
+			t.Log("    ID", c.ID)
+			t.Log("    HostPublicKey", c.HostPublicKey)
+			t.Log("    GoodForUpload", c.GoodForUpload)
+			t.Log("    GoodForRenew", c.GoodForRenew)
+			t.Log("    EndHeight", c.EndHeight)
+			t.Log("    Size", c.Size)
+		}
+		t.Log()
+		t.Log("Disabled Contracts")
+		for _, c := range rc.DisabledContracts {
+			t.Log("    ID", c.ID)
+			t.Log("    HostPublicKey", c.HostPublicKey)
+			t.Log("    GoodForUpload", c.GoodForUpload)
+			t.Log("    GoodForRenew", c.GoodForRenew)
+			t.Log("    EndHeight", c.EndHeight)
+			t.Log("    Size", c.Size)
+		}
+		t.Log()
+		t.Log("Expired Contracts")
+		for _, c := range rc.ExpiredContracts {
+			t.Log("    ID", c.ID)
+			t.Log("    HostPublicKey", c.HostPublicKey)
+			t.Log("    GoodForUpload", c.GoodForUpload)
+			t.Log("    GoodForRenew", c.GoodForRenew)
+			t.Log("    EndHeight", c.EndHeight)
+			t.Log("    Size", c.Size)
+		}
+		t.Log()
+		t.Log("Expired Refreshed Contracts")
+		for _, c := range rc.ExpiredRefreshedContracts {
+			t.Log("    ID", c.ID)
+			t.Log("    HostPublicKey", c.HostPublicKey)
+			t.Log("    GoodForUpload", c.GoodForUpload)
+			t.Log("    GoodForRenew", c.GoodForRenew)
+			t.Log("    EndHeight", c.EndHeight)
+			t.Log("    Size", c.Size)
+		}
+		t.Log()
+	}
+
+	if hostInfo {
+		hdbag, err := tn.HostDbAllGet()
+		if err != nil {
+			t.Log(err)
+		}
+		t.Log("Active Hosts from HostDB")
+		for _, host := range hdbag.Hosts {
+			hostInfo, err := tn.HostDbHostsGet(host.PublicKey)
+			if err != nil {
+				t.Log(err)
+			}
+			t.Log("    Host:", host.NetAddress)
+			t.Log("        score", hostInfo.ScoreBreakdown.Score)
+			t.Log("        breakdown", hostInfo.ScoreBreakdown)
+			t.Log("        pk", host.PublicKey)
+			t.Log("        Accepting Contracts", host.HostExternalSettings.AcceptingContracts)
+			t.Log("        Filtered", host.Filtered)
+			t.Log("        LastIPNetChange", host.LastIPNetChange.String())
+			t.Log("        Subnets")
+			for _, subnet := range host.IPNets {
+				t.Log("            ", subnet)
+			}
+			t.Log()
+			t.Log("        TotalStorage", host.TotalStorage)
+			t.Log("        RemainingStorage", host.RemainingStorage)
+			t.Log("        StoragePrice", host.StoragePrice)
+			t.Log("        UploadPrice", host.UploadBandwidthPrice)
+			t.Log()
+		}
+		t.Log()
+	}
+
+	if renterInfo {
+		t.Log("Renter Info")
+		rg, err := tn.RenterGet()
+		if err != nil {
+			t.Log(err)
+		}
+		t.Log("CP:", rg.CurrentPeriod)
+		cg, err := tn.ConsensusGet()
+		if err != nil {
+			t.Log(err)
+		}
+		t.Log("BH:", cg.Height)
+		settings := rg.Settings
+		t.Log("Allowance Funds:", settings.Allowance.Funds.HumanString())
+		fm := rg.FinancialMetrics
+		t.Log("Unspent Funds:", fm.Unspent.HumanString())
+		t.Log()
+	}
+}
+
+// RestartNode restarts a TestNode
+func (tn *TestNode) RestartNode() error {
+	err := tn.StopNode()
+	if err != nil {
+		return errors.AddContext(err, "Could not stop node")
+	}
+	err = tn.StartNode()
+	if err != nil {
+		return errors.AddContext(err, "Could not start node")
+	}
+	return nil
+}
+
+// SiaPath returns the siapath of a local file or directory to be used for
+// uploading
+func (tn *TestNode) SiaPath(path string) modules.SiaPath {
+	s := strings.TrimPrefix(path, tn.filesDir.path+string(filepath.Separator))
+	sp, err := modules.NewSiaPath(s)
+	if err != nil {
+		build.Critical("This shouldn't happen", err)
+	}
+	return sp
+}
+
+// StartNode starts a TestNode from an active group
+func (tn *TestNode) StartNode() error {
+	// Create server
+	s, err := server.New(":0", tn.UserAgent, tn.Password, tn.params, time.Now())
+	if err != nil {
+		return errors.AddContext(err, "Error starting testnode")
+	}
+	tn.Server = s
+	tn.Client.Address = s.APIAddress()
+	if !tn.params.CreateWallet && tn.params.Wallet == nil {
+		return nil
+	}
+	return tn.WalletUnlockPost(tn.primarySeed)
+}
+
+// StartNodeCleanDeps restarts a node from an active group without its
+// previously assigned dependencies.
+func (tn *TestNode) StartNodeCleanDeps() error {
+	tn.params.ConsensusSetDeps = nil
+	tn.params.ContractorDeps = nil
+	tn.params.ContractSetDeps = nil
+	tn.params.GatewayDeps = nil
+	tn.params.HostDeps = nil
+	tn.params.HostDBDeps = nil
+	tn.params.RenterDeps = nil
+	tn.params.TPoolDeps = nil
+	tn.params.WalletDeps = nil
+	return tn.StartNode()
+}
+
+// StopNode stops a TestNode
+func (tn *TestNode) StopNode() error {
+	return errors.AddContext(tn.Close(), "failed to stop node")
+}
+
+// initRootDirs creates the download and upload directories for the TestNode
+func (tn *TestNode) initRootDirs() error {
+	tn.downloadDir = &LocalDir{
+		path: filepath.Join(tn.RenterDir(), "downloads"),
+	}
+	if err := os.MkdirAll(tn.downloadDir.path, persist.DefaultDiskPermissionsTest); err != nil {
+		return err
+	}
+	tn.filesDir = &LocalDir{
+		path: filepath.Join(tn.RenterDir(), "uploads"),
+	}
+	if err := os.MkdirAll(tn.filesDir.path, persist.DefaultDiskPermissionsTest); err != nil {
+		return err
+	}
+	return nil
 }

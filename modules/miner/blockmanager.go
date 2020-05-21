@@ -88,7 +88,7 @@ func (m *Miner) blockForWorkWithDevFund() types.Block {
 }
 
 // always return blockForWorkWithDevFund as that is valid and it will let
-// miners show support for the SiaPrime softfork before the soft fork block
+// miners show support for the ScPrime softfork before the soft fork block
 // height is reached.
 func (m *Miner) blockForWork() types.Block {
 	if types.DevFundEnabled && m.persist.Height+1 >= types.DevFundInitialBlockHeight {

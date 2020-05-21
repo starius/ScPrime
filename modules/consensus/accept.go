@@ -133,7 +133,7 @@ func (cs *ConsensusSet) validateHeader(tx dbTx, h types.BlockHeader) error {
 	// Check that the timestamp is not too far in the past to be acceptable.
 	minTimestamp := cs.blockRuleHelper.minimumValidChildTimestamp(blockMap, &parent)
 	if minTimestamp > h.Timestamp {
-		return errEarlyTimestamp
+		return ErrEarlyTimestamp
 	}
 
 	// Check if the block is in the extreme future. We make a distinction between
@@ -141,7 +141,7 @@ func (cs *ConsensusSet) validateHeader(tx dbTx, h types.BlockHeader) error {
 	// the extreme future arrives, this block will no longer be a part of the
 	// longest fork because it will have been ignored by all of the miners.
 	if h.Timestamp > types.CurrentTimestamp()+types.ExtremeFutureThreshold {
-		return errExtremeFutureTimestamp
+		return ErrExtremeFutureTimestamp
 	}
 
 	// We do not check if the header is in the near future here, because we want
@@ -266,7 +266,7 @@ func (cs *ConsensusSet) managedAcceptBlocks(blocks []types.Block) (blockchainExt
 				// Skip over known blocks.
 				continue
 			}
-			if err == errFutureTimestamp {
+			if err == ErrFutureTimestamp {
 				// Queue the block to be tried again if it is a future block.
 				go cs.threadedSleepOnFutureBlock(blocks[i])
 			}

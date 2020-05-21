@@ -3,10 +3,10 @@ package api
 import (
 	"math/big"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
 )
 
 // scanAmount scans a types.Currency from a string.

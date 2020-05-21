@@ -3,12 +3,12 @@ package consensus
 import (
 	"errors"
 
+	bolt "go.etcd.io/bbolt"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	bolt "go.etcd.io/bbolt"
 )
 
 var (
@@ -230,7 +230,7 @@ func generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) error {
 	// the miner payouts to the list of delayed outputs.
 	applyMaintenance(tx, pb)
 
-	// Fx the siaprimefund allocation
+	// Fx the scprimefund allocation
 	if pb.Height == types.SpfAirdropHeight {
 		// Remove Genesis Siafunds
 		for i, siafundOutput := range types.GenesisBlock.Transactions[1].SiafundOutputs {

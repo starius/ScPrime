@@ -137,7 +137,6 @@ func (api *API) parsePoolSettings(req *http.Request) (modules.PoolInternalSettin
 			return modules.PoolInternalSettings{}, nil
 		}
 		settings.PoolNetworkPort = x
-
 	}
 	if req.FormValue("name") != "" {
 		settings.PoolName = req.FormValue("name")

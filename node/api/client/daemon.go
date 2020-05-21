@@ -8,7 +8,7 @@ import (
 )
 
 // DaemonGlobalRateLimitPost uses the /daemon/settings endpoint to change the
-// siad's bandwidth rate limit. downloadSpeed and uploadSpeed are interpreted
+// spd's bandwidth rate limit. downloadSpeed and uploadSpeed are interpreted
 // as bytes/second.
 func (c *Client) DaemonGlobalRateLimitPost(downloadSpeed, uploadSpeed int64) (err error) {
 	values := url.Values{}

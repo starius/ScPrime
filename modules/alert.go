@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
+
+	"gitlab.com/scpcorp/ScPrime/build"
 )
 
 // The following consts are the different types of severity levels available in
@@ -24,7 +27,7 @@ const (
 	SeverityCritical
 )
 
-// The following consts are a list of AlertIDs. All IDs used throughout Sia
+// The following consts are a list of AlertIDs. All IDs used throughout ScPrime
 // should be unique and listed here.
 const (
 	// alertIDUnknown is the id of an unknown alert.
@@ -36,6 +39,9 @@ const (
 	// AlertIDRenterAllowanceLowFunds is the id of the alert that is registered if at least one
 	// contract failed to renew/form due to low allowance.
 	AlertIDRenterAllowanceLowFunds = "low-funds"
+	// AlertIDRenterContractRenewalError is the id of the alert that is
+	// registered if at least once contract renewal or refresh failed
+	AlertIDRenterContractRenewalError = "contract-renewal-error"
 	// AlertIDGatewayOffline is the id of the alert that is registered upon a
 	// call to 'gateway.Offline' if the value returned is 'false' and
 	// unregistered when it returns 'true'.
@@ -59,7 +65,7 @@ type (
 	// Alerter is the interface implemented by all top-level modules. It's an
 	// interface that allows for asking a module about potential issues.
 	Alerter interface {
-		Alerts() []Alert
+		Alerts() (crit, err, warn []Alert)
 	}
 
 	// Alert is a type that contains essential information about an alert.
@@ -86,6 +92,14 @@ type (
 // Equals returns true if x and y are identical alerts
 func (x Alert) Equals(y Alert) bool {
 	return x.Module == y.Module && x.Cause == y.Cause && x.Msg == y.Msg && x.Severity == y.Severity
+}
+
+// EqualsWithErrorCause returns true if x and y have the same module, message,
+// and severity and if the provided error is in both of the alert's causes
+func (x Alert) EqualsWithErrorCause(y Alert, causeErr string) bool {
+	firstCheck := x.Module == y.Module && x.Msg == y.Msg && x.Severity == y.Severity
+	causeCheck := strings.Contains(x.Cause, causeErr) && strings.Contains(y.Cause, causeErr)
+	return firstCheck && causeCheck
 }
 
 // MarshalJSON defines a JSON encoding for the AlertSeverity.
@@ -119,7 +133,7 @@ func (a *AlertSeverity) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// String converts an alertSeverity to a String
+// String converts an alertSeverity to a string
 func (a AlertSeverity) String() string {
 	switch a {
 	case SeverityWarning:
@@ -146,22 +160,31 @@ type (
 
 // NewAlerter creates a new alerter for the renter.
 func NewAlerter(module string) *GenericAlerter {
-	return &GenericAlerter{
+	a := &GenericAlerter{
 		alerts: make(map[AlertID]Alert),
 		module: module,
 	}
+	a.registerTestAlerts()
+	return a
 }
 
 // Alerts returns the current alerts tracked by the alerter.
-func (a *GenericAlerter) Alerts() []Alert {
+func (a *GenericAlerter) Alerts() (crit, err, warn []Alert) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-
-	alerts := make([]Alert, 0, len(a.alerts))
 	for _, alert := range a.alerts {
-		alerts = append(alerts, alert)
+		switch alert.Severity {
+		case SeverityCritical:
+			crit = append(crit, alert)
+		case SeverityError:
+			err = append(err, alert)
+		case SeverityWarning:
+			warn = append(warn, alert)
+		default:
+			build.Critical("Alerts: invalid severity", alert.Severity)
+		}
 	}
-	return alerts
+	return
 }
 
 // RegisterAlert adds an alert to the alerter.
@@ -181,4 +204,14 @@ func (a *GenericAlerter) UnregisterAlert(id AlertID) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	delete(a.alerts, id)
+}
+
+// registerTestAlerts registers one alert of every severity for testing.
+func (a *GenericAlerter) registerTestAlerts() {
+	if build.Release != "testing" {
+		return
+	}
+	a.RegisterAlert(AlertID(a.module+" - Dummy1"), "msg1", "cause1", SeverityWarning)
+	a.RegisterAlert(AlertID(a.module+" - Dummy2"), "msg2", "cause2", SeverityError)
+	a.RegisterAlert(AlertID(a.module+" - Dummy3"), "msg3", "cause3", SeverityCritical)
 }

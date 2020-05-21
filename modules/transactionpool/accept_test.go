@@ -1,11 +1,12 @@
 package transactionpool
 
 import (
-	"gitlab.com/scpcorp/ScPrime/modules"
-	"gitlab.com/scpcorp/ScPrime/types"
 	"testing"
 
 	"gitlab.com/NebulousLabs/fastrand"
+
+	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestAcceptTransactionSet probes the AcceptTransactionSet method

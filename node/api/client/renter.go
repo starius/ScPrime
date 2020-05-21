@@ -57,6 +57,13 @@ func (a *AllowanceRequestPost) WithRenewWindow(renewWindow types.BlockHeight) *A
 	return a
 }
 
+// WithPaymentContractInitialFunding adds the paymentcontractinitialfunding
+// field to the request.
+func (a *AllowanceRequestPost) WithPaymentContractInitialFunding(price types.Currency) *AllowanceRequestPost {
+	a.values.Set("paymentcontractinitialfunding", price.String())
+	return a
+}
+
 // WithExpectedStorage adds the expected storage field to the request.
 func (a *AllowanceRequestPost) WithExpectedStorage(expectedStorage uint64) *AllowanceRequestPost {
 	a.values.Set("expectedstorage", fmt.Sprint(expectedStorage))
@@ -249,6 +256,14 @@ func (c *Client) RenterCancelDownloadPost(id modules.DownloadID) (err error) {
 	return
 }
 
+// RenterFileDeleteRootPost uses the /renter/delete endpoint to delete a file.
+// It passes the `root=true` flag to indicate an absolute path.
+func (c *Client) RenterFileDeleteRootPost(siaPath modules.SiaPath) (err error) {
+	sp := escapeSiaPath(siaPath)
+	err = c.post(fmt.Sprintf("/renter/delete/%s?root=true", sp), "", nil)
+	return
+}
+
 // RenterFileDeletePost uses the /renter/delete endpoint to delete a file.
 func (c *Client) RenterFileDeletePost(siaPath modules.SiaPath) (err error) {
 	sp := escapeSiaPath(siaPath)
@@ -405,6 +420,14 @@ func (c *Client) RenterDownloadHTTPResponseGet(siaPath modules.SiaPath, offset, 
 	return modules.DownloadID(h.Get("ID")), resp, nil
 }
 
+// RenterFileRootGet uses the /renter/file/:siapath endpoint to query a file.
+// It passes the `root=true` flag to indicate an absolute path.
+func (c *Client) RenterFileRootGet(siaPath modules.SiaPath) (rf api.RenterFile, err error) {
+	sp := escapeSiaPath(siaPath)
+	err = c.get("/renter/file/"+sp+"?root=true", &rf)
+	return
+}
+
 // RenterFileGet uses the /renter/file/:siapath endpoint to query a file.
 func (c *Client) RenterFileGet(siaPath modules.SiaPath) (rf api.RenterFile, err error) {
 	sp := escapeSiaPath(siaPath)
@@ -465,10 +488,11 @@ func (c *Client) RenterRateLimitPost(readBPS, writeBPS int64) (err error) {
 }
 
 // RenterRenamePost uses the /renter/rename/:siapath endpoint to rename a file.
-func (c *Client) RenterRenamePost(siaPathOld, siaPathNew modules.SiaPath) (err error) {
+func (c *Client) RenterRenamePost(siaPathOld, siaPathNew modules.SiaPath, root bool) (err error) {
 	spo := escapeSiaPath(siaPathOld)
 	values := url.Values{}
-	values.Set("newsiapath", fmt.Sprintf("/%s", siaPathNew.String()))
+	values.Set("newsiapath", fmt.Sprint(siaPathNew.String()))
+	values.Set("root", fmt.Sprint(root))
 	err = c.post(fmt.Sprintf("/renter/rename/%s", spo), values.Encode(), nil)
 	return
 }
@@ -575,7 +599,7 @@ func (c *Client) RenterUploadStreamPost(r io.Reader, siaPath modules.SiaPath, da
 	values.Set("paritypieces", strconv.FormatUint(parityPieces, 10))
 	values.Set("force", strconv.FormatBool(force))
 	values.Set("stream", strconv.FormatBool(true))
-	_, err := c.postRawResponse(fmt.Sprintf("/renter/uploadstream/%s?%s", sp, values.Encode()), r)
+	_, _, err := c.postRawResponse(fmt.Sprintf("/renter/uploadstream/%s?%s", sp, values.Encode()), r)
 	return err
 }
 
@@ -587,7 +611,7 @@ func (c *Client) RenterUploadStreamRepairPost(r io.Reader, siaPath modules.SiaPa
 	values := url.Values{}
 	values.Set("repair", strconv.FormatBool(true))
 	values.Set("stream", strconv.FormatBool(true))
-	_, err := c.postRawResponse(fmt.Sprintf("/renter/uploadstream/%s?%s", sp, values.Encode()), r)
+	_, _, err := c.postRawResponse(fmt.Sprintf("/renter/uploadstream/%s?%s", sp, values.Encode()), r)
 	return err
 }
 
@@ -607,8 +631,16 @@ func (c *Client) RenterDirCreateWithModePost(siaPath modules.SiaPath, mode os.Fi
 	return
 }
 
-// RenterDirDeletePost uses the /renter/dir/ endpoint to delete a directory for the
-// renter
+// RenterDirDeleteRootPost uses the /renter/dir/ endpoint to delete a directory
+// for the renter. It passes the `root=true` flag to indicate an absolute path.
+func (c *Client) RenterDirDeleteRootPost(siaPath modules.SiaPath) (err error) {
+	sp := escapeSiaPath(siaPath)
+	err = c.post(fmt.Sprintf("/renter/dir/%s?root=true", sp), "action=delete", nil)
+	return
+}
+
+// RenterDirDeletePost uses the /renter/dir/ endpoint to delete a directory
+// for the renter
 func (c *Client) RenterDirDeletePost(siaPath modules.SiaPath) (err error) {
 	sp := escapeSiaPath(siaPath)
 	err = c.post(fmt.Sprintf("/renter/dir/%s", sp), "action=delete", nil)
@@ -621,6 +653,14 @@ func (c *Client) RenterDirRenamePost(siaPath, newSiaPath modules.SiaPath) (err e
 	sp := escapeSiaPath(siaPath)
 	nsp := escapeSiaPath(newSiaPath)
 	err = c.post(fmt.Sprintf("/renter/dir/%s?newsiapath=%s", sp, nsp), "action=rename", nil)
+	return
+}
+
+// RenterDirRootGet uses the /renter/dir/ endpoint to query a directory,
+// starting from the root path.
+func (c *Client) RenterDirRootGet(siaPath modules.SiaPath) (rd api.RenterDirectory, err error) {
+	sp := escapeSiaPath(siaPath)
+	err = c.get(fmt.Sprintf("/renter/dir/%s?root=true", sp), &rd)
 	return
 }
 
@@ -708,5 +748,12 @@ func (c *Client) RenterUploadsResumePost() (err error) {
 // are encoded as a query string in the body
 func (c *Client) RenterPost(values url.Values) (err error) {
 	err = c.post("/renter", values.Encode(), nil)
+	return
+}
+
+// RenterWorkersGet uses the /renter/workers endpoint to get the current status
+// of the renter's workers.
+func (c *Client) RenterWorkersGet() (wps modules.WorkerPoolStatus, err error) {
+	err = c.get("/renter/workers", &wps)
 	return
 }

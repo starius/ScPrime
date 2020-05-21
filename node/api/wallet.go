@@ -498,8 +498,8 @@ func (api *API) walletSiacoinsHandler(w http.ResponseWriter, req *http.Request, 
 	var txns []types.Transaction
 	if req.FormValue("outputs") != "" {
 		// multiple amounts + destinations
-		if req.FormValue("amount") != "" || req.FormValue("destination") != "" {
-			WriteError(w, Error{"cannot supply both 'outputs' and single amount+destination pair"}, http.StatusInternalServerError)
+		if req.FormValue("amount") != "" || req.FormValue("destination") != "" || req.FormValue("feeIncluded") != "" {
+			WriteError(w, Error{"cannot supply both 'outputs' and single amount+destination pair and/or feeIncluded parameter"}, http.StatusInternalServerError)
 			return
 		}
 
@@ -526,13 +526,21 @@ func (api *API) walletSiacoinsHandler(w http.ResponseWriter, req *http.Request, 
 			WriteError(w, Error{"could not read address from POST call to /wallet/siacoins"}, http.StatusBadRequest)
 			return
 		}
+		feeIncluded, err := scanBool(req.FormValue("feeIncluded"))
+		if err != nil {
+			WriteError(w, Error{"could not read feeIncluded from POST call to /wallet/siacoins"}, http.StatusBadRequest)
+			return
+		}
 
-		txns, err = api.wallet.SendSiacoins(amount, dest)
+		if feeIncluded {
+			txns, err = api.wallet.SendSiacoinsFeeIncluded(amount, dest)
+		} else {
+			txns, err = api.wallet.SendSiacoins(amount, dest)
+		}
 		if err != nil {
 			WriteError(w, Error{"error when calling /wallet/siacoins: " + err.Error()}, http.StatusInternalServerError)
 			return
 		}
-
 	}
 
 	var txids []types.TransactionID
@@ -770,16 +778,19 @@ func (api *API) walletChangePasswordHandler(w http.ResponseWriter, req *http.Req
 
 // walletVerifyPasswordHandler handles API calls to /wallet/verifypassword
 func (api *API) walletVerifyPasswordHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	password := req.FormValue("password")
-	key := crypto.NewWalletKey(crypto.HashObject(password))
-	valid, err := api.wallet.IsMasterKey(key)
-	if err != nil {
-		WriteError(w, Error{err.Error()}, http.StatusBadRequest)
-		return
+	originalKeys, _ := encryptionKeys(req.FormValue("password"))
+	var err error
+	for _, key := range originalKeys {
+		valid, keyErr := api.wallet.IsMasterKey(key)
+		if keyErr == nil {
+			WriteJSON(w, WalletVerifyPasswordGET{
+				Valid: valid,
+			})
+			return
+		}
+		err = errors.Compose(err, keyErr)
 	}
-	WriteJSON(w, WalletVerifyPasswordGET{
-		Valid: valid,
-	})
+	WriteError(w, Error{"error when calling /wallet/verifypassword: " + err.Error()}, http.StatusBadRequest)
 }
 
 // walletVerifyAddressHandler handles API calls to /wallet/verify/address/:addr.

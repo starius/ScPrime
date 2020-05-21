@@ -12,8 +12,8 @@ import (
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siadir"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/siafile"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siadir"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/writeaheadlog"
 
@@ -35,14 +35,14 @@ var (
 )
 
 type (
-	// FileSystem implements a thread-safe filesystem for Sia for loading
-	// SiaFiles, SiaDirs and potentially other supported Sia types in the
+	// FileSystem implements a thread-safe filesystem for ScPrime for loading
+	// SiaFiles, SiaDirs and potentially other supported ScPrime types in the
 	// future.
 	FileSystem struct {
 		DirNode
 	}
 
-	// node is a struct that contains the commmon fields of every node.
+	// node is a struct that contains the common fields of every node.
 	node struct {
 		// fields that all copies of a node share.
 		path      *string
@@ -372,7 +372,7 @@ func (fs *FileSystem) WriteFile(siaPath modules.SiaPath, data []byte, perm os.Fi
 // from a legacy file.
 func (fs *FileSystem) NewSiaFileFromLegacyData(fd siafile.FileData) (*FileNode, error) {
 	// Get file's SiaPath.
-	sp, err := modules.UserSiaPath().Join(fd.Name)
+	sp, err := modules.UserFolder.Join(fd.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -558,7 +558,7 @@ func (fs *FileSystem) managedList(siaPath modules.SiaPath, recursive, cached boo
 	// Open the folder.
 	dir, err := fs.managedOpenDir(siaPath.String())
 	if err != nil {
-		return nil, nil, errors.AddContext(err, "failed to open folder specified by FileList")
+		return nil, nil, errors.AddContext(err, fmt.Sprintf("failed to open folder '%v' specified by FileList", siaPath))
 	}
 	defer dir.Close()
 	return dir.managedList(fs.managedAbsPath(), recursive, cached, offlineMap, goodForRenewMap, contractsMap)

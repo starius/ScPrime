@@ -1,8 +1,8 @@
 File Contract Negotiation
 =========================
 
-Securing data on SiaPrime requires creating and revising file contracts in an
-untrusted environment. Managing data on SiaPrime happens through several protocols:
+Securing data on ScPrime requires creating and revising file contracts in an
+untrusted environment. Managing data on ScPrime happens through several protocols:
 
 + Settings Request - the host sends the renter its settings.
 

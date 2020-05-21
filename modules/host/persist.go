@@ -55,33 +55,44 @@ func (h *Host) persistData() persistence {
 func (h *Host) establishDefaults() error {
 	// Configure the settings object.
 	h.settings = modules.HostInternalSettings{
-		MaxDownloadBatchSize: uint64(defaultMaxDownloadBatchSize),
-		MaxDuration:          defaultMaxDuration,
-		MaxReviseBatchSize:   uint64(defaultMaxReviseBatchSize),
-		WindowSize:           defaultWindowSize,
+		MaxDownloadBatchSize: uint64(modules.DefaultMaxDownloadBatchSize),
+		MaxDuration:          modules.DefaultMaxDuration,
+		MaxReviseBatchSize:   uint64(modules.DefaultMaxReviseBatchSize),
+		WindowSize:           modules.DefaultWindowSize,
 
-		Collateral:       defaultCollateral,
+		Collateral:       modules.DefaultCollateral,
 		CollateralBudget: defaultCollateralBudget,
-		MaxCollateral:    defaultMaxCollateral,
+		MaxCollateral:    modules.DefaultMaxCollateral,
 
-		MinBaseRPCPrice:           defaultBaseRPCPrice,
-		MinContractPrice:          defaultContractPrice,
-		MinDownloadBandwidthPrice: defaultDownloadBandwidthPrice,
-		MinSectorAccessPrice:      defaultSectorAccessPrice,
-		MinStoragePrice:           defaultStoragePrice,
-		MinUploadBandwidthPrice:   defaultUploadBandwidthPrice,
+		MinBaseRPCPrice:           modules.DefaultBaseRPCPrice,
+		MinContractPrice:          modules.DefaultContractPrice,
+		MinDownloadBandwidthPrice: modules.DefaultDownloadBandwidthPrice,
+		MinSectorAccessPrice:      modules.DefaultSectorAccessPrice,
+		MinStoragePrice:           modules.DefaultStoragePrice,
+		MinUploadBandwidthPrice:   modules.DefaultUploadBandwidthPrice,
+
+		EphemeralAccountExpiry:     defaultEphemeralAccountExpiry,
+		MaxEphemeralAccountBalance: defaultMaxEphemeralAccountBalance,
+		MaxEphemeralAccountRisk:    defaultMaxEphemeralAccountRisk,
 	}
 
-	// Generate signing key, for revising contracts.
-	sk, pk := crypto.GenerateKeyPair()
-	h.secretKey = sk
+	// Load the host's key pair, use the same keys as the SiaMux.
+	var sk crypto.SecretKey
+	var pk crypto.PublicKey
+	msk := h.staticMux.PrivateKey()
+	mpk := h.staticMux.PublicKey()
+
+	// Sanity check that the mux's key are the same length as the host keys
+	// before copying them
+	if len(sk) != len(msk) || len(pk) != len(mpk) {
+		build.Critical("Expected the siamux keys to be of equal length as the host keys")
+	}
+	copy(sk[:], msk[:])
+	copy(pk[:], mpk[:])
+
 	h.publicKey = types.Ed25519PublicKey(pk)
+	h.secretKey = sk
 
-	// Subscribe to the consensus set.
-	err := h.initConsensusSubscription()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -157,7 +168,7 @@ func (h *Host) load() error {
 	// the most recent version, but older versions need to be updated to the
 	// more recent structures.
 	p := new(persistence)
-	err = h.dependencies.LoadFile(persistMetadata, p, filepath.Join(h.persistDir, settingsFile))
+	err = h.dependencies.LoadFile(modules.Hostv143PersistMetadata, p, filepath.Join(h.persistDir, settingsFile))
 	if err == nil {
 		// Copy in the persistence.
 		h.loadPersistObject(p)
@@ -165,13 +176,46 @@ func (h *Host) load() error {
 		// There is no host.json file, set up sane defaults.
 		return h.establishDefaults()
 	} else if err == persist.ErrBadVersion {
-		// Attempt an upgrade from V112 to V120.
-		err = h.upgradeFromV112ToV120()
+		// Then upgrade to V143.
+		err = h.upgradeFromV120ToV143()
+		if err != nil {
+			h.log.Println("WARNING: v120 to v143 host upgrade failed, nothing left to try", err)
+			return err
+		}
+
+		h.log.Println("SUCCESS: successfully upgraded host to v143")
+	} else {
+		return err
+	}
+
+	// Compatv148 delete the old account file.
+	af := filepath.Join(h.persistDir, v148AccountsFilename)
+	if err := os.RemoveAll(af); err != nil {
+		h.log.Printf("WARNING: failed to remove legacy account file at '%v', err: %v", af, err)
+	}
+
+	// Check if the host is currently using defaults that violate the ratio
+	// restrictions between the SectorAccessPrice, BaseRPCPrice, and
+	// DownloadBandwidthPrice
+	var updated bool
+	minBaseRPCPrice := h.settings.MinBaseRPCPrice
+	maxBaseRPCPrice := h.settings.MaxBaseRPCPrice()
+	if minBaseRPCPrice.Cmp(maxBaseRPCPrice) > 0 {
+		h.settings.MinBaseRPCPrice = maxBaseRPCPrice
+		updated = true
+	}
+	minSectorAccessPrice := h.settings.MinSectorAccessPrice
+	maxSectorAccessPrice := h.settings.MaxSectorAccessPrice()
+	if minSectorAccessPrice.Cmp(maxSectorAccessPrice) > 0 {
+		h.settings.MinSectorAccessPrice = maxSectorAccessPrice
+		updated = true
+	}
+	// If we updated the Price values we should save the changes to disk
+	if updated {
+		err = h.saveSync()
 		if err != nil {
 			return err
 		}
-	} else {
-		return err
 	}
 
 	// Get the contract count and locked collateral by observing all of the incomplete
@@ -180,29 +224,46 @@ func (h *Host) load() error {
 	// contract renewals. This leads to an offset to the real value over time.
 	h.financialMetrics.ContractCount = 0
 	h.financialMetrics.LockedStorageCollateral = types.NewCurrency64(0)
+	//In case corrupt entries in the database mark them for deletion
+	var invalidSOkeys [][]byte
 	err = h.db.View(func(tx *bolt.Tx) error {
 		cursor := tx.Bucket(bucketStorageObligations).Cursor()
 		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
 			var so storageObligation
-			err := json.Unmarshal(v, &so)
-			if err != nil {
-				return err
+			dataerr := json.Unmarshal(v, &so)
+			if dataerr != nil {
+				h.log.Printf("Marking corrupt storageobligation key: %v with error: %v\n", k, dataerr.Error())
+				invalidSOkeys = append(invalidSOkeys, k)
+				continue
 			}
 			if so.ObligationStatus == obligationUnresolved {
 				h.financialMetrics.ContractCount++
 				h.financialMetrics.LockedStorageCollateral = h.financialMetrics.LockedStorageCollateral.Add(so.LockedCollateral)
 			}
 		}
+		if len(invalidSOkeys) > 0 {
+			h.log.Println("Corrupt storageobligation database, will attempt to clean")
+			h.log.Println("Backing up storage obligations database.")
+			tx.CopyFile(filepath.Join(h.persistDir, dbFilename+".bak"), 0600)
+		}
 		return nil
 	})
-	if err != nil {
-		return err
+	if len(invalidSOkeys) > 0 {
+		h.log.Printf("Pruning %v corrupt storage obligations from database.\n", len(invalidSOkeys))
+		//Try to recover by reading again and pruning invalid entries
+		err = h.db.Update(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket(bucketStorageObligations)
+			for _, invalidKey := range invalidSOkeys {
+				h.log.Printf("Deleting %v from database.\n", invalidKey)
+				bucket.Delete(invalidKey)
+			}
+			return nil
+		})
 	}
-
-	return h.initConsensusSubscription()
+	return err
 }
 
 // saveSync stores all of the persist data to disk and then syncs to disk.
 func (h *Host) saveSync() error {
-	return persist.SaveJSON(persistMetadata, h.persistData(), filepath.Join(h.persistDir, settingsFile))
+	return persist.SaveJSON(modules.Hostv143PersistMetadata, h.persistData(), filepath.Join(h.persistDir, settingsFile))
 }
