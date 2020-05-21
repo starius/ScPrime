@@ -1,6 +1,52 @@
-## Apr 2020:
+## May 2020:
 ### v1.4.3
 
+**Bugs Fixed**
+- Don't delete hosts the renter has a contract with from hostdb
+- Initiate a hostdb rescan on startup if a host the renter has a contract with
+  isn't in the host tree
+- Increase max host downtime in hostbd from 10 days to 20 days.
+- Remove `build.Critical` and update to a metadata update
+
+**Other**
+ - Add PaymentProcessor interface (host-side)
+- Move golangci-lint to `make lint` and remove `make lint-all`.
+- Add whitespace lint to catch extraneous whitespace and newlines.
+- Expand `SiaPath` unit testing to address more edge cases.
+
+- Alerts returned by /daemon/alerts route are sorted by severity
+- Add `--fee-included` parameter to `spc wallet send scprimecoins` that allows
+   sending an whole wallet balance with the fees included.
+- Extend `spc hostdb view` to include all the fields returned from the API.
+- `spc renter delete` now accepts a list of files.
+- add pause and resume uploads to spc
+- Extended `spc renter` to include number of passive and disabled contracts
+- Add contract data to `spc renter`
+- Add getters and setter to `FileContract` and `FileContractRevision` types to
+  prevent index-out-of-bounds panics after a `RenewAndClear`.
+
+**Bugs Fixed**
+- Fixed file health output of `spc renter -v` not adding to 100% by adding
+  parsePercentage function.
+- Fix `unlock of unlocked mutex` panic in the download destination writer.
+- Fix potential channel double closed panic in DownloadByRootProject 
+- Fix divide by zero panic in `renterFileHealthSummary` for `spc renter -v`
+- Fix negative currency panic in `spc renter contracts view`
+
+**Other**
+- Add timeout parameter to Publink pin route
+- Also apply timeout when fetching the individual chunks
+- Add SiaMux stream handler to the host
+- Fix TestAccountExpiry NDF
+- Add benchmark test for bubble metadata
+- Add additional format instructions to the API docs and fix format errors
+- Created Minor Merge Request template.
+- Updated `Resources.md` with links to filled out README files
+- Add version information to the stats endpoint
+- Extract environment variables to constants and add to API docs.
+
+## Mar 17, 2020:
+### v1.4.4
 **Key Updates**
 - Add a delay when modifying large contracts on hosts to prevent hosts from
   becoming unresponsive due to massive disk i/o.

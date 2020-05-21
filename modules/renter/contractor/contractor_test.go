@@ -136,7 +136,7 @@ func TestIntegrationSetAllowance(t *testing.T) {
 	// create a siamux
 	testdir := build.TempDir("contractor", t.Name())
 	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
-	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0")
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -480,7 +480,7 @@ func TestPayment(t *testing.T) {
 	// create a siamux
 	testdir := build.TempDir("contractor", t.Name())
 	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
-	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0")
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
 	if err != nil {
 		t.Fatal(err)
 	}

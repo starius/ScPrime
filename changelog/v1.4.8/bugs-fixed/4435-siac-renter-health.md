@@ -1,1 +1,0 @@
-- Fixed bug in `spc renter -v` where the health summary wasn't considering `OnDisk` when deciding if the file was recoverable

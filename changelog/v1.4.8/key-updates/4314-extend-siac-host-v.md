@@ -1,1 +1,0 @@
-- Add MinBaseRPCPrice and MinSectorAccessPrice to `spc host -v`

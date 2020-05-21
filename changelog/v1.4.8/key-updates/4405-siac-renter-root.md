@@ -1,1 +1,0 @@
-- Update the `spc renter` summaries to use the `root` flags for the API calls

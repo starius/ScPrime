@@ -204,7 +204,7 @@ type SkyfileUploadParameters struct {
 	Reader io.Reader `json:"reader"`
 
 	// SkykeyName is the name of the Pubaccesskey that should be used to encrypt the
-	// Skyfile.
+	// Pubfile.
 	SkykeyName string `json:"skykeyname"`
 
 	// SkykeyID is the ID of Pubaccesskey that should be used to encrypt the file.

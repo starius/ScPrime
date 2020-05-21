@@ -174,7 +174,7 @@ func installKillSignalHandler() chan os.Signal {
 // environment variable is set.
 func tryAutoUnlock(srv *server.Server) {
 	if password := build.WalletPassword(); password != "" {
-		fmt.Println("Sia Wallet Password found, attempting to auto-unlock wallet")
+		fmt.Println("ScPrime Wallet Password found, attempting to auto-unlock wallet")
 		if err := srv.Unlock(password); err != nil {
 			fmt.Println("Auto-unlock failed:", err)
 		} else {

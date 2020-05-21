@@ -1,6 +1,6 @@
 package renter
 
-// skyfile_encryption.go provides utilities for encrypting and decrypting
+// pubfile_encryption.go provides utilities for encrypting and decrypting
 // skyfiles.
 
 import (
@@ -28,10 +28,10 @@ func (r *Renter) deriveFileSpecificKey(sl *skyfileLayout) (pubaccesskey.Pubacces
 	var keyID pubaccesskey.SkykeyID
 	copy(keyID[:], sl.keyData[:pubaccesskey.SkykeyIDLen])
 
-	// Try to get the skykey associated with that ID.
+	// Try to get the pubaccesskey associated with that ID.
 	masterSkykey, err := r.staticSkykeyManager.KeyByID(keyID)
 	if err != nil {
-		return pubaccesskey.Pubaccesskey{}, errors.AddContext(err, "Error getting skykey")
+		return pubaccesskey.Pubaccesskey{}, errors.AddContext(err, "Error getting pubaccesskey")
 	}
 
 	// Grab the nonce
@@ -43,7 +43,7 @@ func (r *Renter) deriveFileSpecificKey(sl *skyfileLayout) (pubaccesskey.Pubacces
 }
 
 // deriveFanoutKey returns the crypto.CipherKey that should be used for
-// decrypting the fanout stream from the skyfile stored using this layout.
+// decrypting the fanout stream from the pubfile stored using this layout.
 func (r *Renter) deriveFanoutKey(sl *skyfileLayout) (crypto.CipherKey, error) {
 	if sl.cipherType != crypto.TypeXChaCha20 {
 		return crypto.NewSiaKey(sl.cipherType, sl.keyData[:])
@@ -57,7 +57,7 @@ func (r *Renter) deriveFanoutKey(sl *skyfileLayout) (crypto.CipherKey, error) {
 	// Derive the fanout key.
 	sk, err := fileSkykey.DeriveSubkey(fanoutNonceDerivation[:])
 	if err != nil {
-		return nil, errors.AddContext(err, "Error deriving skykey subkey")
+		return nil, errors.AddContext(err, "Error deriving pubaccesskey subkey")
 	}
 	return sk.CipherKey()
 }
@@ -67,7 +67,7 @@ func (r *Renter) deriveFanoutKey(sl *skyfileLayout) (crypto.CipherKey, error) {
 func (r *Renter) decryptBaseSector(baseSector []byte) error {
 	// Sanity check - baseSector should not be more than modules.SectorSize.
 	// Note that the base sector may be smaller in the event of a packed
-	// skyfile.
+	// pubfile.
 	if uint64(len(baseSector)) > modules.SectorSize {
 		build.Critical("decryptBaseSector given a baseSector that is too large")
 		return errors.New("baseSector too large")
@@ -80,10 +80,10 @@ func (r *Renter) decryptBaseSector(baseSector []byte) error {
 	var keyID pubaccesskey.SkykeyID
 	copy(keyID[:], sl.keyData[:pubaccesskey.SkykeyIDLen])
 
-	// Try to get the skykey associated with that ID.
+	// Try to get the pubaccesskey associated with that ID.
 	masterSkykey, err := r.staticSkykeyManager.KeyByID(keyID)
 	if err != nil {
-		return errors.AddContext(err, "Error getting skykey")
+		return errors.AddContext(err, "Error getting pubaccesskey")
 	}
 
 	// Get the nonce and use it to derive the file-specific key.

@@ -184,8 +184,8 @@ func newNodeScanner(scannerDirPrefix string) (ns *nodeScanner) {
 	log.Printf("Logging data in:  %s\n", scannerDirPath)
 
 	// Create the file for this scan.
-	startTime := time.Now().Format("01-02:15:04")
-	scanLogName := scannerDirPath + "/scan-" + startTime + ".json"
+	startTime := time.Now().Format("01_02-15-04")
+	scanLogName := filepath.Join(scannerDirPath, "scan-"+startTime+".json")
 	scanLog, err := os.Create(scanLogName)
 	if err != nil {
 		log.Fatal("Error creating scan file: ", err)

@@ -1,1 +1,0 @@
-- Add `startheight` and `endheight` flags for `spc wallet transactions` pagination

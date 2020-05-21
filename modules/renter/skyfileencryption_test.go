@@ -101,7 +101,7 @@ func TestSkyfileBaseSectorEncryption(t *testing.T) {
 		t.Fatal("Basesectors encrypted with different file-specific keys should be different.")
 	}
 
-	// Create a entirely different skykey and sanity check that it produces
+	// Create a entirely different pubaccesskey and sanity check that it produces
 	// different ciphertexts.
 	keyName2 := t.Name() + "2"
 	sk2, err := r.CreateSkykey(keyName2, crypto.TypeXChaCha20)
@@ -118,13 +118,13 @@ func TestSkyfileBaseSectorEncryption(t *testing.T) {
 		t.Fatal(err)
 	}
 	if bytes.Equal(otherBSCopy, baseSector) {
-		t.Fatal("Expected base sector encrypted with different skykey to be different from original base sector.")
+		t.Fatal("Expected base sector encrypted with different pubaccesskey to be different from original base sector.")
 	}
 	if bytes.Equal(otherBSCopy, bsCopy1) {
-		t.Fatal("Expected base sector encrypted with different skykey to be differen from original base sector.")
+		t.Fatal("Expected base sector encrypted with different pubaccesskey to be differen from original base sector.")
 	}
 	if bytes.Equal(otherBSCopy, bsCopy3) {
-		t.Fatal("Expected base sector encrypted with different skykey to be different from original base sector.")
+		t.Fatal("Expected base sector encrypted with different pubaccesskey to be different from original base sector.")
 	}
 
 	// Now decrypt all the base sectors. They should all be equal to the original
@@ -253,7 +253,7 @@ func TestSkyfileBaseSectorEncryption(t *testing.T) {
 
 	// Check that deriveFanoutKey produces the same derived key as a manual
 	// derivation from the original.The fact that it is different fsKey1 is
-	// guaranteed by skykey module tests.
+	// guaranteed by pubaccesskey module tests.
 	fanoutKey2, err := fsKey1.DeriveSubkey(fanoutNonceDerivation[:])
 	if err != nil {
 		t.Fatal(err)

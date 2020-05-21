@@ -263,7 +263,7 @@ func (r *Renter) managedCreatePublinkFromFileNode(lup modules.SkyfileUploadParam
 	var ll skyfileLayout
 	masterKey := fileNode.MasterKey()
 	if len(masterKey.Key()) > len(ll.keyData) {
-		return modules.Publink{}, errors.New("cipher key is not supported by the skyfile format")
+		return modules.Publink{}, errors.New("cipher key is not supported by the pubfile format")
 	}
 	ec := fileNode.ErasureCode()
 	if ec.Type() != siafile.ECReedSolomonSubShards64 {
@@ -436,7 +436,7 @@ func (r *Renter) UpdateSkynetBlacklist(additions, removals []modules.Publink) er
 		return err
 	}
 	defer r.tg.Done()
-	return r.staticSkynetBlacklist.UpdateSkynetBlacklist(additions, removals)
+	return r.staticSkynetBlacklist.UpdateBlacklist(additions, removals)
 }
 
 // Portals returns the list of known pubaccess portals.
@@ -456,7 +456,7 @@ func (r *Renter) UpdateSkynetPortals(additions []modules.SkynetPortal, removals 
 		return err
 	}
 	defer r.tg.Done()
-	return r.staticSkynetPortals.UpdateSkynetPortals(additions, removals)
+	return r.staticSkynetPortals.UpdatePortals(additions, removals)
 }
 
 // uploadSkyfileReadLeadingChunk will read the leading chunk of a pubfile. If
@@ -552,7 +552,7 @@ func (r *Renter) managedUploadSkyfileLargeFile(lup modules.SkyfileUploadParamete
 		}
 		fup.CipherKey, err = fanoutSkykey.CipherKey()
 		if err != nil {
-			return modules.Publink{}, errors.AddContext(err, "unable to get skykey cipherkey")
+			return modules.Publink{}, errors.AddContext(err, "unable to get pubaccesskey cipherkey")
 		}
 		fup.CipherType = lup.FileSpecificSkykey.CipherType
 	}
@@ -738,11 +738,11 @@ func (r *Renter) DownloadPublink(link modules.Publink, timeout time.Duration) (m
 	if isEncryptedBaseSector(baseSector) {
 		err = r.decryptBaseSector(baseSector)
 		if err != nil {
-			return modules.SkyfileMetadata{}, nil, errors.AddContext(err, "Unable to decrypt skyfile base sector")
+			return modules.SkyfileMetadata{}, nil, errors.AddContext(err, "Unable to decrypt pubfile base sector")
 		}
 	}
 
-	// Parse out the metadata of the skyfile.
+	// Parse out the metadata of the pubfile.
 	layout, fanoutBytes, metadata, baseSectorPayload, err := parseSkyfileMetadata(baseSector)
 	if err != nil {
 		return modules.SkyfileMetadata{}, nil, errors.AddContext(err, "error parsing pubfile metadata")
@@ -788,7 +788,7 @@ func (r *Renter) PinPublink(publink modules.Publink, lup modules.SkyfileUploadPa
 	if encrypted {
 		err = r.decryptBaseSector(baseSector)
 		if err != nil {
-			return errors.AddContext(err, "Unable to decrypt skyfile base sector")
+			return errors.AddContext(err, "Unable to decrypt pubfile base sector")
 		}
 	}
 
@@ -820,7 +820,7 @@ func (r *Renter) PinPublink(publink modules.Publink, lup modules.SkyfileUploadPa
 		// Derive the fanout key and add to the fup.
 		fanoutSkykey, err := fileSpecificSkykey.DeriveSubkey(fanoutNonceDerivation[:])
 		if err != nil {
-			return errors.AddContext(err, "Error deriving fanout skykey")
+			return errors.AddContext(err, "Error deriving fanout pubaccesskey")
 		}
 		fup.CipherKey, err = fanoutSkykey.CipherKey()
 		if err != nil {
@@ -849,8 +849,8 @@ func (r *Renter) PinPublink(publink modules.Publink, lup modules.SkyfileUploadPa
 	if err != nil {
 		return errors.AddContext(err, "unable to create erasure coder for large file")
 	}
-	// Create the siapath for the skyfile extra data. This is going to be the
-	// same as the skyfile upload siapath, except with a suffix.
+	// Create the siapath for the pubfile extra data. This is going to be the
+	// same as the pubfile upload siapath, except with a suffix.
 	fup.SiaPath, err = modules.NewSiaPath(lup.SiaPath.String() + "-extended")
 	if err != nil {
 		return errors.AddContext(err, "unable to create SiaPath for large pubfile extended data")
@@ -885,12 +885,12 @@ func (r *Renter) UploadSkyfile(lup modules.SkyfileUploadParameters) (modules.Pub
 		return modules.Publink{}, errors.AddContext(err, "pubfile upload parameters are incorrect")
 	}
 
-	// If a skykey name or ID was specified, generate a file-specific key for this
+	// If a pubaccesskey name or ID was specified, generate a file-specific key for this
 	// upload.
 	if encryptionEnabled(lup) && lup.SkykeyName != "" {
 		key, err := r.SkykeyByName(lup.SkykeyName)
 		if err != nil {
-			return modules.Publink{}, errors.AddContext(err, "UploadSkyfile unable to get skykey")
+			return modules.Publink{}, errors.AddContext(err, "UploadSkyfile unable to get pubaccesskey")
 		}
 		lup.FileSpecificSkykey, err = key.GenerateFileSpecificSubkey()
 		if err != nil {
@@ -899,7 +899,7 @@ func (r *Renter) UploadSkyfile(lup modules.SkyfileUploadParameters) (modules.Pub
 	} else if encryptionEnabled(lup) {
 		key, err := r.SkykeyByID(lup.SkykeyID)
 		if err != nil {
-			return modules.Publink{}, errors.AddContext(err, "UploadSkyfile unable to get skykey")
+			return modules.Publink{}, errors.AddContext(err, "UploadSkyfile unable to get pubaccesskey")
 		}
 
 		lup.FileSpecificSkykey, err = key.GenerateFileSpecificSubkey()
@@ -908,7 +908,7 @@ func (r *Renter) UploadSkyfile(lup modules.SkyfileUploadParameters) (modules.Pub
 		}
 	}
 
-	// Additional input check - this check is unique to uploading a skyfile
+	// Additional input check - this check is unique to uploading a pubfile
 	// from a streamer. The convert siafile function does not need to be passed
 	// a reader.
 	if lup.Reader == nil {

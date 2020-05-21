@@ -69,27 +69,27 @@ threshold signatures.
 Currency
 --------
 
-The ScPrime cryptosystem has two types of currency. The first is the siaprimecoin.
-siaprimecoins are generated every block and distributed to the miners. These miners
-can then use the siaprimecoins to fund file contracts, or can send the siaprimecoins to
-other parties. The siaprimecoin is represented by an infinite precision unsigned
+The ScPrime cryptosystem has two types of currency. The first is the scprimecoin.
+scprimecoins are generated every block and distributed to the miners. These miners
+can then use the scprimecoins to fund file contracts, or can send the scprimecoins to
+other parties. The scprimecoin is represented by an infinite precision unsigned
 integer.
 
-The second currency in the ScPrime cryptosystem is the siaprimefund, which is a special
+The second currency in the ScPrime cryptosystem is the scprimefund, which is a special
 asset limited to 10,000 indivisible units. Each time a file contract payout is
-made, 3.9% of the payout is put into the siaprimefund pool. The number of siaprimecoins
-in the siaprimefund pool must always be divisible by 10,000; the number of coins
-taken from the payout is rounded down to the nearest 10,000. The siaprimefund is
+made, 3.9% of the payout is put into the scprimefund pool. The number of scprimecoins
+in the scprimefund pool must always be divisible by 10,000; the number of coins
+taken from the payout is rounded down to the nearest 10,000. The scprimefund is
 also represented by an infinite precision unsigned integer.
 
-Siaprimefund owners can collect the siaprimecoins in the siaprimefund pool. For every 10,000
-siaprimecoins added to the siaprimefund pool, a siaprimefund owner can withdraw 1 siaprimecoin.
-Approx. 8790 siaprimefunds are owned by Nebulous Inc. The remaining siaprimefunds are
+Scprimefund owners can collect the scprimecoins in the scprimefund pool. For every 10,000
+scprimecoins added to the scprimefund pool, a scprimefund owner can withdraw 1 scprimecoin.
+Approx. 8790 scprimefunds are owned by Nebulous Inc. The remaining scprimefunds are
 owned by early backers of the ScPrime project.
 
 There are future plans to enable sidechain compatibility with ScPrime. This would
 allow other currencies such as Bitcoin to be spent in all the same places that
-the siaprimecoin can be spent.
+the scprimecoin can be spent.
 
 Marshalling
 -----------
@@ -207,20 +207,20 @@ Transactions
 
 A Transaction is composed of the following:
 
-- siaprimecoin Inputs
-- siaprimecoin Outputs
+- scprimecoin Inputs
+- scprimecoin Outputs
 - File Contracts
 - File Contract Revisions
 - Storage Proofs
-- siaprimefund Inputs
-- siaprimefund Outputs
+- scprimefund Inputs
+- scprimefund Outputs
 - Miner Fees
 - Arbitrary Data
 - Transaction Signatures
 
-The sum of all the siaprimecoin inputs must equal the sum of all the miner fees,
-siaprimecoin outputs, and file contract payouts. There can be no leftovers. The sum
-of all siaprimefund inputs must equal the sum of all siaprimefund outputs.
+The sum of all the scprimecoin inputs must equal the sum of all the miner fees,
+scprimecoin outputs, and file contract payouts. There can be no leftovers. The sum
+of all scprimefund inputs must equal the sum of all scprimefund outputs.
 
 Several objects have unlock hashes. An unlock hash is the Merkle root of the
 'unlock conditions' object. The unlock conditions contain a timelock, a number
@@ -252,14 +252,14 @@ SiaPrimecoin Inputs
 --------------
 
 Each input spends an output. The output being spent must exist in the consensus
-set. The 'value' field of the output indicates how many siaprimecoins must be used
-in the outputs of the transaction. Valid outputs are miner fees, siaprimecoin
+set. The 'value' field of the output indicates how many scprimecoins must be used
+in the outputs of the transaction. Valid outputs are miner fees, scprimecoin
 outputs, and contract payouts.
 
 SiaPrimecoin Outputs
 ---------------
 
-Siaprimecoin outputs contain a value and an unlock hash (also called a coin
+Scprimecoin outputs contain a value and an unlock hash (also called a coin
 address). The unlock hash is the Merkle root of the spend conditions that must
 be met to spend the output.
 
@@ -275,9 +275,9 @@ hashing each segment to form the leaves of the Merkle tree. The final segment
 is not padded out.
 
 The storage proof must be submitted between the 'WindowStart' and 'WindowEnd'
-fields of the contract. There is a 'Payout', which indicates how many siaprimecoins
+fields of the contract. There is a 'Payout', which indicates how many scprimecoins
 are given out when the storage proof is provided. 3.9% of this payout (rounded
-down to the nearest 10,000) is put aside for the owners of siaprimefunds. If the
+down to the nearest 10,000) is put aside for the owners of scprimefunds. If the
 storage proof is provided and is valid, the remaining payout is put in an
 output spendable by the 'valid proof spend hash', and if a valid storage proof
 is not provided to the blockchain by 'end', the remaining payout is put in an
@@ -298,7 +298,7 @@ File Contract Revisions
 A file contract revision modifies a contract. File contracts have a revision
 number, and any revision submitted to the blockchain must have a higher
 revision number in order to be valid. Any field can be changed except for the
-payout - siaprimecoins cannot be added to or removed from the file contract during a
+payout - scprimecoins cannot be added to or removed from the file contract during a
 revision, though the destination upon a successful or unsuccessful storage
 proof can be changed.
 
@@ -310,7 +310,7 @@ Storage Proofs
 --------------
 
 A storage proof transaction is any transaction containing a storage proof.
-Storage proof transactions are not allowed to have siaprimecoin or siaprimefund outputs,
+Storage proof transactions are not allowed to have scprimecoin or scprimefund outputs,
 and are not allowed to have file contracts.
 
 When creating a storage proof, you only prove that you have a single 64 byte
@@ -332,7 +332,7 @@ hashes required to fill out the remaining tree. The total size of the proof
 will be 64 bytes + 32 bytes * log(num segments), and can be verified by anybody
 who knows the root hash and the file size.
 
-Storage proof transactions are not allowed to have siaprimecoin outputs, siaprimefund
+Storage proof transactions are not allowed to have scprimecoin outputs, scprimefund
 outputs, or contracts. All outputs created by the storage proofs cannot be
 spent for 50 blocks.
 
@@ -341,47 +341,47 @@ the trigger block, which will invalidate the storage proof and therefore the
 entire transaction. This makes double spend attacks and false spend attacks
 significantly easier to execute.
 
-Siaprimefund Inputs
+Scprimefund Inputs
 --------------
 
-A siaprimefund input works similar to a siaprimecoin input. It contains the id of a
-siaprimefund output being spent, and the unlock conditions required to spend the
+A scprimefund input works similar to a scprimecoin input. It contains the id of a
+scprimefund output being spent, and the unlock conditions required to spend the
 output.
 
-A special output is created when a siaprimefund output is used as input. All of the
-siaprimecoins that have accrued in the siaprimefund since its last spend are sent to the
-'claim spend hash' found in the siaprimefund output, which is a normal siaprimecoin
-address. The value of the siaprimecoin output is determined by taking the size of
-the siaprimecoin pool when the output was created and comparing it to the current
-size of the siaprimecoin pool. The equation is:
+A special output is created when a scprimefund output is used as input. All of the
+scprimecoins that have accrued in the scprimefund since its last spend are sent to the
+'claim spend hash' found in the scprimefund output, which is a normal scprimecoin
+address. The value of the scprimecoin output is determined by taking the size of
+the scprimecoin pool when the output was created and comparing it to the current
+size of the scprimecoin pool. The equation is:
 
-	((Current Pool Size - Previous Pool Size) / 10,000) * siaprimefund quantity
+	((Current Pool Size - Previous Pool Size) / 10,000) * scprimefund quantity
 
-Like the miner outputs and the storage proof outputs, the siaprimefund output cannot
+Like the miner outputs and the storage proof outputs, the scprimefund output cannot
 be spent for 50 blocks because the value of the output can change if the
 blockchain reorganizes. Reorganizations will not however cause the transaction
 to be invalidated, so the ban on contracts and outputs does not need to be in
 place.
 
-Siaprimefund Outputs
+Scprimefund Outputs
 ---------------
 
-Like siaprimecoin outputs, siaprimefund outputs contain a value and an unlock hash. The
-value indicates the number of siaprimefunds that are put into the output, and the
+Like scprimecoin outputs, scprimefund outputs contain a value and an unlock hash. The
+value indicates the number of scprimefunds that are put into the output, and the
 unlock hash is the Merkle root of the unlock conditions object which allows the
 output to be spent.
 
-Siaprimefund outputs also contain a claim unlock hash field, which indicates the
-unlock hash of the siaprimecoin output that is created when the siaprimefund output is
+Scprimefund outputs also contain a claim unlock hash field, which indicates the
+unlock hash of the scprimecoin output that is created when the scprimefund output is
 spent. The value of the output that gets created will depend on the growth of
-the siaprimecoin pool between the creation and the spending of the output. This
+the scprimecoin pool between the creation and the spending of the output. This
 growth is measured by storing a 'claim start', which indicates the size of the
-siaprimefund pool at the moment the siaprimefund output was created.
+scprimefund pool at the moment the scprimefund output was created.
 
 Miner Fees
 ----------
 
-A miner fee is a volume of siaprimecoins that get added to the block subsidy.
+A miner fee is a volume of scprimecoins that get added to the block subsidy.
 
 Arbitrary Data
 --------------
@@ -389,7 +389,7 @@ Arbitrary Data
 Arbitrary data is a set of data that is ignored by consensus. In the future, it
 may be used for soft forks, paired with 'anyone can spend' transactions. In the
 meantime, it is an easy way for third party applications to make use of the
-siaprimecoin blockchain.
+scprimecoin blockchain.
 
 Transaction Signatures
 ----------------------
@@ -416,7 +416,7 @@ signature. If the whole transaction flag is set, all other elements in the
 covered fields object must be empty except for the signatures field.
 
 The covered fields object contains a slice of indexes for each element of the
-transaction (siaprimecoin inputs, miner fees, etc.). The slice must be sorted, and
+transaction (scprimecoin inputs, miner fees, etc.). The slice must be sorted, and
 there can be no repeated elements.
 
 Entirely nonmalleable transactions can be achieved by setting the 'whole

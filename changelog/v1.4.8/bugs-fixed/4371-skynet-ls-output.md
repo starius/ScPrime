@@ -1,1 +1,0 @@
-- Fixed the output of `spc pubaccess ls` not counting subdirectories.

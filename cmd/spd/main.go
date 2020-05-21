@@ -33,11 +33,12 @@ type Config struct {
 	// The Spd variables are referenced directly by cobra, and are set
 	// according to the flags.
 	Spd struct {
-		APIaddr      string
-		RPCaddr      string
-		HostAddr     string
-		SiaMuxAddr   string
-		AllowAPIBind bool
+		APIaddr       string
+		RPCaddr       string
+		HostAddr      string
+		SiaMuxTCPAddr string
+		SiaMuxWSAddr  string
+		AllowAPIBind  bool
 
 		Modules           string
 		NoBootstrap       bool
@@ -189,7 +190,8 @@ func main() {
 	root.Flags().BoolVarP(&globalConfig.Spd.NoBootstrap, "no-bootstrap", "", false, "disable bootstrapping on this run")
 	root.Flags().StringVarP(&globalConfig.Spd.Profile, "profile", "", "", "enable profiling with flags 'cmt' for CPU, memory, trace")
 	root.Flags().StringVarP(&globalConfig.Spd.RPCaddr, "rpc-addr", "", ":4281", "which port the gateway listens on")
-	root.Flags().StringVarP(&globalConfig.Spd.SiaMuxAddr, "siamux-addr", "", ":4283", "which port the SiaMux listens on")
+	root.Flags().StringVarP(&globalConfig.Spd.SiaMuxTCPAddr, "siamux-addr", "", ":4283", "which port the SiaMux listens on")
+	root.Flags().StringVarP(&globalConfig.Spd.SiaMuxWSAddr, "siamux-addr-ws", "", ":4284", "which port the SiaMux websocket listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.Modules, "modules", "M", "gctwrhf", "enabled modules, see 'spd modules' for more info")
 	root.Flags().BoolVarP(&globalConfig.Spd.AuthenticateAPI, "authenticate-api", "", true, "enable API password protection")
 	root.Flags().BoolVarP(&globalConfig.Spd.TempPassword, "temp-password", "", false, "enter a temporary API password during startup")

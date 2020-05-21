@@ -469,7 +469,8 @@ func skynetuploadcmd(sourcePath, destSiaPath string) {
 		if skynetUploadDryRun {
 			fmt.Print("[dry run] ")
 		}
-		fmt.Printf("Successfully uploaded pubfile!\n")
+		pbs.Wait()
+		fmt.Printf("Successfully uploaded file for public access!\n")
 		return
 	}
 
