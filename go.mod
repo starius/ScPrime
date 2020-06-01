@@ -30,10 +30,10 @@ require (
 	gitlab.com/NebulousLabs/monitor v0.0.0-20191205095550-2b0fd3e1012a
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20191111145210-66b93e150b27
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200527092543-afa01960408c
-	gitlab.com/scpcorp/siamux v0.0.0-20200529161047-3962caeb0b7f
+	gitlab.com/scpcorp/siamux v0.0.0-20200601085202-1657681ea4f0
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200529162531-fa10d006a5ab
 	go.etcd.io/bbolt v1.3.3
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/tools v0.0.0-20200529135122-41453949f363
+	golang.org/x/tools v0.0.0-20200530233709-52effbd89c51
 	gopkg.in/ini.v1 v1.57.0 // indirect
 )

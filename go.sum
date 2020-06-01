@@ -334,8 +334,8 @@ gitlab.com/scpcorp/siamux v0.0.0-20200512163754-9381b47d0597 h1:hT3PZhQ2HSojOEG5
 gitlab.com/scpcorp/siamux v0.0.0-20200512163754-9381b47d0597/go.mod h1:9jpc7jU/mLYNq3xWPt7tVrNnMBc74B2F7EArIKvCMeM=
 gitlab.com/scpcorp/siamux v0.0.0-20200518170227-3055a7c99a74 h1:TPLDOknk2G3HzgHa2S2oL3AaF1fjhFX3e8PO0+xU/oI=
 gitlab.com/scpcorp/siamux v0.0.0-20200518170227-3055a7c99a74/go.mod h1:qrORLsamBN0Y97mVcVKTM5CRhwNJ7XSMfBDhV6dWXdo=
-gitlab.com/scpcorp/siamux v0.0.0-20200529161047-3962caeb0b7f h1:hRTfe30g8LOwd7M3xS4GpJUo2gV7HARk6/hHjI70mC4=
-gitlab.com/scpcorp/siamux v0.0.0-20200529161047-3962caeb0b7f/go.mod h1:NRjPVJnzLzLe63taaUKgy0cfkjtX0johrKujbBsbIfA=
+gitlab.com/scpcorp/siamux v0.0.0-20200601085202-1657681ea4f0 h1:5qcED80qSb5/pvLcycVim2Y5deLynQI8aYzHJgjxoDk=
+gitlab.com/scpcorp/siamux v0.0.0-20200601085202-1657681ea4f0/go.mod h1:NRjPVJnzLzLe63taaUKgy0cfkjtX0johrKujbBsbIfA=
 gitlab.com/scpcorp/writeaheadlog v0.0.0-20200311132821-9a59657fecfa/go.mod h1:VCi1GFsK4+8dEudelJogRFUGqHVewPi4JPZd+GMvZrA=
 gitlab.com/scpcorp/writeaheadlog v0.0.0-20200401142414-c5d81e8a45b6 h1:5yqObBTOdagXJBdwrawzpPBuAZFmFFjOhxLhy/W1YJk=
 gitlab.com/scpcorp/writeaheadlog v0.0.0-20200401142414-c5d81e8a45b6/go.mod h1:VCi1GFsK4+8dEudelJogRFUGqHVewPi4JPZd+GMvZrA=
@@ -498,8 +498,8 @@ golang.org/x/tools v0.0.0-20200513201620-d5fe73897c97 h1:DAuln/hGp+aJiHpID1Y1hYz
 golang.org/x/tools v0.0.0-20200513201620-d5fe73897c97/go.mod h1:EkVYQZoAsY45+roYkvgYkIh4xh/qjgUK9TdY2XT94GE=
 golang.org/x/tools v0.0.0-20200519205726-57a9e4404bf7 h1:nm4zDh9WvH4jiuUpMY5RUsvOwrtTVVAsUaCdLW71hfY=
 golang.org/x/tools v0.0.0-20200519205726-57a9e4404bf7/go.mod h1:EkVYQZoAsY45+roYkvgYkIh4xh/qjgUK9TdY2XT94GE=
-golang.org/x/tools v0.0.0-20200529135122-41453949f363 h1:4in2NmN9hTdE4o4T9pMVlxpAyJ5/CPCI2dbQmMd0oGI=
-golang.org/x/tools v0.0.0-20200529135122-41453949f363/go.mod h1:EkVYQZoAsY45+roYkvgYkIh4xh/qjgUK9TdY2XT94GE=
+golang.org/x/tools v0.0.0-20200530233709-52effbd89c51 h1:Wec8/IO8hAraBf0it7/dPQYOslIrgM938wZYNkLnOYc=
+golang.org/x/tools v0.0.0-20200530233709-52effbd89c51/go.mod h1:EkVYQZoAsY45+roYkvgYkIh4xh/qjgUK9TdY2XT94GE=
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 h1:/atklqdjdhuosWIl6AIbOeHJjicWYPqR9bpxqxYG2pA=
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
