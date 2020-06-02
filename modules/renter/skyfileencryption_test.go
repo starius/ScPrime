@@ -5,9 +5,11 @@ import (
 	"os"
 	"testing"
 
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
+
+	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/NebulousLabs/fastrand"
 )
@@ -27,7 +29,7 @@ func TestSkyfileBaseSectorEncryption(t *testing.T) {
 
 	// Create the 2 test skykeys.
 	keyName1 := t.Name() + "1"
-	sk1, err := r.CreateSkykey(keyName1, crypto.TypeXChaCha20)
+	sk1, err := r.CreateSkykey(keyName1, pubaccesskey.TypePublicID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +106,7 @@ func TestSkyfileBaseSectorEncryption(t *testing.T) {
 	// Create a entirely different pubaccesskey and sanity check that it produces
 	// different ciphertexts.
 	keyName2 := t.Name() + "2"
-	sk2, err := r.CreateSkykey(keyName2, crypto.TypeXChaCha20)
+	sk2, err := r.CreateSkykey(keyName2, pubaccesskey.TypePublicID)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 	"gitlab.com/NebulousLabs/errors"
 
-	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/node/api/client"
 	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 )
@@ -49,6 +49,13 @@ var (
 		Long:  `Get the base64-encoded pubaccesskey id by its name`,
 		Run:   wrap(skykeygetidcmd),
 	}
+
+	skykeyListCmd = &cobra.Command{
+		Use:   "ls",
+		Short: "List all pubaccesskeys",
+		Long:  "List all public access keys. Use with --show-priv-keys to show full encoding with private key also.",
+		Run:   wrap(skykeylistcmd),
+	}
 )
 
 // skykeycmd displays the usage info for the command.
@@ -59,7 +66,7 @@ func skykeycmd(cmd *cobra.Command, args []string) {
 
 // skykeycreatecmd is a wrapper for skykeyCreate used to handle pubaccesskey creation.
 func skykeycreatecmd(name string) {
-	skykeyStr, err := skykeyCreate(httpClient, name)
+	skykeyStr, err := skykeyCreate(httpClient, name, pubaccesskey.TypePublicID)
 	if err != nil {
 		die(errors.AddContext(err, "Failed to create new pubaccesskey"))
 	}
@@ -67,17 +74,10 @@ func skykeycreatecmd(name string) {
 }
 
 // skykeyCreate creates a new pubaccesskey with the given name and cipher type
-// as set by flag.
-func skykeyCreate(c client.Client, name string) (string, error) {
-	var cipherType crypto.CipherType
-	err := cipherType.FromString(skykeyCipherType)
+func skykeyCreate(c client.Client, name string, skykeyType pubaccesskey.SkykeyType) (string, error) {
+	sk, err := c.SkykeyCreateKeyPost(name, skykeyType)
 	if err != nil {
-		return "", errors.AddContext(err, "Could not decode cipher-type")
-	}
-
-	sk, err := c.SkykeyCreateKeyPost(name, cipherType)
-	if err != nil {
-		return "", errors.AddContext(err, "Could not create pubaccesskey")
+		return "", errors.AddContext(err, "Could not create pubaccess key")
 	}
 	return sk.ToString()
 }
@@ -163,4 +163,61 @@ func skykeygetidcmd(skykeyName string) {
 		die("Failed to retrieve pubaccesskey:", err)
 	}
 	fmt.Printf("Found pubaccesskey ID: %v\n", sk.ID().ToString())
+}
+
+// skykeylistcmd is a wrapper for skykeyListKeys that prints a list of all
+// skykeys.
+func skykeylistcmd() {
+	skykeysString, err := skykeyListKeys(httpClient, skykeyShowPrivateKeys)
+	if err != nil {
+		die("Failed to get all skykeys:", err)
+	}
+	fmt.Print(skykeysString)
+}
+
+// skykeyListKeys returns a formatted string containing a list of all skykeys
+// being stored by the renter. It includes IDs, Names, and if showPrivateKeys is
+// set to true it will include the full encoded pubaccesskey.
+func skykeyListKeys(c client.Client, showPrivateKeys bool) (string, error) {
+	skykeys, err := c.SkykeySkykeysGet()
+	if err != nil {
+		return "", err
+	}
+
+	var b strings.Builder
+	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
+
+	// Print a title row.
+	if showPrivateKeys {
+		fmt.Fprintf(w, "ID\tName\tFull Pubaccesskey\n")
+	} else {
+		fmt.Fprintf(w, "ID\tName\n")
+	}
+
+	if err = w.Flush(); err != nil {
+		return "", err
+	}
+	titleLen := b.Len() - 1
+	for i := 0; i < titleLen; i++ {
+		fmt.Fprintf(w, "-")
+	}
+	fmt.Fprintf(w, "\n")
+
+	for _, sk := range skykeys {
+		idStr := sk.ID().ToString()
+		if !showPrivateKeys {
+			fmt.Fprintf(w, "%s\t%s\n", idStr, sk.Name)
+			continue
+		}
+		skStr, err := sk.ToString()
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\n", idStr, sk.Name, skStr)
+	}
+
+	if err = w.Flush(); err != nil {
+		return "", err
+	}
+	return b.String(), nil
 }

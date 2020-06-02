@@ -36,10 +36,11 @@ var (
 	renterRenameRoot          bool   // Rename files relative to root instead of the user homedir.
 	renterShowHistory         bool   // Show download history in addition to download queue.
 	renterVerbose             bool   // Show additional info about the renter
-	dataDir                   string // Path to metadata dir
-	skykeyCipherType          string // CipherType used to create a Pubaccesskey.
+	dataDir                   string // Path to daemon metadata data dir
 	skykeyName                string // Name used to identify a Pubaccesskey.
+	skykeyShowPrivateKeys     bool   // Set to true to show private key data.
 	skykeyID                  string // ID used to identify a Pubaccesskey.
+	skykeyRenameAs            string // Optional parameter to rename a Pubaccesskey while adding it.
 	skynetBlacklistRemove     bool   // Remove a publink from the Pubaccess Blacklist.
 	skynetUnpinRoot           bool   // Use root as the base instead of the Pubaccess folder.
 	skynetDownloadPortal      string // Portal to use when trying to download a publink.
@@ -47,7 +48,6 @@ var (
 	skynetLsRoot              bool   // Use root as the base instead of the Pubaccess folder.
 	skynetUploadRoot          bool   // Use root as the base instead of the Pubaccess folder.
 	skynetUploadDryRun        bool   // Perform a dry-run of the upload. This returns the publink without actually uploading the file to the network.
-	skykeyRenameAs            string // Optional parameter to rename a Pubaccesskey while adding it.
 	skynetUploadSilent        bool   // Don't report progress while uploading
 	statusVerbose             bool   // Display additional spc information
 	walletRawTxn              bool   // Encode/decode transactions in base64-encoded binary.
@@ -319,14 +319,11 @@ func main() {
 	skynetBlacklistCmd.Flags().BoolVar(&skynetBlacklistRemove, "remove", false, "Remove the publink from the blacklist")
 
 	root.AddCommand(skykeyCmd)
-	skykeyCmd.AddCommand(skykeyCreateCmd, skykeyAddCmd, skykeyGetCmd, skykeyGetIDCmd)
-	skykeyAddCmd.Flags().StringVar(&skykeyRenameAs, "rename-as", "", "The new name for the pubaccesskey being added")
-	skykeyCreateCmd.Flags().StringVar(&skykeyCipherType, "cipher-type", "XChaCha20", "The cipher type of the pubaccesskey")
-	skykeyGetCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the pubaccesskey")
+	skykeyCmd.AddCommand(skykeyCreateCmd, skykeyAddCmd, skykeyGetCmd, skykeyGetIDCmd, skykeyListCmd)
+	skykeyAddCmd.Flags().StringVar(&skykeyRenameAs, "rename-as", "", "The new name for the public access key being added")
+	skykeyGetCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the public access key")
 	skykeyGetCmd.Flags().StringVar(&skykeyID, "id", "", "The base-64 encoded pubaccesskey ID")
-
-	root.AddCommand(stratumminerCmd)
-	stratumminerCmd.AddCommand(stratumminerStartCmd, stratumminerStopCmd)
+	skykeyListCmd.Flags().BoolVar(&skykeyShowPrivateKeys, "show-priv-keys", false, "Show private key data.")
 
 	root.AddCommand(updateCmd)
 	updateCmd.AddCommand(updateCheckCmd)
@@ -386,12 +383,10 @@ func main() {
 
 	// Check for Critical Alerts
 	alerts, err := httpClient.DaemonAlertsGet()
-	if err == nil {
+	if err == nil && len(alerts.CriticalAlerts) > 0 {
 		printAlerts(alerts.CriticalAlerts, modules.SeverityCritical)
-		if len(alerts.CriticalAlerts) > 0 {
-			fmt.Println("------------------")
-			fmt.Printf("\n  The above %v critical alerts should be resolved ASAP\n\n", len(alerts.CriticalAlerts))
-		}
+		fmt.Println("------------------")
+		fmt.Printf("\n  The above %v critical alerts should be resolved ASAP\n\n", len(alerts.CriticalAlerts))
 	}
 
 	// run

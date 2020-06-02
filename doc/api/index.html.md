@@ -395,6 +395,24 @@ Block timestamp
 **transactions** | ConsensusBlocksGetTxn  
 Transactions contained within the block
 
+## /consensus/subscribe/:id [GET]
+> curl example
+
+```go
+curl -A "Sia-Agent" "localhost:4280/consensus/subscribe/0000000000000000000000000000000000000000000000000000000000000000"
+```
+
+Streams a series of consensus changes, starting from the provided change ID.
+
+### Path Parameters
+### REQUIRED
+**id** | string
+The consensus change ID to subscribe from.
+
+### Response
+
+A concatenation of Sia-encoded (binary) modules.ConsensusChange objects.
+
 ## /consensus/validate/transactionset [POST]
 > curl example  
 
@@ -4450,7 +4468,6 @@ returns the the status of all the workers in the renter's workerpool.
       
       "availablebalance":    "0", // hastings
       "balancetarget":       "0", // hastings
-      "fundaccountjobqueuesize": 0,   // int
       
       "backupjobqueuesize":       0, // int
       "downloadrootjobqueuesize": 0  // int
@@ -4523,9 +4540,6 @@ The worker's Ephemeral Account available balance
 
 **balancetarget** | hastings  
 The worker's Ephemeral Account target balance
-
-**fundaccountjobqueuesize** | int  
-The size of the worker's Ephemeral Account fund account job queue
 
 **backupjobqueuesize** | int  
 The size of the worker's backup job queue
@@ -4807,14 +4821,14 @@ this field is not set, the siapath will be interpreted as relative to
 
 
 **UNSTABLE - subject to change in v1.4.9**
-**skykeyname** | string  
+**pubaccesskeyname** | string  
 The name of the pubaccesskey that will be used to encrypt this pubfile. Only the
 name or the ID of the pubaccesskey should be specified.
 
 **OR**
 
 **UNSTABLE - subject to change in v1.4.9**
-**skykeyid** | string  
+**pubaccesskeyid** | string  
 The ID of the pubaccesskey that will be used to encrypt this pubfile. Only the
 name or the ID of the pubaccesskey should be specified.
 
@@ -4871,6 +4885,7 @@ returns statistical information about Pubaccess, e.g. number of files uploaded
 ### JSON Response
 ```json
 {
+  "uptime": 1234, // int
   "uploadstats": {
     "numfiles": 2,         // int
     "totalsize": 44527895  // int
@@ -4884,7 +4899,10 @@ returns statistical information about Pubaccess, e.g. number of files uploaded
 }
 ```
 
-**uploadstats** | object
+**uptime** | int  
+The amount of time in seconds that siad has been running.
+
+**uploadstats** | object  
 Uploadstats is an object with statistics about the data uploaded to Pubaccess.
 
 **numfiles** | int  
@@ -4950,6 +4968,42 @@ base-64 encoded pubaccesskey
 standard success or error response. See [standard
 responses](#standard-responses).
 
+## /pubaccess/pubaccesskeys [GET]
+> curl example
+
+```go
+curl -A "Sia-Agent"  -u "":<apipassword> --data "localhost:4280/pubaccess/pubaccesskeys"
+```
+
+Returns a list of all Skykeys.
+
+### JSON Response
+
+> JSON Response Example
+
+```go
+{
+  "pubaccesskeys": [
+  {
+    "pubaccesskey": "pubaccesskey:AUI0eAOXWXHwW6KOLyI5O1OYduVvHxAA8qUR_fJ8Kluasb-ykPlHBEjDczrL21hmjhH0zAoQ3-Qq?name=testkey1"
+    "name": "testkey1"
+    "id": "ai5z8cf5NWbcvPBaBn0DFQ=="
+  },
+  {
+    "pubaccesskey": "pubaccesskey:AUqG0aQmgzCIlse2JxFLBGHCriZNz20IEKQu81XxYsak3rzmuVbZ2P6ZqeJHIlN5bjPqEmC67U8E?name=testpubaccesskey2"
+    "name": "testpubaccesskey2"
+    "id": "bi5z8cf5NWbcvPBaBn0DFQ=="
+  },
+  {
+    "pubaccesskey": "pubaccesskey:AShQI8fzxoIMc52ZRkoKjOE50bXnCpiPd4zrBl_E-CkmyLgfinAJSdWkJT2QOR6XCRYYgZb63OHw?name=testpubaccesskey3"
+    "name": "testpubaccesskey3"
+    "id": "ci5z8cf5NWbcvPBaBn0DFQ=="
+  }
+}
+```
+
+**pubaccesskeys** | []pubaccesskeys
+array of 
 
 ## /pubaccess/createpubaccesskey [POST]
 > curl example
@@ -4986,7 +5040,7 @@ curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "lo
 curl -A "ScPrime-Agent"  -u "":<apipassword> --data "id=gi5z8cf5NWbcvPBaBn0DFQ==" "localhost:4280/pubaccess/pubaccesskey"
 ```
 
-Returns the base-64 encoded pubaccesskey stored under that name, or with that ID.
+Returns the base-64 encoded public access key along with its name and ID.
 
 
 ### Path Parameters
@@ -5004,12 +5058,20 @@ base-64 encoded ID of the pubaccesskey being queried
 
 ```go
 {
-  "pubaccesskey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
+  "pubaccesskey": "pubaccesskey:AShQI8fzxoIMc52ZRkoKjOE50bXnCpiPd4zrBl_E-CkmyLgfinAJSdWkJT2QOR6XCRYYgZb63OHw?name=testkey"
+  "name": "testkey"
+  "id": "gi5z8cf5NWbcvPBaBn0DFQ=="
 }
 ```
 
 **pubaccesskey** | string  
 base-64 encoded pubaccesskey
+
+**name** | string  
+name of the pubaccesskey
+
+**id** | string  
+base-64 encoded pubaccesskey ID
 
 
 ## /pubaccess/pubaccesskeyid [GET]
@@ -6012,7 +6074,7 @@ ID of the transaction being requested.
 **transaction**  
 Raw transaction. The rest of the fields in the response are determined from this
 raw transaction. It is left undocumented here as the processed transaction (the
-rest of the fields in this object) are usually what is desired.  
+rest of the fields in this object) are usually what is desired.
 
 See types.Transaction in
 https://gitlab.com/scpcorp/ScPrime/blob/master/types/transactions.go  

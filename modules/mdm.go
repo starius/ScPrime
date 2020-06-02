@@ -20,10 +20,12 @@ type (
 		Specifier InstructionSpecifier
 		Args      []byte
 	}
-	// Program specifies a generic program used as input to `mdm.ExecuteProram`.
-	Program []Instruction
 	// InstructionSpecifier specifies the type of the instruction.
 	InstructionSpecifier types.Specifier
+	// Program specifies a generic program used as input to `mdm.ExecuteProram`.
+	Program []Instruction
+	// ProgramData contains the raw byte data for the program.
+	ProgramData []byte
 )
 
 const (
@@ -52,6 +54,9 @@ const (
 	// instruction.
 	MDMTimeInitSingleInstruction = 1
 
+	// MDMTimeReadOffset is the time for executing a 'ReadOffset' instruction.
+	MDMTimeReadOffset = 1000
+
 	// MDMTimeReadSector is the time for executing a 'ReadSector' instruction.
 	MDMTimeReadSector = 1000
 
@@ -73,6 +78,10 @@ const (
 	// RPCIReadSectorLen is the expected length of the 'Args' of a ReadSector
 	// instruction.
 	RPCIReadSectorLen = 25
+
+	// RPCIReadOffsetLen is the expected length of the 'Args' of a ReadOffset
+	// instruction.
+	RPCIReadOffsetLen = 17
 )
 
 var (
@@ -94,6 +103,9 @@ var (
 
 	// SpecifierHasSector is the specifier for the HasSector instruction.
 	SpecifierHasSector = InstructionSpecifier{'H', 'a', 's', 'S', 'e', 'c', 't', 'o', 'r'}
+
+	// SpecifierReadOffset is the specifier for the ReadOffset instruction.
+	SpecifierReadOffset = InstructionSpecifier{'R', 'e', 'a', 'd', 'O', 'f', 'f', 's', 'e', 't'}
 
 	// SpecifierReadSector is the specifier for the ReadSector instruction.
 	SpecifierReadSector = InstructionSpecifier{'R', 'e', 'a', 'd', 'S', 'e', 'c', 't', 'o', 'r'}
@@ -224,6 +236,14 @@ func MDMReadMemory() uint64 {
 	return 0 // 'Read' doesn't hold on to any memory beyond the lifetime of the instruction.
 }
 
+// MDMBandwidthCost computes the total bandwidth cost given a price table and
+// used up- and download bandwidth.
+func MDMBandwidthCost(pt RPCPriceTable, uploadBandwidth, downloadBandwidth uint64) types.Currency {
+	uploadCost := pt.UploadBandwidthCost.Mul64(uploadBandwidth)
+	downloadCost := pt.DownloadBandwidthCost.Mul64(downloadBandwidth)
+	return uploadCost.Add(downloadCost)
+}
+
 // MDMMemoryCost computes the memory cost given a price table, memory and time.
 func MDMMemoryCost(pt *RPCPriceTable, usedMemory, time uint64) types.Currency {
 	return pt.MemoryTimeCost.Mul64(usedMemory * time)
@@ -269,6 +289,7 @@ func (p Program) ReadOnly() bool {
 			return false
 		case SpecifierHasSector:
 		case SpecifierReadSector:
+		case SpecifierReadOffset:
 		default:
 			build.Critical("ReadOnly: unknown instruction")
 		}
@@ -287,6 +308,7 @@ func (p Program) RequiresSnapshot() bool {
 			return true
 		case SpecifierHasSector:
 		case SpecifierReadSector:
+		case SpecifierReadOffset:
 		default:
 			build.Critical("RequiresSnapshot: unknown instruction")
 		}
