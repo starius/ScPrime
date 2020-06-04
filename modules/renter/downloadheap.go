@@ -17,6 +17,8 @@ import (
 	"os"
 	"sync/atomic"
 	"time"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // downloadChunkHeap is a heap that is sorted first by file priority, then by
@@ -212,9 +214,12 @@ func (r *Renter) managedTryFetchChunkFromDisk(chunk *unfinishedDownloadChunk) bo
 	if err := r.tg.Add(); err != nil {
 		return false
 	}
-	go func() (success bool) {
+	go func() (err error, success bool) {
 		defer r.tg.Done()
-		defer file.Close()
+		defer func() {
+			err = errors.AddContext(errors.Compose(err, file.Close()), "Error saving Pubaccesskey")
+		}()
+
 		// Try downloading if serving from disk failed.
 		defer func() {
 			if success {
@@ -232,7 +237,7 @@ func (r *Renter) managedTryFetchChunkFromDisk(chunk *unfinishedDownloadChunk) bo
 		// Check if download was already aborted.
 		select {
 		case <-chunk.download.completeChan:
-			return false
+			return nil, false
 		default:
 		}
 		// Fetch the chunk from disk.
@@ -241,22 +246,22 @@ func (r *Renter) managedTryFetchChunkFromDisk(chunk *unfinishedDownloadChunk) bo
 		if err != nil {
 			r.log.Debugf("managedTryFetchChunkFromDisk failed to read data pieces from %v for %v: %v\n",
 				localPath, fileName, err)
-			return false
+			return err, false
 		}
 		shards, err := chunk.renterFile.ErasureCode().EncodeShards(pieces)
 		if err != nil {
 			r.log.Debugf("managedTryFetchChunkFromDisk failed to encode data pieces from %v for %v: %v",
 				localPath, fileName, err)
-			return false
+			return err, false
 		}
 		// Write the data to the destination.
 		err = chunk.destination.WritePieces(chunk.renterFile.ErasureCode(), shards, 0, chunk.staticWriteOffset, chunk.staticFetchLength)
 		if err != nil {
 			r.log.Debugf("managedTryFetchChunkFromDisk failed to write data pieces from %v for %v: %v",
 				localPath, fileName, err)
-			return false
+			return err, false
 		}
-		return true
+		return nil, true
 	}()
 	return true
 }

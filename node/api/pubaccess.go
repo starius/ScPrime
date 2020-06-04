@@ -82,6 +82,7 @@ type (
 	SkynetStatsGET struct {
 		PerformanceStats SkynetPerformanceStats `json:"performancestats"`
 
+		Uptime      int64         `json:"uptime"`
 		UploadStats SkynetStats   `json:"uploadstats"`
 		VersionInfo SkynetVersion `json:"versioninfo"`
 	}
@@ -101,6 +102,12 @@ type (
 	// SkykeyGET contains a base64 encoded Pubaccesskey.
 	SkykeyGET struct {
 		Pubaccesskey string `json:"pubaccesskey"` // base64 encoded Pubaccesskey
+		Name         string `json:"name"`
+		ID           string `json:"id"` // base64 encoded Pubaccesskey ID
+	}
+	// SkykeysGET contains a slice of Skykeys.
+	SkykeysGET struct {
+		Pubaccesskeys []SkykeyGET `json:"pubaccesskeys"`
 	}
 )
 
@@ -795,9 +802,13 @@ func (api *API) skynetStatsHandlerGET(w http.ResponseWriter, _ *http.Request, _ 
 	perfStats := skynetPerformanceStats.Copy()
 	skynetPerformanceStatsMu.Unlock()
 
+	// Grab the siad uptime
+	uptime := time.Since(api.StartTime()).Seconds()
+
 	WriteJSON(w, SkynetStatsGET{
 		PerformanceStats: perfStats,
 
+		Uptime:      int64(uptime),
 		UploadStats: stats,
 		VersionInfo: SkynetVersion{
 			Version:     version,
@@ -978,6 +989,8 @@ func (api *API) skykeyHandlerGET(w http.ResponseWriter, req *http.Request, ps ht
 	}
 	WriteJSON(w, SkykeyGET{
 		Pubaccesskey: skString,
+		Name:         sk.Name,
+		ID:           sk.ID().ToString(),
 	})
 }
 
@@ -986,26 +999,26 @@ func (api *API) skykeyHandlerGET(w http.ResponseWriter, req *http.Request, ps ht
 func (api *API) skykeyCreateKeyHandlerPOST(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	// Parse pubaccesskey name and ciphertype
 	name := req.FormValue("name")
-	ctString := req.FormValue("ciphertype")
+	skykeyTypeString := req.FormValue("type")
 
 	if name == "" {
 		WriteError(w, Error{"you must specify the name the pubaccesskey"}, http.StatusInternalServerError)
 		return
 	}
 
-	if ctString == "" {
-		WriteError(w, Error{"you must specify the desited ciphertype for the pubaccesskey"}, http.StatusInternalServerError)
+	if skykeyTypeString == "" {
+		WriteError(w, Error{"you must specify the type of the pubaccesskey"}, http.StatusInternalServerError)
 		return
 	}
 
-	var ct crypto.CipherType
-	err := ct.FromString(ctString)
+	var skykeyType pubaccesskey.SkykeyType
+	err := skykeyType.FromString(skykeyTypeString)
 	if err != nil {
-		WriteError(w, Error{"failed to decode ciphertype" + err.Error()}, http.StatusInternalServerError)
+		WriteError(w, Error{"failed to decode pubaccesskey type" + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 
-	sk, err := api.renter.CreateSkykey(name, ct)
+	sk, err := api.renter.CreateSkykey(name, skykeyType)
 	if err != nil {
 		WriteError(w, Error{"failed to create pubaccesskey" + err.Error()}, http.StatusInternalServerError)
 		return
@@ -1046,4 +1059,30 @@ func (api *API) skykeyAddKeyHandlerPOST(w http.ResponseWriter, req *http.Request
 	}
 
 	WriteSuccess(w)
+}
+
+// skykeysHandlerGET handles the API call to get all of the renter's pubaccesskeys.
+func (api *API) skykeysHandlerGET(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	pubaccesskeys, err := api.renter.Skykeys()
+	if err != nil {
+		WriteError(w, Error{"Unable to get pubaccesskeys: " + err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	res := SkykeysGET{
+		Pubaccesskeys: make([]SkykeyGET, len(pubaccesskeys)),
+	}
+	for i, sk := range pubaccesskeys {
+		skStr, err := sk.ToString()
+		if err != nil {
+			WriteError(w, Error{"failed to write pubaccesskey string: " + err.Error()}, http.StatusInternalServerError)
+			return
+		}
+		res.Pubaccesskeys[i] = SkykeyGET{
+			Pubaccesskey: skStr,
+			Name:         sk.Name,
+			ID:           sk.ID().ToString(),
+		}
+	}
+	WriteJSON(w, res)
 }

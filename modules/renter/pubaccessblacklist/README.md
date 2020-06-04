@@ -1,6 +1,6 @@
 # Pubaccess Blacklist
 
-The Pubaccess Blacklist module manages a list of blacklisted Skylinks by tracking
+The Pubaccess Blacklist module manages a list of blacklisted Pubaccess links by tracking
 their merkleroots.
 
 ## Subsystems

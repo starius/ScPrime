@@ -23,45 +23,54 @@ import (
 // verifyChecksum will disregard the metadata of the saved file, and just verify
 // that the checksum matches the data below the checksum to be certain that the
 // file is correct.
-func verifyChecksum(filename string) bool {
+func verifyChecksum(filename string) (err error, valid bool) {
 	// Open the file.
 	file, err := os.Open(filename)
 	if os.IsNotExist(err) {
 		// No file at all means that everything is okay. This is a condition we
 		// are going to hit the first time that we ever save a file.
-		return true
+		return nil, true
 	}
+	//Start verification
+	valid = false
 	if err != nil {
 		// An error opening the file means that the checksum verification has
 		// failed, we don't have confidence that this a a good file.
-		return false
+		return
 	}
-	defer file.Close()
 
 	// Read the metadata from the file. This is not covered by the checksum but
 	// we have to read it anyway to get to the checksum.
 	var header, version string
 	dec := json.NewDecoder(file)
-	if err := dec.Decode(&header); err != nil {
-		return false
+
+	err = errors.AddContext(dec.Decode(&header), "File header error")
+	if err == nil {
+		err = errors.AddContext(dec.Decode(&version), "File version error")
 	}
-	if err := dec.Decode(&version); err != nil {
-		return false
+	if err != nil {
+		//stop reading and processing if file is wrong format
+		err = errors.Compose(err, file.Close())
+		return
+	}
+	var remainingBytes, remainingBytesExtra []byte
+	if err == nil {
+		// Read everything else.
+		remainingBytes, err = ioutil.ReadAll(dec.Buffered())
+	}
+	if err == nil {
+		// The buffer may or may not have read the rest of the file, read the rest
+		// of the file to be certain.
+		remainingBytesExtra, err = ioutil.ReadAll(file)
+	}
+	//reading file is done, close it
+	err = errors.AddContext(errors.Compose(err, file.Close()), "Error reading file")
+	if err != nil {
+		//stop processing if file is not readable
+		return
 	}
 
-	// Read everything else.
-	remainingBytes, err := ioutil.ReadAll(dec.Buffered())
-	if err != nil {
-		return false
-	}
-	// The buffer may or may not have read the rest of the file, read the rest
-	// of the file to be certain.
-	remainingBytesExtra, err := ioutil.ReadAll(file)
-	if err != nil {
-		return false
-	}
 	remainingBytes = append(remainingBytes, remainingBytesExtra...)
-
 	// Determine whether the leading bytes contain a checksum. A proper checksum
 	// will be 67 bytes (quote, 64 byte checksum, quote, newline). A manual
 	// checksum will be the characters "manual\n" (9 characters). If neither
@@ -72,7 +81,7 @@ func verifyChecksum(filename string) bool {
 		if err == nil {
 			// The checksum was read successfully. Return 'true' if the checksum
 			// matches the remaining data, and false otherwise.
-			return checksum == crypto.HashBytes(remainingBytes[68:])
+			return nil, checksum == crypto.HashBytes(remainingBytes[68:])
 		}
 	}
 
@@ -82,7 +91,7 @@ func verifyChecksum(filename string) bool {
 	if len(remainingBytes) >= 9 {
 		err = json.Unmarshal(remainingBytes[:9], &manualChecksum)
 		if err == nil && manualChecksum == "manual" {
-			return true
+			return nil, true
 		}
 	}
 
@@ -90,32 +99,35 @@ func verifyChecksum(filename string) bool {
 	// have a checksum, but the remaining data would still need to be valid
 	// JSON. If we are this far, it means that either the file is corrupt, or it
 	// is an old file where all remaining bytes should be valid json.
-	return json.Valid(remainingBytes)
+	valid = json.Valid(remainingBytes)
+	return
 }
 
 // readJSON will try to read a persisted json object from a file.
-func readJSON(meta Metadata, object interface{}, filename string) error {
+func readJSON(meta Metadata, object interface{}, filename string) (err error) {
 	// Open the file.
 	file, err := os.Open(filename)
 	if os.IsNotExist(err) {
 		return err
 	}
 	if err != nil {
-		return build.ExtendErr("unable to open persisted json object file", err)
+		return errors.AddContext(err, "unable to open persisted json object file")
 	}
-	defer file.Close()
+	defer func() {
+		err = errors.AddContext(errors.Compose(err, file.Close()), "Error reading JSON file "+filename)
+	}()
 
 	// Read the metadata from the file.
 	var header, version string
 	dec := json.NewDecoder(file)
 	if err := dec.Decode(&header); err != nil {
-		return build.ExtendErr("unable to read header from persisted json object file", err)
+		return errors.AddContext(err, "unable to read header from persisted json object file")
 	}
 	if header != meta.Header {
 		return ErrBadHeader
 	}
 	if err := dec.Decode(&version); err != nil {
-		return build.ExtendErr("unable to read version from persisted json object file", err)
+		return errors.AddContext(err, "unable to read version from persisted json object file")
 	}
 	if version != meta.Version {
 		return ErrBadVersion
@@ -124,13 +136,13 @@ func readJSON(meta Metadata, object interface{}, filename string) error {
 	// Read everything else.
 	remainingBytes, err := ioutil.ReadAll(dec.Buffered())
 	if err != nil {
-		return build.ExtendErr("unable to read persisted json object data", err)
+		return errors.AddContext(err, "unable to read persisted json object data")
 	}
 	// The buffer may or may not have read the rest of the file, read the rest
 	// of the file to be certain.
 	remainingBytesExtra, err := ioutil.ReadAll(file)
 	if err != nil {
-		return build.ExtendErr("unable to read persisted json object data", err)
+		return errors.AddContext(err, "unable to read persisted json object data")
 	}
 	remainingBytes = append(remainingBytes, remainingBytesExtra...)
 
@@ -205,14 +217,16 @@ func LoadJSON(meta Metadata, object interface{}, filename string) error {
 
 	// Try opening the primary file.
 	err = readJSON(meta, object, filename)
-	if err == ErrBadHeader || err == ErrBadVersion || os.IsNotExist(err) {
+	if errors.Contains(err, ErrBadHeader) || errors.Contains(err, ErrBadVersion) || os.IsNotExist(err) {
 		return err
 	}
 	if err != nil {
 		// Try opening the temp file.
-		err := readJSON(meta, object, filename+tempSuffix)
-		if err != nil {
-			return build.ExtendErr("unable to read persisted json object from disk", err)
+		errtempfile := readJSON(meta, object, filename+tempSuffix)
+		if errtempfile != nil {
+			failure := errors.Compose(errors.AddContext(err, "main file load failed"),
+				errors.AddContext(errtempfile, "_temp file load failed"))
+			return errors.AddContext(failure, "unable to read persisted json object from disk")
 		}
 	}
 
@@ -258,21 +272,21 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 	buf := new(bytes.Buffer)
 	enc := json.NewEncoder(buf)
 	if err := enc.Encode(meta.Header); err != nil {
-		return build.ExtendErr("unable to encode metadata header", err)
+		return errors.AddContext(err, "unable to encode metadata header")
 	}
 	if err := enc.Encode(meta.Version); err != nil {
-		return build.ExtendErr("unable to encode metadata version", err)
+		return errors.AddContext(err, "unable to encode metadata version")
 	}
 
 	// Marshal the object into json and write the checksum + result to the
 	// buffer.
 	objBytes, err := json.MarshalIndent(object, "", "\t")
 	if err != nil {
-		return build.ExtendErr("unable to marshal the provided object", err)
+		return errors.AddContext(err, "unable to marshal the provided object")
 	}
 	checksum := crypto.HashBytes(objBytes)
 	if err := enc.Encode(checksum); err != nil {
-		return build.ExtendErr("unable to encode checksum", err)
+		return errors.AddContext(err, "unable to encode checksum")
 	}
 	buf.Write(objBytes)
 	data := buf.Bytes()
@@ -284,26 +298,27 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 		// which may be the only good version of the persistence remaining.
 		// We'll skip writing the temp file to make sure it stays intact, and go
 		// straight to over-writing the real file.
-		if !verifyChecksum(filename) {
-			return nil
+		err, valid := verifyChecksum(filename)
+		if !valid {
+			return
 		}
 
 		file, err := os.OpenFile(filename+tempSuffix, os.O_RDWR|os.O_TRUNC|os.O_CREATE, defaultFilePermissions)
 		if err != nil {
-			return build.ExtendErr("unable to open temp file", err)
+			return errors.AddContext(err, "unable to open temp file")
 		}
 		defer func() {
-			err = build.ComposeErrors(err, file.Close())
+			err = errors.AddContext(errors.Compose(err, file.Close()), "Error saving JSON file")
 		}()
 
 		// Write and sync.
 		_, err = file.Write(data)
 		if err != nil {
-			return build.ExtendErr("unable to write temp file", err)
+			return errors.AddContext(err, "unable to write temp file")
 		}
 		err = file.Sync()
 		if err != nil {
-			return build.ExtendErr("unable to sync temp file", err)
+			return errors.AddContext(err, "unable to sync temp file")
 		}
 		return nil
 	}()
@@ -315,20 +330,20 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 	err = func() (err error) {
 		file, err := os.OpenFile(filename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, defaultFilePermissions)
 		if err != nil {
-			return build.ExtendErr("unable to open file", err)
+			return errors.AddContext(err, "unable to open file")
 		}
 		defer func() {
-			err = build.ComposeErrors(err, file.Close())
+			err = errors.Compose(err, file.Close())
 		}()
 
 		// Write and sync.
 		_, err = file.Write(data)
 		if err != nil {
-			return build.ExtendErr("unable to write file", err)
+			return errors.AddContext(err, "unable to write file")
 		}
 		err = file.Sync()
 		if err != nil {
-			return build.ExtendErr("unable to sync temp file", err)
+			return errors.AddContext(err, "unable to sync temp file")
 		}
 		return nil
 	}()

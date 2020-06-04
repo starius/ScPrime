@@ -6,11 +6,12 @@ package encoding
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"os"
 	"reflect"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 const (
@@ -252,12 +253,11 @@ func WriteFile(filename string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 	err = NewEncoder(file).Encode(v)
 	if err != nil {
-		return errors.New("error while writing " + filename + ": " + err.Error())
+		err = errors.AddContext(err, "error while writing "+filename)
 	}
-	return nil
+	return errors.Compose(err, file.Close())
 }
 
 // Read implements the io.Reader interface.
@@ -268,6 +268,16 @@ func (d *Decoder) Read(p []byte) (int, error) {
 	var n int
 	n, d.err = d.r.Read(p)
 	return n, d.err
+}
+
+// ReadByte implements the io.ByteReader interface.
+func (d *Decoder) ReadByte() (byte, error) {
+	if d.err != nil {
+		return 0, d.err
+	}
+	p := make([]byte, 1)
+	_, d.err = io.ReadFull(d.r, p)
+	return p[0], d.err
 }
 
 // ReadFull is shorthand for io.ReadFull(d, p).
@@ -345,7 +355,11 @@ func (d *Decoder) Decode(v interface{}) (err error) {
 	// note that this allows us to skip boundary checks during decoding
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("could not decode type %s: %v", pval.Elem().Type().String(), r)
+			if re, ok := r.(error); ok {
+				err = fmt.Errorf("could not decode type %s: %w", pval.Elem().Type().String(), re)
+			} else {
+				err = fmt.Errorf("could not decode type %s: %v", pval.Elem().Type().String(), r)
+			}
 		}
 	}()
 
@@ -467,14 +481,12 @@ func ReadFile(filename string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 	stat, err := file.Stat()
-	if err != nil {
-		return err
+	if err == nil {
+		err = NewDecoder(file, int(stat.Size()*3)).Decode(v)
 	}
-	err = NewDecoder(file, int(stat.Size()*3)).Decode(v)
 	if err != nil {
-		return errors.New("error while reading " + filename + ": " + err.Error())
+		err = errors.AddContext(err, "error reading file "+filename)
 	}
-	return nil
+	return errors.Compose(err, file.Close())
 }

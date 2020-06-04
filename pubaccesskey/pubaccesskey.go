@@ -4,10 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
-	"os"
-	"path/filepath"
-	"strings"
-	"sync"
+	"net/url"
 
 	"github.com/aead/chacha20/chacha"
 
@@ -21,146 +18,330 @@ import (
 )
 
 const (
+	// SkykeyScheme is the URI scheme for encoded pubaccesskeys.
+	SkykeyScheme = "pubaccesskey"
+
 	// SkykeyIDLen is the length of a SkykeyID
 	SkykeyIDLen = 16
 
 	// MaxKeyNameLen is the maximum length of a pubaccesskey's name.
 	MaxKeyNameLen = 128
 
-	// headerLen is the length of the pubaccesskey file header.
-	// It is the length of the magic, the version, and and the file length.
-	headerLen = types.SpecifierLen + types.SpecifierLen + 8
+	// Define SkykeyTypes. Constants stated explicitly (instead of
+	// `SkykeyType(iota)`) to avoid re-ordering mistakes in the future.
 
-	// Permissions match those in modules/renter.go
-	// Redefined here to avoid an import cycle.
-	defaultFilePerm = 0644
-	defaultDirPerm  = 0755
+	// TypeInvalid represents an invalid pubaccesskey type.
+	TypeInvalid = SkykeyType(0x00)
+
+	// TypePublicID is a Pubaccesskey that uses XChaCha20. It reveals its
+	// pubaccesskey ID in *every* skyfile it encrypts.
+	TypePublicID = SkykeyType(0x01)
+
+	// TypePrivateID is a Pubaccesskey that uses XChaCha20 that does not
+	// reveal its pubaccesskey ID when encrypting Skyfiles. Instead, it marks the pubaccesskey
+	// used for encryption by storing an encrypted identifier that can only be
+	// successfully decrypted with the correct pubaccesskey.
+	// TODO: add along with skyfile implementation TypePrivateID = SkykeyType(0x02)
 )
 
 var (
-	skykeyVersionString = "1.4.3"
-	skykeyVersion       = types.NewSpecifier(skykeyVersionString)
-
 	// SkykeySpecifier is used as a prefix when hashing Pubaccesskeys to compute their
 	// ID.
 	SkykeySpecifier = types.NewSpecifier("Pubaccesskey")
 
-	// SkykeyFileMagic is the first piece of data found in a Pubaccesskey file.
-	SkykeyFileMagic = types.NewSpecifier("SkykeyFile")
+	errUnsupportedSkykeyType          = errors.New("Unsupported Pubaccesskey type")
+	errUnmarshalDataErr               = errors.New("Unable to unmarshal Pubaccesskey data")
+	errCannotMarshalTypeInvalidSkykey = errors.New("Cannot marshal or unmarshal Pubaccesskey of TypeInvalid type")
+	errInvalidEntropyLength           = errors.New("Invalid pubaccesskey entropy length")
 
-	// ErrSkykeyWithNameAlreadyExists indicates that a key cannot be created or added
-	// because a key with the same name is already being stored.
-	ErrSkykeyWithNameAlreadyExists = errors.New("Pubaccesskey name already used by another key.")
-
-	// ErrSkykeyWithIDAlreadyExists indicates that a key cannot be created or
-	// added because a key with the same ID (and therefore same key entropy) is
-	// already being stored.
-	ErrSkykeyWithIDAlreadyExists = errors.New("Pubaccesskey ID already exists.")
-
-	errUnsupportedSkykeyCipherType = errors.New("Unsupported Pubaccesskey ciphertype")
-	errNoSkykeysWithThatName       = errors.New("No Pubaccesskey with that name")
-	errNoSkykeysWithThatID         = errors.New("No Pubaccesskey is assocated with that ID")
-	errSkykeyNameToolong           = errors.New("Pubaccesskey name exceeds max length")
-
-	// SkykeyPersistFilename is the name of the pubaccesskey persistence file.
-	SkykeyPersistFilename = "pubaccesskeys.dat"
+	// ErrInvalidSkykeyType is returned when an invalid SkykeyType is being used.
+	ErrInvalidSkykeyType = errors.New("Invalid pubaccesskey type")
 )
 
 // SkykeyID is the identifier of a pubaccesskey.
 type SkykeyID [SkykeyIDLen]byte
 
-// Pubaccesskey is a key used to encrypt/decrypt pubfiles.
+// SkykeyType encodes the encryption scheme and method used by the Pubaccesskey.
+type SkykeyType byte
+
+// Pubaccesskey is a key used to encrypt/decrypt skyfiles.
 type Pubaccesskey struct {
-	Name       string
-	CipherType crypto.CipherType
-	Entropy    []byte
+	Name    string
+	Type    SkykeyType
+	Entropy []byte
 }
 
-// SkykeyManager manages the creation and handling of new pubaccesskeys which can be
-// referenced by their unique name or identifier.
-type SkykeyManager struct {
-	idsByName map[string]SkykeyID
-	keysByID  map[SkykeyID]Pubaccesskey
-
-	version types.Specifier
-	fileLen uint64 // Invariant: fileLen is at least headerLen
-
-	persistFile string
-	mu          sync.Mutex
+// compatSkykeyV148 is the original pubaccesskey format. It is defined here for
+// compatibility purposes. It should only be used to convert keys of the old
+// format to the new format.
+type compatSkykeyV148 struct {
+	name       string
+	ciphertype crypto.CipherType
+	entropy    []byte
 }
 
-// countingWriter is a wrapper of an io.Writer that keep track of the total
-// amount of bytes written.
-type countingWriter struct {
-	writer io.Writer
-	count  int
+// ToString returns the string representation of the ciphertype.
+func (t SkykeyType) ToString() string {
+	switch t {
+	case TypePublicID:
+		return "public-id"
+
+	default:
+		return "invalid"
+	}
 }
 
-// newCountingWriter returns a countingWriter.
-func newCountingWriter(w io.Writer) *countingWriter {
-	return &countingWriter{w, 0}
-}
-
-// Write implements the io.Writer interface.
-func (cw *countingWriter) Write(p []byte) (n int, err error) {
-	n, err = cw.writer.Write(p)
-	cw.count += n
-	return
-}
-
-func (cw countingWriter) BytesWritten() uint64 {
-	return uint64(cw.count)
+// FromString reads a SkykeyType from a string.
+func (t *SkykeyType) FromString(s string) error {
+	switch s {
+	case "public-id":
+		*t = TypePublicID
+	default:
+		return ErrInvalidSkykeyType
+	}
+	return nil
 }
 
 // unmarshalSia decodes the Pubaccesskey into the reader.
-func (sk *Pubaccesskey) unmarshalSia(r io.Reader) error {
+func (skOld *compatSkykeyV148) unmarshalSia(r io.Reader) error {
 	d := encoding.NewDecoder(r, encoding.DefaultAllocLimit)
-	d.Decode(&sk.Name)
-	d.Decode(&sk.CipherType)
-	d.Decode(&sk.Entropy)
-	return d.Err()
+	d.Decode(&skOld.name)
+	d.Decode(&skOld.ciphertype)
+	d.Decode(&skOld.entropy)
+
+	if err := d.Err(); err != nil {
+		return err
+	}
+	if len(skOld.name) > MaxKeyNameLen {
+		return errSkykeyNameToolong
+	}
+	if len(skOld.entropy) != chacha.KeySize+chacha.XNonceSize {
+		return errInvalidEntropyLength
+	}
+
+	return nil
 }
 
 // marshalSia encodes the Pubaccesskey into the writer.
-func (sk Pubaccesskey) marshalSia(w io.Writer) error {
+func (skOld compatSkykeyV148) marshalSia(w io.Writer) error {
 	e := encoding.NewEncoder(w)
-	e.Encode(sk.Name)
-	e.Encode(sk.CipherType)
-	e.Encode(sk.Entropy)
+	e.Encode(skOld.name)
+	e.Encode(skOld.ciphertype)
+	e.Encode(skOld.entropy)
 	return e.Err()
 }
 
-// ToString encodes the Pubaccesskey as a base64 string.
-func (sk Pubaccesskey) ToString() (string, error) {
-	var b bytes.Buffer
-	err := sk.marshalSia(&b)
-	return base64.URLEncoding.EncodeToString(b.Bytes()), err
-}
-
-// FromString decodes the base64 string into a Pubaccesskey.
-func (sk *Pubaccesskey) FromString(s string) error {
+// fromString decodes a base64-encoded string, interpreting it as the old pubaccesskey
+// format.
+func (skOld *compatSkykeyV148) fromString(s string) error {
 	keyBytes, err := base64.URLEncoding.DecodeString(s)
 	if err != nil {
 		return err
 	}
-	return sk.unmarshalSia(bytes.NewReader(keyBytes))
+	return skOld.unmarshalSia(bytes.NewReader(keyBytes))
+}
+
+// convertToUpdatedFormat converts the pubaccesskey from the old format to the updated
+// format.
+func (skOld compatSkykeyV148) convertToUpdatedFormat() (Pubaccesskey, error) {
+	sk := Pubaccesskey{
+		Name:    skOld.name,
+		Type:    TypePublicID,
+		Entropy: skOld.entropy,
+	}
+
+	// Sanity check that we can actually make a CipherKey with this.
+	_, err := crypto.NewSiaKey(sk.CipherType(), sk.Entropy)
+	if err != nil {
+		return Pubaccesskey{}, errors.AddContext(err, "Unable to convert pubaccesskey from old format correctly")
+	}
+
+	return sk, nil
+}
+
+// unmarshalAndConvertFromOldFormat unmarshals data from the reader as a pubaccesskey
+// using the old format, and attempts to convert it to the new format.
+func (sk *Pubaccesskey) unmarshalAndConvertFromOldFormat(r io.Reader) error {
+	var oldFormatSkykey compatSkykeyV148
+	err := oldFormatSkykey.unmarshalSia(r)
+	if err != nil {
+		return err
+	}
+	convertedSk, err := oldFormatSkykey.convertToUpdatedFormat()
+	if err != nil {
+		return err
+	}
+	sk.Name = convertedSk.Name
+	sk.Type = convertedSk.Type
+	sk.Entropy = convertedSk.Entropy
+	return sk.IsValid()
+}
+
+// CipherType returns the crypto.CipherType used by this Pubaccesskey.
+func (t SkykeyType) CipherType() crypto.CipherType {
+	switch t {
+	case TypePublicID:
+		return crypto.TypeXChaCha20
+	default:
+		return crypto.TypeInvalid
+	}
+}
+
+// CipherType returns the crypto.CipherType used by this Pubaccesskey.
+func (sk *Pubaccesskey) CipherType() crypto.CipherType {
+	return sk.Type.CipherType()
+}
+
+// unmarshalDataOnly decodes the Pubaccesskey data into the reader.
+func (sk *Pubaccesskey) unmarshalDataOnly(r io.Reader) error {
+	d := encoding.NewDecoder(r, encoding.DefaultAllocLimit)
+	typeByte, _ := d.ReadByte()
+	sk.Type = SkykeyType(typeByte)
+
+	var entropyLen int
+	switch sk.Type {
+	case TypePublicID:
+		entropyLen = chacha.KeySize + chacha.XNonceSize
+	case TypeInvalid:
+		return errCannotMarshalTypeInvalidSkykey
+	default:
+		return errUnsupportedSkykeyType
+	}
+
+	sk.Entropy = make([]byte, entropyLen)
+	d.ReadFull(sk.Entropy)
+	if err := d.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// unmarshalSia decodes the Pubaccesskey data and name into the reader.
+func (sk *Pubaccesskey) unmarshalSia(r io.Reader) error {
+	err := sk.unmarshalDataOnly(r)
+	if err != nil {
+		return errors.Compose(errUnmarshalDataErr, err)
+	}
+	d := encoding.NewDecoder(r, encoding.DefaultAllocLimit)
+	d.Decode(&sk.Name)
+
+	if err := d.Err(); err != nil {
+		return err
+	}
+
+	return sk.IsValid()
+}
+
+// marshalDataOnly encodes the Pubaccesskey data into the writer.
+func (sk Pubaccesskey) marshalDataOnly(w io.Writer) error {
+	e := encoding.NewEncoder(w)
+
+	var entropyLen int
+	switch sk.Type {
+	case TypePublicID:
+		entropyLen = chacha.KeySize + chacha.XNonceSize
+	case TypeInvalid:
+		return errCannotMarshalTypeInvalidSkykey
+	default:
+		return errUnsupportedSkykeyType
+	}
+
+	if len(sk.Entropy) != entropyLen {
+		return errInvalidEntropyLength
+	}
+
+	e.WriteByte(byte(sk.Type))
+	e.Write(sk.Entropy[:entropyLen])
+	return e.Err()
+}
+
+// marshalSia encodes the Pubaccesskey data and name into the writer.
+func (sk Pubaccesskey) marshalSia(w io.Writer) error {
+	err := sk.marshalDataOnly(w)
+	if err != nil {
+		return err
+	}
+	e := encoding.NewEncoder(w)
+	e.Encode(sk.Name)
+	return e.Err()
+}
+
+// toURL encodes the pubaccesskey as a URL.
+func (sk Pubaccesskey) toURL() (url.URL, error) {
+	var b bytes.Buffer
+	err := sk.marshalDataOnly(&b)
+	if err != nil {
+		return url.URL{}, err
+	}
+	skykeyString := base64.URLEncoding.EncodeToString(b.Bytes())
+
+	skURL := url.URL{
+		Scheme: SkykeyScheme,
+		Opaque: skykeyString,
+	}
+	if sk.Name != "" {
+		skURL.RawQuery = "name=" + sk.Name
+	}
+	return skURL, nil
+}
+
+// ToString encodes the Pubaccesskey as a base64 string.
+func (sk Pubaccesskey) ToString() (string, error) {
+	skURL, err := sk.toURL()
+	if err != nil {
+		return "", err
+	}
+	return skURL.String(), nil
+}
+
+// FromString decodes the base64 string into a Pubaccesskey.
+func (sk *Pubaccesskey) FromString(s string) error {
+	sURL, err := url.Parse(s)
+	if err != nil {
+		return err
+	}
+
+	// Get the pubaccesskey data from the path/opaque data.
+	var skData string
+	if sURL.Scheme == SkykeyScheme {
+		skData = sURL.Opaque
+	} else if sURL.Scheme == "" {
+		skData = sURL.Path
+	} else {
+		return errors.New("Unknown URI scheme for pubaccesskey")
+	}
+
+	values := sURL.Query()
+	sk.Name = values.Get("name") // defaults to ""
+	if len(sk.Name) > MaxKeyNameLen {
+		return errSkykeyNameToolong
+	}
+
+	keyBytes, err := base64.URLEncoding.DecodeString(skData)
+	if err != nil {
+		return err
+	}
+	return sk.unmarshalDataOnly(bytes.NewReader(keyBytes))
 }
 
 // ID returns the ID for the Pubaccesskey. A master Pubaccesskey and all file-specific
-// skykeys derived from it share the same ID because they only differ in nonce
+// pubaccesskeys derived from it share the same ID because they only differ in nonce
 // values, not key values. This fact is used to identify the master Pubaccesskey
-// with which a Pubfile was encrypted.
+// with which a Pubaccess file was encrypted.
 func (sk Pubaccesskey) ID() (keyID SkykeyID) {
-	var entropy []byte
+	entropy := sk.Entropy
+
+	switch sk.Type {
 	// Ignore the nonce for this type because the nonce is different for each
 	// file-specific subkey.
-	if sk.CipherType == crypto.TypeXChaCha20 {
+	case TypePublicID:
 		entropy = sk.Entropy[:chacha.KeySize]
-	} else {
-		entropy = sk.Entropy
+
+	default:
+		build.Critical("Computing ID with pubaccesskey of unknown type: ", sk.Type)
 	}
 
-	h := crypto.HashAll(SkykeySpecifier, sk.CipherType, entropy)
+	h := crypto.HashAll(SkykeySpecifier, sk.Type, entropy)
 	copy(keyID[:], h[:SkykeyIDLen])
 	return keyID
 }
@@ -183,9 +364,15 @@ func (id *SkykeyID) FromString(s string) error {
 	return nil
 }
 
-// equals returns true if and only if the two Pubaccesskey are equal.
+// equals returns true if and only if the two Skykeys are equal.
 func (sk *Pubaccesskey) equals(otherKey Pubaccesskey) bool {
-	return sk.Name == otherKey.Name && sk.CipherType == otherKey.CipherType && bytes.Equal(sk.Entropy[:], otherKey.Entropy[:])
+	return sk.Name == otherKey.Name && sk.equalData(otherKey)
+}
+
+// equalData returns true if and only if the two Skykeys have the same
+// underlying data. They can differ in name.
+func (sk *Pubaccesskey) equalData(otherKey Pubaccesskey) bool {
+	return sk.Type == otherKey.Type && bytes.Equal(sk.Entropy[:], otherKey.Entropy[:])
 }
 
 // GenerateFileSpecificSubkey creates a new subkey specific to a certain file
@@ -222,18 +409,18 @@ func (sk *Pubaccesskey) SubkeyWithNonce(nonce []byte) (Pubaccesskey, error) {
 	copy(entropy[chacha.KeySize:], nonce[:])
 
 	// Sanity check that we can actually make a CipherKey with this.
-	_, err := crypto.NewSiaKey(sk.CipherType, entropy)
+	_, err := crypto.NewSiaKey(sk.CipherType(), entropy)
 	if err != nil {
 		return Pubaccesskey{}, errors.AddContext(err, "error creating new pubaccesskey subkey")
 	}
 
-	subkey := Pubaccesskey{sk.Name, sk.CipherType, entropy}
+	subkey := Pubaccesskey{sk.Name, sk.Type, entropy}
 	return subkey, nil
 }
 
 // CipherKey returns the crypto.CipherKey equivalent of this Pubaccesskey.
 func (sk *Pubaccesskey) CipherKey() (crypto.CipherKey, error) {
-	return crypto.NewSiaKey(sk.CipherType, sk.Entropy)
+	return crypto.NewSiaKey(sk.CipherType(), sk.Entropy)
 }
 
 // Nonce returns the nonce of this Pubaccesskey.
@@ -243,271 +430,25 @@ func (sk *Pubaccesskey) Nonce() []byte {
 	return nonce
 }
 
-// SupportsCipherType returns true if and only if the SkykeyManager supports
-// keys with the given cipher type.
-func (sm *SkykeyManager) SupportsCipherType(ct crypto.CipherType) bool {
-	return ct == crypto.TypeXChaCha20
-}
-
-// CreateKey creates a new Pubaccesskey under the given name and cipherType.
-func (sm *SkykeyManager) CreateKey(name string, cipherType crypto.CipherType) (Pubaccesskey, error) {
-	if len(name) > MaxKeyNameLen {
-		return Pubaccesskey{}, errSkykeyNameToolong
-	}
-	if !sm.SupportsCipherType(cipherType) {
-		return Pubaccesskey{}, errUnsupportedSkykeyCipherType
+// IsValid returns an nil if the pubaccesskey is valid and an error otherwise.
+func (sk *Pubaccesskey) IsValid() error {
+	if len(sk.Name) > MaxKeyNameLen {
+		return errSkykeyNameToolong
 	}
 
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	_, ok := sm.idsByName[name]
-	if ok {
-		return Pubaccesskey{}, ErrSkykeyWithNameAlreadyExists
-	}
-
-	// Generate the new key.
-	cipherKey := crypto.GenerateSiaKey(cipherType)
-	pubaccesskey := Pubaccesskey{name, cipherType, cipherKey.Key()}
-
-	err := sm.saveKey(pubaccesskey)
-	if err != nil {
-		return Pubaccesskey{}, err
-	}
-	return pubaccesskey, nil
-}
-
-// AddKey creates a key with the given name, cipherType, and entropy and adds it
-// to the key file.
-func (sm *SkykeyManager) AddKey(sk Pubaccesskey) error {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	_, ok := sm.keysByID[sk.ID()]
-	if ok {
-		return ErrSkykeyWithIDAlreadyExists
-	}
-
-	_, ok = sm.idsByName[sk.Name]
-	if ok {
-		return ErrSkykeyWithNameAlreadyExists
-	}
-
-	return sm.saveKey(sk)
-}
-
-// IDByName returns the ID associated with the given key name.
-func (sm *SkykeyManager) IDByName(name string) (SkykeyID, error) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	id, ok := sm.idsByName[name]
-	if !ok {
-		return SkykeyID{}, errNoSkykeysWithThatName
-	}
-	return id, nil
-}
-
-// KeyByName returns the Pubaccesskey associated with that key name.
-func (sm *SkykeyManager) KeyByName(name string) (Pubaccesskey, error) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	id, ok := sm.idsByName[name]
-	if !ok {
-		return Pubaccesskey{}, errNoSkykeysWithThatName
-	}
-
-	key, ok := sm.keysByID[id]
-	if !ok {
-		return Pubaccesskey{}, errNoSkykeysWithThatID
-	}
-
-	return key, nil
-}
-
-// KeyByID returns the Pubaccesskey associated with that ID.
-func (sm *SkykeyManager) KeyByID(id SkykeyID) (Pubaccesskey, error) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	key, ok := sm.keysByID[id]
-	if !ok {
-		return Pubaccesskey{}, errNoSkykeysWithThatID
-	}
-	return key, nil
-}
-
-// NewSkykeyManager creates a SkykeyManager for managing pubaccesskeys.
-func NewSkykeyManager(persistDir string) (*SkykeyManager, error) {
-	sm := &SkykeyManager{
-		idsByName:   make(map[string]SkykeyID),
-		keysByID:    make(map[SkykeyID]Pubaccesskey),
-		fileLen:     0,
-		persistFile: filepath.Join(persistDir, SkykeyPersistFilename),
-	}
-
-	// create the persist dir if it doesn't already exist.
-	err := os.MkdirAll(persistDir, defaultDirPerm)
-	if err != nil {
-		return nil, err
-	}
-
-	// Load the persist. If it's empty, it will be initialized.
-	err = sm.load()
-	if err != nil {
-		return nil, err
-	}
-	return sm, nil
-}
-
-// loadHeader loads the header from the pubaccesskey file.
-func (sm *SkykeyManager) loadHeader(file *os.File) error {
-	headerBytes := make([]byte, headerLen)
-	_, err := file.Read(headerBytes)
-	if err != nil {
-		return errors.AddContext(err, "Error reading Pubaccesskey file metadata")
-	}
-
-	dec := encoding.NewDecoder(bytes.NewReader(headerBytes), encoding.DefaultAllocLimit)
-	var magic types.Specifier
-	dec.Decode(&magic)
-	if magic != SkykeyFileMagic {
-		return errors.New("Expected pubaccesskey file magic")
-	}
-
-	dec.Decode(&sm.version)
-	if dec.Err() != nil {
-		return errors.AddContext(dec.Err(), "Error decoding pubaccesskey file version")
-	}
-
-	versionBytes, err := sm.version.MarshalText()
-	if err != nil {
-		return err
-	}
-	version := strings.ReplaceAll(string(versionBytes), string(0x0), "")
-
-	if !build.IsVersion(version) {
-		return errors.New("pubaccesskey file header missing version")
-	}
-	if build.VersionCmp(skykeyVersionString, version) < 0 {
-		return errors.New("Unknown pubaccesskey version")
-	}
-
-	// Read the length of the file into the key manager.
-	dec.Decode(&sm.fileLen)
-	return dec.Err()
-}
-
-// saveHeader saves the header data of the pubaccesskey file to disk and syncs the
-// file.
-func (sm *SkykeyManager) saveHeader(file *os.File) error {
-	_, err := file.Seek(0, 0)
-	if err != nil {
-		return errors.AddContext(err, "Unable to save pubaccesskey header")
-	}
-
-	e := encoding.NewEncoder(file)
-	e.Encode(SkykeyFileMagic)
-	e.Encode(sm.version)
-	e.Encode(sm.fileLen)
-	if e.Err() != nil {
-		return errors.AddContext(e.Err(), "Error encoding pubaccesskey file header")
-	}
-	return file.Sync()
-}
-
-// load initializes the SkykeyManager with the data stored in the pubaccesskey file if
-// it exists. If it does not exist, it initializes that file with the default
-// header values.
-func (sm *SkykeyManager) load() error {
-	file, err := os.OpenFile(sm.persistFile, os.O_RDWR|os.O_CREATE, defaultFilePerm)
-	if err != nil {
-		return errors.AddContext(err, "Unable to open SkykeyManager persist file")
-	}
-	defer file.Close()
-
-	// Check if the file has a header. If there is not, then set the default
-	// values and save it.
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return err
-	}
-	if fileInfo.Size() < int64(headerLen) {
-		sm.version = skykeyVersion
-		sm.fileLen = uint64(headerLen)
-		return sm.saveHeader(file)
-	}
-
-	// Otherwise load the existing header and all the pubaccesskeys in the file.
-	err = sm.loadHeader(file)
-	if err != nil {
-		return errors.AddContext(err, "Error loading header")
-	}
-
-	_, err = file.Seek(int64(headerLen), io.SeekStart)
-	if err != nil {
-		return err
-	}
-
-	// Read all the pubaccesskeys up to the length set in the header.
-	n := headerLen
-	for n < int(sm.fileLen) {
-		var sk Pubaccesskey
-		err = sk.unmarshalSia(file)
-		if err != nil {
-			return errors.AddContext(err, "Error unmarshaling Pubaccesskey")
+	switch sk.Type {
+	case TypePublicID:
+		if len(sk.Entropy) != chacha.KeySize+chacha.XNonceSize {
+			return errInvalidEntropyLength
 		}
 
-		// Store the pubaccesskey.
-		sm.idsByName[sk.Name] = sk.ID()
-		sm.keysByID[sk.ID()] = sk
-
-		// Set n to current offset in file.
-		currOffset, err := file.Seek(0, io.SeekCurrent)
-		n = int(currOffset)
-		if err != nil {
-			return errors.AddContext(err, "Error getting pubaccesskey file offset")
-		}
+	default:
+		return errUnsupportedSkykeyType
 	}
 
-	if n != int(sm.fileLen) {
-		return errors.New("Expected to read entire specified pubaccesskey file length")
+	_, err := crypto.NewSiaKey(sk.CipherType(), sk.Entropy)
+	if err != nil {
+		return err
 	}
 	return nil
-}
-
-// saveKey saves the key and appends it to the pubaccesskey file and updates/syncs
-// the header.
-func (sm *SkykeyManager) saveKey(pubaccesskey Pubaccesskey) error {
-	keyID := pubaccesskey.ID()
-
-	// Store the new key.
-	sm.idsByName[pubaccesskey.Name] = keyID
-	sm.keysByID[keyID] = pubaccesskey
-
-	file, err := os.OpenFile(sm.persistFile, os.O_RDWR, defaultFilePerm)
-	if err != nil {
-		return errors.AddContext(err, "Unable to open SkykeyManager persist file")
-	}
-	defer file.Close()
-
-	// Seek to the end of the known-to-be-valid part of the file.
-	_, err = file.Seek(int64(sm.fileLen), io.SeekStart)
-	if err != nil {
-		return err
-	}
-
-	writer := newCountingWriter(file)
-	err = pubaccesskey.marshalSia(writer)
-	if err != nil {
-		return errors.AddContext(err, "Error writing pubaccesskey to file")
-	}
-
-	err = file.Sync()
-	if err != nil {
-		return err
-	}
-
-	// Update the header
-	sm.fileLen += writer.BytesWritten()
-	return sm.saveHeader(file)
 }

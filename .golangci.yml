@@ -128,6 +128,11 @@ issues:
     - path: _test\.go
       linters:
         - dupl
+        - gosec
+    - path: siatest
+      linters:
+        - gosec
+                
     # Some default exclude patterns that we want to keep after setting
     # `exclude-use-default` to `false`.
     - text: "G103: Use of unsafe calls should be audited"

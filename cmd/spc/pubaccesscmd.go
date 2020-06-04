@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vbauerster/mpb/v5"
 	"github.com/vbauerster/mpb/v5/decor"
+	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
@@ -182,29 +183,27 @@ func skynetdownloadcmd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		die("Unable to create destination file:", err)
 	}
-	defer file.Close()
 
 	// Check whether the portal flag is set, if so use the portal download
 	// method.
 	var reader io.ReadCloser
 	if skynetDownloadPortal != "" {
 		url := skynetDownloadPortal + "/" + publink
-		resp, err := http.Get(url)
+		resp, err := http.Get(url) //nolint:gosec
 		if err != nil {
-			die("Unable to download from portal:", err)
+			die("Unable to download from portal:", errors.Compose(err, file.Close()))
 		}
 		reader = resp.Body
-		defer reader.Close()
 	} else {
 		// Try to perform a download using the client package.
 		reader, err = httpClient.SkynetPublinkReaderGet(publink)
 		if err != nil {
-			die("Unable to fetch publink:", err)
+			die("Unable to fetch publink:", errors.Compose(err, file.Close()))
 		}
-		defer reader.Close()
 	}
 
 	_, err = io.Copy(file, reader)
+	err = errors.Compose(err, reader.Close(), file.Close())
 	if err != nil {
 		die("Unable to write full data:", err)
 	}
@@ -455,15 +454,12 @@ func skynetuploadcmd(sourcePath, destSiaPath string) {
 	if err != nil {
 		die("Unable to open source path:", err)
 	}
-	defer file.Close()
-	fi, err := file.Stat()
-	if err != nil {
-		die("Unable to fetch source fileinfo:", err)
-	}
 
+	fi, err := file.Stat()
+	errors.AddContext(err, "Unable to fetch source fileinfo")
+	file.Close()
 	// create a new progress bar set:
 	pbs := mpb.New(mpb.WithWidth(40))
-
 	if !fi.IsDir() {
 		skynetUploadFile(sourcePath, sourcePath, destSiaPath, pbs)
 		if skynetUploadDryRun {
@@ -472,6 +468,10 @@ func skynetuploadcmd(sourcePath, destSiaPath string) {
 		pbs.Wait()
 		fmt.Printf("Successfully uploaded file for public access!\n")
 		return
+	}
+
+	if err != nil {
+		die(err)
 	}
 
 	// Walk the target directory and collect all files that are going to be
@@ -542,16 +542,18 @@ func skynetUploadFile(basePath, sourcePath string, destSiaPath string, pbs *mpb.
 	if err != nil {
 		die("Unable to open source path:", err)
 	}
-	defer file.Close()
 	fi, err := file.Stat()
 	if err != nil {
-		die("Unable to fetch source fileinfo:", err)
+		die("Unable to fetch source fileinfo:", errors.Compose(err, file.Close()))
 	}
 
 	if skynetUploadSilent {
 		// Silently upload the file and print a simple source -> publink
 		// matching after it's done.
 		publink = skynetUploadFileFromReader(file, filename, siaPath, fi.Mode())
+		if err = file.Close(); err != nil {
+			die("File error:", err)
+		}
 		fmt.Printf("%s -> %s\n", sourcePath, publink)
 		return
 	}
@@ -575,6 +577,9 @@ func skynetUploadFile(basePath, sourcePath string, destSiaPath string, pbs *mpb.
 	pSpinner := newProgressSpinner(pbs, pUpload, relPath)
 	// Perform the upload
 	publink = skynetUploadFileFromReader(rc, filename, siaPath, fi.Mode())
+	if err = rc.Close(); err != nil {
+		die("File error:", err)
+	}
 	// Replace the spinner with the publink and stop it
 	newProgressSkylink(pbs, pSpinner, relPath, publink)
 	return

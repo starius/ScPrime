@@ -49,13 +49,15 @@ func (r *Renter) CreateBackup(dst string, secret []byte) error {
 
 // managedCreateBackup creates a backup of the renter's siafiles. If a secret is
 // not nil, the backup will be encrypted using the provided secret.
-func (r *Renter) managedCreateBackup(dst string, secret []byte) error {
+func (r *Renter) managedCreateBackup(dst string, secret []byte) (err error) {
 	// Create the gzip file.
 	f, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		err = errors.AddContext(errors.Compose(err, f.Close()), "Error creating backup "+dst)
+	}()
 	archive := io.Writer(f)
 
 	// Prepare a header for the backup and default to no encryption. This will
@@ -126,7 +128,7 @@ func (r *Renter) managedCreateBackup(dst string, secret []byte) error {
 // LoadBackup loads the siafiles of a previously created backup into the
 // renter. If the backup is encrypted, secret will be used to decrypt it.
 // Otherwise the argument is ignored.
-func (r *Renter) LoadBackup(src string, secret []byte) error {
+func (r *Renter) LoadBackup(src string, secret []byte) (err error) {
 	if err := r.tg.Add(); err != nil {
 		return err
 	}
@@ -144,7 +146,9 @@ func (r *Renter) LoadBackup(src string, secret []byte) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		err = errors.AddContext(errors.Compose(err, f.Close()), "Error loading backup "+src)
+	}()
 	archive := io.Reader(f)
 
 	// Read the checksum.

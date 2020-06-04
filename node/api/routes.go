@@ -35,6 +35,7 @@ func (api *API) buildHTTPRoutes() {
 	if api.cs != nil {
 		router.GET("/consensus", api.consensusHandler)
 		router.GET("/consensus/blocks", api.consensusBlocksHandler)
+		router.GET("/consensus/subscribe/:id", api.consensusSubscribeHandler)
 		router.POST("/consensus/validate/transactionset", api.consensusValidateTransactionsetHandler)
 		router.GET("/consensus/blocks/:height", api.consensusBlocksHandlerSanasol)
 	}
@@ -157,6 +158,7 @@ func (api *API) buildHTTPRoutes() {
 		router.GET("/pubaccess/pubaccesskey", RequirePassword(api.skykeyHandlerGET, requiredPassword))
 		router.POST("/pubaccess/createpubaccesskey", RequirePassword(api.skykeyCreateKeyHandlerPOST, requiredPassword))
 		router.POST("/pubaccess/addpubaccesskey", RequirePassword(api.skykeyAddKeyHandlerPOST, requiredPassword))
+		router.GET("/pubaccess/pubaccesskeys", RequirePassword(api.skykeysHandlerGET, requiredPassword))
 
 		// Directory endpoints
 		router.POST("/renter/dir/*siapath", RequirePassword(api.renterDirHandlerPOST, requiredPassword))

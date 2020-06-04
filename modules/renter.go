@@ -972,7 +972,7 @@ type Renter interface {
 	AddSkykey(pubaccesskey.Pubaccesskey) error
 
 	// CreateSkykey creates a new Pubaccesskey with the given name and ciphertype.
-	CreateSkykey(string, crypto.CipherType) (pubaccesskey.Pubaccesskey, error)
+	CreateSkykey(string, pubaccesskey.SkykeyType) (pubaccesskey.Pubaccesskey, error)
 
 	// SkykeyByName gets the Pubaccesskey with the given name from the renter's pubaccesskey
 	// manager if it exists.
@@ -985,6 +985,9 @@ type Renter interface {
 	// SkykeyIDByName gets the SkykeyID of the key with the given name if it
 	// exists.
 	SkykeyIDByName(string) (pubaccesskey.SkykeyID, error)
+
+	// Skykeys returns a slice containing each Pubaccesskey being stored by the renter.
+	Skykeys() ([]pubaccesskey.Pubaccesskey, error)
 
 	// CreatePublinkFromSiafile will create a publink from a siafile. This will
 	// result in some uploading - the base sector pubfile needs to be uploaded

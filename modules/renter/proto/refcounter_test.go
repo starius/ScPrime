@@ -30,10 +30,10 @@ var (
 	errTimeoutOnLock = errors.New("timeout while acquiring a lock ")
 )
 
-// StartUpdateWithTimeout acquires a lock, ensuring the caller is the only one
+// managedStartUpdateWithTimeout acquires a lock, ensuring the caller is the only one
 // currently allowed to perform updates on this refcounter file. Returns an
 // error if the supplied timeout is <= 0 - use `callStartUpdate` instead.
-func (rc *RefCounter) StartUpdateWithTimeout(timeout time.Duration) error {
+func (rc *refCounter) managedStartUpdateWithTimeout(timeout time.Duration) error {
 	if timeout <= 0 {
 		return errors.New("non-positive timeout")
 	}
@@ -103,7 +103,7 @@ func TestRefCounterAppend(t *testing.T) {
 	rc := testPrepareRefCounter(numSec, t)
 	stats, err := os.Stat(rc.filepath)
 	if err != nil {
-		t.Fatal("RefCounter creation finished successfully but the file is not accessible:", err)
+		t.Fatal("refCounter creation finished successfully but the file is not accessible:", err)
 	}
 	err = rc.callStartUpdate()
 	if err != nil {
@@ -303,7 +303,7 @@ func TestRefCounterDelete(t *testing.T) {
 	// verify
 	_, err = os.Stat(rc.filepath)
 	if !os.IsNotExist(err) {
-		t.Fatal("RefCounter deletion finished successfully but the file is still on disk", err)
+		t.Fatal("refCounter deletion finished successfully but the file is still on disk", err)
 	}
 }
 
@@ -320,7 +320,7 @@ func TestRefCounterDropSectors(t *testing.T) {
 	rc := testPrepareRefCounter(numSec, t)
 	stats, err := os.Stat(rc.filepath)
 	if err != nil {
-		t.Fatal("RefCounter creation finished successfully but the file is not accessible:", err)
+		t.Fatal("refCounter creation finished successfully but the file is not accessible:", err)
 	}
 	err = rc.callStartUpdate()
 	if err != nil {
@@ -659,7 +659,7 @@ func TestRefCounterStartUpdate(t *testing.T) {
 	locked := make(chan error)
 	timeout := time.After(time.Second)
 	go func() {
-		locked <- rc.StartUpdateWithTimeout(500 * time.Millisecond)
+		locked <- rc.managedStartUpdateWithTimeout(500 * time.Millisecond)
 	}()
 	select {
 	case err = <-locked:
@@ -854,7 +854,7 @@ func TestRefCounterUpdateSessionConstraints(t *testing.T) {
 	}
 }
 
-// TestRefCounterWALFunctions tests RefCounter's functions for creating and
+// TestRefCounterWALFunctions tests refCounter's functions for creating and
 // reading WAL updates
 func TestRefCounterWALFunctions(t *testing.T) {
 	t.Parallel()
@@ -966,7 +966,7 @@ func newTestWAL() (*writeaheadlog.WAL, string) {
 
 // testPrepareRefCounter is a helper that creates a refcounter and fails the
 // test if that is not successful
-func testPrepareRefCounter(numSec uint64, t *testing.T) *RefCounter {
+func testPrepareRefCounter(numSec uint64, t *testing.T) *refCounter {
 	tcid := types.FileContractID(crypto.HashBytes([]byte("contractId")))
 	td := build.TempDir(t.Name())
 	err := os.MkdirAll(td, modules.DefaultDirPerm)

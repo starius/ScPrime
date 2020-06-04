@@ -136,7 +136,7 @@ type SafeContract struct {
 	wal        *writeaheadlog.WAL
 	mu         sync.Mutex
 
-	staticRC *RefCounter
+	staticRC *refCounter
 
 	// revisionMu serializes revisions to the contract. It is acquired by
 	// (ContractSet).Acquire and released by (ContractSet).Return. When holding
@@ -393,15 +393,16 @@ func (c *SafeContract) managedRecordAppendIntent(rev types.FileContractRevision,
 	newHeader.StorageSpending = newHeader.StorageSpending.Add(storageCost)
 	newHeader.UploadSpending = newHeader.UploadSpending.Add(bandwidthCost)
 
-	rcUpdate, err := c.makeUpdateRefCounterAppend()
-	if err != nil || len(rcUpdate.Name) == 0 {
-		return nil, errors.AddContext(err, "failed to create a refcounter update")
-	}
-	t, err := c.wal.NewTransaction([]writeaheadlog.Update{
+	updates := []writeaheadlog.Update{
 		c.makeUpdateSetHeader(newHeader),
 		c.makeUpdateSetRoot(root, c.merkleRoots.len()),
-		rcUpdate,
-	})
+	}
+	rcUpdate, err := c.makeUpdateRefCounterAppend()
+	if err != nil {
+		return nil, errors.AddContext(err, "failed to create a refcounter update")
+	}
+	updates = append(updates, rcUpdate)
+	t, err := c.wal.NewTransaction(updates)
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +447,7 @@ func (c *SafeContract) managedCommitAppend(t *writeaheadlog.Transaction, signedT
 			if err := c.applySetRoot(sru.Root, sru.Index); err != nil {
 				return err
 			}
-		case UpdateNameWriteAt:
+		case updateNameRCWriteAt:
 			if err = c.applyRefCounterUpdate(u); err != nil {
 				return errors.AddContext(err, "failed to apply refcounter update")
 			}
@@ -593,7 +594,7 @@ func (c *SafeContract) managedCommitTxns() error {
 				if err := c.applySetRoot(u.Root, u.Index); err != nil {
 					return err
 				}
-			case UpdateNameWriteAt:
+			case updateNameRCWriteAt:
 				if err := c.applyRefCounterUpdate(update); err != nil {
 					return err
 				}
@@ -788,13 +789,10 @@ func (cs *ContractSet) managedApplyInsertContractUpdate(update writeaheadlog.Upd
 	if err := rootsFile.Sync(); err != nil {
 		return modules.RenterContract{}, err
 	}
-	var rc *RefCounter
-
-	rc, err = newRefCounter(rcFilePath, uint64(len(roots)), cs.wal)
+	rc, err := newRefCounter(rcFilePath, uint64(len(roots)), cs.wal)
 	if err != nil {
 		return modules.RenterContract{}, errors.AddContext(err, "failed to create a refcounter")
 	}
-
 	sc := &SafeContract{
 		header:      h,
 		merkleRoots: merkleRoots,
@@ -892,17 +890,14 @@ func (cs *ContractSet) loadSafeContract(headerFileName, rootsFileName, refCountF
 			unappliedTxns = append(unappliedTxns, t)
 		}
 	}
-	var rc *RefCounter
-
 	// load the reference counter or create a new one if it doesn't exist
-	rc, err = loadRefCounter(refCountFileName, cs.wal)
+	rc, err := loadRefCounter(refCountFileName, cs.wal)
 	if errors.Contains(err, ErrRefCounterNotExist) {
 		rc, err = newRefCounter(refCountFileName, uint64(merkleRoots.numMerkleRoots), cs.wal)
 	}
 	if err != nil {
 		return errors.AddContext(err, "failed to load or create a refcounter")
 	}
-
 	// add to set
 	sc := &SafeContract{
 		header:        header,

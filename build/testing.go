@@ -3,12 +3,13 @@ package build
 import (
 	"archive/tar"
 	"compress/gzip"
-	"errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 var (
@@ -31,19 +32,14 @@ func CopyFile(source, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer sf.Close()
 
 	df, err := os.Create(dest)
 	if err != nil {
-		return err
+		return errors.Compose(err, sf.Close())
 	}
-	defer df.Close()
 
 	_, err = io.Copy(df, sf)
-	if err != nil {
-		return err
-	}
-	return nil
+	return errors.Compose(err, sf.Close(), df.Close())
 }
 
 // CopyDir copies a directory and all of its contents to the destination
@@ -86,13 +82,15 @@ func CopyDir(source, dest string) error {
 
 // ExtractTarGz extracts the specified .tar.gz file to dir, overwriting
 // existing files in the event of a name conflict.
-func ExtractTarGz(filename, dir string) error {
+func ExtractTarGz(filename, dir string) (err error) {
 	// Open the zipped archive.
 	file, err := os.Open(filename)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		err = errors.AddContext(errors.Compose(err, file.Close()), "Error extracting archive")
+	}()
 	z, err := gzip.NewReader(file)
 	if err != nil {
 		return err
@@ -128,7 +126,7 @@ func ExtractTarGz(filename, dir string) error {
 			if err != nil {
 				return err
 			}
-			_, err = io.Copy(tf, t)
+			_, err = io.Copy(tf, t) //nolint:gosec
 			tf.Close()
 			if err != nil {
 				return err
