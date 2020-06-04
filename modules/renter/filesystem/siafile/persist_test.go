@@ -56,8 +56,8 @@ func equalFiles(sf, sf2 *SiaFile) error {
 	sf2.staticMetadata.LastHealthCheckTime = time.Time{}
 	// Compare the rest of sf and sf2.
 	if !reflect.DeepEqual(sf.staticMetadata, sf2.staticMetadata) {
-		fmt.Println(sf.staticMetadata)
-		fmt.Println(sf2.staticMetadata)
+		fmt.Printf("Siafile1:\n%+v\n", sf.staticMetadata)
+		fmt.Printf("Siafile2:\n%+v\n", sf2.staticMetadata)
 		return errors.New("sf metadata doesn't equal sf2 metadata")
 	}
 	if !reflect.DeepEqual(sf.pubKeyTable, sf2.pubKeyTable) {

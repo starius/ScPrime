@@ -119,7 +119,7 @@ func (r *Renter) UploadBackup(src, name string) error {
 
 // managedUploadBackup creates a backup of the renter which is uploaded to the
 // sia network as a snapshot and can be retrieved using only the seed.
-func (r *Renter) managedUploadBackup(src, name string) error {
+func (r *Renter) managedUploadBackup(src, name string) (err error) {
 	if len(name) > 96 {
 		return errors.New("name is too long")
 	}
@@ -129,7 +129,9 @@ func (r *Renter) managedUploadBackup(src, name string) error {
 	if err != nil {
 		return errors.AddContext(err, "failed to open backup for uploading")
 	}
-	defer backup.Close()
+	defer func() {
+		err = errors.AddContext(errors.Compose(err, backup.Close()), "Error uploading backup "+name)
+	}()
 
 	// Prepare the siapath.
 	sp, err := modules.BackupFolder.Join(name)
@@ -180,7 +182,7 @@ func (r *Renter) managedUploadBackup(src, name string) error {
 }
 
 // DownloadBackup downloads the specified backup.
-func (r *Renter) DownloadBackup(dst string, name string) error {
+func (r *Renter) DownloadBackup(dst string, name string) (err error) {
 	if err := r.tg.Add(); err != nil {
 		return err
 	}
@@ -190,7 +192,9 @@ func (r *Renter) DownloadBackup(dst string, name string) error {
 	if err != nil {
 		return err
 	}
-	defer dstFile.Close()
+	defer func() {
+		err = errors.AddContext(errors.Compose(err, dstFile.Close()), "Error downloading backup "+name)
+	}()
 	// search for backup
 	if len(name) > 96 {
 		return errors.New("no record of a backup with that name")

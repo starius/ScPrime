@@ -127,6 +127,7 @@ func TestFeeManager(t *testing.T) {
 
 // TestFeeManagerProcessFee probes the processing of a fee
 func TestFeeManagerProcessFee(t *testing.T) {
+	t.Skip("Nebulous fee is disabled in ScPrime")
 	if testing.Short() {
 		t.SkipNow()
 	}

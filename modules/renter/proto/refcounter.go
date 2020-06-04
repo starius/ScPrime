@@ -9,9 +9,9 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/modules"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
+	"gitlab.com/scpcorp/writeaheadlog"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/scpcorp/writeaheadlog"
 )
 
 var (
@@ -114,13 +114,15 @@ type (
 )
 
 // loadRefCounter loads a refcounter from disk
-func loadRefCounter(path string, wal *writeaheadlog.WAL) (*refCounter, error) {
+func loadRefCounter(path string, wal *writeaheadlog.WAL) (rc *refCounter, err error) {
 	// Open the file and start loading the data.
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, ErrRefCounterNotExist
 	}
-	defer f.Close()
+	defer func() {
+		err = errors.AddContext(errors.Compose(err, f.Close()), "Error loading refcounter")
+	}()
 
 	var header refCounterHeader
 	headerBytes := make([]byte, refCounterHeaderSize)
@@ -138,7 +140,7 @@ func loadRefCounter(path string, wal *writeaheadlog.WAL) (*refCounter, error) {
 		return nil, errors.AddContext(err, "failed to read file stats")
 	}
 	numSectors := uint64((fi.Size() - refCounterHeaderSize) / 2)
-	return &refCounter{
+	rc = &refCounter{
 		refCounterHeader: header,
 		filepath:         path,
 		numSectors:       numSectors,
@@ -147,7 +149,8 @@ func loadRefCounter(path string, wal *writeaheadlog.WAL) (*refCounter, error) {
 		refCounterUpdateControl: refCounterUpdateControl{
 			newSectorCounts: make(map[uint64]uint16),
 		},
-	}, nil
+	}
+	return rc, nil
 }
 
 // newCustomRefCounter creates a new sector reference counter file to accompany
@@ -215,10 +218,10 @@ func (rc *refCounter) callCreateAndApplyTransaction(updates ...writeaheadlog.Upd
 	// interrupted during the creation of the refcounter after writing the
 	// header update to the Wal but before applying it.
 	f, err := rc.staticDeps.OpenFile(rc.filepath, os.O_CREATE|os.O_RDWR, modules.DefaultFilePerm)
-	defer f.Close()
 	if err != nil {
 		return errors.AddContext(err, "failed to open refcounter file in order to apply updates")
 	}
+	defer f.Close()
 	if !rc.isUpdateInProgress {
 		return ErrUpdateWithoutUpdateSession
 	}

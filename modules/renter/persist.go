@@ -81,7 +81,7 @@ func (r *Renter) managedLoadSettings() error {
 		err = r.saveSync()
 		r.mu.Unlock(id)
 		if err != nil {
-			return err
+			return errors.AddContext(err, "failed to create default renters persistence files")
 		}
 	} else if err == persist.ErrBadVersion {
 		// Outdated version, try the 040 to 133 upgrade.

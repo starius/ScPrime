@@ -10,9 +10,8 @@ require (
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/klauspost/cpuid v1.3.0 // indirect
-	github.com/klauspost/reedsolomon v1.9.9
+	github.com/klauspost/reedsolomon v1.9.8
 	github.com/mitchellh/mapstructure v1.3.1 // indirect
-	github.com/mmcloughlin/avo v0.0.0-20200523190732-4439b6b2c061 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/sasha-s/go-deadlock v0.2.0
 	github.com/spf13/cobra v1.0.0
@@ -35,6 +34,5 @@ require (
 	go.etcd.io/bbolt v1.3.3
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34 // indirect
-	golang.org/x/tools v0.0.0-20200601175630-2caf76543d99 // indirect
 	gopkg.in/ini.v1 v1.57.0 // indirect
 )
