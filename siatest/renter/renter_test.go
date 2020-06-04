@@ -3397,6 +3397,7 @@ func TestUploadAfterDelete(t *testing.T) {
 // TestSiafileCompatCodeV137 checks that legacy renters can upgrade from the
 // v137 siafile format.
 func TestSiafileCompatCodeV137(t *testing.T) {
+	t.Skip("Version 1.3.7 absent")
 	if testing.Short() {
 		t.SkipNow()
 	}

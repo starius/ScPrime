@@ -29,6 +29,7 @@ const (
 
 	// Define SkykeyTypes. Constants stated explicitly (instead of
 	// `SkykeyType(iota)`) to avoid re-ordering mistakes in the future.
+
 	// TypeInvalid represents an invalid skykey type.
 	TypeInvalid = SkykeyType(0x00)
 

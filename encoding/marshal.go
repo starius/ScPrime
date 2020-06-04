@@ -6,11 +6,12 @@ package encoding
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"os"
 	"reflect"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 const (
@@ -252,12 +253,11 @@ func WriteFile(filename string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 	err = NewEncoder(file).Encode(v)
 	if err != nil {
-		return errors.New("error while writing " + filename + ": " + err.Error())
+		err = errors.AddContext(err, "error while writing "+filename)
 	}
-	return nil
+	return errors.Compose(err, file.Close())
 }
 
 // Read implements the io.Reader interface.
@@ -481,14 +481,12 @@ func ReadFile(filename string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 	stat, err := file.Stat()
-	if err != nil {
-		return err
+	if err == nil {
+		err = NewDecoder(file, int(stat.Size()*3)).Decode(v)
 	}
-	err = NewDecoder(file, int(stat.Size()*3)).Decode(v)
 	if err != nil {
-		return errors.New("error while reading " + filename + ": " + err.Error())
+		err = errors.AddContext(err, "error reading file "+filename)
 	}
-	return nil
+	return errors.Compose(err, file.Close())
 }

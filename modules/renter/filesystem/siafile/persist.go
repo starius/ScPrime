@@ -550,13 +550,15 @@ func (sf *SiaFile) iterateChunks(iterFunc func(chunk *chunk) (bool, error)) ([]w
 
 // iterateChunksReadonly iterates over all the chunks on disk and calls iterFunc
 // on each one without modifying them.
-func (sf *SiaFile) iterateChunksReadonly(iterFunc func(chunk chunk) error) error {
+func (sf *SiaFile) iterateChunksReadonly(iterFunc func(chunk chunk) error) (err error) {
 	// Open the file.
 	f, err := os.Open(sf.siaFilePath)
 	if err != nil {
 		return errors.AddContext(err, "failed to open file")
 	}
-	defer f.Close()
+	defer func() {
+		err = errors.AddContext(errors.Compose(err, f.Close()), "Error iterating over chunks")
+	}()
 	// Seek to the first chunk.
 	_, err = f.Seek(sf.staticMetadata.ChunkOffset, io.SeekStart)
 	if err != nil {

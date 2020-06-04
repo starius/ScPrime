@@ -294,12 +294,14 @@ func (sm *SkykeyManager) saveHeader(file *os.File) error {
 // load initializes the SkykeyManager with the data stored in the pubaccesskey file if
 // it exists. If it does not exist, it initializes that file with the default
 // header values.
-func (sm *SkykeyManager) load() error {
+func (sm *SkykeyManager) load() (err error) {
 	file, err := os.OpenFile(sm.staticPersistFile, os.O_RDWR|os.O_CREATE, defaultFilePerm)
 	if err != nil {
 		return errors.AddContext(err, "Unable to open SkykeyManager persist file")
 	}
-	defer file.Close()
+	defer func() {
+		err = errors.Compose(err, file.Close())
+	}()
 
 	// Check if the file has a header. If there is not, then set the default
 	// values and save it.
@@ -372,7 +374,7 @@ func (sm *SkykeyManager) load() error {
 
 // saveKey saves the key and appends it to the pubaccesskey file and updates/syncs
 // the header.
-func (sm *SkykeyManager) saveKey(pubaccesskey Pubaccesskey) error {
+func (sm *SkykeyManager) saveKey(pubaccesskey Pubaccesskey) (err error) {
 	keyID := pubaccesskey.ID()
 
 	// Store the new key.
@@ -383,7 +385,9 @@ func (sm *SkykeyManager) saveKey(pubaccesskey Pubaccesskey) error {
 	if err != nil {
 		return errors.AddContext(err, "Unable to open SkykeyManager persist file")
 	}
-	defer file.Close()
+	defer func() {
+		err = errors.AddContext(errors.Compose(err, file.Close()), "Error saving Pubaccesskey")
+	}()
 
 	// Seek to the end of the known-to-be-valid part of the file.
 	_, err = file.Seek(int64(sm.fileLen), io.SeekStart)
