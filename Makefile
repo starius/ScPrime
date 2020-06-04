@@ -81,7 +81,8 @@ pkgs = ./build \
 release-pkgs = ./cmd/spc ./cmd/spd
 
 # lockcheckpkgs are the packages that are checked for locking violations.
-lockcheckpkgs = ./modules/renter/hostdb
+lockcheckpkgs = ./modules/host/mdm \
+	./modules/renter/hostdb
 
 # run determines which tests run when running any variation of 'make test'.
 run = .

@@ -145,7 +145,7 @@ func (api *API) buildHTTPRoutes() {
 		router.POST("/renter/validatesiapath/*siapath", RequirePassword(api.renterValidateSiaPathHandler, requiredPassword))
 		router.GET("/renter/workers", api.renterWorkersHandler)
 
-		// Skynet endpoints
+		// Pubaccess endpoints
 		router.GET("/pubaccess/blacklist", api.skynetBlacklistHandlerGET)
 		router.POST("/pubaccess/blacklist", RequirePassword(api.skynetBlacklistHandlerPOST, requiredPassword))
 		router.POST("/pubaccess/pin/:publink", RequirePassword(api.skynetPublinkPinHandlerPOST, requiredPassword))

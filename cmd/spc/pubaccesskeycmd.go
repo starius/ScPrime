@@ -82,7 +82,7 @@ func skykeyCreate(c client.Client, name string, skykeyType pubaccesskey.SkykeyTy
 	return sk.ToString()
 }
 
-// skykeyaddcmd is a wrapper for skykeyAdd used to handle the addition of new skykeys.
+// skykeyaddcmd is a wrapper for skykeyAdd used to handle the addition of new pubaccesskeys.
 func skykeyaddcmd(skykeyString string) {
 	err := skykeyAdd(httpClient, skykeyString)
 	if err != nil && strings.Contains(err.Error(), pubaccesskey.ErrSkykeyWithNameAlreadyExists.Error()) {
@@ -166,20 +166,20 @@ func skykeygetidcmd(skykeyName string) {
 }
 
 // skykeylistcmd is a wrapper for skykeyListKeys that prints a list of all
-// skykeys.
+// pubaccesskeys.
 func skykeylistcmd() {
 	skykeysString, err := skykeyListKeys(httpClient, skykeyShowPrivateKeys)
 	if err != nil {
-		die("Failed to get all skykeys:", err)
+		die("Failed to get all pubaccesskeys:", err)
 	}
 	fmt.Print(skykeysString)
 }
 
-// skykeyListKeys returns a formatted string containing a list of all skykeys
+// skykeyListKeys returns a formatted string containing a list of all pubaccesskeys
 // being stored by the renter. It includes IDs, Names, and if showPrivateKeys is
 // set to true it will include the full encoded pubaccesskey.
 func skykeyListKeys(c client.Client, showPrivateKeys bool) (string, error) {
-	skykeys, err := c.SkykeySkykeysGet()
+	pubaccesskeys, err := c.SkykeySkykeysGet()
 	if err != nil {
 		return "", err
 	}
@@ -203,7 +203,7 @@ func skykeyListKeys(c client.Client, showPrivateKeys bool) (string, error) {
 	}
 	fmt.Fprintf(w, "\n")
 
-	for _, sk := range skykeys {
+	for _, sk := range pubaccesskeys {
 		idStr := sk.ID().ToString()
 		if !showPrivateKeys {
 			fmt.Fprintf(w, "%s\t%s\n", idStr, sk.Name)

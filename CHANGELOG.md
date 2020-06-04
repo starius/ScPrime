@@ -10,8 +10,42 @@ Version History
 ---------------
 
 Latest:
-### v1.4.3.0
+### v1.4.3.1
 
+**Bugs Fixed**
+- fixed issue where workers would freeze for a bit after a new block appeared
+
+**Other**
+- Add Pubaccesskey Name and ID to pubaccesskey GET responses
+
+## May 29, 2020:
+### v1.4.9
+**Key Updates**
+- Add `FeeManager` to siad to allow for applications to charge a fee
+- Add start time for the API server for siad uptime
+- Add new `/consensus/subscribe/:id` endpoint to allow subscribing to consensus
+  change events
+- Add /pubaccesskeys endpoint and `spc pubaccesskey ls` command
+- Updated pubaccesskey encoding and format
+
+**Bugs Fixed**
+- fix call to expensive operation in tight loop
+- fix an infinite loop which would block uploads from progressing
+
+**Other**
+- Optimize bandwidth consumption for RPC write calls
+- Extend `/daemon/alerts` with `criticalalerts`, `erroralerts` and
+  `warningalerts` fields along with `alerts`.
+- Update pubaccesskey spc functions to accept httpClient and remove global httpClient
+  reference from spc testing
+- Skykeycmd test broken down to subtests.
+- Create spc testing helpers.
+- Add engineering guidelines to /doc
+- Introduce PaymentProvider interface on the renter.
+- Pubaccess persistence subsystems into shared system.
+- Update Cobra from v0.0.5 to v1.0.0.
+
+### v1.4.3.0
 **Key Updates**
 - Alerts returned by /daemon/alerts route are sorted by severity
 - Add `--fee-included` parameter to `spc wallet send siacoins` that allows

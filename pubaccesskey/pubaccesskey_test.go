@@ -377,16 +377,16 @@ func TestSkykeyURIFormatting(t *testing.T) {
 		SkykeyScheme + ":" + keyDataString,             // pubaccesskey with scheme and no name
 		keyDataString,                                  // pubaccesskey with no scheme and no name
 	}
-	skykeys := make([]Pubaccesskey, len(testStrings))
+	pubaccesskeys := make([]Pubaccesskey, len(testStrings))
 
 	// Check that we can load from string and recreate the input string from the
 	// pubaccesskey.
 	for i, testString := range testStrings {
-		err := skykeys[i].FromString(testString)
+		err := pubaccesskeys[i].FromString(testString)
 		if err != nil {
 			t.Fatal(err)
 		}
-		s, err := skykeys[i].ToString()
+		s, err := pubaccesskeys[i].ToString()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -402,7 +402,7 @@ func TestSkykeyURIFormatting(t *testing.T) {
 	}
 
 	// The first 2 keys should have names and the rest should not.
-	for i, sk := range skykeys {
+	for i, sk := range pubaccesskeys {
 		if i <= 1 && sk.Name != testKeyName {
 			t.Log(sk)
 			t.Log("Expected testKeyName in pubaccesskey")
@@ -413,9 +413,9 @@ func TestSkykeyURIFormatting(t *testing.T) {
 		}
 	}
 
-	// All skykeys should have the same ID for each pubaccesskey.
-	for i := 1; i < len(skykeys); i++ {
-		if skykeys[i].ID() != skykeys[i-1].ID() {
+	// All pubaccesskeys should have the same ID for each pubaccesskey.
+	for i := 1; i < len(pubaccesskeys); i++ {
+		if pubaccesskeys[i].ID() != pubaccesskeys[i-1].ID() {
 			t.Fatal("Expected same ID", i)
 		}
 	}

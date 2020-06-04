@@ -27,6 +27,14 @@ import (
 	"gitlab.com/scpcorp/siamux/mux"
 )
 
+const (
+	// priceTableExpiryBuffer defines a buffer period that ensures the price
+	// table is valid for at least as long as the buffer period when we consider
+	// it valid. This ensures a call to `managedFetchPriceTable` does not return
+	// a price table that expires the next second.
+	priceTableExpiryBuffer = 15 * time.Second
+)
+
 // A hostTester is the helper object for host testing, including helper modules
 // and methods for controlling synchronization.
 type (
@@ -259,7 +267,9 @@ type renterHostPair struct {
 	staticRenterMux  *siamux.SiaMux
 	staticHT         *hostTester
 
-	pt *modules.RPCPriceTable
+	pt       *modules.RPCPriceTable
+	ptExpiry time.Time // keep track of when the price table is set to expire
+
 	mu sync.Mutex
 }
 
@@ -432,6 +442,13 @@ func (p *renterHostPair) managedExecuteProgram(epr modules.RPCExecuteProgramRequ
 		return nil, limit, errors.AddContext(err, "error writing program data stream")
 	}
 
+	// Read the cancellation token.
+	var ct modules.MDMCancellationToken
+	err = modules.RPCRead(stream, &ct)
+	if err != nil {
+		return nil, limit, err
+	}
+
 	// Read the responses.
 	responses := make([]executeProgramResponse, len(epr.Program))
 	for i := range epr.Program {
@@ -467,20 +484,16 @@ func (p *renterHostPair) managedExecuteProgram(epr modules.RPCExecuteProgramRequ
 // managedFetchPriceTable returns the latest price table, if that price table is
 // expired it will fetch a new one from the host.
 func (p *renterHostPair) managedFetchPriceTable() (*modules.RPCPriceTable, error) {
-	// fetch a new pricetable if it's about to expire, rather than the second it
-	// expires. This ensures calls performed immediately after
-	// `managedFetchPriceTable` is called are set to succeed.
-	var expiryBuffer int64 = 3
+	p.mu.Lock()
+	expired := time.Now().Add(priceTableExpiryBuffer).After(p.ptExpiry)
+	p.mu.Unlock()
 
-	pt := p.managedPriceTable()
-	if pt.Expiry <= time.Now().Unix()+expiryBuffer {
-		err := p.managedUpdatePriceTable(true)
-		if err != nil {
+	if expired {
+		if err := p.managedUpdatePriceTable(true); err != nil {
 			return nil, err
 		}
-		return p.managedPriceTable(), nil
 	}
-	return pt, nil
+	return p.managedPriceTable(), nil
 }
 
 // managedFundEphemeralAccount will deposit the given amount in the pair's
@@ -753,6 +766,7 @@ func (p *renterHostPair) managedUpdatePriceTable(payByFC bool) error {
 	// update the price table
 	p.mu.Lock()
 	p.pt = &pt
+	p.ptExpiry = time.Now().Add(pt.Validity)
 	p.mu.Unlock()
 
 	return nil
@@ -783,9 +797,6 @@ func TestHostInitialization(t *testing.T) {
 	defer ht.host.staticPriceTables.mu.RUnlock()
 	if reflect.DeepEqual(ht.host.staticPriceTables.current, modules.RPCPriceTable{}) {
 		t.Fatal("RPC price table wasn't initialized")
-	}
-	if ht.host.staticPriceTables.current.Expiry == 0 {
-		t.Fatal("RPC price table was not properly initialised")
 	}
 }
 

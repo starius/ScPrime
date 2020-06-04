@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	// SkykeyScheme is the URI scheme for encoded skykeys.
+	// SkykeyScheme is the URI scheme for encoded pubaccesskeys.
 	SkykeyScheme = "pubaccesskey"
 
 	// SkykeyIDLen is the length of a SkykeyID
@@ -30,17 +30,17 @@ const (
 	// Define SkykeyTypes. Constants stated explicitly (instead of
 	// `SkykeyType(iota)`) to avoid re-ordering mistakes in the future.
 
-	// TypeInvalid represents an invalid skykey type.
+	// TypeInvalid represents an invalid pubaccesskey type.
 	TypeInvalid = SkykeyType(0x00)
 
-	// TypePublicID is a Skykey that uses XChaCha20. It reveals its
-	// skykey ID in *every* skyfile it encrypts.
+	// TypePublicID is a Pubaccesskey that uses XChaCha20. It reveals its
+	// pubaccesskey ID in *every* skyfile it encrypts.
 	TypePublicID = SkykeyType(0x01)
 
-	// TypePrivateID is a Skykey that uses XChaCha20 that does not
-	// reveal its skykey ID when encrypting Skyfiles. Instead, it marks the skykey
+	// TypePrivateID is a Pubaccesskey that uses XChaCha20 that does not
+	// reveal its pubaccesskey ID when encrypting Skyfiles. Instead, it marks the pubaccesskey
 	// used for encryption by storing an encrypted identifier that can only be
-	// successfully decrypted with the correct skykey.
+	// successfully decrypted with the correct pubaccesskey.
 	// TODO: add along with skyfile implementation TypePrivateID = SkykeyType(0x02)
 )
 
@@ -325,7 +325,7 @@ func (sk *Pubaccesskey) FromString(s string) error {
 }
 
 // ID returns the ID for the Pubaccesskey. A master Pubaccesskey and all file-specific
-// skykeys derived from it share the same ID because they only differ in nonce
+// pubaccesskeys derived from it share the same ID because they only differ in nonce
 // values, not key values. This fact is used to identify the master Pubaccesskey
 // with which a Pubaccess file was encrypted.
 func (sk Pubaccesskey) ID() (keyID SkykeyID) {

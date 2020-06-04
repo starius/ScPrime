@@ -27,7 +27,7 @@ func TestSkyfileBaseSectorEncryption(t *testing.T) {
 	r := rt.renter
 	defer rt.Close()
 
-	// Create the 2 test skykeys.
+	// Create the 2 test pubaccesskeys.
 	keyName1 := t.Name() + "1"
 	sk1, err := r.CreateSkykey(keyName1, pubaccesskey.TypePublicID)
 	if err != nil {

@@ -1983,14 +1983,14 @@ func testPubaccessLargeMetadata(t *testing.T, tg *siatest.TestGroup) {
 func testPubaccessSkykey(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	// The renter should be initialized with 0 skykeys.
-	skykeys, err := r.SkykeySkykeysGet()
+	// The renter should be initialized with 0 pubaccesskeys.
+	pubaccesskeys, err := r.SkykeySkykeysGet()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(skykeys) != 0 {
-		t.Log(skykeys)
-		t.Fatal("Expected 0 skykeys")
+	if len(pubaccesskeys) != 0 {
+		t.Log(pubaccesskeys)
+		t.Fatal("Expected 0 pubaccesskeys")
 	}
 
 	sk, err := r.SkykeyCreateKeyPost("testkey1", pubaccesskey.TypePublicID)
@@ -1999,16 +1999,16 @@ func testPubaccessSkykey(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// Check that the newly created pubaccesskey shows up.
-	skykeys, err = r.SkykeySkykeysGet()
+	pubaccesskeys, err = r.SkykeySkykeysGet()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(skykeys) != 1 {
-		t.Log(skykeys)
+	if len(pubaccesskeys) != 1 {
+		t.Log(pubaccesskeys)
 		t.Fatal("Expected 1 pubaccesskey")
 	}
-	if skykeys[0].ID() != sk.ID() || skykeys[0].Name != sk.Name {
-		t.Log(skykeys[0])
+	if pubaccesskeys[0].ID() != sk.ID() || pubaccesskeys[0].Name != sk.Name {
+		t.Log(pubaccesskeys[0])
 		t.Log(sk)
 		t.Fatal("Expected same pubaccesskey")
 	}
@@ -2078,7 +2078,7 @@ func testPubaccessSkykey(t *testing.T, tg *siatest.TestGroup) {
 	skykeySet[testSkykeyString] = struct{}{}
 	skykeySet[sk2Str] = struct{}{}
 
-	// Create a bunch of skykeys and check that they all get returned.
+	// Create a bunch of pubaccesskeys and check that they all get returned.
 	nKeys := 10
 	for i := 0; i < nKeys; i++ {
 		nextSk, err := r.SkykeyCreateKeyPost(fmt.Sprintf("anotherkey-%d", i), pubaccesskey.TypePublicID)
@@ -2093,28 +2093,28 @@ func testPubaccessSkykey(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// Check that the expected number of keys was created.
-	skykeys, err = r.SkykeySkykeysGet()
+	pubaccesskeys, err = r.SkykeySkykeysGet()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(skykeys) != nKeys+2 {
-		t.Log(len(skykeys), nKeys+2)
+	if len(pubaccesskeys) != nKeys+2 {
+		t.Log(len(pubaccesskeys), nKeys+2)
 		t.Fatal("Wrong number of keys")
 	}
 
 	// Check that getting all the keys returns all the keys we just created.
-	for _, skFromList := range skykeys {
+	for _, skFromList := range pubaccesskeys {
 		skStrFromList, err := skFromList.ToString()
 		if err != nil {
 			t.Fatal(err)
 		}
 		if _, ok := skykeySet[skStrFromList]; !ok {
-			t.Log(skStrFromList, skykeys)
+			t.Log(skStrFromList, pubaccesskeys)
 			t.Fatal("Didn't find key")
 		}
 	}
 
-	// Test misuse of the /skynet/pubaccesskey endpoint using an UnsafeClient.
+	// Test misuse of the /pubaccess/pubaccesskey endpoint using an UnsafeClient.
 	uc := client.NewUnsafeClient(r.Client)
 
 	// Passing in 0 params shouild return an error.
@@ -2150,7 +2150,7 @@ func testPubaccessSkykey(t *testing.T, tg *siatest.TestGroup) {
 	// GET response.
 	values = url.Values{}
 	values.Set("name", testSkykey.Name)
-	getQuery := fmt.Sprintf("/skynet/pubaccesskey?%s", values.Encode())
+	getQuery := fmt.Sprintf("/pubaccess/pubaccesskey?%s", values.Encode())
 
 	skykeyGet = api.SkykeyGET{}
 	err = uc.Get(getQuery, &skykeyGet)
@@ -2170,9 +2170,9 @@ func testPubaccessSkykey(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal("Wrong pubaccesskey string")
 	}
 
-	// Check the Name and ID params from the /skynet/skykeys GET response.
+	// Check the Name and ID params from the /pubaccess/pubaccesskeys GET response.
 	var skykeysGet api.SkykeysGET
-	err = uc.Get("/skynet/skykeys", &skykeysGet)
+	err = uc.Get("/pubaccess/pubaccesskeys", &skykeysGet)
 	if err != nil {
 		t.Fatal(err)
 	}

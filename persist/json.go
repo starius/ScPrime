@@ -121,13 +121,13 @@ func readJSON(meta Metadata, object interface{}, filename string) (err error) {
 	var header, version string
 	dec := json.NewDecoder(file)
 	if err := dec.Decode(&header); err != nil {
-		return build.ExtendErr("unable to read header from persisted json object file", err)
+		return errors.AddContext(err, "unable to read header from persisted json object file")
 	}
 	if header != meta.Header {
 		return ErrBadHeader
 	}
 	if err := dec.Decode(&version); err != nil {
-		return build.ExtendErr("unable to read version from persisted json object file", err)
+		return errors.AddContext(err, "unable to read version from persisted json object file")
 	}
 	if version != meta.Version {
 		return ErrBadVersion
@@ -136,13 +136,13 @@ func readJSON(meta Metadata, object interface{}, filename string) (err error) {
 	// Read everything else.
 	remainingBytes, err := ioutil.ReadAll(dec.Buffered())
 	if err != nil {
-		return build.ExtendErr("unable to read persisted json object data", err)
+		return errors.AddContext(err, "unable to read persisted json object data")
 	}
 	// The buffer may or may not have read the rest of the file, read the rest
 	// of the file to be certain.
 	remainingBytesExtra, err := ioutil.ReadAll(file)
 	if err != nil {
-		return build.ExtendErr("unable to read persisted json object data", err)
+		return errors.AddContext(err, "unable to read persisted json object data")
 	}
 	remainingBytes = append(remainingBytes, remainingBytesExtra...)
 
@@ -222,9 +222,11 @@ func LoadJSON(meta Metadata, object interface{}, filename string) error {
 	}
 	if err != nil {
 		// Try opening the temp file.
-		err := readJSON(meta, object, filename+tempSuffix)
-		if err != nil {
-			return build.ExtendErr("unable to read persisted json object from disk", err)
+		errtempfile := readJSON(meta, object, filename+tempSuffix)
+		if errtempfile != nil {
+			failure := errors.Compose(errors.AddContext(err, "main file load failed"),
+				errors.AddContext(errtempfile, "_temp file load failed"))
+			return errors.AddContext(failure, "unable to read persisted json object from disk")
 		}
 	}
 
@@ -270,21 +272,21 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 	buf := new(bytes.Buffer)
 	enc := json.NewEncoder(buf)
 	if err := enc.Encode(meta.Header); err != nil {
-		return build.ExtendErr("unable to encode metadata header", err)
+		return errors.AddContext(err, "unable to encode metadata header")
 	}
 	if err := enc.Encode(meta.Version); err != nil {
-		return build.ExtendErr("unable to encode metadata version", err)
+		return errors.AddContext(err, "unable to encode metadata version")
 	}
 
 	// Marshal the object into json and write the checksum + result to the
 	// buffer.
 	objBytes, err := json.MarshalIndent(object, "", "\t")
 	if err != nil {
-		return build.ExtendErr("unable to marshal the provided object", err)
+		return errors.AddContext(err, "unable to marshal the provided object")
 	}
 	checksum := crypto.HashBytes(objBytes)
 	if err := enc.Encode(checksum); err != nil {
-		return build.ExtendErr("unable to encode checksum", err)
+		return errors.AddContext(err, "unable to encode checksum")
 	}
 	buf.Write(objBytes)
 	data := buf.Bytes()
@@ -303,7 +305,7 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 
 		file, err := os.OpenFile(filename+tempSuffix, os.O_RDWR|os.O_TRUNC|os.O_CREATE, defaultFilePermissions)
 		if err != nil {
-			return build.ExtendErr("unable to open temp file", err)
+			return errors.AddContext(err, "unable to open temp file")
 		}
 		defer func() {
 			err = errors.AddContext(errors.Compose(err, file.Close()), "Error saving JSON file")
@@ -312,11 +314,11 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 		// Write and sync.
 		_, err = file.Write(data)
 		if err != nil {
-			return build.ExtendErr("unable to write temp file", err)
+			return errors.AddContext(err, "unable to write temp file")
 		}
 		err = file.Sync()
 		if err != nil {
-			return build.ExtendErr("unable to sync temp file", err)
+			return errors.AddContext(err, "unable to sync temp file")
 		}
 		return nil
 	}()
@@ -328,20 +330,20 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 	err = func() (err error) {
 		file, err := os.OpenFile(filename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, defaultFilePermissions)
 		if err != nil {
-			return build.ExtendErr("unable to open file", err)
+			return errors.AddContext(err, "unable to open file")
 		}
 		defer func() {
-			err = build.ComposeErrors(err, file.Close())
+			err = errors.Compose(err, file.Close())
 		}()
 
 		// Write and sync.
 		_, err = file.Write(data)
 		if err != nil {
-			return build.ExtendErr("unable to write file", err)
+			return errors.AddContext(err, "unable to write file")
 		}
 		err = file.Sync()
 		if err != nil {
-			return build.ExtendErr("unable to sync temp file", err)
+			return errors.AddContext(err, "unable to sync temp file")
 		}
 		return nil
 	}()

@@ -32,7 +32,7 @@ var (
 	skykeyVersion       = types.NewSpecifier(skykeyVersionString)
 
 	// oldFormatSkykeyVersionString is the version number which used a different
-	// marshaling/unmarshaling scheme for skykeys.
+	// marshaling/unmarshaling scheme for pubaccesskeys.
 	oldFormatSkykeyVersionString = "1.4.3"
 
 	// SkykeyFileMagic is the first piece of data found in a Pubaccesskey file.
@@ -52,10 +52,10 @@ var (
 	errSkykeyNameToolong     = errors.New("Pubaccesskey name exceeds max length")
 
 	// SkykeyPersistFilename is the name of the pubaccesskey persistence file.
-	SkykeyPersistFilename = "skykeys.dat"
+	SkykeyPersistFilename = "pubaccesskeys.dat"
 )
 
-// SkykeyManager manages the creation and handling of new skykeys which can be
+// SkykeyManager manages the creation and handling of new pubaccesskeys which can be
 // referenced by their unique name or identifier.
 type SkykeyManager struct {
 	idsByName map[string]SkykeyID
@@ -94,7 +94,7 @@ func (cw countingWriter) BytesWritten() uint64 {
 }
 
 // SupportsSkykeyType returns true if and only if the SkykeyManager supports
-// skykeys with the given type.
+// pubaccesskeys with the given type.
 func (sm *SkykeyManager) SupportsSkykeyType(skykeyType SkykeyType) bool {
 	switch skykeyType {
 	case TypePublicID:
@@ -206,7 +206,7 @@ func (sm *SkykeyManager) Skykeys() []Pubaccesskey {
 	return keys
 }
 
-// NewSkykeyManager creates a SkykeyManager for managing skykeys.
+// NewSkykeyManager creates a SkykeyManager for managing pubaccesskeys.
 func NewSkykeyManager(persistDir string) (*SkykeyManager, error) {
 	sm := &SkykeyManager{
 		idsByName:         make(map[string]SkykeyID),
@@ -315,7 +315,7 @@ func (sm *SkykeyManager) load() (err error) {
 		return sm.saveHeader(file)
 	}
 
-	// Otherwise load the existing header and all the skykeys in the file.
+	// Otherwise load the existing header and all the pubaccesskeys in the file.
 	err = sm.loadHeader(file)
 	if err != nil {
 		return errors.AddContext(err, "Error loading header")
@@ -326,7 +326,7 @@ func (sm *SkykeyManager) load() (err error) {
 		return err
 	}
 
-	// Read all the skykeys up to the length set in the header.
+	// Read all the pubaccesskeys up to the length set in the header.
 	n := headerLen
 	for n < int(sm.fileLen) {
 		var sk Pubaccesskey

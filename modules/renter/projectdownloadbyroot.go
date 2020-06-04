@@ -144,7 +144,7 @@ func (r *Renter) managedDownloadByRoot(root crypto.Hash, offset, length uint64, 
 	// Filter out all workers that do not support the new protocol. It has been
 	// determined that hosts who do not support the async protocol are not worth
 	// supporting in the new download by root code - it'll remove pretty much
-	// all of the performance advantages. Skynet is being forced to fully
+	// all of the performance advantages. Pubaccess is being forced to fully
 	// migrate to the async protocol.
 	numAsyncWorkers := 0
 	for _, worker := range workers {

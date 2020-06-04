@@ -32,7 +32,8 @@ require (
 	gitlab.com/scpcorp/siamux v0.0.0-20200601085202-1657681ea4f0
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200529162531-fa10d006a5ab
 	go.etcd.io/bbolt v1.3.3
-	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34 // indirect
+	golang.org/x/crypto v0.0.0-20200602180216-279210d13fed
+	golang.org/x/net v0.0.0-20200602114024-627f9648deb9 // indirect
+	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
 	gopkg.in/ini.v1 v1.57.0 // indirect
 )

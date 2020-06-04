@@ -1,1 +1,0 @@
-- Add /skykeys endpoint and `spc pubaccesskey ls` command

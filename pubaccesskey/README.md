@@ -51,16 +51,16 @@ It is recommended that users include the URI scheme for maximum clarity, but the
 
 ## Usage
 
-Skykeys are primarily used for encrypting skyfiles. Currently all skykeys are used with the 
+Skykeys are primarily used for encrypting skyfiles. Currently all pubaccesskeys are used with the 
 XChaCha20 stream cipher. Key re-use is safe with this encryption scheme if we
 use random nonces for each message. This is safe until `2 << 96` messages are
 transmitted.
 
 ## Key Derivation
 
-The pubaccesskey manager stores only master skykeys. These skykeys are not used
+The pubaccesskey manager stores only master pubaccesskeys. These pubaccesskeys are not used
 directly for encryption/decryption. Rather they are used to derive file-specific
-Skykeys. File-specific skykeys share the same key material as the master pubaccesskey
+Skykeys. File-specific pubaccesskeys share the same key material as the master pubaccesskey
 they are derived from. They differ in the nonce value. This allows us to reuse
 the master pubaccesskey for multiple files, by using a new file-specific pubaccesskey for
 every new file. 
