@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/consensus"
 	"gitlab.com/scpcorp/ScPrime/modules/gateway"
@@ -67,8 +67,8 @@ func newTestingWallet(testdir string, cs modules.ConsensusSet, tp modules.Transa
 	return w, cf, nil
 }
 
-// newTestingHost is a helper function that creates a ready-to-use host.
-func newTestingHost(testdir string, cs modules.ConsensusSet, tp modules.TransactionPool, mux *siamux.SiaMux) (modules.Host, closeFn, error) {
+// newCustomTestingHost is a helper function that creates a ready-to-use host.
+func newCustomTestingHost(testdir string, cs modules.ConsensusSet, tp modules.TransactionPool, mux *siamux.SiaMux, deps modules.Dependencies) (modules.Host, closeFn, error) {
 	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
 		return nil, nil, err
@@ -77,7 +77,7 @@ func newTestingHost(testdir string, cs modules.ConsensusSet, tp modules.Transact
 	if err != nil {
 		return nil, nil, err
 	}
-	h, err := host.NewCustomHost(modules.ProdDependencies, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := host.NewCustomHost(deps, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -105,6 +105,11 @@ func newTestingHost(testdir string, cs modules.ConsensusSet, tp modules.Transact
 		return errors.Compose(h.Close(), walletCF(), g.Close())
 	}
 	return h, cf, nil
+}
+
+// newTestingHost is a helper function that creates a ready-to-use host.
+func newTestingHost(testdir string, cs modules.ConsensusSet, tp modules.TransactionPool, mux *siamux.SiaMux) (modules.Host, closeFn, error) {
+	return newCustomTestingHost(testdir, cs, tp, mux, modules.ProdDependencies)
 }
 
 // newTestingContractor is a helper function that creates a ready-to-use
@@ -141,12 +146,12 @@ func newTestingTrio(name string) (modules.Host, *Contractor, modules.TestMiner, 
 		return nil, nil, nil, nil, err
 	}
 
-	return newCustomTestingTrio(name, mux)
+	return newCustomTestingTrio(name, mux, modules.ProdDependencies)
 }
 
 // newCustomTestingTrio creates a Host, Contractor, and TestMiner that can be
 // used for testing host/renter interactions. It allows to pass a custom siamux.
-func newCustomTestingTrio(name string, mux *siamux.SiaMux) (modules.Host, *Contractor, modules.TestMiner, closeFn, error) {
+func newCustomTestingTrio(name string, mux *siamux.SiaMux, hdeps modules.Dependencies) (modules.Host, *Contractor, modules.TestMiner, closeFn, error) {
 	testdir := build.TempDir("contractor", name)
 
 	// create miner
@@ -187,7 +192,7 @@ func newCustomTestingTrio(name string, mux *siamux.SiaMux) (modules.Host, *Contr
 	}
 
 	// create host and contractor, using same consensus set and gateway
-	h, hostCF, err := newTestingHost(filepath.Join(testdir, "Host"), cs, tp, mux)
+	h, hostCF, err := newCustomTestingHost(filepath.Join(testdir, "Host"), cs, tp, mux, hdeps)
 	if err != nil {
 		return nil, nil, nil, nil, build.ExtendErr("error creating testing host", err)
 	}
@@ -270,7 +275,7 @@ func TestIntegrationFormContract(t *testing.T) {
 	c.mu.Unlock()
 
 	// form a contract with the host
-	_, _, err = c.managedNewContract(hostEntry, types.ScPrimecoinPrecision.Mul64(50), c.blockHeight+100)
+	_, _, err = c.managedNewContract(hostEntry, types.ScPrimecoinPrecision.Mul64(5), c.blockHeight+100)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -350,7 +355,7 @@ func TestIntegrationReviseContract(t *testing.T) {
 	c.mu.Unlock()
 
 	// form a contract with the host
-	_, contract, err := c.managedNewContract(hostEntry, types.ScPrimecoinPrecision.Mul64(50), c.blockHeight+100)
+	_, contract, err := c.managedNewContract(hostEntry, types.ScPrimecoinPrecision.Mul64(5), c.blockHeight+100)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -401,7 +406,7 @@ func TestIntegrationUploadDownload(t *testing.T) {
 	c.mu.Unlock()
 
 	// form a contract with the host
-	_, contract, err := c.managedNewContract(hostEntry, types.ScPrimecoinPrecision.Mul64(50), c.blockHeight+100)
+	_, contract, err := c.managedNewContract(hostEntry, types.ScPrimecoinPrecision.Mul64(5), c.blockHeight+100)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -516,7 +521,7 @@ func TestIntegrationRenew(t *testing.T) {
 	if !ok {
 		t.Fatal("failed to acquire contract")
 	}
-	contract, err = c.managedRenew(oldContract, types.ScPrimecoinPrecision.Mul64(50), c.blockHeight+200, hostSettings)
+	contract, err = c.managedRenew(oldContract, types.ScPrimecoinPrecision.Mul64(5), c.blockHeight+200, hostSettings)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -550,7 +555,7 @@ func TestIntegrationRenew(t *testing.T) {
 		t.Fatal(err)
 	}
 	oldContract, _ = c.staticContracts.Acquire(contract.ID)
-	contract, err = c.managedRenew(oldContract, types.ScPrimecoinPrecision.Mul64(50), c.blockHeight+100, hostSettings)
+	contract, err = c.managedRenew(oldContract, types.ScPrimecoinPrecision.Mul64(5), c.blockHeight+100, hostSettings)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -786,7 +791,7 @@ func TestIntegrationEditorCaching(t *testing.T) {
 
 // TestContractPresenceLeak tests that a renter can not tell from the response
 // of the host to RPCs if the host has the contract if the renter doesn't
-// own this contract. See https://gitlab.com/scpcorp/ScPrime/issues/2327.
+// own this contract.
 func TestContractPresenceLeak(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -815,7 +820,7 @@ func TestContractPresenceLeak(t *testing.T) {
 	c.mu.Unlock()
 
 	// form a contract with the host
-	_, contract, err := c.managedNewContract(hostEntry, types.ScPrimecoinPrecision.Mul64(10), c.blockHeight+100)
+	_, contract, err := c.managedNewContract(hostEntry, types.ScPrimecoinPrecision.Mul64(5), c.blockHeight+100)
 	if err != nil {
 		t.Fatal(err)
 	}

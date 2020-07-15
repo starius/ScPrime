@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
@@ -217,10 +217,6 @@ type (
 		// CurrentBlock returns the latest block in the heaviest known
 		// blockchain.
 		CurrentBlock() types.Block
-
-		// Flush will cause the consensus set to finish all in-progress
-		// routines.
-		Flush() error
 
 		// Height returns the current height of consensus.
 		Height() types.BlockHeight

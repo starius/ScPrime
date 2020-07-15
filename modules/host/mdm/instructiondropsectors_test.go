@@ -7,6 +7,7 @@ import (
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestDropSectorsVerify tests verification of DropSectors input.
@@ -38,7 +39,8 @@ func TestInstructionAppendAndDropSectors(t *testing.T) {
 	// Construct the program.
 
 	pt := newTestPriceTable()
-	tb := newTestProgramBuilder(pt)
+	duration := types.BlockHeight(fastrand.Uint64n(5))
+	tb := newTestProgramBuilder(pt, duration)
 
 	sectorData1 := fastrand.Bytes(int(modules.SectorSize))
 	tb.AddAppendInstruction(sectorData1, false)
@@ -99,8 +101,8 @@ func TestInstructionAppendAndDropSectors(t *testing.T) {
 	}
 
 	// Execute the program.
-	so := newTestStorageObligation(true)
-	finalizeFn, budget, outputs, err := mdm.ExecuteProgramWithBuilderManualFinalize(tb, so, true)
+	so := host.newTestStorageObligation(true)
+	finalizeFn, budget, outputs, err := mdm.ExecuteProgramWithBuilderManualFinalize(tb, so, duration, true)
 	if err != nil {
 		t.Fatal(err)
 	}

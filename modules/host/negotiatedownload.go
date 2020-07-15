@@ -5,10 +5,10 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 )
 
@@ -156,6 +156,11 @@ func (h *Host) managedDownloadIteration(conn net.Conn, so *storageObligation) er
 // the data has transferred the expected amount of money from the renter to the
 // host.
 func verifyPaymentRevision(existingRevision, paymentRevision types.FileContractRevision, blockHeight types.BlockHeight, expectedTransfer types.Currency) error {
+	// Check that the revision count has increased.
+	if paymentRevision.NewRevisionNumber <= existingRevision.NewRevisionNumber {
+		return ErrBadRevisionNumber
+	}
+
 	// Check that the revision is well-formed.
 	if len(paymentRevision.NewValidProofOutputs) != 2 || len(paymentRevision.NewMissedProofOutputs) != 3 {
 		return ErrBadContractOutputCounts
@@ -181,7 +186,7 @@ func verifyPaymentRevision(existingRevision, paymentRevision types.FileContractR
 		return err
 	}
 	if paymentVoidOutput.UnlockHash != existingVoidOutput.UnlockHash {
-		return errors.New("lost collateral address was changed")
+		return ErrVoidAddressChanged
 	}
 
 	// Determine the amount that was transferred from the renter.
@@ -205,11 +210,6 @@ func verifyPaymentRevision(existingRevision, paymentRevision types.FileContractR
 		s := fmt.Sprintf("expected exactly %v to be transferred to the host, but %v was transferred: ", fromRenter, toHost)
 		return errors.AddContext(ErrLowHostValidOutput, s)
 	}
-	// The amount of money moved to the missing host output should match the
-	// money moved to the valid output.
-	if !paymentRevision.MissedHostPayout().Equals(existingRevision.MissedHostPayout().Add(toHost)) {
-		return ErrLowHostMissedOutput
-	}
 
 	// If the renter's valid proof output is larger than the renter's missed
 	// proof output, the renter has incentive to see the host fail. Make sure
@@ -219,14 +219,10 @@ func verifyPaymentRevision(existingRevision, paymentRevision types.FileContractR
 	}
 
 	// Check that the host is not going to be posting collateral.
-	if !existingVoidOutput.Value.Equals(paymentVoidOutput.Value) {
-		s := fmt.Sprintf("void payout wasn't expected to change")
-		return errors.AddContext(ErrVoidPayoutChanged, s)
-	}
-
-	// Check that the revision count has increased.
-	if paymentRevision.NewRevisionNumber <= existingRevision.NewRevisionNumber {
-		return ErrBadRevisionNumber
+	if paymentRevision.MissedHostOutput().Value.Cmp(existingRevision.MissedHostOutput().Value) < 0 {
+		collateral := existingRevision.MissedHostOutput().Value.Sub(paymentRevision.MissedHostOutput().Value)
+		s := fmt.Sprintf("host not expecting to post any collateral, but contract has host posting %v collateral", collateral)
+		return errors.AddContext(ErrLowHostMissedOutput, s)
 	}
 
 	// Check that all of the non-volatile fields are the same.
@@ -250,6 +246,9 @@ func verifyPaymentRevision(existingRevision, paymentRevision types.FileContractR
 	}
 	if paymentRevision.NewUnlockHash != existingRevision.NewUnlockHash {
 		return ErrBadUnlockHash
+	}
+	if !paymentRevision.MissedHostOutput().Value.Equals(existingRevision.MissedHostOutput().Value) {
+		return ErrLowHostMissedOutput
 	}
 	return nil
 }

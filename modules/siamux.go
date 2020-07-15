@@ -2,7 +2,6 @@ package modules
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -47,24 +46,18 @@ func NewSiaMux(siaMuxDir, siaDir, tcpaddress, wsaddress string) (*siamux.SiaMux,
 	if err != nil {
 		return nil, err
 	}
-	logger := persist.NewLogger(file)
+	logger, err := persist.NewLogger(file)
+	if err != nil {
+		return nil, err
+	}
 
 	// create a siamux, if the host's persistence file is at v120 we want to
 	// recycle the host's key pair to use in the siamux
 	pubKey, privKey, compat := compatLoadKeysFromHost(siaDir)
 	if compat {
-		return siamux.CompatV1421NewWithKeyPair(tcpaddress, wsaddress, logger, siaMuxDir, privKey, pubKey)
+		return siamux.CompatV1421NewWithKeyPair(tcpaddress, wsaddress, logger.Logger, siaMuxDir, privKey, pubKey)
 	}
-	return siamux.New(tcpaddress, wsaddress, logger, siaMuxDir)
-}
-
-// NewHostStream is a helper function that opens a stream on the given mux  to
-// the given host.
-func NewHostStream(mux *siamux.SiaMux, h Host) (siamux.Stream, error) {
-	hes := h.ExternalSettings()
-	muxAddress := fmt.Sprintf("%s:%s", hes.NetAddress.Host(), hes.SiaMuxPort)
-	muxPK := SiaPKToMuxPK(h.PublicKey())
-	return mux.NewStream(HostSiaMuxSubscriberName, muxAddress, muxPK)
+	return siamux.New(tcpaddress, wsaddress, logger.Logger, siaMuxDir)
 }
 
 // SiaPKToMuxPK turns a SiaPublicKey into a mux.ED25519PublicKey

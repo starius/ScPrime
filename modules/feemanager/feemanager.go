@@ -1,7 +1,6 @@
 package feemanager
 
 import (
-	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,7 +14,6 @@ import (
 	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/NebulousLabs/threadgroup"
 )
 
@@ -152,7 +150,7 @@ func feeNotFoundError(feeUID modules.FeeUID) error {
 
 // uniqueID creates a random unique FeeUID.
 func uniqueID() modules.FeeUID {
-	return modules.FeeUID(hex.EncodeToString(fastrand.Bytes(20)))
+	return modules.FeeUID(persist.UID())
 }
 
 // AddFee adds a fee to the fee manager.

@@ -5,7 +5,8 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/NebulousLabs/encoding"
+
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 

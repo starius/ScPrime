@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/fastrand"
 	"golang.org/x/crypto/chacha20poly1305"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
@@ -323,6 +323,14 @@ type (
 		KeyValueDeletePrice    types.Currency `json:"keyvaluedeleteprice"`
 		StoragePrice           types.Currency `json:"storageprice"`
 		UploadBandwidthPrice   types.Currency `json:"uploadbandwidthprice"`
+
+		// EphemeralAccountExpiry is the amount of time an account can be
+		// inactive before the host considers it expired.
+		//
+		// MaxEphemeralAccountBalance is the maximum amount of money the host
+		// allows to be deposited into a single ephemeral account.
+		EphemeralAccountExpiry     time.Duration  `json:"ephemeralaccountexpiry"`
+		MaxEphemeralAccountBalance types.Currency `json:"maxephemeralaccountbalance"`
 
 		// Because the host has a public key, and settings are signed, and
 		// because settings may be MITM'd, settings need a revision number so

@@ -34,13 +34,32 @@ func (c *Client) SkynetPublinkGet(publink string) ([]byte, modules.SkyfileMetada
 }
 
 // SkynetPublinkGetWithTimeout uses the /pubaccess/publink endpoint to download a
-// publink file, specifying the given timeout.
+// pubaccess file, specifying the given timeout.
 func (c *Client) SkynetPublinkGetWithTimeout(publink string, timeout int) ([]byte, modules.SkyfileMetadata, error) {
-	values := url.Values{}
+	params := make(map[string]string)
 	// Only set the timeout if it's valid. Seeing as 0 is a valid timeout,
 	// callers need to pass -1 to ignore it.
 	if timeout >= 0 {
-		values.Set("timeout", fmt.Sprintf("%d", timeout))
+		params["timeout"] = fmt.Sprintf("%d", timeout)
+	}
+	return c.skynetSkylinkGetWithParameters(publink, params)
+}
+
+// SkynetSkylinkGetWithRedirect uses the /pubaccess/publink endpoint to download a
+// publink file, specifying whether redirecting is allowed or not.
+func (c *Client) SkynetSkylinkGetWithRedirect(publink string, allowRedirect bool) ([]byte, modules.SkyfileMetadata, error) {
+	params := make(map[string]string)
+	params["redirect"] = fmt.Sprintf("%t", allowRedirect)
+	return c.skynetSkylinkGetWithParameters(publink, params)
+}
+
+// skynetSkylinkGetWithParameters uses the /pubaccess/publink endpoint to download
+// a publink file, specifying the given parameters.
+// The caller of this function is responsible for validating the parameters!
+func (c *Client) skynetSkylinkGetWithParameters(publink string, params map[string]string) ([]byte, modules.SkyfileMetadata, error) {
+	values := url.Values{}
+	for k, v := range params {
+		values.Set(k, v)
 	}
 
 	getQuery := fmt.Sprintf("/pubaccess/publink/%s?%s", publink, values.Encode())
@@ -252,6 +271,9 @@ func (c *Client) SkynetSkyfileMultiPartPost(params modules.SkyfileMultipartUploa
 	// Set the url values.
 	values := url.Values{}
 	values.Set("filename", params.Filename)
+	if params.DefaultPath != nil {
+		values.Set(modules.SkyfileDefaultPathParamName, *params.DefaultPath)
+	}
 	forceStr := fmt.Sprintf("%t", params.Force)
 	values.Set("force", forceStr)
 	redundancyStr := fmt.Sprintf("%v", params.BaseChunkRedundancy)
@@ -396,6 +418,21 @@ func (c *Client) SkykeyGetByID(id pubaccesskey.SkykeyID) (pubaccesskey.Pubaccess
 	}
 
 	return sk, nil
+}
+
+// SkykeyDeleteByIDPost requests the /pubaccess/deletepubaccesskey POST endpoint using the key ID.
+func (c *Client) SkykeyDeleteByIDPost(id pubaccesskey.SkykeyID) error {
+	values := url.Values{}
+	values.Set("id", id.ToString())
+	return c.post("/pubaccess/deletepubaccesskey", values.Encode(), nil)
+}
+
+// SkykeyDeleteByNamePost requests the /pubaccess/deletepubaccesskey POST endpoint using
+// the key name.
+func (c *Client) SkykeyDeleteByNamePost(name string) error {
+	values := url.Values{}
+	values.Set("name", name)
+	return c.post("/pubaccess/deletepubaccesskey", values.Encode(), nil)
 }
 
 // SkykeyCreateKeyPost requests the /pubaccess/createpubaccesskey POST endpoint.

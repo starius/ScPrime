@@ -11,11 +11,11 @@ import (
 	"sort"
 	"time"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/fastrand"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb/hosttree"
 	"gitlab.com/scpcorp/ScPrime/types"
@@ -456,6 +456,16 @@ func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
 			return json.Unmarshal(resp.Settings, &settings)
 		}()
 		if tryNewProtoErr == nil {
+			// If the host's version is lower than v1.4.4.0, which is the version
+			// at which the following fields were added to the host's external
+			// settings, we set these values to their original defaults to
+			// ensure these hosts are not penalized by renters running the
+			// latest software.
+			if build.VersionCmp(settings.Version, "1.4.4.0") < 0 {
+				settings.EphemeralAccountExpiry = modules.CompatV1412DefaultEphemeralAccountExpiry
+				settings.MaxEphemeralAccountBalance = modules.CompatV1412DefaultMaxEphemeralAccountBalance
+			}
+
 			return nil
 		}
 
@@ -518,9 +528,6 @@ func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
 			UploadBandwidthPrice:   oldSettings.UploadBandwidthPrice,
 			RevisionNumber:         oldSettings.RevisionNumber,
 			Version:                oldSettings.Version,
-			// New fields are set to zero.
-			BaseRPCPrice:      types.ZeroCurrency,
-			SectorAccessPrice: types.ZeroCurrency,
 		}
 		return nil
 	}()

@@ -3,6 +3,7 @@ package host
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 	"testing"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -107,6 +108,7 @@ func TestStorageObligationSnapshot(t *testing.T) {
 	}
 	sectorRoot, sectorData := randSector()
 	so.SectorRoots = []crypto.Hash{sectorRoot}
+	proofDeadline := so.proofDeadline()
 	validPayouts, missedPayouts := so.payouts()
 	so.RevisionTransactionSet = []types.Transaction{{
 		FileContractRevisions: []types.FileContractRevision{{
@@ -117,7 +119,7 @@ func TestStorageObligationSnapshot(t *testing.T) {
 			NewFileSize:           uint64(len(sectorData)),
 			NewFileMerkleRoot:     sectorRoot,
 			NewWindowStart:        so.expiration(),
-			NewWindowEnd:          so.proofDeadline(),
+			NewWindowEnd:          proofDeadline,
 			NewValidProofOutputs:  validPayouts,
 			NewMissedProofOutputs: missedPayouts,
 			NewUnlockHash:         types.UnlockConditions{}.UnlockHash(),
@@ -143,6 +145,9 @@ func TestStorageObligationSnapshot(t *testing.T) {
 	if snapshot.MerkleRoot() != sectorRoot {
 		t.Fatalf("Unexpected merkle root, expected %v but received %v", sectorRoot, snapshot.MerkleRoot())
 	}
+	if uint64(snapshot.ProofDeadline()) != uint64(proofDeadline) {
+		t.Fatalf("Unexpected proof deadline, expected %v but received %v", proofDeadline, snapshot.ProofDeadline())
+	}
 	if len(snapshot.SectorRoots()) != 1 {
 		t.Fatal("Unexpected number of sector roots")
 	}
@@ -152,7 +157,9 @@ func TestStorageObligationSnapshot(t *testing.T) {
 	if !snapshot.UnallocatedCollateral().Equals(fcr.MissedHostPayout()) {
 		t.Fatalf("Unexpected unallocated collateral, expected %v but was %v", fcr.MissedHostPayout().HumanString(), snapshot.UnallocatedCollateral().HumanString())
 	}
-
+	if !reflect.DeepEqual(snapshot.staticRecentRevision, fcr) {
+		t.Fatal("Revisions don't match")
+	}
 	// Update the SO with new data
 	sectorRoot2, sectorData := randSector()
 	ht.host.managedLockStorageObligation(so.id())

@@ -158,6 +158,7 @@ func (api *API) buildHTTPRoutes() {
 		router.GET("/pubaccess/pubaccesskey", RequirePassword(api.skykeyHandlerGET, requiredPassword))
 		router.POST("/pubaccess/createpubaccesskey", RequirePassword(api.skykeyCreateKeyHandlerPOST, requiredPassword))
 		router.POST("/pubaccess/addpubaccesskey", RequirePassword(api.skykeyAddKeyHandlerPOST, requiredPassword))
+		router.POST("/pubaccess/deletepubaccesskey", RequirePassword(api.skykeyDeleteHandlerPOST, requiredPassword))
 		router.GET("/pubaccess/pubaccesskeys", RequirePassword(api.skykeysHandlerGET, requiredPassword))
 
 		// Directory endpoints

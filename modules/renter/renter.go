@@ -810,7 +810,27 @@ func (r *Renter) AddSkykey(sk pubaccesskey.Pubaccesskey) error {
 	return r.staticSkykeyManager.AddKey(sk)
 }
 
-// SkykeyByName gets the Pubaccesskey with the given name from the renter's pubaccesskey
+// DeleteSkykeyByName deletes the Pubaccesskey with the given name from the renter's skykey
+// manager if it exists.
+func (r *Renter) DeleteSkykeyByName(name string) error {
+	if err := r.tg.Add(); err != nil {
+		return err
+	}
+	defer r.tg.Done()
+	return r.staticSkykeyManager.DeleteKeyByName(name)
+}
+
+// DeleteSkykeyByID deletes the Pubaccesskey with the given ID from the renter's skykey
+// manager if it exists.
+func (r *Renter) DeleteSkykeyByID(id pubaccesskey.SkykeyID) error {
+	if err := r.tg.Add(); err != nil {
+		return err
+	}
+	defer r.tg.Done()
+	return r.staticSkykeyManager.DeleteKeyByID(id)
+}
+
+// SkykeyByName gets the Pubaccesskey with the given name from the renter's skykey
 // manager if it exists.
 func (r *Renter) SkykeyByName(name string) (pubaccesskey.Pubaccesskey, error) {
 	if err := r.tg.Add(); err != nil {
@@ -951,7 +971,7 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	if err != nil {
 		return nil, errors.AddContext(err, "unable to create account manager")
 	}
-	r.memoryManager = newMemoryManager(defaultMemory, r.tg.StopChan())
+	r.memoryManager = newMemoryManager(memoryDefault, memoryPriorityDefault, r.tg.StopChan())
 	r.staticFuseManager = newFuseManager(r)
 	r.stuckStack = callNewStuckStack()
 

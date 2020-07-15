@@ -1,6 +1,7 @@
 package host
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"os"
@@ -270,7 +271,8 @@ type renterHostPair struct {
 	pt       *modules.RPCPriceTable
 	ptExpiry time.Time // keep track of when the price table is set to expire
 
-	mu sync.Mutex
+	mdmMu sync.RWMutex
+	mu    sync.Mutex
 }
 
 // newRenterHostPair creates a new host tester and returns a renter host pair,
@@ -337,7 +339,7 @@ func newRenterHostPairCustomHostTester(ht *hostTester) (*renterHostPair, error) 
 	if err != nil {
 		return nil, errors.AddContext(err, "unable to create mux logger")
 	}
-	renterMux, err := siamux.New("127.0.0.1:0", "127.0.0.1:0", muxLogger, renterMuxDir)
+	renterMux, err := siamux.New("127.0.0.1:0", "127.0.0.1:0", muxLogger.Logger, renterMuxDir)
 	if err != nil {
 		return nil, errors.AddContext(err, "unable to create renter mux")
 	}
@@ -387,7 +389,17 @@ type executeProgramResponse struct {
 // and returns the responses received by the host. A failure to execute an
 // instruction won't result in an error. Instead the returned responses need to
 // be inspected for that depending on the testcase.
-func (p *renterHostPair) managedExecuteProgram(epr modules.RPCExecuteProgramRequest, programData []byte, budget types.Currency, updatePriceTable bool) ([]executeProgramResponse, mux.BandwidthLimit, error) {
+func (p *renterHostPair) managedExecuteProgram(epr modules.RPCExecuteProgramRequest, programData []byte, budget types.Currency, updatePriceTable, finalize bool) ([]executeProgramResponse, mux.BandwidthLimit, error) {
+	// Only allow a single write program or multiple read programs to run in
+	// parallel. A production worker will have better locking than this but
+	// since we just mock the renter this is used for unit testing the host.
+	if epr.Program.ReadOnly() {
+		p.mdmMu.RLock()
+		defer p.mdmMu.RUnlock()
+	} else {
+		p.mdmMu.Lock()
+		defer p.mdmMu.Unlock()
+	}
 	var err error
 
 	pt := p.managedPriceTable()
@@ -398,6 +410,46 @@ func (p *renterHostPair) managedExecuteProgram(epr modules.RPCExecuteProgramRequ
 		}
 	}
 
+	// create a buffer to optimise our writes
+	buffer := bytes.NewBuffer(nil)
+
+	// Write the specifier.
+	err = modules.RPCWrite(buffer, modules.RPCExecuteProgram)
+	if err != nil {
+		return nil, nil, errors.AddContext(err, "RPCWrite RPCExecuteProgram failed")
+	}
+
+	// Write the pricetable uid.
+	err = modules.RPCWrite(buffer, pt.UID)
+	if err != nil {
+		return nil, nil, errors.AddContext(err, "RPCWrite price table UID failed")
+	}
+
+	// Send the payment request.
+	err = modules.RPCWrite(buffer, modules.PaymentRequest{Type: modules.PayByEphemeralAccount})
+	if err != nil {
+		return nil, nil, errors.AddContext(err, "RPCWrite PayByEphemeralAccount error submitting payment request")
+	}
+
+	// Send the payment details.
+	pbear := newPayByEphemeralAccountRequest(p.staticAccountID, p.staticHT.host.BlockHeight()+6, budget, p.staticAccountKey)
+	err = modules.RPCWrite(buffer, pbear)
+	if err != nil {
+		return nil, nil, errors.AddContext(err, "RPCWrite error submitting PayByEphemeralAccountRequest details")
+	}
+
+	// Send the execute program request.
+	err = modules.RPCWrite(buffer, epr)
+	if err != nil {
+		return nil, nil, errors.AddContext(err, "RPCWrite error submitting RPCExecuteProgramRequest")
+	}
+
+	// Send the programData.
+	_, err = buffer.Write(programData)
+	if err != nil {
+		return nil, nil, errors.AddContext(err, "Error writing programData to buffer")
+	}
+
 	// create stream
 	stream := p.managedNewStream()
 	defer stream.Close()
@@ -405,39 +457,8 @@ func (p *renterHostPair) managedExecuteProgram(epr modules.RPCExecuteProgramRequ
 	// Get the limit to track bandwidth.
 	limit := stream.Limit()
 
-	// Write the specifier.
-	err = modules.RPCWrite(stream, modules.RPCExecuteProgram)
-	if err != nil {
-		return nil, limit, errors.AddContext(err, "RPCWrite RPCExecuteProgram failed")
-	}
-
-	// Write the pricetable uid.
-	err = modules.RPCWrite(stream, pt.UID)
-	if err != nil {
-		return nil, limit, errors.AddContext(err, "RPCWrite price table UID failed")
-	}
-
-	// Send the payment request.
-	err = modules.RPCWrite(stream, modules.PaymentRequest{Type: modules.PayByEphemeralAccount})
-	if err != nil {
-		return nil, limit, errors.AddContext(err, "RPCWrite error submitting payment request")
-	}
-
-	// Send the payment details.
-	pbear := newPayByEphemeralAccountRequest(p.staticAccountID, p.staticHT.host.BlockHeight()+6, budget, p.staticAccountKey)
-	err = modules.RPCWrite(stream, pbear)
-	if err != nil {
-		return nil, limit, errors.AddContext(err, "RPCWrite error submitting PayByEphemeralAccountRequest")
-	}
-
-	// Send the execute program request.
-	err = modules.RPCWrite(stream, epr)
-	if err != nil {
-		return nil, limit, errors.AddContext(err, "RPCWrite error submitting RPCExecuteProgramRequest")
-	}
-
-	// Send the programData.
-	_, err = stream.Write(programData)
+	// write contents of the buffer to the stream
+	_, err = stream.Write(buffer.Bytes())
 	if err != nil {
 		return nil, limit, errors.AddContext(err, "error writing program data stream")
 	}
@@ -470,6 +491,21 @@ func (p *renterHostPair) managedExecuteProgram(epr modules.RPCExecuteProgramRequ
 		if responses[i].Error != nil {
 			return responses, limit, nil
 		}
+	}
+
+	// If the program was not readonly, the host expects a signed revision.
+	if !epr.Program.ReadOnly() && finalize {
+		lastOutput := responses[len(responses)-1]
+		err = p.managedFinalizeWriteProgram(stream, lastOutput, p.staticHT.host.BlockHeight())
+		if err != nil {
+			return nil, limit, errors.AddContext(err, "managedFinalizeWriteProgram error")
+		}
+	}
+
+	// when we purposefully don't finalize, we can't wait for the host to close
+	// the stream.
+	if !finalize {
+		return responses, limit, nil
 	}
 
 	// The next read should return io.EOF since the host closes the connection
@@ -566,7 +602,7 @@ func (p *renterHostPair) managedNewStream() siamux.Stream {
 // returned response.
 func (p *renterHostPair) managedPayByContract(stream siamux.Stream, amount types.Currency, refundAccount modules.AccountID) error {
 	// create the revision.
-	revision, sig, err := p.managedPaymentRevision(amount)
+	revision, sig, err := p.managedEAFundRevision(amount)
 	if err != nil {
 		return err
 	}
@@ -611,10 +647,90 @@ func (p *renterHostPair) managedPayByEphemeralAccount(stream siamux.Stream, amou
 	return nil
 }
 
-// managedPaymentRevision returns a new revision that transfer the given amount
+// managedFinalizeWriteProgram finalizes a write program by conducting an
+// additional handshake which signs a new revision.
+func (p *renterHostPair) managedFinalizeWriteProgram(stream siamux.Stream, lastOutput executeProgramResponse, bh types.BlockHeight) error {
+	// Get the latest revision.
+	updated, err := p.staticHT.host.managedGetStorageObligation(p.staticFCID)
+	if err != nil {
+		return err
+	}
+	recent, err := updated.recentRevision()
+	if err != nil {
+		return err
+	}
+
+	// Construct the new revision.
+	transfer := lastOutput.AdditionalCollateral.Add(lastOutput.StorageCost)
+	newRevision, err := recent.ExecuteProgramRevision(recent.NewRevisionNumber+1, transfer, lastOutput.NewMerkleRoot, lastOutput.NewSize)
+	if err != nil {
+		return err
+	}
+	newValidProofValues := make([]types.Currency, len(newRevision.NewValidProofOutputs))
+	for i := range newRevision.NewValidProofOutputs {
+		newValidProofValues[i] = newRevision.NewValidProofOutputs[i].Value
+	}
+	newMissedProofValues := make([]types.Currency, len(newRevision.NewMissedProofOutputs))
+	for i := range newRevision.NewMissedProofOutputs {
+		newMissedProofValues[i] = newRevision.NewMissedProofOutputs[i].Value
+	}
+
+	// Sign revision.
+	renterSig := p.managedSign(newRevision)
+
+	// Prepare the request.
+	req := modules.RPCExecuteProgramRevisionSigningRequest{
+		Signature:            renterSig[:],
+		NewRevisionNumber:    newRevision.NewRevisionNumber,
+		NewValidProofValues:  newValidProofValues,
+		NewMissedProofValues: newMissedProofValues,
+	}
+
+	// Send request.
+	err = modules.RPCWrite(stream, req)
+	if err != nil {
+		return errors.AddContext(err, "managedFinalizeWriteProgram: RPCWrite failed")
+	}
+
+	// Receive response.
+	var resp modules.RPCExecuteProgramRevisionSigningResponse
+	err = modules.RPCRead(stream, &resp)
+	if err != nil {
+		return errors.AddContext(err, "managedFinalizeWriteProgram: RPCRead failed")
+	}
+
+	// check host signature
+	hs := types.TransactionSignature{
+		ParentID:       crypto.Hash(newRevision.ParentID),
+		PublicKeyIndex: 1,
+		CoveredFields: types.CoveredFields{
+			FileContractRevisions: []uint64{0},
+		},
+		Signature: resp.Signature,
+	}
+	rs := types.TransactionSignature{
+		ParentID:       crypto.Hash(newRevision.ParentID),
+		PublicKeyIndex: 0,
+		CoveredFields: types.CoveredFields{
+			FileContractRevisions: []uint64{0},
+		},
+		Signature: req.Signature,
+	}
+	txn := types.Transaction{
+		FileContractRevisions: []types.FileContractRevision{newRevision},
+		TransactionSignatures: []types.TransactionSignature{rs, hs},
+	}
+	err = modules.VerifyFileContractRevisionTransactionSignatures(newRevision, txn.TransactionSignatures, bh)
+	if err != nil {
+		return errors.AddContext(err, "signature verification failed")
+	}
+	return nil
+}
+
+// managedEAFundRevision returns a new revision that transfer the given amount
 // to the host. Returns the payment revision together with a signature signed by
 // the pair's renter.
-func (p *renterHostPair) managedPaymentRevision(amount types.Currency) (types.FileContractRevision, crypto.Signature, error) {
+func (p *renterHostPair) managedEAFundRevision(amount types.Currency) (types.FileContractRevision, crypto.Signature, error) {
 	updated, err := p.staticHT.host.managedGetStorageObligation(p.staticFCID)
 	if err != nil {
 		return types.FileContractRevision{}, crypto.Signature{}, err
@@ -625,7 +741,7 @@ func (p *renterHostPair) managedPaymentRevision(amount types.Currency) (types.Fi
 		return types.FileContractRevision{}, crypto.Signature{}, err
 	}
 
-	rev, err := recent.PaymentRevision(amount)
+	rev, err := recent.EAFundRevision(amount)
 	if err != nil {
 		return types.FileContractRevision{}, crypto.Signature{}, err
 	}
@@ -638,6 +754,22 @@ func (p *renterHostPair) managedPriceTable() *modules.RPCPriceTable {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.pt
+}
+
+// managedRecentHostRevision returns the most recent revision the host has
+// stored for the pair's contract.
+func (p *renterHostPair) managedRecentHostRevision() (types.FileContractRevision, error) {
+	so, err := p.managedStorageObligation()
+	if err != nil {
+		return types.FileContractRevision{}, err
+	}
+	return so.recentRevision()
+}
+
+// managedStorageObligation returns the host's storage obligation for the pairs
+// contract.
+func (p *renterHostPair) managedStorageObligation() (storageObligation, error) {
+	return p.staticHT.host.managedGetStorageObligation(p.staticFCID)
 }
 
 // managedSign returns the renter's signature of the given revision
@@ -714,9 +846,76 @@ func (p *renterHostPair) managedAccountBalance(payByFC bool, fundAmt types.Curre
 	return abr.Balance, nil
 }
 
+// managedLatestRevision performs a RPCLatestRevision to get the latest revision
+// for the contract with fcid from the host.
+func (p *renterHostPair) managedLatestRevision(payByFC bool, fundAmt types.Currency, fundAcc modules.AccountID, fcid types.FileContractID) (types.FileContractRevision, error) {
+	stream := p.managedNewStream()
+	defer stream.Close()
+
+	// Fetch the price table.
+	pt, err := p.managedFetchPriceTable()
+	if err != nil {
+		return types.FileContractRevision{}, err
+	}
+
+	// initiate the RPC
+	err = modules.RPCWrite(stream, modules.RPCLatestRevision)
+	if err != nil {
+		return types.FileContractRevision{}, err
+	}
+
+	// Write the pricetable uid.
+	err = modules.RPCWrite(stream, pt.UID)
+	if err != nil {
+		return types.FileContractRevision{}, err
+	}
+
+	// provide payment
+	if payByFC {
+		err = p.managedPayByContract(stream, fundAmt, fundAcc)
+		if err != nil {
+			return types.FileContractRevision{}, err
+		}
+	} else {
+		err = p.managedPayByEphemeralAccount(stream, fundAmt)
+		if err != nil {
+			return types.FileContractRevision{}, err
+		}
+	}
+
+	// send the request.
+	err = modules.RPCWrite(stream, modules.RPCLatestRevisionRequest{
+		FileContractID: fcid,
+	})
+	if err != nil {
+		return types.FileContractRevision{}, err
+	}
+
+	// read the response.
+	var lrr modules.RPCLatestRevisionResponse
+	err = modules.RPCRead(stream, &lrr)
+	if err != nil {
+		return types.FileContractRevision{}, err
+	}
+
+	// expect clean stream close
+	err = modules.RPCRead(stream, struct{}{})
+	if !errors.Contains(err, io.ErrClosedPipe) {
+		return types.FileContractRevision{}, err
+	}
+
+	return lrr.Revision, nil
+}
+
 // AccountBalance returns the account balance of the renter's EA on the host.
 func (p *renterHostPair) AccountBalance(payByFC bool) (types.Currency, error) {
 	return p.managedAccountBalance(payByFC, p.pt.AccountBalanceCost, p.staticAccountID, p.staticAccountID)
+}
+
+// LatestRevision performs a RPCLatestRevision to get the latest revision for
+// the contract from the host.
+func (p *renterHostPair) LatestRevision(payByFC bool) (types.FileContractRevision, error) {
+	return p.managedLatestRevision(payByFC, p.pt.LatestRevisionCost, p.staticAccountID, p.staticFCID)
 }
 
 // UpdatePriceTable runs the UpdatePriceTableRPC on the host and sets the price
@@ -937,10 +1136,10 @@ func TestSetAndGetInternalSettings(t *testing.T) {
 	if !settings.MinUploadBandwidthPrice.Equals(modules.DefaultUploadBandwidthPrice) {
 		t.Error("settings retrieval did not return default value")
 	}
-	if settings.EphemeralAccountExpiry != (defaultEphemeralAccountExpiry) {
+	if settings.EphemeralAccountExpiry != (modules.DefaultEphemeralAccountExpiry) {
 		t.Error("settings retrieval did not return default value")
 	}
-	if !settings.MaxEphemeralAccountBalance.Equals(defaultMaxEphemeralAccountBalance) {
+	if !settings.MaxEphemeralAccountBalance.Equals(modules.DefaultMaxEphemeralAccountBalance) {
 		t.Error("settings retrieval did not return default value")
 	}
 	if !settings.MaxEphemeralAccountRisk.Equals(defaultMaxEphemeralAccountRisk) {

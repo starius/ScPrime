@@ -42,6 +42,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
@@ -59,6 +60,9 @@ const (
 	// SkyfileVersion establishes the current version for creating pubfiles.
 	// The pubfile versions are different from the siafile versions.
 	SkyfileVersion = 1
+
+	// layoutKeyDataSize is the size of the key-data field in a skyfileLayout.
+	layoutKeyDataSize = 64
 )
 
 var (
@@ -73,9 +77,6 @@ var (
 	// Siafile that was uploaded with redundancy that is not currently supported
 	// by Pubaccess
 	ErrRedundancyNotSupported = errors.New("publinks currently only support 1-of-N redundancy, other redundancies will be supported in a later version")
-
-	// ErrSkylinkBlacklisted is the error returned when a publink is blacklisted
-	ErrSkylinkBlacklisted = errors.New("publink is blacklisted")
 
 	// ExtendedSuffix is the suffix that is added to a pubfile siapath if it is
 	// a large file upload
@@ -93,7 +94,7 @@ type skyfileLayout struct {
 	fanoutDataPieces   uint8
 	fanoutParityPieces uint8
 	cipherType         crypto.CipherType
-	keyData            [64]byte // keyData is incompatible with ciphers that need keys larger than 64 bytes
+	keyData            [layoutKeyDataSize]byte // keyData is incompatible with ciphers that need keys larger than 64 bytes
 }
 
 // encode will return a []byte that has compactly encoded all of the layout
@@ -735,8 +736,9 @@ func (r *Renter) DownloadPublink(link modules.Publink, timeout time.Duration) (m
 
 	// Check if the base sector is encrypted, and attempt to decrypt it.
 	// This will fail if we don't have the decryption key.
+	var fileSpecificSkykey pubaccesskey.Pubaccesskey
 	if isEncryptedBaseSector(baseSector) {
-		err = r.decryptBaseSector(baseSector)
+		fileSpecificSkykey, err = r.decryptBaseSector(baseSector)
 		if err != nil {
 			return modules.SkyfileMetadata{}, nil, errors.AddContext(err, "Unable to decrypt pubfile base sector")
 		}
@@ -756,7 +758,7 @@ func (r *Renter) DownloadPublink(link modules.Publink, timeout time.Duration) (m
 	}
 
 	// There is a fanout, create a fanout streamer and return that.
-	fs, err := r.newFanoutStreamer(link, layout, fanoutBytes, timeout)
+	fs, err := r.newFanoutStreamer(link, layout, fanoutBytes, timeout, fileSpecificSkykey)
 	if err != nil {
 		return modules.SkyfileMetadata{}, nil, errors.AddContext(err, "unable to create fanout fetcher")
 	}
@@ -784,9 +786,10 @@ func (r *Renter) PinPublink(publink modules.Publink, lup modules.SkyfileUploadPa
 	}
 
 	// Check if the base sector is encrypted, and attempt to decrypt it.
+	var fileSpecificSkykey pubaccesskey.Pubaccesskey
 	encrypted := isEncryptedBaseSector(baseSector)
 	if encrypted {
-		err = r.decryptBaseSector(baseSector)
+		fileSpecificSkykey, err = r.decryptBaseSector(baseSector)
 		if err != nil {
 			return errors.AddContext(err, "Unable to decrypt pubfile base sector")
 		}
@@ -808,10 +811,6 @@ func (r *Renter) PinPublink(publink modules.Publink, lup modules.SkyfileUploadPa
 
 	// Re-encrypt the baseSector for upload and add the fanout key to the fup.
 	if encrypted {
-		fileSpecificSkykey, err := r.deriveFileSpecificKey(&layout)
-		if err != nil {
-			return errors.AddContext(err, "Unable to derive file-specific Pubaccesskey")
-		}
 		err = encryptBaseSectorWithSkykey(baseSector, layout, fileSpecificSkykey)
 		if err != nil {
 			return errors.AddContext(err, "Error re-encrypting base sector")
@@ -857,7 +856,7 @@ func (r *Renter) PinPublink(publink modules.Publink, lup modules.SkyfileUploadPa
 	}
 
 	// Create the fanout streamer that will download the file.
-	streamer, err := r.newFanoutStreamer(publink, layout, fanoutBytes, timeout)
+	streamer, err := r.newFanoutStreamer(publink, layout, fanoutBytes, timeout, fileSpecificSkykey)
 	if err != nil {
 		return errors.AddContext(err, "Failed to create fanout streamer for large pubfile pin")
 	}

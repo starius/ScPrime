@@ -67,15 +67,6 @@ var (
 	// furious for losing access to it for a few weeks.
 	defaultCollateralBudget = types.ScPrimecoinPrecision.Mul64(4e3) //4 KS
 
-	// defaultEphemeralAccountExpiry defines the default maximum amount of
-	// time an ephemeral account can be inactive before it expires and gets
-	// deleted.
-	defaultEphemeralAccountExpiry = uint64(604800) // 1 week
-
-	// defaultMaxEphemeralAccountBalance defines the default maximum amount of
-	// money that the host will allow to deposit into a single ephemeral account
-	defaultMaxEphemeralAccountBalance = types.ScPrimecoinPrecision.Div64(1000)
-
 	// defaultMaxEphemeralAccountRisk is the maximum amount of money that the
 	// host is willing to risk to a power loss. If a user's withdrawal would put
 	// the host over the maxunsaveddelat, the host will wait to complete the

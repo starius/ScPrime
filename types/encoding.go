@@ -10,10 +10,10 @@ import (
 	"strings"
 	"unsafe"
 
-	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
-
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
+
+	"gitlab.com/scpcorp/ScPrime/crypto"
 )
 
 // MarshalSia implements the encoding.SiaMarshaler interface.

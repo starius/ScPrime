@@ -13,13 +13,13 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/wallet"
 	"gitlab.com/scpcorp/ScPrime/node/api"
 	"gitlab.com/scpcorp/ScPrime/types"
 
 	"github.com/spf13/cobra"
+	"gitlab.com/NebulousLabs/encoding"
 	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
 	"gitlab.com/NebulousLabs/errors"
 	"golang.org/x/crypto/ssh/terminal"
@@ -75,7 +75,7 @@ be valid. txn may be either JSON, base64, or a file containing either.`,
 		Long: `Generate a new address, send coins to another wallet, or view info about the wallet.
 
 Units:
-The smallest unit of scprimecoins is the hasting. One scprimecoin is 10^27 hastings. Other supported units are:
+The smallest unit of scprimecoins is the Hasting. One scprimecoin is 10^27 Hastings. Other supported units are:
   pS (pico,  10^-12 SCP)
   nS (nano,  10^-9 SCP)
   uS (micro, 10^-6 SCP)
@@ -105,7 +105,7 @@ By default the wallet encryption / unlock password is the same as the generated 
 
 	walletLoadCmd = &cobra.Command{
 		Use:   "load",
-		Short: "Load a wallet seed or saipg keyset",
+		Short: "Load a wallet seed or siag keyset",
 		// Run field is not set, as the load command itself is not a valid command.
 		// A subcommand must be provided.
 	}
@@ -118,10 +118,10 @@ By default the wallet encryption / unlock password is the same as the generated 
 	}
 
 	walletLoadSiagCmd = &cobra.Command{
-		Use:     `saipg [filepath,...]`,
-		Short:   "Load saipg key(s) into the wallet",
-		Long:    "Load saipg key(s) into the wallet - typically used for scprimefunds.",
-		Example: "spc wallet load saipg key1.siapkey,key2.siapkey",
+		Use:     `siag [filepath,...]`,
+		Short:   "Load siag key(s) into the wallet",
+		Long:    "Load siag key(s) into the wallet - typically used for scprimefunds.",
+		Example: "siac wallet load siag key1.siakey,key2.siakey",
 		Run:     wrap(walletloadsiagcmd),
 	}
 
@@ -368,7 +368,7 @@ func walletloadsiagcmd(keyfiles string) {
 	}
 	err = httpClient.WalletSiagKeyPost(keyfiles, password)
 	if err != nil {
-		die("Loading saipg key failed:", err)
+		die("Loading siag key failed:", err)
 	}
 	fmt.Println("Wallet loading successful.")
 }
