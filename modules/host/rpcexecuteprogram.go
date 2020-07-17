@@ -10,12 +10,12 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 
+	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/host/mdm"
 	"gitlab.com/scpcorp/ScPrime/types"
-	"gitlab.com/scpcorp/siamux"
 )
 
 // managedRPCExecuteProgram handles incoming ExecuteProgram RPCs.

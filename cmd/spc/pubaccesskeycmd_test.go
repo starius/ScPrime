@@ -226,9 +226,9 @@ func testSkykeyListKeysAdditionalKeys(t *testing.T, c client.Client) {
 
 	// Add extra keys
 	for i := 0; i < nExtraKeys; i++ {
-		skykeyType := skykey.TypePrivateID
+		skykeyType := pubaccesskey.TypePrivateID
 		if i%2 == 0 {
-			skykeyType = skykey.TypePublicID
+			skykeyType = pubaccesskey.TypePublicID
 			expectedNumPublic += 1
 		} else {
 			expectedNumPrivate += 1
@@ -270,15 +270,15 @@ func testSkykeyListKeysAdditionalKeys(t *testing.T, c client.Client) {
 	}
 
 	// Check that the expected number of public/private keys were created.
-	numPublic := strings.Count(keyListString, skykey.TypePublicID.ToString())
-	numPrivate := strings.Count(keyListString, skykey.TypePrivateID.ToString())
+	numPublic := strings.Count(keyListString, pubaccesskey.TypePublicID.ToString())
+	numPrivate := strings.Count(keyListString, pubaccesskey.TypePrivateID.ToString())
 	if numPublic != expectedNumPublic {
 		t.Log(keyListString)
-		t.Fatalf("Expected %d %s keys got %d instead", numPublic, skykey.TypePublicID.ToString(), expectedNumPublic)
+		t.Fatalf("Expected %d %s keys got %d instead", numPublic, pubaccesskey.TypePublicID.ToString(), expectedNumPublic)
 	}
 	if numPrivate != expectedNumPrivate {
 		t.Log(keyListString)
-		t.Fatalf("Expected %d %s keys got %d instead", numPrivate, skykey.TypePrivateID.ToString(), expectedNumPrivate)
+		t.Fatalf("Expected %d %s keys got %d instead", numPrivate, pubaccesskey.TypePrivateID.ToString(), expectedNumPrivate)
 	}
 }
 

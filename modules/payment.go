@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/scpcorp/siamux"
+	"gitlab.com/NebulousLabs/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"

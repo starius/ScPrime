@@ -22,7 +22,7 @@ var baseSectorNonceDerivation = types.NewSpecifier("BaseSectorNonce")
 // fanout encryption.
 var fanoutNonceDerivation = types.NewSpecifier("FanoutNonce")
 
-var errNoSkykeyMatchesSkyfileEncryptionID = errors.New("Unable to find matching skykey for public ID encryption")
+var errNoSkykeyMatchesSkyfileEncryptionID = errors.New("Unable to find matching pubaccesskey for public ID encryption")
 
 // deriveFanoutKey returns the crypto.CipherKey that should be used for
 // decrypting the fanout stream from the skyfile stored using this layout.
@@ -34,7 +34,7 @@ func (r *Renter) deriveFanoutKey(sl *skyfileLayout, fileSkykey pubaccesskey.Puba
 	// Derive the fanout key.
 	fanoutSkykey, err := fileSkykey.DeriveSubkey(fanoutNonceDerivation[:])
 	if err != nil {
-		return nil, errors.AddContext(err, "Error deriving skykey subkey")
+		return nil, errors.AddContext(err, "Error deriving pubaccesskey subkey")
 	}
 	return fanoutSkykey.CipherKey()
 }
@@ -59,7 +59,7 @@ func (r *Renter) checkSkyfileEncryptionIDMatch(encryptionIdentifer []byte, nonce
 
 // decryptBaseSector attempts to decrypt the baseSector. If it has the necessary
 // Pubaccesskey, it will decrypt the baseSector in-place. It returns the file-specific
-// skykey to be used for decrypting the rest of the associated skyfile.
+// pubaccesskey to be used for decrypting the rest of the associated skyfile.
 func (r *Renter) decryptBaseSector(baseSector []byte) (pubaccesskey.Pubaccesskey, error) {
 	// Sanity check - baseSector should not be more than modules.SectorSize.
 	// Note that the base sector may be smaller in the event of a packed
@@ -81,7 +81,7 @@ func (r *Renter) decryptBaseSector(baseSector []byte) (pubaccesskey.Pubaccesskey
 	copy(nonce[:], sl.keyData[pubaccesskey.SkykeyIDLen:pubaccesskey.SkykeyIDLen+chacha.XNonceSize])
 
 	// Grab the key ID from the layout.
-	var keyID pubaccesskey.SkykeyID
+	var keyID pubaccesskey.PubaccesskeyID
 	copy(keyID[:], sl.keyData[:pubaccesskey.SkykeyIDLen])
 
 	// Try to get the pubaccesskey associated with that ID.
@@ -92,7 +92,7 @@ func (r *Renter) decryptBaseSector(baseSector []byte) (pubaccesskey.Pubaccesskey
 		masterSkykey, err = r.checkSkyfileEncryptionIDMatch(keyID[:], nonce)
 	}
 	if err != nil {
-		return pubaccesskey.Pubaccesskey{}, errors.AddContext(err, "Unable to find associated skykey")
+		return pubaccesskey.Pubaccesskey{}, errors.AddContext(err, "Unable to find associated pubaccesskey")
 	}
 
 	// Derive the file-specific key.
@@ -180,8 +180,8 @@ func encryptBaseSectorWithSkykey(baseSector []byte, plaintextLayout skyfileLayou
 		copy(encryptedLayout.keyData[:pubaccesskey.SkykeyIDLen], encryptedIdentifier[:])
 
 	default:
-		build.Critical("No encryption implemented for this skykey type")
-		return errors.AddContext(errors.New("No encryption implemented for skykey type"), string(sk.Type))
+		build.Critical("No encryption implemented for this pubaccesskey type")
+		return errors.AddContext(errors.New("No encryption implemented for pubaccesskey type"), string(sk.Type))
 	}
 
 	// Add the nonce to the base sector, in plaintext.
@@ -208,5 +208,5 @@ func isEncryptedLayout(sl skyfileLayout) bool {
 }
 
 func encryptionEnabled(sup modules.SkyfileUploadParameters) bool {
-	return sup.SkykeyName != "" || sup.SkykeyID != pubaccesskey.SkykeyID{}
+	return sup.SkykeyName != "" || sup.PubaccesskeyID != pubaccesskey.PubaccesskeyID{}
 }

@@ -3,8 +3,8 @@ package host
 import (
 	"gitlab.com/NebulousLabs/errors"
 
+	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/modules"
-	"gitlab.com/scpcorp/siamux"
 )
 
 // managedRPCAccountBalance handles the RPC which returns the balance of the

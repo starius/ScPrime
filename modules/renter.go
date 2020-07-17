@@ -1043,7 +1043,7 @@ type Renter interface {
 
 	// DeleteSkykeyByID deletes the Pubaccesskey with the given name from the renter's
 	// pubaccesskey manager if it exists.
-	DeleteSkykeyByID(pubaccesskey.SkykeyID) error
+	DeleteSkykeyByID(pubaccesskey.PubaccesskeyID) error
 
 	// DeleteSkykeyByName deletes the Pubaccesskey with the given name from the renter's
 	// pubaccesskey manager if it exists.
@@ -1055,11 +1055,11 @@ type Renter interface {
 
 	// SkykeyByID gets the Pubaccesskey with the given ID from the renter's pubaccesskey
 	// manager if it exists.
-	SkykeyByID(pubaccesskey.SkykeyID) (pubaccesskey.Pubaccesskey, error)
+	SkykeyByID(pubaccesskey.PubaccesskeyID) (pubaccesskey.Pubaccesskey, error)
 
-	// SkykeyIDByName gets the SkykeyID of the key with the given name if it
+	// SkykeyIDByName gets the PubaccesskeyID of the key with the given name if it
 	// exists.
-	SkykeyIDByName(string) (pubaccesskey.SkykeyID, error)
+	SkykeyIDByName(string) (pubaccesskey.PubaccesskeyID, error)
 
 	// Skykeys returns a slice containing each Pubaccesskey being stored by the renter.
 	Skykeys() ([]pubaccesskey.Pubaccesskey, error)

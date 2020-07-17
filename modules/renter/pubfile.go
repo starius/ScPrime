@@ -896,7 +896,7 @@ func (r *Renter) UploadSkyfile(lup modules.SkyfileUploadParameters) (modules.Pub
 			return modules.Publink{}, errors.AddContext(err, "UploadSkyfile unable to generate subkey")
 		}
 	} else if encryptionEnabled(lup) {
-		key, err := r.SkykeyByID(lup.SkykeyID)
+		key, err := r.SkykeyByID(lup.PubaccesskeyID)
 		if err != nil {
 			return modules.Publink{}, errors.AddContext(err, "UploadSkyfile unable to get pubaccesskey")
 		}

@@ -2204,7 +2204,7 @@ func testPubaccessSkykey(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	deletedKeys := make(map[pubaccesskey.SkykeyID]struct{})
+	deletedKeys := make(map[pubaccesskey.PubaccesskeyID]struct{})
 	nKeys = len(pubaccesskeys)
 	nToDelete := nKeys / 2
 	for i, sk := range pubaccesskeys {
@@ -2514,11 +2514,11 @@ func testPubaccessDefaultPath(t *testing.T, tg *siatest.TestGroup) {
 	files := make(map[string][]byte)
 	files["index.html"] = []byte(fc1)
 	files["about.html"] = []byte(fc2)
-	skylink, _, _, err := r.UploadNewMultipartSkyfileBlocking(filename, files, nil, false)
+	publink, _, _, err := r.UploadNewMultipartSkyfileBlocking(filename, files, nil, false)
 	if err != nil {
 		t.Fatal("Failed to upload multipart file.", err)
 	}
-	content, _, err := r.SkynetSkylinkGet(skylink)
+	content, _, err := r.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2532,11 +2532,11 @@ func testPubaccessDefaultPath(t *testing.T, tg *siatest.TestGroup) {
 	files = make(map[string][]byte)
 	files["index.html"] = []byte(fc1)
 	files["about.html"] = []byte(fc2)
-	skylink, _, _, err = r.UploadNewMultipartSkyfileBlocking(filename, files, &emptyPath, false)
+	publink, _, _, err = r.UploadNewMultipartSkyfileBlocking(filename, files, &emptyPath, false)
 	if err != nil {
 		t.Fatal("Failed to upload multipart file.", err)
 	}
-	_, _, err = r.SkynetSkylinkGet(skylink)
+	_, _, err = r.SkynetPublinkGet(publink)
 	if err == nil || !strings.Contains(err.Error(), "format must be specified") {
 		t.Fatalf("Expected error 'format must be specified', got '%+v'", err)
 	}
@@ -2548,11 +2548,11 @@ func testPubaccessDefaultPath(t *testing.T, tg *siatest.TestGroup) {
 	files = make(map[string][]byte)
 	files["index.html"] = []byte(fc1)
 	files["index.js"] = []byte(fc2)
-	skylink, _, _, err = r.UploadNewMultipartSkyfileBlocking(filename, files, &indexJs, false)
+	publink, _, _, err = r.UploadNewMultipartSkyfileBlocking(filename, files, &indexJs, false)
 	if err != nil {
 		t.Fatal("Failed to upload multipart file.", err)
 	}
-	content, _, err = r.SkynetSkylinkGet(skylink)
+	content, _, err = r.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2578,11 +2578,11 @@ func testPubaccessDefaultPath(t *testing.T, tg *siatest.TestGroup) {
 	files = make(map[string][]byte)
 	files["index.js"] = []byte(fc1)
 	files["about.html"] = []byte(fc2)
-	skylink, _, _, err = r.UploadNewMultipartSkyfileBlocking(filename, files, &indexJs, false)
+	publink, _, _, err = r.UploadNewMultipartSkyfileBlocking(filename, files, &indexJs, false)
 	if err != nil {
 		t.Fatal("Failed to upload multipart file.", err)
 	}
-	content, _, err = r.SkynetSkylinkGet(skylink)
+	content, _, err = r.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2591,7 +2591,7 @@ func testPubaccessDefaultPath(t *testing.T, tg *siatest.TestGroup) {
 	}
 	// Test passing `redirect=false` to multi-file Skyfile with default path.
 	// This should result in an error with message "format must be specified".
-	_, _, err = r.SkynetSkylinkGetWithRedirect(skylink, false)
+	_, _, err = r.SkynetSkylinkGetWithRedirect(publink, false)
 	if err == nil || !strings.Contains(err.Error(), "format must be specified") {
 		t.Fatalf("Expected error 'format must be specified', got '%+v'", err)
 	}
@@ -2613,11 +2613,11 @@ func testPubaccessDefaultPath(t *testing.T, tg *siatest.TestGroup) {
 	files = make(map[string][]byte)
 	files["index.js"] = []byte(fc1)
 	files["about.html"] = []byte(fc2)
-	skylink, _, _, err = r.UploadNewMultipartSkyfileBlocking(filename, files, nil, false)
+	publink, _, _, err = r.UploadNewMultipartSkyfileBlocking(filename, files, nil, false)
 	if err != nil {
 		t.Fatal("Failed to upload multipart file.", err)
 	}
-	_, _, err = r.SkynetSkylinkGet(skylink)
+	_, _, err = r.SkynetPublinkGet(publink)
 	if err == nil || !strings.Contains(err.Error(), "format must be specified") {
 		t.Fatalf("Expected error 'format must be specified', got '%+v'", err)
 	}
@@ -2628,11 +2628,11 @@ func testPubaccessDefaultPath(t *testing.T, tg *siatest.TestGroup) {
 	filename = "index.js_empty"
 	files = make(map[string][]byte)
 	files["index.js"] = []byte(fc1)
-	skylink, _, _, err = r.UploadNewMultipartSkyfileBlocking(filename, files, &emptyPath, false)
+	publink, _, _, err = r.UploadNewMultipartSkyfileBlocking(filename, files, &emptyPath, false)
 	if err != nil {
 		t.Fatal("Failed to upload multipart file.", err)
 	}
-	_, _, err = r.SkynetSkylinkGet(skylink)
+	_, _, err = r.SkynetPublinkGet(publink)
 	if err == nil || !strings.Contains(err.Error(), "format must be specified") {
 		t.Fatalf("Expected error 'format must be specified', got '%+v'", err)
 	}
@@ -2643,11 +2643,11 @@ func testPubaccessDefaultPath(t *testing.T, tg *siatest.TestGroup) {
 	filename = "index.js"
 	files = make(map[string][]byte)
 	files["index.js"] = []byte(fc1)
-	skylink, _, _, err = r.UploadNewMultipartSkyfileBlocking(filename, files, nil, false)
+	publink, _, _, err = r.UploadNewMultipartSkyfileBlocking(filename, files, nil, false)
 	if err != nil {
 		t.Fatal("Failed to upload multipart file.", err)
 	}
-	content, _, err = r.SkynetSkylinkGet(skylink)
+	content, _, err = r.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2657,7 +2657,7 @@ func testPubaccessDefaultPath(t *testing.T, tg *siatest.TestGroup) {
 	// Test passing `redirect=false` to single-file Skyfile.
 	// This should behave just like any other skydirectory and fail on download
 	// with "format must be specified".
-	_, _, err = r.SkynetSkylinkGetWithRedirect(skylink, false)
+	_, _, err = r.SkynetSkylinkGetWithRedirect(publink, false)
 	if err == nil || !strings.Contains(err.Error(), "format must be specified") {
 		t.Fatalf("Expected error 'format must be specified', got '%+v'", err)
 	}
@@ -2669,14 +2669,14 @@ func testPubaccessDefaultPath(t *testing.T, tg *siatest.TestGroup) {
 func testPubaccessSingleFileNoSubfiles(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
-	skylink, sup, _, err := r.UploadNewSkyfileBlocking("file.name", modules.SectorSize, false)
+	publink, sup, _, err := r.UploadNewSkyfileBlocking("file.name", modules.SectorSize, false)
 	if err != nil {
 		t.Fatal("Failed to upload a single file.", err)
 	}
 	if sup.FileMetadata.Subfiles != nil {
 		t.Fatal("Expected empty subfiles on upload, got", sup.FileMetadata.Subfiles)
 	}
-	_, metadata, err := r.SkynetSkylinkGet(skylink)
+	_, metadata, err := r.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}

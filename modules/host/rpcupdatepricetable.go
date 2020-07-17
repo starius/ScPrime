@@ -8,7 +8,7 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/scpcorp/siamux"
+	"gitlab.com/NebulousLabs/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/modules"
 )

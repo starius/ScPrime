@@ -12,7 +12,7 @@ import (
 	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/scpcorp/siamux"
+	"gitlab.com/NebulousLabs/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"

@@ -12,8 +12,8 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/scpcorp/siamux"
-	"gitlab.com/scpcorp/siamux/mux"
+	"gitlab.com/NebulousLabs/siamux"
+	"gitlab.com/NebulousLabs/siamux/mux"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"

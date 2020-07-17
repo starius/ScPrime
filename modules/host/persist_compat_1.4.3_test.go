@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/consensus"
@@ -13,7 +14,6 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
 	"gitlab.com/scpcorp/ScPrime/modules/wallet"
 	"gitlab.com/scpcorp/ScPrime/persist"
-	"gitlab.com/scpcorp/siamux"
 
 	"gitlab.com/NebulousLabs/errors"
 )

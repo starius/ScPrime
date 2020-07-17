@@ -13,6 +13,8 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 
+	"gitlab.com/NebulousLabs/siamux"
+	"gitlab.com/NebulousLabs/siamux/mux"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -24,8 +26,6 @@ import (
 	"gitlab.com/scpcorp/ScPrime/persist"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
 	"gitlab.com/scpcorp/ScPrime/types"
-	"gitlab.com/scpcorp/siamux"
-	"gitlab.com/scpcorp/siamux/mux"
 )
 
 const (

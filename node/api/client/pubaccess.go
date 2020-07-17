@@ -201,13 +201,13 @@ func (c *Client) SkynetSkyfilePost(params modules.SkyfileUploadParameters) (stri
 	rootStr := fmt.Sprintf("%t", params.Root)
 	values.Set("root", rootStr)
 
-	// Encode SkykeyName or SkykeyID.
+	// Encode SkykeyName or PubaccesskeyID.
 	if params.SkykeyName != "" {
 		values.Set("pubaccesskeyname", params.SkykeyName)
 	}
-	hasSkykeyID := params.SkykeyID != pubaccesskey.SkykeyID{}
+	hasSkykeyID := params.PubaccesskeyID != pubaccesskey.PubaccesskeyID{}
 	if hasSkykeyID {
-		values.Set("pubaccesskeyid", params.SkykeyID.ToString())
+		values.Set("pubaccesskeyid", params.PubaccesskeyID.ToString())
 	}
 
 	// Make the call to upload the file.
@@ -400,7 +400,7 @@ func (c *Client) SkykeyGetByName(name string) (pubaccesskey.Pubaccesskey, error)
 }
 
 // SkykeyGetByID requests the /pubaccess/pubaccesskey Get endpoint using the key ID.
-func (c *Client) SkykeyGetByID(id pubaccesskey.SkykeyID) (pubaccesskey.Pubaccesskey, error) {
+func (c *Client) SkykeyGetByID(id pubaccesskey.PubaccesskeyID) (pubaccesskey.Pubaccesskey, error) {
 	values := url.Values{}
 	values.Set("id", id.ToString())
 	getQuery := fmt.Sprintf("/pubaccess/pubaccesskey?%s", values.Encode())
@@ -421,7 +421,7 @@ func (c *Client) SkykeyGetByID(id pubaccesskey.SkykeyID) (pubaccesskey.Pubaccess
 }
 
 // SkykeyDeleteByIDPost requests the /pubaccess/deletepubaccesskey POST endpoint using the key ID.
-func (c *Client) SkykeyDeleteByIDPost(id pubaccesskey.SkykeyID) error {
+func (c *Client) SkykeyDeleteByIDPost(id pubaccesskey.PubaccesskeyID) error {
 	values := url.Values{}
 	values.Set("id", id.ToString())
 	return c.post("/pubaccess/deletepubaccesskey", values.Encode(), nil)

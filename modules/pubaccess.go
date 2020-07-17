@@ -207,10 +207,10 @@ type SkyfileUploadParameters struct {
 	// Pubfile.
 	SkykeyName string `json:"skykeyname"`
 
-	// SkykeyID is the ID of Pubaccesskey that should be used to encrypt the file.
-	SkykeyID pubaccesskey.SkykeyID `json:"skykeyid"`
+	// PubaccesskeyID is the ID of Pubaccesskey that should be used to encrypt the file.
+	PubaccesskeyID pubaccesskey.PubaccesskeyID `json:"pubaccesskeyid"`
 
-	// If Encrypt is set to true and one of SkykeyName or SkykeyID was set, a
+	// If Encrypt is set to true and one of SkykeyName or PubaccesskeyID was set, a
 	// Pubaccesskey will be derived from the Master Pubaccesskey found under that name/ID to
 	// be used for this specific upload.
 	FileSpecificSkykey pubaccesskey.Pubaccesskey

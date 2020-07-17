@@ -2055,7 +2055,7 @@ func TestRenewFailing(t *testing.T) {
 	if err != nil {
 		t.Fatal(errors.AddContext(err, "could not read renter settings"))
 	}
-	renewWindow := renterSettings.Allowance.RenewWindow
+	renewWindow = renterSettings.Allowance.RenewWindow
 
 	for blockHeight <= expiryHeight-renewWindow/2 {
 		if err := miner.MineBlock(); err != nil {
@@ -5006,13 +5006,13 @@ func TestReadSectorOutputCorrupted(t *testing.T) {
 
 	// Upload a file.
 	renter := tg.Renters()[0]
-	skylink, _, _, err := renter.UploadNewSkyfileBlocking("test", 100, false)
+	publink, _, _, err := renter.UploadNewSkyfileBlocking("test", 100, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Download the file.
-	_, _, err = renter.SkynetSkylinkGet(skylink)
+	_, _, err = renter.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -5020,13 +5020,13 @@ func TestReadSectorOutputCorrupted(t *testing.T) {
 	// Enable the dependencies and download again.
 	deps1.Fail()
 	deps2.Fail()
-	_, _, err = renter.SkynetSkylinkGet(skylink)
+	_, _, err = renter.SkynetPublinkGet(publink)
 	if err == nil || !strings.Contains(err.Error(), "all workers failed") {
 		t.Fatal(err)
 	}
 
 	// Download one more time. It should work again.
-	_, _, err = renter.SkynetSkylinkGet(skylink)
+	_, _, err = renter.SkynetPublinkGet(publink)
 	if err != nil {
 		t.Fatal(err)
 	}

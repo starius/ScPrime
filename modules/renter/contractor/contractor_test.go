@@ -12,6 +12,7 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 
+	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -22,7 +23,6 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/wallet"
 	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
 	"gitlab.com/scpcorp/ScPrime/types"
-	"gitlab.com/scpcorp/siamux"
 )
 
 // Create a closeFn type that allows helpers which need to be closed to return

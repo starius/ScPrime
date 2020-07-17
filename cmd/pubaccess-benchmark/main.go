@@ -257,7 +257,7 @@ func downloadFileSet(dir modules.SiaPath, fileSize int, threads uint64) error {
 }
 
 // getMissingFiles will fetch a map of all the files that are missing or don't
-// have skylinks
+// have publinks
 func getMissingFiles(dir modules.SiaPath, expectedFileSize uint64, expectedFetchSize uint64) (map[int]struct{}, error) {
 	// Determine whether the dirs already exist and have files in them for
 	// downloading.

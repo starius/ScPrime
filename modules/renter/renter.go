@@ -34,7 +34,7 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/threadgroup"
 
-	"gitlab.com/scpcorp/siamux"
+	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/writeaheadlog"
 
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -810,7 +810,7 @@ func (r *Renter) AddSkykey(sk pubaccesskey.Pubaccesskey) error {
 	return r.staticSkykeyManager.AddKey(sk)
 }
 
-// DeleteSkykeyByName deletes the Pubaccesskey with the given name from the renter's skykey
+// DeleteSkykeyByName deletes the Pubaccesskey with the given name from the renter's pubaccesskey
 // manager if it exists.
 func (r *Renter) DeleteSkykeyByName(name string) error {
 	if err := r.tg.Add(); err != nil {
@@ -820,9 +820,9 @@ func (r *Renter) DeleteSkykeyByName(name string) error {
 	return r.staticSkykeyManager.DeleteKeyByName(name)
 }
 
-// DeleteSkykeyByID deletes the Pubaccesskey with the given ID from the renter's skykey
+// DeleteSkykeyByID deletes the Pubaccesskey with the given ID from the renter's pubaccesskey
 // manager if it exists.
-func (r *Renter) DeleteSkykeyByID(id pubaccesskey.SkykeyID) error {
+func (r *Renter) DeleteSkykeyByID(id pubaccesskey.PubaccesskeyID) error {
 	if err := r.tg.Add(); err != nil {
 		return err
 	}
@@ -830,7 +830,7 @@ func (r *Renter) DeleteSkykeyByID(id pubaccesskey.SkykeyID) error {
 	return r.staticSkykeyManager.DeleteKeyByID(id)
 }
 
-// SkykeyByName gets the Pubaccesskey with the given name from the renter's skykey
+// SkykeyByName gets the Pubaccesskey with the given name from the renter's pubaccesskey
 // manager if it exists.
 func (r *Renter) SkykeyByName(name string) (pubaccesskey.Pubaccesskey, error) {
 	if err := r.tg.Add(); err != nil {
@@ -851,7 +851,7 @@ func (r *Renter) CreateSkykey(name string, skType pubaccesskey.SkykeyType) (puba
 
 // SkykeyByID gets the Pubaccesskey with the given ID from the renter's pubaccesskey
 // manager if it exists.
-func (r *Renter) SkykeyByID(id pubaccesskey.SkykeyID) (pubaccesskey.Pubaccesskey, error) {
+func (r *Renter) SkykeyByID(id pubaccesskey.PubaccesskeyID) (pubaccesskey.Pubaccesskey, error) {
 	if err := r.tg.Add(); err != nil {
 		return pubaccesskey.Pubaccesskey{}, err
 	}
@@ -859,11 +859,11 @@ func (r *Renter) SkykeyByID(id pubaccesskey.SkykeyID) (pubaccesskey.Pubaccesskey
 	return r.staticSkykeyManager.KeyByID(id)
 }
 
-// SkykeyIDByName gets the SkykeyID of the key with the given name if it
+// SkykeyIDByName gets the PubaccesskeyID of the key with the given name if it
 // exists.
-func (r *Renter) SkykeyIDByName(name string) (pubaccesskey.SkykeyID, error) {
+func (r *Renter) SkykeyIDByName(name string) (pubaccesskey.PubaccesskeyID, error) {
 	if err := r.tg.Add(); err != nil {
-		return pubaccesskey.SkykeyID{}, err
+		return pubaccesskey.PubaccesskeyID{}, err
 	}
 	defer r.tg.Done()
 	return r.staticSkykeyManager.IDByName(name)

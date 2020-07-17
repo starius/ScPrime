@@ -5,10 +5,10 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 
+	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-	"gitlab.com/scpcorp/siamux"
 )
 
 // ProcessPayment reads a payment request from the stream. Depending on the type

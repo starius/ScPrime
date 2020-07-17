@@ -5,12 +5,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"gitlab.com/NebulousLabs/siamux"
+	"gitlab.com/NebulousLabs/siamux/mux"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
-	"gitlab.com/scpcorp/siamux"
-	"gitlab.com/scpcorp/siamux/mux"
 )
 
 const (
