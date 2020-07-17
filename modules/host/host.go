@@ -73,7 +73,7 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 	connmonitor "gitlab.com/NebulousLabs/monitor"
-	"gitlab.com/scpcorp/siamux"
+	"gitlab.com/NebulousLabs/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"

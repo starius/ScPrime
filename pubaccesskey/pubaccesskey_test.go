@@ -108,7 +108,7 @@ func TestSkykeyManager(t *testing.T) {
 	}
 
 	// Check that the correct error for a random unknown key is given.
-	var randomID SkykeyID
+	var randomID PubaccesskeyID
 	fastrand.Read(randomID[:])
 	_, err = keyMan.KeyByID(randomID)
 	if err != ErrNoSkykeysWithThatID {
@@ -665,7 +665,7 @@ func TestSkykeyTypeStrings(t *testing.T) {
 // encryption IDs.
 func TestSkyfileEncryptionIDs(t *testing.T) {
 	// Create a key manager.
-	persistDir := build.TempDir("skykey", t.Name())
+	persistDir := build.TempDir("pubaccesskey", t.Name())
 	keyMan, err := NewSkykeyManager(persistDir)
 	if err != nil {
 		t.Fatal(err)
@@ -685,7 +685,7 @@ func TestSkyfileEncryptionIDs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create a private-id skykey.
+	// Create a private-id pubaccesskey.
 	privSkykey, err := keyMan.CreateKey("private_id"+t.Name(), TypePrivateID)
 	if err != nil {
 		t.Fatal(err)
@@ -713,7 +713,7 @@ func TestSkyfileEncryptionIDs(t *testing.T) {
 		encIDs[i] = encID
 	}
 
-	// Create more private-id skykey to make sure that they don't match any
+	// Create more private-id pubaccesskey to make sure that they don't match any
 	// encID/nonce pair.
 	nPrivIDKeys := 10
 	privIDKeys := make([]Pubaccesskey, nPrivIDKeys)
@@ -749,7 +749,7 @@ func TestSkyfileEncryptionIDs(t *testing.T) {
 				}
 			}
 
-			// The original private-id skykey should match only when i == j.
+			// The original private-id pubaccesskey should match only when i == j.
 			matches, err = privIDKeys[0].MatchesSkyfileEncryptionID(encID[:], nonce)
 			if err != nil {
 				t.Fatal(err)
@@ -775,10 +775,10 @@ func TestSkyfileEncryptionIDs(t *testing.T) {
 	}
 }
 
-// TestSkykeyDelete tests the Delete methods for the skykey manager.
+// TestSkykeyDelete tests the Delete methods for the pubaccesskey manager.
 func TestSkykeyDelete(t *testing.T) {
 	// Create a key manager.
-	persistDir := build.TempDir("skykey", t.Name())
+	persistDir := build.TempDir("pubaccesskey", t.Name())
 	keyMan, err := NewSkykeyManager(persistDir)
 	if err != nil {
 		t.Fatal(err)
@@ -811,7 +811,7 @@ func TestSkykeyDelete(t *testing.T) {
 	// checkForExpectedKeys checks that the keys in expectedKeySet are the only
 	// ones stored by keyMan, and also checks that a new keyManager loaded from
 	// the same persist also stores only this exact set of skykeys.
-	checkForExpectedKeys := func(expectedKeySet map[SkykeyID]struct{}) {
+	checkForExpectedKeys := func(expectedKeySet map[PubaccesskeyID]struct{}) {
 		allSkykeys := keyMan.Skykeys()
 		if len(allSkykeys) != len(expectedKeySet) {
 			t.Fatalf("Expected %d keys, got %d", len(expectedKeySet), len(allSkykeys))
@@ -842,10 +842,10 @@ func TestSkykeyDelete(t *testing.T) {
 	}
 
 	// There should be no keys remaining.
-	checkForExpectedKeys(make(map[SkykeyID]struct{}))
+	checkForExpectedKeys(make(map[PubaccesskeyID]struct{}))
 
 	// Add a bunch of keys again.
-	expectedKeySet := make(map[SkykeyID]struct{})
+	expectedKeySet := make(map[PubaccesskeyID]struct{})
 	nKeys := 10
 	keys = make([]Pubaccesskey, 0)
 	for i := 0; i < nKeys; i++ {
@@ -912,11 +912,11 @@ func TestSkykeyDelete(t *testing.T) {
 	checkForExpectedKeys(expectedKeySet)
 }
 
-// TestSkykeyDelete tests the Delete methods for the skykey manager, starting
+// TestSkykeyDelete tests the Delete methods for the pubaccesskey manager, starting
 // with a file containing skykeys created using the older format.
 func TestSkykeyDeleteCompat(t *testing.T) {
 	// Create a persist dir.
-	persistDir := build.TempDir("skykey", t.Name())
+	persistDir := build.TempDir("pubaccesskey", t.Name())
 	err := os.MkdirAll(persistDir, defaultDirPerm)
 	if err != nil {
 		t.Fatal(err)
@@ -930,7 +930,7 @@ func TestSkykeyDeleteCompat(t *testing.T) {
 	}
 	defer persistFile.Close()
 
-	testDataFileName := filepath.Join("testdata", "v144_and_v149_skykeys.dat")
+	testDataFileName := filepath.Join("testdata", "v144_pubaccesskeys.dat")
 	testDataFile, err := os.Open(testDataFileName)
 	if err != nil {
 		t.Fatal(err)
@@ -945,7 +945,7 @@ func TestSkykeyDeleteCompat(t *testing.T) {
 	// Create a key manager.
 	keyMan, err := NewSkykeyManager(persistDir)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal(errors.AddContext(err, "Could not get load pubaccesskey manager"))
 	}
 
 	nKeys := 8

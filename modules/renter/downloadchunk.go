@@ -95,7 +95,7 @@ func (udc *unfinishedDownloadChunk) fail(err error) {
 // managedCleanUp will check if the download has failed, and if not it will add
 // any standby workers which need to be added. Calling managedCleanUp too many
 // times is not harmful, however missing a call to managedCleanUp can lead to
-// dealocks.
+// deadlocks.
 func (udc *unfinishedDownloadChunk) managedCleanUp() {
 	// Check if the chunk is newly failed.
 	udc.mu.Lock()

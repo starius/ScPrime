@@ -73,14 +73,14 @@ var (
 	skykeyShowPrivateKeys bool   // Set to true to show private key data.
 	skykeyType            string // Type used to create a new Pubaccesskey.
 
-	// Skynet Flags
-	skynetBlacklistRemove bool   // Remove a skylink from the Skynet Blacklist.
-	skynetDownloadPortal  string // Portal to use when trying to download a skylink.
+	// Public access Flags
+	skynetBlacklistRemove bool   // Remove a publink from the Public access Blacklist.
+	skynetDownloadPortal  string // Portal to use when trying to download a publink.
 	skynetLsRecursive     bool   // List files of folder recursively.
-	skynetLsRoot          bool   // Use root as the base instead of the Skynet folder.
-	skynetUnpinRoot       bool   // Use root as the base instead of the Skynet folder.
-	skynetUploadDryRun    bool   // Perform a dry-run of the upload. This returns the skylink without actually uploading the file to the network.
-	skynetUploadRoot      bool   // Use root as the base instead of the Skynet folder.
+	skynetLsRoot          bool   // Use root as the base instead of the Public access folder.
+	skynetUnpinRoot       bool   // Use root as the base instead of the Public access folder.
+	skynetUploadDryRun    bool   // Perform a dry-run of the upload. This returns the publink without actually uploading the file to the network.
+	skynetUploadRoot      bool   // Use root as the base instead of the Public access folder.
 	skynetUploadSilent    bool   // Don't report progress while uploading
 
 	// Utils Flags
@@ -256,12 +256,12 @@ func main() {
 	rootCmd = initCmds()
 
 	// initialize client
-	initClient(rootCmd, &statusVerbose, &httpClient, &siaDir)
+	initClient(rootCmd, &statusVerbose, &httpClient, &dataDir)
 
 	// set API password if it was not set
 	setAPIPasswordIfNotSet()
 
-	// Check if the siaDir is set.
+	// Check if the dataDir is set.
 	if dataDir == "" {
 		// No dataDir passed in, use default
 		dataDir = build.SiaDir()

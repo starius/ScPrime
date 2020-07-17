@@ -9,11 +9,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-	"gitlab.com/scpcorp/siamux"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
@@ -73,7 +73,7 @@ var (
 	accountIdleMaxWait = build.Select(build.Var{
 		Dev:      10 * time.Minute,
 		Standard: 40 * time.Minute,
-		Testing:  20 * time.Second, // needs to be long even in testing
+		Testing:  30 * time.Second, // needs to be long even in testing
 	}).(time.Duration)
 )
 
@@ -582,7 +582,7 @@ func (w *worker) externSyncAccountBalanceToHost() {
 	start := time.Now()
 	for !isIdle() {
 		if time.Since(start) > accountIdleMaxWait {
-			w.renter.log.Critical("worker has taken more than 40 minutes to go idle")
+			w.renter.log.Critical(fmt.Sprintf("worker has taken more than %v to go idle", accountIdleMaxWait))
 			return
 		}
 		w.renter.tg.Sleep(accountIdleCheckFrequency)

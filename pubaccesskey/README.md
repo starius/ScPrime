@@ -32,7 +32,7 @@ revealed in plaintext, therefore its name is `TypePublicID` Implicitly, this
 specifies the entropy length as the length of a key and nonce in that scheme.
 Its byte representation is 1 type byte and 56 entropy bytes.
 
-`TypePrivateID` represents a skykey that uses the XChaCha20 cipher schemes and
+`TypePrivateID` represents a pubaccesskey that uses the XChaCha20 cipher schemes and
 is can be used for encrypting skyfiles.  Implicitly, this specifies the entropy
 length as the length of a key and nonce in that scheme.  Its byte representation
 is 1 type byte and 56 entropy bytes. When used for skyfile encryption, the key ID

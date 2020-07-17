@@ -14,7 +14,7 @@ const (
 	MaxEncodedVersionLength = 100
 
 	// Version is the current version of ScPrime daemon.
-	Version = "1.4.4"
+	Version = "1.4.4.0"
 )
 
 // ReleaseTag contains the release tag, such as "rc3". It is supplied at build

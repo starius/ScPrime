@@ -339,16 +339,16 @@ func TestBaseSectorKeyID(t *testing.T) {
 	var encLayout skyfileLayout
 	encLayout.decode(bsCopy)
 
-	// Check that skykey ID is stored correctly in the layout.
-	var keyID pubaccesskey.SkykeyID
+	// Check that pubaccesskey ID is stored correctly in the layout.
+	var keyID pubaccesskey.PubaccesskeyID
 	copy(keyID[:], encLayout.keyData[:pubaccesskey.SkykeyIDLen])
 	if keyID != publicIDKey.ID() {
 		t.Log(encLayout)
 		t.Log(keyID, publicIDKey.ID())
-		t.Fatal("Expected keyID to match skykey ID.")
+		t.Fatal("Expected keyID to match pubaccesskey ID.")
 	}
 
-	// Create a TypePrivateID skykey to check the key ID not set, but the
+	// Create a TypePrivateID pubaccesskey to check the key ID not set, but the
 	// encrypted identifier is set.
 	privateIDKeyName := t.Name() + "-private-id-key"
 	privateIDKey, err := r.CreateSkykey(privateIDKeyName, pubaccesskey.TypePrivateID)
@@ -367,20 +367,20 @@ func TestBaseSectorKeyID(t *testing.T) {
 	var encLayout2 skyfileLayout
 	encLayout2.decode(bsCopy2)
 
-	// Check that skykey ID is NOT in the layout.
-	var keyID2 pubaccesskey.SkykeyID
+	// Check that pubaccesskey ID is NOT in the layout.
+	var keyID2 pubaccesskey.PubaccesskeyID
 	copy(keyID2[:], encLayout2.keyData[:pubaccesskey.SkykeyIDLen])
 	privateID := privateIDKey.ID()
 	if keyID2 == privateID {
 		t.Log(keyID, privateID)
-		t.Fatal("Expected keyID to match skykey ID.")
+		t.Fatal("Expected keyID to match pubaccesskey ID.")
 	}
 	// Check if the key ID is anywhere in the base sector. There should be enough
 	// entropy in the 16-byte key ID to prevent incidental collisions (as opposed
 	// to accidental inclusion).
 	if bytes.Contains(bsCopy2, privateID[:]) {
 		t.Log(privateID, bsCopy2)
-		t.Fatal("Expected skykey ID to NOT be in base sector")
+		t.Fatal("Expected pubaccesskey ID to NOT be in base sector")
 	}
 
 	// Now check for the expected skyfile encryption ID.

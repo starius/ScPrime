@@ -726,13 +726,13 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 		lup.SkykeyName = skykeyName
 	}
 	if skykeyID != "" {
-		var ID pubaccesskey.SkykeyID
+		var ID pubaccesskey.PubaccesskeyID
 		err = ID.FromString(skykeyID)
 		if err != nil {
 			WriteError(w, Error{"Unable to parse pubaccesskey ID"}, http.StatusBadRequest)
 			return
 		}
-		lup.SkykeyID = ID
+		lup.PubaccesskeyID = ID
 	}
 
 	// Enable CORS
@@ -1010,7 +1010,7 @@ func (api *API) skykeyHandlerGET(w http.ResponseWriter, req *http.Request, _ htt
 	if name != "" {
 		sk, err = api.renter.SkykeyByName(name)
 	} else if idString != "" {
-		var id pubaccesskey.SkykeyID
+		var id pubaccesskey.PubaccesskeyID
 		err = id.FromString(idString)
 		if err != nil {
 			WriteError(w, Error{"failed to decode ID string: "}, http.StatusInternalServerError)
@@ -1056,7 +1056,7 @@ func (api *API) skykeyDeleteHandlerPOST(w http.ResponseWriter, req *http.Request
 	if name != "" {
 		err = api.renter.DeleteSkykeyByName(name)
 	} else if idString != "" {
-		var id pubaccesskey.SkykeyID
+		var id pubaccesskey.PubaccesskeyID
 		err = id.FromString(idString)
 		if err != nil {
 			WriteError(w, Error{"Invalid pubaccesskey ID" + err.Error()}, http.StatusBadRequest)

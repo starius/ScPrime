@@ -11,8 +11,8 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 
-	"gitlab.com/scpcorp/siamux"
-	"gitlab.com/scpcorp/siamux/mux"
+	"gitlab.com/NebulousLabs/siamux"
+	"gitlab.com/NebulousLabs/siamux/mux"
 )
 
 // defaultNewStreamTimeout is a default timeout for creating a new stream.

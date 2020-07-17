@@ -21,7 +21,7 @@ const (
 	// SkykeyScheme is the URI scheme for encoded pubaccesskeys.
 	SkykeyScheme = "pubaccesskey"
 
-	// SkykeyIDLen is the length of a SkykeyID
+	// SkykeyIDLen is the length of a PubaccesskeyID
 	SkykeyIDLen = 16
 
 	// MaxKeyNameLen is the maximum length of a pubaccesskey's name.
@@ -29,7 +29,7 @@ const (
 
 	// maxEntropyLen is used in unmarshalDataOnly as a cap for the entropy. It
 	// should only ever go up between releases. The cap prevents over-allocating
-	// when reading the length of a deleted skykey.
+	// when reading the length of a deleted pubaccesskey.
 	// It must be at most MaxKeyNameLen plus the max entropy size for any
 	// cipher-type.
 	maxEntropyLen = 256
@@ -47,7 +47,7 @@ const (
 	// TypePrivateID is a Pubaccesskey that uses XChaCha20 that does not
 	// reveal its pubaccesskey ID when encrypting Skyfiles. Instead, it marks the pubaccesskey
 	// used for encryption by storing an encrypted identifier that can only be
-	// successfully decrypted with the correct skykey.
+	// successfully decrypted with the correct pubaccesskey.
 	TypePrivateID = SkykeyType(0x02)
 
 	// typeDeletedSkykey is used internally to mark a key as deleted in the pubaccesskey
@@ -76,8 +76,8 @@ var (
 	ErrInvalidSkykeyType = errors.New("Invalid pubaccesskey type")
 )
 
-// SkykeyID is the identifier of a pubaccesskey.
-type SkykeyID [SkykeyIDLen]byte
+// PubaccesskeyID is the identifier of a pubaccesskey.
+type PubaccesskeyID [SkykeyIDLen]byte
 
 // SkykeyType encodes the encryption scheme and method used by the Pubaccesskey.
 type SkykeyType byte
@@ -359,7 +359,7 @@ func (sk *Pubaccesskey) FromString(s string) error {
 // pubaccesskeys derived from it share the same ID because they only differ in nonce
 // values, not key values. This fact is used to identify the master Pubaccesskey
 // with which a Pubaccess file was encrypted.
-func (sk Pubaccesskey) ID() (keyID SkykeyID) {
+func (sk Pubaccesskey) ID() (keyID PubaccesskeyID) {
 	entropy := sk.Entropy
 
 	switch sk.Type {
@@ -377,13 +377,13 @@ func (sk Pubaccesskey) ID() (keyID SkykeyID) {
 	return keyID
 }
 
-// ToString encodes the SkykeyID as a base64 string.
-func (id SkykeyID) ToString() string {
+// ToString encodes the PubaccesskeyID as a base64 string.
+func (id PubaccesskeyID) ToString() string {
 	return base64.URLEncoding.EncodeToString(id[:])
 }
 
 // FromString decodes the base64 string into a Pubaccesskey ID.
-func (id *SkykeyID) FromString(s string) error {
+func (id *PubaccesskeyID) FromString(s string) error {
 	idBytes, err := base64.URLEncoding.DecodeString(s)
 	if err != nil {
 		return err
@@ -457,7 +457,7 @@ func (sk *Pubaccesskey) GenerateSkyfileEncryptionID() ([SkykeyIDLen]byte, error)
 		return [SkykeyIDLen]byte{}, errSkykeyTypeDoesNotSupportFunction
 	}
 	if SkykeyIDLen != types.SpecifierLen {
-		build.Critical("SkykeyID and Specifier expected to have same size")
+		build.Critical("PubaccesskeyID and Specifier expected to have same size")
 	}
 
 	encIDSkykey, err := sk.DeriveSubkey(skyfileEncryptionIDDerivation[:])
@@ -481,7 +481,7 @@ func (sk *Pubaccesskey) GenerateSkyfileEncryptionID() ([SkykeyIDLen]byte, error)
 	return skyfileID, nil
 }
 
-// MatchesSkyfileEncryptionID returns true if and only if the skykey was the one
+// MatchesSkyfileEncryptionID returns true if and only if the pubaccesskey was the one
 // used with this nonce to create the encryptionID.
 func (sk *Pubaccesskey) MatchesSkyfileEncryptionID(encryptionID, nonce []byte) (bool, error) {
 	if len(encryptionID) != SkykeyIDLen || len(nonce) != chacha.XNonceSize {

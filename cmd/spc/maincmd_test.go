@@ -51,8 +51,8 @@ func TestRootSiacCmd(t *testing.T) {
   Height: \d+
 
 Wallet:
-(  Status: Locked|  Status:          unlocked
-  Siacoin Balance: \d+(\.\d*|) (SC|KS|MS))
+(  Status: Locked|  Status:              unlocked
+  Scprimecoin Balance: \d+(\.\d*|) (SCP|KS|MS))
 
 Renter:
   Files:               \d+
@@ -76,7 +76,7 @@ Renter Rate limits:
   Upload Speed:   (no limit|\d+(\.\d+)? (B/s|KB/s|MB/s|GB/s|TB/s))`
 
 	connectionRefusedPattern := `Could not get consensus status: \[failed to get reader response; GET request failed; Get "?http://localhost:5555/consensus"?: dial tcp \[::1\]:5555: connect: connection refused\]`
-	siaClientVersionPattern := "Sia Client v" + strings.ReplaceAll(build.Version, ".", `\.`)
+	siaClientVersionPattern := "ScPrime Client v" + strings.ReplaceAll(build.Version, ".", `\.`)
 
 	// Define subtests
 	// We can't test siad on default address (port) when test node has
@@ -166,12 +166,12 @@ func getCmdUsage(t *testing.T, cmd *cobra.Command) string {
 
 	// Inject 2 missing rows
 	beforeHelpCommand := "Perform gateway actions"
-	helpCommand := "  help        Help about any command"
+	helpCommand := "  help         Help about any command"
 	nl := `
 `
 	usage = strings.ReplaceAll(usage, beforeHelpCommand, beforeHelpCommand+nl+helpCommand)
 	beforeHelpFlag := "the password for the API's http authentication"
-	helpFlag := `  -h, --help                   help for .*siac(\.test|)`
+	helpFlag := `  -h, --help                       help for .*spc(\.test|)`
 	cmdUsagePattern := strings.ReplaceAll(usage, beforeHelpFlag, beforeHelpFlag+nl+helpFlag)
 
 	return cmdUsagePattern

@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/modules"
-	"gitlab.com/scpcorp/siamux"
 )
 
 // managedRPCLatestRevision handles the RPC that fetches the latest revision for

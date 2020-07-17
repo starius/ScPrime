@@ -609,12 +609,12 @@ func skynetUploadFileFromReader(source io.Reader, filename string, siaPath modul
 	if skykeyName != "" {
 		sup.SkykeyName = skykeyName
 	} else if skykeyID != "" {
-		var ID pubaccesskey.SkykeyID
+		var ID pubaccesskey.PubaccesskeyID
 		err := ID.FromString(skykeyID)
 		if err != nil {
 			die("Unable to parse pubaccesskey ID")
 		}
-		sup.SkykeyID = ID
+		sup.PubaccesskeyID = ID
 	}
 
 	publink, _, err := httpClient.SkynetSkyfilePost(sup)

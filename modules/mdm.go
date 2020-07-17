@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/scpcorp/siamux/mux"
+	"gitlab.com/NebulousLabs/siamux/mux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/types"

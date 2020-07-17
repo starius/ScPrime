@@ -51,7 +51,7 @@ func TestPersist(t *testing.T) {
 		t.Fatalf("Expected filepath %v, was %v", filename, pl.staticAop.FilePath())
 	}
 
-	// There should be no skylinks in the blacklist
+	// There should be no publinks in the blacklist
 	if len(pl.merkleRoots) != 0 {
 		t.Fatal("Expected blacklist to be empty but found:", len(pl.merkleRoots))
 	}
@@ -171,7 +171,7 @@ func TestPersistCorruption(t *testing.T) {
 		t.Fatalf("Expected filepath %v, was %v", filename, pl.staticAop.FilePath())
 	}
 
-	// There should be no skylinks in the blacklist
+	// There should be no publinks in the blacklist
 	if len(pl.merkleRoots) != 0 {
 		t.Fatal("Expected blacklist to be empty but found:", len(pl.merkleRoots))
 	}
