@@ -585,7 +585,10 @@ func (w *worker) externSyncAccountBalanceToHost() {
 			w.renter.log.Critical(fmt.Sprintf("worker has taken more than %v to go idle", accountIdleMaxWait))
 			return
 		}
-		w.renter.tg.Sleep(accountIdleCheckFrequency)
+		awake := w.renter.tg.Sleep(accountIdleCheckFrequency)
+		if !awake {
+			return
+		}
 	}
 	// Do a check to ensure that the worker is still idle after the function is
 	// complete. This should help to catch any situation where the worker is
