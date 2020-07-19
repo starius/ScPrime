@@ -3,10 +3,9 @@ package crypto
 import (
 	"bytes"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/merkletree/merkletree-blake"
-
 	"gitlab.com/scpcorp/ScPrime/build"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 )
 
 const (
@@ -203,6 +202,55 @@ func MerkleSectorRangeProof(roots []Hash, start, end int) []Hash {
 		proofHashes[i] = Hash(proof[i])
 	}
 	return proofHashes
+}
+
+// MerkleMixedRangeProof creates a merkle range proof using both sector hashes
+// and segments.
+func MerkleMixedRangeProof(sectorRoots []Hash, segmentData []byte, sectorSize int, start, end int) []Hash {
+	sectorHashes := make([][32]byte, len(sectorRoots))
+	for i := range sectorHashes {
+		sectorHashes[i] = [32]byte(sectorRoots[i])
+	}
+	ranges := []merkletree.LeafRange{
+		{
+			Start: uint64(start),
+			End:   uint64(end),
+		},
+	}
+	segmentReader := bytes.NewReader(segmentData)
+	segmentsPerSector := sectorSize / SegmentSize
+	msh := merkletree.NewMixedSubtreeHasher(sectorHashes, segmentReader, segmentsPerSector, SegmentSize)
+	proof, err := merkletree.BuildMultiRangeProof(ranges, msh)
+	if err != nil {
+		build.Critical("BuildRangeProof failed", err)
+	}
+	proofHashes := make([]Hash, len(proof))
+	for i := range proofHashes {
+		proofHashes[i] = Hash(proof[i])
+	}
+	return proofHashes
+}
+
+// VerifyMixedRangeProof verifies a mixed proof given the node hashes,
+// downloaded segments, the proof, contract root, number of segments in the
+// contract, sectorSize, a start and an end for the downloaded range.
+func VerifyMixedRangeProof(segmentData []byte, proof []Hash, root Hash, start, end int) bool {
+	proofBytes := make([][32]byte, len(proof))
+	for i := range proof {
+		proofBytes[i] = [32]byte(proof[i])
+	}
+	segmentReader := bytes.NewReader(segmentData)
+
+	ranges := []merkletree.LeafRange{
+		{
+			Start: uint64(start),
+			End:   uint64(end),
+		},
+	}
+
+	lh := merkletree.NewReaderLeafHasher(segmentReader, SegmentSize)
+	ok, _ := merkletree.VerifyMultiRangeProof(lh, ranges, proofBytes, root)
+	return ok
 }
 
 // VerifySectorRangeProof verifies a proof produced by MerkleSectorRangeProof.

@@ -45,7 +45,7 @@ const (
 	// DefaultMaxDuration defines the maximum number of blocks into the future
 	// that the host will accept for the duration of an incoming file contract
 	// obligation. 4 months are chosen as the network is in buildout.
-	DefaultMaxDuration = 144 * 30 * 4 // 4 months.
+	DefaultMaxDuration = 144 * 7 * 18 // 18 weeks is a bit more than 4 months.
 
 )
 
@@ -86,7 +86,8 @@ var (
 	// DefaultBaseRPCPrice is the default price of talking to the host. It is
 	// roughly equal to the default bandwidth cost of exchanging a pair of
 	// 4096-byte messages.
-	// DefaultBaseRPCPrice = types.ScPrimecoinPrecision.Mul64(10).Div64(1e9) // 10 nS
+	// Was DefaultBaseRPCPrice = types.ScPrimecoinPrecision.Mul64(10).Div64(1e9) // 10 nS
+	// defaults to 1/5 of max allowed by default download bandwidth price
 	DefaultBaseRPCPrice = DefaultDownloadBandwidthPrice.Mul64(MaxBaseRPCPriceVsBandwidth).Div64(5)
 
 	// DefaultCollateral defines the amount of money that the host puts up as
@@ -102,7 +103,7 @@ var (
 	// opportunity cost in being a host. Higher Collateral effectively increases
 	// the storage price for renters as it reduces the funding flow to the
 	// storage provider by increasing the SPF contract fee.
-	//DefaultCollateral = types.ScPrimecoinPrecision.Mul64(20).Div(BlockBytesPerMonthTerabyte) // 20 SCP / TB / Month
+	// DefaultCollateral = types.ScPrimecoinPrecision.Mul64(20).Div(BlockBytesPerMonthTerabyte) // 20 SCP / TB / Month
 	DefaultCollateral = DefaultStoragePrice
 
 	// DefaultMaxCollateral defines the maximum amount of collateral that the
@@ -124,6 +125,15 @@ var (
 	// download bandwidth is expected to be plentiful but also in-demand.
 	DefaultDownloadBandwidthPrice = types.ScPrimecoinPrecision.Mul64(2).Div(BytesPerTerabyte) // 2 SCP / TB
 
+	// DefaultEphemeralAccountExpiry defines the default maximum amount of
+	// time an ephemeral account can be inactive before it expires and gets
+	// deleted.
+	DefaultEphemeralAccountExpiry = time.Minute * 60 * 24 * 7 // 1 week
+
+	// DefaultMaxEphemeralAccountBalance defines the default maximum amount of
+	// money that the host will allow to deposit into a single ephemeral account
+	DefaultMaxEphemeralAccountBalance = types.SiacoinPrecision
+
 	// DefaultSectorAccessPrice defines the default price of a sector access. It
 	// is roughly equal to the cost of downloading 64 KiB.
 	// DefaultSectorAccessPrice = defaultDownloadBandwidthPrice.Mul64(MaxSectorAccessPriceVsBandwidth).Div64(2)
@@ -141,6 +151,16 @@ var (
 	// the data, meaning that the host serves to profit from accepting the
 	// data.
 	DefaultUploadBandwidthPrice = types.ScPrimecoinPrecision.Mul64(2).Div(BytesPerTerabyte) // 2 SCP / TB
+
+	// CompatV1412DefaultEphemeralAccountExpiry defines the default account
+	// expiry used up until v1.4.12. This constant is added to ensure changing
+	// the default does not break legacy checks.
+	CompatV1412DefaultEphemeralAccountExpiry = time.Minute * 60 * 24 * 7 // 1 week
+
+	// CompatV1412DefaultMaxEphemeralAccountBalance defines the default maximum
+	// ephemeral account balance used up until v1.4.12. This constant is added
+	// to ensure changing the default does not break legacy checks.
+	CompatV1412DefaultMaxEphemeralAccountBalance = types.SiacoinPrecision
 )
 
 var (
@@ -258,7 +278,7 @@ type (
 		MinStoragePrice           types.Currency `json:"minstorageprice"`
 		MinUploadBandwidthPrice   types.Currency `json:"minuploadbandwidthprice"`
 
-		EphemeralAccountExpiry     uint64         `json:"ephemeralaccountexpiry"`
+		EphemeralAccountExpiry     time.Duration  `json:"ephemeralaccountexpiry"`
 		MaxEphemeralAccountBalance types.Currency `json:"maxephemeralaccountbalance"`
 		MaxEphemeralAccountRisk    types.Currency `json:"maxephemeralaccountrisk"`
 	}
@@ -497,6 +517,9 @@ func DefaultHostExternalSettings() HostExternalSettings {
 		SectorAccessPrice:      DefaultSectorAccessPrice,
 		StoragePrice:           DefaultStoragePrice,
 		UploadBandwidthPrice:   DefaultUploadBandwidthPrice,
+
+		EphemeralAccountExpiry:     DefaultEphemeralAccountExpiry,
+		MaxEphemeralAccountBalance: DefaultMaxEphemeralAccountBalance,
 
 		Version: build.Version,
 	}

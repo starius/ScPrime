@@ -3,10 +3,11 @@ package mdm
 import (
 	"testing"
 
+	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
-
-	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestInstructionReadSector tests executing a program with a single
@@ -19,23 +20,24 @@ func TestInstructionReadSector(t *testing.T) {
 	// Prepare a priceTable.
 	pt := newTestPriceTable()
 	// Prepare storage obligation.
-	so := newTestStorageObligation(true)
-	so.sectorRoots = randomSectorRoots(initialContractSectors)
+	so := host.newTestStorageObligation(true)
+	so.AddRandomSectors(initialContractSectors)
 	root := so.sectorRoots[0]
 	outputData, err := host.ReadSector(root)
 	if err != nil {
 		t.Fatal(err)
 	}
+	duration := types.BlockHeight(fastrand.Uint64n(5))
 	// Use a builder to build the program.
 	readLen := modules.SectorSize
-	tb := newTestProgramBuilder(pt)
+	tb := newTestProgramBuilder(pt, duration)
 	tb.AddReadSectorInstruction(readLen, 0, so.sectorRoots[0], true)
 
 	ics := so.ContractSize()
 	imr := so.MerkleRoot()
 
 	// Execute it.
-	outputs, err := mdm.ExecuteProgramWithBuilder(tb, so, false)
+	outputs, err := mdm.ExecuteProgramWithBuilder(tb, so, duration, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,19 +49,18 @@ func TestInstructionReadSector(t *testing.T) {
 	}
 	sectorData := outputs[0].Output
 
-	// Create a program to read half a sector from the host.
-	offset := modules.SectorSize / 2                     // start in the middle
-	length := fastrand.Uint64n(modules.SectorSize/2) + 1 // up to half a sector
-	if mod := length % crypto.SegmentSize; mod != 0 {    // must be multiple of segmentsize
-		length -= mod
-	}
+	// Create a program to read up to half a sector from the host.
+	offset := modules.SectorSize / 2 // start in the middle
+	// Read up to half a sector.
+	numSegments := fastrand.Uint64n(modules.SectorSize/2/crypto.SegmentSize) + 1
+	length := numSegments * crypto.SegmentSize
 
 	// Use a builder to build the program.
-	tb = newTestProgramBuilder(pt)
-	tb.AddReadSectorInstruction(length, offset, so.sectorRoots[0], true)
+	tb = newTestProgramBuilder(pt, duration)
+	tb.AddReadSectorInstruction(length, offset, root, true)
 
 	// Execute it.
-	outputs, err = mdm.ExecuteProgramWithBuilder(tb, so, false)
+	outputs, err = mdm.ExecuteProgramWithBuilder(tb, so, duration, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,6 +73,12 @@ func TestInstructionReadSector(t *testing.T) {
 	err = outputs[0].assert(ics, imr, proof, outputData)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// Verify proof.
+	ok := crypto.VerifyRangeProof(outputs[0].Output, outputs[0].Proof, proofStart, proofEnd, root)
+	if !ok {
+		t.Fatal("failed to verify proof")
 	}
 }
 
@@ -91,17 +98,18 @@ func TestInstructionReadOutsideSector(t *testing.T) {
 
 	// Create a program to read a full sector from the host.
 	pt := newTestPriceTable()
+	duration := types.BlockHeight(fastrand.Uint64n(5))
 	readLen := modules.SectorSize
 
 	// Execute it.
-	so := newTestStorageObligation(true)
+	so := host.newTestStorageObligation(true)
 	// Use a builder to build the program.
-	tb := newTestProgramBuilder(pt)
+	tb := newTestProgramBuilder(pt, duration)
 	tb.AddReadSectorInstruction(readLen, 0, sectorRoot, true)
 	imr := crypto.Hash{}
 
 	// Execute it.
-	outputs, err := mdm.ExecuteProgramWithBuilder(tb, so, false)
+	outputs, err := mdm.ExecuteProgramWithBuilder(tb, so, duration, false)
 	if err != nil {
 		t.Fatal(err)
 	}

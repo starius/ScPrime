@@ -8,12 +8,12 @@ import (
 
 	"github.com/aead/chacha20/chacha"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
@@ -21,11 +21,18 @@ const (
 	// SkykeyScheme is the URI scheme for encoded pubaccesskeys.
 	SkykeyScheme = "pubaccesskey"
 
-	// SkykeyIDLen is the length of a SkykeyID
+	// SkykeyIDLen is the length of a PubaccesskeyID
 	SkykeyIDLen = 16
 
 	// MaxKeyNameLen is the maximum length of a pubaccesskey's name.
 	MaxKeyNameLen = 128
+
+	// maxEntropyLen is used in unmarshalDataOnly as a cap for the entropy. It
+	// should only ever go up between releases. The cap prevents over-allocating
+	// when reading the length of a deleted pubaccesskey.
+	// It must be at most MaxKeyNameLen plus the max entropy size for any
+	// cipher-type.
+	maxEntropyLen = 256
 
 	// Define SkykeyTypes. Constants stated explicitly (instead of
 	// `SkykeyType(iota)`) to avoid re-ordering mistakes in the future.
@@ -41,25 +48,36 @@ const (
 	// reveal its pubaccesskey ID when encrypting Skyfiles. Instead, it marks the pubaccesskey
 	// used for encryption by storing an encrypted identifier that can only be
 	// successfully decrypted with the correct pubaccesskey.
-	// TODO: add along with skyfile implementation TypePrivateID = SkykeyType(0x02)
+	TypePrivateID = SkykeyType(0x02)
+
+	// typeDeletedSkykey is used internally to mark a key as deleted in the pubaccesskey
+	// manager. It is different from TypeInvalid because TypeInvalid can be used
+	// to catch other kinds of errors, i.e. accidentally using a Pubaccesskey{} with
+	// unset fields will cause an invalid-related error.
+	typeDeletedSkykey = SkykeyType(0xFF)
 )
 
 var (
 	// SkykeySpecifier is used as a prefix when hashing Pubaccesskeys to compute their
 	// ID.
-	SkykeySpecifier = types.NewSpecifier("Pubaccesskey")
+	SkykeySpecifier               = types.NewSpecifier("Pubaccesskey")
+	skyfileEncryptionIDSpecifier  = types.NewSpecifier("PubfileEncID")
+	skyfileEncryptionIDDerivation = types.NewSpecifier("PFEncIDDerivPath")
 
-	errUnsupportedSkykeyType          = errors.New("Unsupported Pubaccesskey type")
-	errUnmarshalDataErr               = errors.New("Unable to unmarshal Pubaccesskey data")
-	errCannotMarshalTypeInvalidSkykey = errors.New("Cannot marshal or unmarshal Pubaccesskey of TypeInvalid type")
-	errInvalidEntropyLength           = errors.New("Invalid pubaccesskey entropy length")
+	errUnsupportedSkykeyType            = errors.New("Unsupported Pubaccesskey type")
+	errUnmarshalDataErr                 = errors.New("Unable to unmarshal Pubaccesskey data")
+	errCannotMarshalTypeInvalidSkykey   = errors.New("Cannot marshal or unmarshal Pubaccesskey of TypeInvalid type")
+	errInvalidEntropyLength             = errors.New("Invalid pubaccesskey entropy length")
+	errSkykeyTypeDoesNotSupportFunction = errors.New("Operation not supported by this PubaccesskeyType")
+
+	errInvalidIDorNonceLength = errors.New("Invalid length for encryptionID or nonce in MatchesPubfileEncryptionID")
 
 	// ErrInvalidSkykeyType is returned when an invalid SkykeyType is being used.
 	ErrInvalidSkykeyType = errors.New("Invalid pubaccesskey type")
 )
 
-// SkykeyID is the identifier of a pubaccesskey.
-type SkykeyID [SkykeyIDLen]byte
+// PubaccesskeyID is the identifier of a pubaccesskey.
+type PubaccesskeyID [SkykeyIDLen]byte
 
 // SkykeyType encodes the encryption scheme and method used by the Pubaccesskey.
 type SkykeyType byte
@@ -85,7 +103,8 @@ func (t SkykeyType) ToString() string {
 	switch t {
 	case TypePublicID:
 		return "public-id"
-
+	case TypePrivateID:
+		return "private-id"
 	default:
 		return "invalid"
 	}
@@ -96,6 +115,8 @@ func (t *SkykeyType) FromString(s string) error {
 	switch s {
 	case "public-id":
 		*t = TypePublicID
+	case "private-id":
+		*t = TypePrivateID
 	default:
 		return ErrInvalidSkykeyType
 	}
@@ -180,7 +201,7 @@ func (sk *Pubaccesskey) unmarshalAndConvertFromOldFormat(r io.Reader) error {
 // CipherType returns the crypto.CipherType used by this Pubaccesskey.
 func (t SkykeyType) CipherType() crypto.CipherType {
 	switch t {
-	case TypePublicID:
+	case TypePublicID, TypePrivateID:
 		return crypto.TypeXChaCha20
 	default:
 		return crypto.TypeInvalid
@@ -198,12 +219,18 @@ func (sk *Pubaccesskey) unmarshalDataOnly(r io.Reader) error {
 	typeByte, _ := d.ReadByte()
 	sk.Type = SkykeyType(typeByte)
 
-	var entropyLen int
+	var entropyLen uint64
 	switch sk.Type {
-	case TypePublicID:
+	case TypePublicID, TypePrivateID:
 		entropyLen = chacha.KeySize + chacha.XNonceSize
 	case TypeInvalid:
 		return errCannotMarshalTypeInvalidSkykey
+	case typeDeletedSkykey:
+		entropyLen = d.NextUint64()
+		// Avoid panicking due to overallocation.
+		if entropyLen > maxEntropyLen {
+			return errInvalidEntropyLength
+		}
 	default:
 		return errUnsupportedSkykeyType
 	}
@@ -222,9 +249,13 @@ func (sk *Pubaccesskey) unmarshalSia(r io.Reader) error {
 	if err != nil {
 		return errors.Compose(errUnmarshalDataErr, err)
 	}
+
+	if sk.Type == typeDeletedSkykey {
+		return nil
+	}
+
 	d := encoding.NewDecoder(r, encoding.DefaultAllocLimit)
 	d.Decode(&sk.Name)
-
 	if err := d.Err(); err != nil {
 		return err
 	}
@@ -238,7 +269,7 @@ func (sk Pubaccesskey) marshalDataOnly(w io.Writer) error {
 
 	var entropyLen int
 	switch sk.Type {
-	case TypePublicID:
+	case TypePublicID, TypePrivateID:
 		entropyLen = chacha.KeySize + chacha.XNonceSize
 	case TypeInvalid:
 		return errCannotMarshalTypeInvalidSkykey
@@ -328,13 +359,13 @@ func (sk *Pubaccesskey) FromString(s string) error {
 // pubaccesskeys derived from it share the same ID because they only differ in nonce
 // values, not key values. This fact is used to identify the master Pubaccesskey
 // with which a Pubaccess file was encrypted.
-func (sk Pubaccesskey) ID() (keyID SkykeyID) {
+func (sk Pubaccesskey) ID() (keyID PubaccesskeyID) {
 	entropy := sk.Entropy
 
 	switch sk.Type {
 	// Ignore the nonce for this type because the nonce is different for each
 	// file-specific subkey.
-	case TypePublicID:
+	case TypePublicID, TypePrivateID:
 		entropy = sk.Entropy[:chacha.KeySize]
 
 	default:
@@ -346,13 +377,13 @@ func (sk Pubaccesskey) ID() (keyID SkykeyID) {
 	return keyID
 }
 
-// ToString encodes the SkykeyID as a base64 string.
-func (id SkykeyID) ToString() string {
+// ToString encodes the PubaccesskeyID as a base64 string.
+func (id PubaccesskeyID) ToString() string {
 	return base64.URLEncoding.EncodeToString(id[:])
 }
 
 // FromString decodes the base64 string into a Pubaccesskey ID.
-func (id *SkykeyID) FromString(s string) error {
+func (id *PubaccesskeyID) FromString(s string) error {
 	idBytes, err := base64.URLEncoding.DecodeString(s)
 	if err != nil {
 		return err
@@ -418,6 +449,74 @@ func (sk *Pubaccesskey) SubkeyWithNonce(nonce []byte) (Pubaccesskey, error) {
 	return subkey, nil
 }
 
+// GenerateSkyfileEncryptionID creates an encrypted identifier that is used for
+// PrivateID encrypted files.
+// NOTE: This method MUST only be called using a FileSpecificSkykey.
+func (sk *Pubaccesskey) GenerateSkyfileEncryptionID() ([SkykeyIDLen]byte, error) {
+	if sk.Type != TypePrivateID {
+		return [SkykeyIDLen]byte{}, errSkykeyTypeDoesNotSupportFunction
+	}
+	if SkykeyIDLen != types.SpecifierLen {
+		build.Critical("PubaccesskeyID and Specifier expected to have same size")
+	}
+
+	encIDSkykey, err := sk.DeriveSubkey(skyfileEncryptionIDDerivation[:])
+	if err != nil {
+		return [SkykeyIDLen]byte{}, err
+	}
+
+	// Get a CipherKey to encrypt the encryption specifer.
+	ck, err := encIDSkykey.CipherKey()
+	if err != nil {
+		return [SkykeyIDLen]byte{}, err
+	}
+
+	// Encrypt the specifier.
+	var skyfileID [SkykeyIDLen]byte
+	copy(skyfileID[:], skyfileEncryptionIDSpecifier[:])
+	_, err = ck.DecryptBytesInPlace(skyfileID[:], 0)
+	if err != nil {
+		return [SkykeyIDLen]byte{}, err
+	}
+	return skyfileID, nil
+}
+
+// MatchesSkyfileEncryptionID returns true if and only if the pubaccesskey was the one
+// used with this nonce to create the encryptionID.
+func (sk *Pubaccesskey) MatchesSkyfileEncryptionID(encryptionID, nonce []byte) (bool, error) {
+	if len(encryptionID) != SkykeyIDLen || len(nonce) != chacha.XNonceSize {
+		return false, errInvalidIDorNonceLength
+	}
+	// This only applies to TypePrivateID keys.
+	if sk.Type != TypePrivateID {
+		return false, nil
+	}
+
+	// Create the subkey for the encryption ID.
+	fileSkykey, err := sk.SubkeyWithNonce(nonce)
+	if err != nil {
+		return false, err
+	}
+	encIDSkykey, err := fileSkykey.DeriveSubkey(skyfileEncryptionIDDerivation[:])
+	if err != nil {
+		return false, err
+	}
+
+	// Decrypt the identifier and check that it.
+	ck, err := encIDSkykey.CipherKey()
+	if err != nil {
+		return false, err
+	}
+	plaintextBytes, err := ck.DecryptBytes(encryptionID[:])
+	if err != nil {
+		return false, err
+	}
+	if bytes.Equal(plaintextBytes, skyfileEncryptionIDSpecifier[:]) {
+		return true, nil
+	}
+	return false, nil
+}
+
 // CipherKey returns the crypto.CipherKey equivalent of this Pubaccesskey.
 func (sk *Pubaccesskey) CipherKey() (crypto.CipherKey, error) {
 	return crypto.NewSiaKey(sk.CipherType(), sk.Entropy)
@@ -437,7 +536,7 @@ func (sk *Pubaccesskey) IsValid() error {
 	}
 
 	switch sk.Type {
-	case TypePublicID:
+	case TypePublicID, TypePrivateID:
 		if len(sk.Entropy) != chacha.KeySize+chacha.XNonceSize {
 			return errInvalidEntropyLength
 		}

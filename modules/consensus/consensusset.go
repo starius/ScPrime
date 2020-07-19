@@ -10,12 +10,12 @@ import (
 	"errors"
 
 	"gitlab.com/NebulousLabs/demotemutex"
+	"gitlab.com/NebulousLabs/encoding"
+	"gitlab.com/NebulousLabs/threadgroup"
 	bolt "go.etcd.io/bbolt"
 
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
-	siasync "gitlab.com/scpcorp/ScPrime/sync"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
@@ -92,7 +92,7 @@ type ConsensusSet struct {
 	log        *persist.Logger
 	mu         demotemutex.DemoteMutex
 	persistDir string
-	tg         siasync.ThreadGroup
+	tg         threadgroup.ThreadGroup
 }
 
 // consensusSetBlockingStartup handles the blocking portion of NewCustomConsensusSet.
@@ -173,12 +173,16 @@ func consensusSetAsyncStartup(cs *ConsensusSet, bootstrap bool) error {
 	cs.gateway.RegisterRPC("RelayHeader", cs.threadedRPCRelayHeader)
 	cs.gateway.RegisterRPC("SendBlk", cs.rpcSendBlk)
 	cs.gateway.RegisterConnectCall("SendBlocks", cs.threadedReceiveBlocks)
-	cs.tg.OnStop(func() {
+	err := cs.tg.OnStop(func() error {
 		cs.gateway.UnregisterRPC("SendBlocks")
 		cs.gateway.UnregisterRPC("RelayHeader")
 		cs.gateway.UnregisterRPC("SendBlk")
 		cs.gateway.UnregisterConnectCall("SendBlocks")
+		return nil
 	})
+	if err != nil {
+		return err
+	}
 
 	// Mark that we are synced with the network.
 	cs.mu.Lock()
@@ -318,12 +322,6 @@ func (cs *ConsensusSet) CurrentBlock() (block types.Block) {
 		return nil
 	})
 	return block
-}
-
-// Flush will block until the consensus set has finished all in-progress
-// routines.
-func (cs *ConsensusSet) Flush() error {
-	return cs.tg.Flush()
 }
 
 // SiafundClaim returns claim by SiafundOutput taking hardfork into account.

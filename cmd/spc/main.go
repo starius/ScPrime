@@ -17,62 +17,83 @@ import (
 )
 
 var (
-	// Flags.
-	dictionaryLanguage        string // dictionary for seed utils
-	uploadedsizeUtilVerbose   bool   // display additional info for "utils upload-size"
-	hostContractOutputType    string // output type for host contracts
-	hostVerbose               bool   // display additional host info
-	hostFolderRemoveForce     bool   // force folder remove
-	initForce                 bool   // destroy and re-encrypt the wallet on init if it already exists
-	initPassword              bool   // supply a custom password when creating a wallet
+	// General Flags
+	dataDir       string // Path to daemon metadata data dir
+	statusVerbose bool   // Display additional siac information
+
+	// Module Specific Flags
+	//
+	// FeeManager Flags
+	feeManagerVerbose bool // display additional info for the FeeManager
+
+	// Host Flags
+	hostContractOutputType string // output type for host contracts
+	hostFolderRemoveForce  bool   // force folder remove
+	hostVerbose            bool   // display additional host info
+
+	// Renter Flags
+	dataPieces                string // the number of data pieces a file should be uploaded with
+	parityPieces              string // the number of parity pieces a file should be uploaded with
 	renterAllContracts        bool   // Show all active and expired contracts
-	renterDeleteRoot          bool   // Delete path start from root instead of the user homedir.
+	renterDeleteRoot          bool   // Delete path start from root instead of the UserFolder.
 	renterDownloadAsync       bool   // Downloads files asynchronously
 	renterDownloadRecursive   bool   // Downloads folders recursively.
 	renterFuseMountAllowOther bool   // Mount fuse with 'AllowOther' set to true.
-	renterListVerbose         bool   // Show additional info about uploaded files.
 	renterListRecursive       bool   // List files of folder recursively.
-	renterListRoot            bool   // List path start from root instead of the user homedir.
-	renterRenameRoot          bool   // Rename files relative to root instead of the user homedir.
+	renterListRoot            bool   // List path start from root instead of the UserFolder.
+	renterListVerbose         bool   // Show additional info about uploaded files.
+	renterRenameRoot          bool   // Rename files relative to root instead of the UserFolder.
 	renterShowHistory         bool   // Show download history in addition to download queue.
 	renterVerbose             bool   // Show additional info about the renter
-	dataDir                   string // Path to daemon metadata data dir
-	skykeyName                string // Name used to identify a Pubaccesskey.
-	skykeyShowPrivateKeys     bool   // Set to true to show private key data.
-	skykeyID                  string // ID used to identify a Pubaccesskey.
-	skykeyRenameAs            string // Optional parameter to rename a Pubaccesskey while adding it.
-	skynetBlacklistRemove     bool   // Remove a publink from the Pubaccess Blacklist.
-	skynetUnpinRoot           bool   // Use root as the base instead of the Pubaccess folder.
-	skynetDownloadPortal      string // Portal to use when trying to download a publink.
-	skynetLsRecursive         bool   // List files of folder recursively.
-	skynetLsRoot              bool   // Use root as the base instead of the Pubaccess folder.
-	skynetUploadRoot          bool   // Use root as the base instead of the Pubaccess folder.
-	skynetUploadDryRun        bool   // Perform a dry-run of the upload. This returns the publink without actually uploading the file to the network.
-	skynetUploadSilent        bool   // Don't report progress while uploading
-	statusVerbose             bool   // Display additional spc information
-	walletRawTxn              bool   // Encode/decode transactions in base64-encoded binary.
-	walletStartHeight         uint64 // Start height for transaction search.
-	walletEndHeight           uint64 // End height for transaction search.
-	walletTxnFeeIncluded      bool   // include the fee in the balance being sent
 
-	dataPieces   string // the number of data pieces a files should be uploaded with
-	parityPieces string // the number of parity pieces a files should be uploaded with
+	// Renter Allowance Flags
+	allowanceFunds       string // amount of money to be used within a period
+	allowanceHosts       string // number of hosts to form contracts with
+	allowancePeriod      string // length of period
+	allowanceRenewWindow string // renew window of allowance
 
-	allowanceFunds                         string // amount of money to be used within a period
-	allowancePeriod                        string // length of period
-	allowanceHosts                         string // number of hosts to form contracts with
-	allowanceRenewWindow                   string // renew window of allowance
 	allowancePaymentContractInitialFunding string // initial price to pay to create a payment contract
-	allowanceExpectedStorage               string // expected storage stored on hosts before redundancy
-	allowanceExpectedUpload                string // expected data uploaded within period
-	allowanceExpectedDownload              string // expected data downloaded within period
-	allowanceExpectedRedundancy            string // expected redundancy of most uploaded files
-	allowanceMaxRPCPrice                   string // maximum allowed base price for RPCs
-	allowanceMaxContractPrice              string // maximum allowed price to form a contract
-	allowanceMaxDownloadBandwidthPrice     string // max allowed price to download data from a host
-	allowanceMaxSectorAccessPrice          string // max allowed price to access a sector on a host
-	allowanceMaxStoragePrice               string // max allowed price to store data on a host
-	allowanceMaxUploadBandwidthPrice       string // max allowed price to upload data to a host
+
+	allowanceExpectedDownload   string // expected data downloaded within period
+	allowanceExpectedRedundancy string // expected redundancy of most uploaded files
+	allowanceExpectedStorage    string // expected storage stored on hosts before redundancy
+	allowanceExpectedUpload     string // expected data uploaded within period
+
+	allowanceMaxContractPrice          string // maximum allowed price to form a contract
+	allowanceMaxDownloadBandwidthPrice string // max allowed price to download data from a host
+	allowanceMaxRPCPrice               string // maximum allowed base price for RPCs
+	allowanceMaxSectorAccessPrice      string // max allowed price to access a sector on a host
+	allowanceMaxStoragePrice           string // max allowed price to store data on a host
+	allowanceMaxUploadBandwidthPrice   string // max allowed price to upload data to a host
+
+	// Pubaccesskey Flags
+	skykeyID              string // ID used to identify a Pubaccesskey.
+	skykeyName            string // Name used to identify a Pubaccesskey.
+	skykeyRenameAs        string // Optional parameter to rename a Pubaccesskey while adding it.
+	skykeyShowPrivateKeys bool   // Set to true to show private key data.
+	skykeyType            string // Type used to create a new Pubaccesskey.
+
+	// Public access Flags
+	skynetBlacklistRemove bool   // Remove a publink from the Public access Blacklist.
+	skynetDownloadPortal  string // Portal to use when trying to download a publink.
+	skynetLsRecursive     bool   // List files of folder recursively.
+	skynetLsRoot          bool   // Use root as the base instead of the Public access folder.
+	skynetUnpinRoot       bool   // Use root as the base instead of the Public access folder.
+	skynetUploadDryRun    bool   // Perform a dry-run of the upload. This returns the publink without actually uploading the file to the network.
+	skynetUploadRoot      bool   // Use root as the base instead of the Public access folder.
+	skynetUploadSilent    bool   // Don't report progress while uploading
+
+	// Utils Flags
+	dictionaryLanguage      string // dictionary for seed utils
+	uploadedsizeUtilVerbose bool   // display additional info for "utils upload-size"
+
+	// Wallet Flags
+	initForce            bool   // destroy and re-encrypt the wallet on init if it already exists
+	initPassword         bool   // supply a custom password when creating a wallet
+	walletRawTxn         bool   // Encode/decode transactions in base64-encoded binary.
+	walletStartHeight    uint64 // Start height for transaction search.
+	walletEndHeight      uint64 // End height for transaction search.
+	walletTxnFeeIncluded bool   // include the fee in the balance being sent
 )
 
 var (
@@ -115,10 +136,17 @@ func wrap(fn interface{}) func(*cobra.Command, []string) {
 	}
 }
 
-// die prints its arguments to stderr, then exits the program with the default
-// error code.
+// die prints its arguments to stderr, in production exits the program with the
+// default error code, during tests it passes panic so that tests can catch the
+// panic and check printed errors
 func die(args ...interface{}) {
 	fmt.Fprintln(os.Stderr, args...)
+
+	if build.Release == "testing" {
+		// In testing pass panic that can be catched and the test can continue
+		panic(errors.New("die panic for testing"))
+	}
+	// In production exit
 	os.Exit(exitCodeGeneral)
 }
 
@@ -152,7 +180,7 @@ func statuscmd() {
 		die("Could not get wallet status:", err)
 	} else if walletStatus.Unlocked {
 		fmt.Printf(`Wallet:
-  Status:    unlocked
+  Status:              unlocked
   Scprimecoin Balance: %v
 
 `, currencyUnits(walletStatus.ConfirmedSiacoinBalance))
@@ -224,6 +252,41 @@ func rateLimitSummary(download, upload int64) {
 }
 
 func main() {
+	// initialize commands
+	rootCmd = initCmds()
+
+	// initialize client
+	initClient(rootCmd, &statusVerbose, &httpClient, &dataDir)
+
+	// set API password if it was not set
+	setAPIPasswordIfNotSet()
+
+	// Check if the dataDir is set.
+	if dataDir == "" {
+		// No dataDir passed in, use default
+		dataDir = build.SiaDir()
+	}
+
+	// Check for Critical Alerts
+	alerts, err := httpClient.DaemonAlertsGet()
+	if err == nil && len(alerts.CriticalAlerts) > 0 {
+		printAlerts(alerts.CriticalAlerts, modules.SeverityCritical)
+		fmt.Println("------------------")
+		fmt.Printf("\n  The above %v critical alerts should be resolved ASAP\n\n", len(alerts.CriticalAlerts))
+	}
+
+	// run
+	if err := rootCmd.Execute(); err != nil {
+		// Since no commands return errors (all commands set Command.Run instead of
+		// Command.RunE), Command.Execute() should only return an error on an
+		// invalid command or flag. Therefore Command.Usage() was called (assuming
+		// Command.SilenceUsage is false) and we should exit with exitCodeUsage.
+		os.Exit(exitCodeUsage)
+	}
+}
+
+// initCmds initializes root command and its subcommands
+func initCmds() *cobra.Command {
 	root := &cobra.Command{
 		Use:   os.Args[0],
 		Short: "ScPrime Client v" + build.Version,
@@ -232,10 +295,15 @@ func main() {
 	}
 
 	// create command tree (alphabetized by root command)
-	rootCmd = root
-
 	root.AddCommand(consensusCmd)
 	consensusCmd.Flags().BoolVarP(&consensusCmdVerbose, "verbose", "v", false, "Display full consensus information")
+
+	// Add feemanager commands
+	root.AddCommand(feeManagerCmd)
+	feeManagerCmd.AddCommand(feeManagerCancelFeeCmd)
+
+	// Add flags to FeeManager commands
+	feeManagerCmd.Flags().BoolVarP(&feeManagerVerbose, "verbose", "v", false, "Show additional FeeManager info such as paid fees")
 
 	root.AddCommand(gatewayCmd)
 	gatewayCmd.AddCommand(gatewayAddressCmd, gatewayBandwidthCmd, gatewayBlacklistCmd, gatewayConnectCmd, gatewayDisconnectCmd, gatewayListCmd, gatewayRatelimitCmd)
@@ -267,6 +335,7 @@ func main() {
 		renterFilesListCmd, renterFilesRenameCmd, renterFilesUnstuckCmd, renterFilesUploadCmd,
 		renterFuseCmd, renterPricesCmd, renterRatelimitCmd, renterSetAllowanceCmd, renterSetIPRestrictionCmd,
 		renterSetLocalPathCmd, renterTriggerContractRecoveryScanCmd, renterUploadsCmd, renterWorkersCmd)
+	renterWorkersCmd.AddCommand(renterWorkersAccountsCmd, renterWorkersPriceTableCmd, renterWorkersReadJobsCmd, renterWorkersHasSectorJobSCmd)
 
 	renterAllowanceCmd.AddCommand(renterAllowanceCancelCmd)
 	renterContractsCmd.AddCommand(renterContractsViewCmd)
@@ -320,8 +389,9 @@ func main() {
 
 	root.AddCommand(skykeyCmd)
 	skykeyCmd.AddCommand(skykeyCreateCmd, skykeyAddCmd, skykeyGetCmd, skykeyGetIDCmd, skykeyListCmd)
-	skykeyAddCmd.Flags().StringVar(&skykeyRenameAs, "rename-as", "", "The new name for the public access key being added")
-	skykeyGetCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the public access key")
+	skykeyAddCmd.Flags().StringVar(&skykeyRenameAs, "rename-as", "", "The new name for the pubaccesskey being added")
+	skykeyCreateCmd.Flags().StringVar(&skykeyType, "type", "", "The type of the pubaccesskey")
+	skykeyGetCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the pubaccesskey")
 	skykeyGetCmd.Flags().StringVar(&skykeyID, "id", "", "The base-64 encoded pubaccesskey ID")
 	skykeyListCmd.Flags().BoolVar(&skykeyShowPrivateKeys, "show-priv-keys", false, "Show private key data.")
 
@@ -357,13 +427,20 @@ func main() {
 	walletTransactionsCmd.Flags().Uint64Var(&walletStartHeight, "startheight", 0, " Height of the block where transaction history should begin.")
 	walletTransactionsCmd.Flags().Uint64Var(&walletEndHeight, "endheight", math.MaxUint64, " Height of the block where transaction history should end.")
 
-	// initialize client
-	root.Flags().BoolVarP(&statusVerbose, "verbose", "v", false, "Display additional spc information")
-	root.PersistentFlags().StringVarP(&httpClient.Address, "addr", "a", "localhost:4280", "which host/port to communicate with (i.e. the host/port spd is listening on)")
-	root.PersistentFlags().StringVarP(&httpClient.Password, "apipassword", "", "", "the password for the API's http authentication")
-	root.PersistentFlags().StringVarP(&dataDir, "scprime-directory", "d", build.SiaDir(), "location of the metadata directory")
-	root.PersistentFlags().StringVarP(&httpClient.UserAgent, "useragent", "", "ScPrime-Agent", "the useragent used by spc to connect to the daemon's API")
+	return root
+}
 
+// initClient initializes client cmd flags and default values
+func initClient(root *cobra.Command, verbose *bool, client *client.Client, dataDir *string) {
+	root.Flags().BoolVarP(verbose, "verbose", "v", false, "Display additional spc information")
+	root.PersistentFlags().StringVarP(&client.Address, "addr", "a", "localhost:4280", "which host/port to communicate with (i.e. the host/port spd is listening on)")
+	root.PersistentFlags().StringVarP(&client.Password, "apipassword", "", "", "the password for the API's http authentication")
+	root.PersistentFlags().StringVarP(dataDir, "scprime-directory", "d", "", "location of the scprime daemon metadata directory")
+	root.PersistentFlags().StringVarP(&client.UserAgent, "useragent", "", "ScPrime-Agent", "the useragent used by spc to connect to the daemon's API")
+}
+
+// setAPIPasswordIfNotSet sets API password if it was not set
+func setAPIPasswordIfNotSet() {
 	// Check if the API Password is set
 	if httpClient.Password == "" {
 		// No password passed in, fetch the API Password
@@ -373,28 +450,5 @@ func main() {
 			os.Exit(exitCodeGeneral)
 		}
 		httpClient.Password = pw
-	}
-
-	// Check if the dataDir is set.
-	if dataDir == "" {
-		// No dataDir passed in, fetch the dataDir
-		dataDir = build.SiaDir()
-	}
-
-	// Check for Critical Alerts
-	alerts, err := httpClient.DaemonAlertsGet()
-	if err == nil && len(alerts.CriticalAlerts) > 0 {
-		printAlerts(alerts.CriticalAlerts, modules.SeverityCritical)
-		fmt.Println("------------------")
-		fmt.Printf("\n  The above %v critical alerts should be resolved ASAP\n\n", len(alerts.CriticalAlerts))
-	}
-
-	// run
-	if err := root.Execute(); err != nil {
-		// Since no commands return errors (all commands set Command.Run instead of
-		// Command.RunE), Command.Execute() should only return an error on an
-		// invalid command or flag. Therefore Command.Usage() was called (assuming
-		// Command.SilenceUsage is false) and we should exit with exitCodeUsage.
-		os.Exit(exitCodeUsage)
 	}
 }

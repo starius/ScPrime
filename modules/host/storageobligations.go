@@ -36,12 +36,12 @@ import (
 	"strconv"
 	"time"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/wallet"
 	"gitlab.com/scpcorp/ScPrime/types"
@@ -210,10 +210,11 @@ func (h *Host) managedGetStorageObligationSnapshot(id types.FileContractID) (Sto
 		return StorageObligationSnapshot{}, err
 	}
 	return StorageObligationSnapshot{
-		staticContractSize:        so.fileSize(),
-		staticMerkleRoot:          so.merkleRoot(),
-		staticRemainingCollateral: rev.MissedHostPayout(),
-		staticSectorRoots:         so.SectorRoots,
+		staticContractSize:   so.fileSize(),
+		staticMerkleRoot:     so.merkleRoot(),
+		staticProofDeadline:  so.proofDeadline(),
+		staticRecentRevision: rev,
+		staticSectorRoots:    so.SectorRoots,
 	}, nil
 }
 
@@ -248,20 +249,25 @@ func putStorageObligation(tx *bolt.Tx, so storageObligation) error {
 // snapshot only contains the properties required by the MDM to execute a
 // program. This can be extended in the future to support other use cases.
 type StorageObligationSnapshot struct {
-	staticContractSize        uint64
-	staticMerkleRoot          crypto.Hash
-	staticRemainingCollateral types.Currency
-	staticSectorRoots         []crypto.Hash
+	staticContractSize   uint64
+	staticMerkleRoot     crypto.Hash
+	staticProofDeadline  types.BlockHeight
+	staticRecentRevision types.FileContractRevision
+	staticSectorRoots    []crypto.Hash
 }
 
 // ZeroStorageObligationSnapshot returns the storage obligation snapshot of an
 // empty contract. All fields are set to the defaults.
 func ZeroStorageObligationSnapshot() StorageObligationSnapshot {
 	return StorageObligationSnapshot{
-		staticContractSize:        0,
-		staticMerkleRoot:          crypto.Hash{},
-		staticRemainingCollateral: types.ZeroCurrency,
-		staticSectorRoots:         []crypto.Hash{},
+		staticContractSize:  0,
+		staticMerkleRoot:    crypto.Hash{},
+		staticProofDeadline: types.BlockHeight(0),
+		staticSectorRoots:   []crypto.Hash{},
+		staticRecentRevision: types.FileContractRevision{
+			NewValidProofOutputs:  make([]types.SiacoinOutput, 2),
+			NewMissedProofOutputs: make([]types.SiacoinOutput, 3),
+		},
 	}
 }
 
@@ -271,10 +277,21 @@ func (sos StorageObligationSnapshot) ContractSize() uint64 {
 	return sos.staticContractSize
 }
 
+// ProofDeadline returns the proof deadline of the underlying contract.
+func (sos StorageObligationSnapshot) ProofDeadline() types.BlockHeight {
+	return sos.staticProofDeadline
+}
+
 // MerkleRoot returns the merkle root, which is static and is the value of the
 // merkle root at the time the snapshot was taken.
 func (sos StorageObligationSnapshot) MerkleRoot() crypto.Hash {
 	return sos.staticMerkleRoot
+}
+
+// RecentRevision returns the recent revision at the time the snapshot was
+// taken.
+func (sos StorageObligationSnapshot) RecentRevision() types.FileContractRevision {
+	return sos.staticRecentRevision
 }
 
 // SectorRoots returns a static list of the sector roots present at the time the
@@ -287,7 +304,7 @@ func (sos StorageObligationSnapshot) SectorRoots() []crypto.Hash {
 // that hasn't been allocated yet. This means it is not yet moved to the void in
 // case of a missed storage proof.
 func (sos StorageObligationSnapshot) UnallocatedCollateral() types.Currency {
-	return sos.staticRemainingCollateral
+	return sos.staticRecentRevision.MissedHostPayout()
 }
 
 // Update will take a list of sector changes and update the database to account
@@ -584,15 +601,16 @@ func (h *Host) managedAddStorageObligation(so storageObligation, renewal bool) e
 
 	// Update the host financial metrics with regards to this storage
 	// obligation.
+
 	h.financialMetrics.ContractCount++
 	h.financialMetrics.PotentialContractCompensation = h.financialMetrics.PotentialContractCompensation.Add(so.ContractCost)
 	h.financialMetrics.LockedStorageCollateral = h.financialMetrics.LockedStorageCollateral.Add(so.LockedCollateral)
 	h.financialMetrics.PotentialStorageRevenue = h.financialMetrics.PotentialStorageRevenue.Add(so.PotentialStorageRevenue)
+	h.financialMetrics.PotentialAccountFunding = h.financialMetrics.PotentialAccountFunding.Add(so.PotentialAccountFunding)
 	h.financialMetrics.PotentialDownloadBandwidthRevenue = h.financialMetrics.PotentialDownloadBandwidthRevenue.Add(so.PotentialDownloadRevenue)
 	h.financialMetrics.PotentialUploadBandwidthRevenue = h.financialMetrics.PotentialUploadBandwidthRevenue.Add(so.PotentialUploadRevenue)
 	h.financialMetrics.RiskedStorageCollateral = h.financialMetrics.RiskedStorageCollateral.Add(so.RiskedCollateral)
 	h.financialMetrics.TransactionFeeExpenses = h.financialMetrics.TransactionFeeExpenses.Add(so.TransactionFeesAdded)
-	h.financialMetrics.PotentialAccountFunding = h.financialMetrics.PotentialAccountFunding.Add(so.PotentialAccountFunding)
 	// The file contract was already submitted to the blockchain, need to check
 	// after the resubmission timeout that it was submitted successfully.
 	err1 := h.queueActionItem(h.blockHeight+resubmissionTimeout, soid)

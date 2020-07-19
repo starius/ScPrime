@@ -1166,7 +1166,7 @@ func TestLowAllowanceAlert(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	// Create a group for testing
 	groupParams := siatest.GroupParams{
@@ -1186,9 +1186,9 @@ func TestLowAllowanceAlert(t *testing.T) {
 	// Add a renter which won't be able to renew a contract due to low funds.
 	renterParams := node.Renter(filepath.Join(testDir, "renter_renew"))
 	renterParams.Allowance = siatest.DefaultAllowance
-	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(60)
-	renterParams.Allowance.Period = 10
-	renterParams.Allowance.RenewWindow = 5
+	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(100)
+	renterParams.Allowance.Period = 12
+	renterParams.Allowance.RenewWindow = 8
 	renterParams.ContractorDeps = &dependencies.DependencyLowFundsRenewalFail{}
 	nodes, err := tg.AddNodes(renterParams)
 	if err != nil {
@@ -1203,7 +1203,7 @@ func TestLowAllowanceAlert(t *testing.T) {
 	}
 	// Mine blocks and wait for the alert to be registered.
 	numRetries := 0
-	err = build.Retry(100, 600*time.Millisecond, func() error {
+	err = build.Retry(200, 200*time.Millisecond, func() error {
 		if numRetries%10 == 0 {
 			if err := tg.Miners()[0].MineBlock(); err != nil {
 				t.Fatal(err)
@@ -1215,11 +1215,12 @@ func TestLowAllowanceAlert(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// Add a renter which won't be able to refresh a contract due to low funds.
 	renterParams = node.Renter(filepath.Join(testDir, "renter_refresh"))
 	renterParams.Allowance = siatest.DefaultAllowance
 	renterParams.Allowance.Hosts = 2
-	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(100)
+	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(120)
 	renterParams.RenterDeps = &dependencies.DependencyDisableUploadGougingCheck{}
 	renterParams.ContractorDeps = &dependencies.DependencyLowFundsRefreshFail{}
 	nodes, err = tg.AddNodes(renterParams)
@@ -1234,7 +1235,7 @@ func TestLowAllowanceAlert(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Wait for the alert to be registered.
-	err = build.Retry(100, 600*time.Millisecond, func() error {
+	err = build.Retry(100, 300*time.Millisecond, func() error {
 		if numRetries%10 == 0 {
 			if err := tg.Miners()[0].MineBlock(); err != nil {
 				t.Fatal(err)
@@ -1262,7 +1263,7 @@ func TestLowAllowanceAlert(t *testing.T) {
 	}
 	// Wait for the alert to be registered.
 	numRetries = 0
-	err = build.Retry(100, 600*time.Millisecond, func() error {
+	err = build.Retry(100, 300*time.Millisecond, func() error {
 		if numRetries%10 == 0 {
 			if err := tg.Miners()[0].MineBlock(); err != nil {
 				t.Fatal(err)
@@ -1442,14 +1443,21 @@ func testWatchdogRebroadcastOrSweep(t *testing.T, testSweep bool) {
 	if err := renter.RenterPostAllowance(allowance); err != nil {
 		t.Fatal(err)
 	}
-	// Mine a few blocks so the formation transaction can be confirmed.
-	for i := 0; i < 5; i++ {
-		if err := goodMiner.MineBlock(); err != nil {
-			t.Fatal(err)
-		}
+
+	// Wait until contract was formed.
+	err = build.Retry(100, 500*time.Millisecond, func() error {
+		return siatest.CheckExpectedNumberOfContracts(renter, 1, 0, 0, 0, 0, 0)
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	// Check that the renter has formed a contract and that it's confirmed.
+	// Mine a block to get the contract confirmed.
+	if err := goodMiner.MineBlock(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Check that the contract is found and archived now.
 	err = build.Retry(100, 500*time.Millisecond, func() error {
 		rc, err := renter.RenterContractsGet()
 		if err != nil {
@@ -1515,7 +1523,6 @@ func testWatchdogRebroadcastOrSweep(t *testing.T, testSweep bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	// Start and connect the miner to the renter, and mine the reorg.
 	err = reorgMiner.StartNode()
 	if err != nil {
@@ -1771,7 +1778,7 @@ func TestContractorChurnLimiter(t *testing.T) {
 	hostPubKey := hostInfo.PublicKey
 
 	// Shutdown a host to cause churn.
-	err = hosts[0].StopNode()
+	err = tg.RemoveNode(hosts[0])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1798,11 +1805,11 @@ func TestContractorChurnLimiter(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if len(rc.ActiveContracts) != len(tg.Hosts())-1 {
-			return fmt.Errorf("expected %v active contracts but got %v", len(tg.Hosts()), len(rc.ActiveContracts))
+		if len(rc.ActiveContracts) != len(hosts)-1 {
+			return fmt.Errorf("expected %v active contracts but got %v", len(hosts)-1, len(rc.ActiveContracts))
 		}
 		if len(rc.DisabledContracts) != 1 {
-			return fmt.Errorf("expected %v disabled contracts but got %v", len(tg.Hosts())-1, len(rc.DisabledContracts))
+			return fmt.Errorf("expected %v disabled contracts but got %v", len(hosts)-1, len(rc.DisabledContracts))
 		}
 		churnedHostKey := rc.DisabledContracts[0].HostPublicKey
 		if !churnedHostKey.Equals(hostPubKey) {
@@ -2183,9 +2190,9 @@ func TestFailedContractRenewalAlert(t *testing.T) {
 	// Add a renter which won't be able to renew a contract.
 	renterParams := node.Renter(filepath.Join(testDir, "renter"))
 	renterParams.Allowance = siatest.DefaultAllowance
-	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(40)
-	renterParams.Allowance.Period = 10
-	renterParams.Allowance.RenewWindow = 5
+	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(50)
+	renterParams.Allowance.Period = 12
+	renterParams.Allowance.RenewWindow = 8
 	//renterParams.Allowance.ExpectedStorage =
 	renterParams.RenterDeps = &dependencies.DependencyDisableUploadGougingCheck{}
 	deps := dependencies.NewDependencyContractRenewalFail()
@@ -2395,6 +2402,7 @@ func TestExtendPeriod(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	startheight := rc.Contracts[0].StartHeight
 	endheight := rc.Contracts[0].EndHeight
 
 	// Increase the allowance so that the endheights are well within period
@@ -2404,28 +2412,47 @@ func TestExtendPeriod(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Mine blocks until after the previous end height
+	// Mine blocks until after the previous renew window start.
 	cg, err := renter.ConsensusGet()
 	if err != nil {
 		t.Fatal(err)
 	}
 	miner := tg.Miners()[0]
-	for i := 0; i <= int(endheight-cg.Height); i++ {
+	for i := 0; i < int(endheight-allowance.RenewWindow-cg.Height); i++ {
 		if err := miner.MineBlock(); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	// Confirm the previously active contracts are now marked as expired and
-	// were replaced with new active contracts
-	tries := 0
-	err = build.Retry(100, 100*time.Millisecond, func() error {
-		if tries%10 == 0 {
-			if err := miner.MineBlock(); err != nil {
-				return err
-			}
+	// We have reached the renew window. Slowly mine through it and confirm the
+	// previously active contracts are now marked as disabled.
+	err = build.Retry(int(allowance.RenewWindow), time.Second, func() error {
+		if err := miner.MineBlock(); err != nil {
+			return err
 		}
-		tries++
+		rg, err := renter.RenterGet()
+		if err != nil {
+			t.Fatal(err)
+		}
+		allowance = rg.Settings.Allowance
+
+		if startheight < rg.CurrentPeriod {
+			// Contracts are expired right away
+			return siatest.CheckExpectedNumberOfContracts(renter, len(tg.Hosts()), 0, 0, 0, len(tg.Hosts()), 0)
+		}
+		return siatest.CheckExpectedNumberOfContracts(renter, len(tg.Hosts()), 0, 0, len(tg.Hosts()), 0, 0)
+	})
+	if err != nil {
+		renter.PrintDebugInfo(t, true, true, true)
+		t.Fatal(err)
+	}
+
+	// Mine blocks until after the renew window. The disabled contracts should
+	// become expired.
+	err = build.Retry(2*int(allowance.RenewWindow), 100*time.Millisecond, func() error {
+		if err := miner.MineBlock(); err != nil {
+			return err
+		}
 		return siatest.CheckExpectedNumberOfContracts(renter, len(tg.Hosts()), 0, 0, 0, len(tg.Hosts()), 0)
 	})
 	if err != nil {
@@ -2703,5 +2730,94 @@ func TestRenewAlertWarningLevel(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestLargeRenewWindow tests that contracts form and renew as expected when the
+// renew window is larger than the period
+func TestLargeRenewWindow(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	// Create Group
+	groupParams := siatest.GroupParams{
+		Hosts:  1,
+		Miners: 1,
+	}
+	groupDir := contractorTestDir(t.Name())
+	tg, err := siatest.NewGroupFromTemplate(groupDir, groupParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create and Add Renter
+	renterParams := node.Renter(filepath.Join(groupDir, "renter"))
+	renterParams.SkipSetAllowance = true
+	nodes, err := tg.AddNodes(renterParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+	renter := nodes[0]
+
+	// Set the Allowance
+	allowance := siatest.DefaultAllowance
+	allowance.Period = 10
+	allowance.RenewWindow = 20
+	allowance.Hosts = 1
+	err = renter.RenterPostAllowance(allowance)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check current and next period
+	rg, err := renter.RenterGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bh, err := renter.BlockHeight()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rg.CurrentPeriod != bh {
+		t.Errorf("Expected CurrentPeriod to be %v but was %v", bh, rg.CurrentPeriod)
+	}
+	if rg.NextPeriod != bh+allowance.Period {
+		t.Errorf("Expected NextPeriod to be %v but was %v", bh+allowance.Period, rg.NextPeriod)
+	}
+	originalNextPeriod := rg.NextPeriod
+
+	// Wait for contracts
+	err = build.Retry(100, 100*time.Millisecond, func() error {
+		return siatest.CheckExpectedNumberOfContracts(renter, 1, 0, 0, 0, 0, 0)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Renew Contracts
+	err = siatest.RenewContractsByRenewWindow(renter, tg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = build.Retry(100, 100*time.Millisecond, func() error {
+		return siatest.CheckExpectedNumberOfContracts(renter, 1, 0, 0, 0, 1, 0)
+	})
+	if err != nil {
+		renter.PrintDebugInfo(t, true, false, false)
+		t.Fatal(err)
+	}
+
+	// Check current and next period
+	rg, err = renter.RenterGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rg.CurrentPeriod != originalNextPeriod {
+		t.Errorf("Expected CurrentPeriod to be %v but was %v", originalNextPeriod, rg.CurrentPeriod)
+	}
+	if rg.NextPeriod != originalNextPeriod+allowance.Period {
+		t.Errorf("Expected NextPeriod to be %v but was %v", originalNextPeriod+allowance.Period, rg.NextPeriod)
 	}
 }

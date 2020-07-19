@@ -308,7 +308,9 @@ func TestHostWeightCollateralDifferences(t *testing.T) {
 	w1 := hdb.weightFunc(entry1).Score()
 	w2 := hdb.weightFunc(entry2).Score()
 	if w1.Cmp(w2) <= 0 {
-		t.Error("Larger collateral should have more weight")
+		t.Log("w1:", w1)
+		t.Log("w2:", w2)
+		t.Error("Larger collateral (w2) should have more weight than smaller (w1)")
 	}
 }
 

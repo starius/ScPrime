@@ -1,5 +1,5 @@
 
-### v1.4.3.1
+### v1.4.4
 
 **Key Updates**
 - Add `FeeManager` to siad to allow for applications to charge a fee
@@ -27,6 +27,8 @@
 - Introduce PaymentProvider interface on the renter.
 - Pubaccess persistence subsystems into shared system.
 - Update Cobra from v0.0.5 to v1.0.0.
+- persist/log.go has been extracted and is now a simple wrapper around the new
+log repo.
 
 ### v1.4.3.0
 **Key Updates**

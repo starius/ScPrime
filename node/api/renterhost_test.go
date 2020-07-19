@@ -325,7 +325,7 @@ func TestHostAndRentVanilla(t *testing.T) {
 	if len(queue.Downloads) != 1 {
 		t.Fatalf("expected renter to have 1 download in the queue; got %v", len(queue.Downloads))
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(3 * time.Second)
 	// Try downloading the second file.
 	downpath2 := filepath.Join(st.dir, "testdown2.dat")
 	err = st.stdGetAPI("/renter/download/test2?disablelocalfetch=true&destination=" + downpath2)
@@ -1133,7 +1133,7 @@ func TestRenterRenew(t *testing.T) {
 		t.Fatal("contract was not renewed:", rc.Contracts[0])
 	}
 	if rc.ExpiredContracts[0].Size != 0 {
-		t.Fatalf("contract size after renewal should be 0 but was %v", rc.Contracts[0].Size)
+		t.Fatalf("contract size after renewal should be 0 but was %v", rc.ExpiredContracts[0].Size)
 	}
 
 	// Try downloading the file.

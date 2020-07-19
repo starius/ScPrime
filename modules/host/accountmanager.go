@@ -293,6 +293,13 @@ func newFingerprintMap() *fingerprintMap {
 
 // callDeposit calls managedDeposit with refund set to 'false'.
 func (am *accountManager) callDeposit(id modules.AccountID, amount types.Currency, syncChan chan struct{}) error {
+	// disrupt if the 'lowerDeposit' dependency is set, this dependency will
+	// alter the deposit amount without the renter being aware of it, used to
+	// test the balance sync after unclean shutdown
+	if am.h.dependencies.Disrupt("lowerDeposit") {
+		amount = amount.Sub(types.SiacoinPrecision.Div64(10))
+	}
+
 	return am.managedDeposit(id, amount, false, syncChan)
 }
 
@@ -439,7 +446,7 @@ func (am *accountManager) callConsensusChanged(cc modules.ConsensusChange, oldHe
 	if errRotate == nil {
 		am.fingerprints.rotate()
 	} else if errRotate != errRotationDisabled {
-		am.h.log.Critical("ERROR: Could not rotate fingerprints on disk, withdrawals have been deactived", errRotate)
+		am.h.log.Critical("ERROR: Could not rotate fingerprints on disk, withdrawals have been deactivated", errRotate)
 	}
 
 	// Disable withdrawals on failed rotation
@@ -839,7 +846,7 @@ func (am *accountManager) unblockWithdrawals(allowance types.Currency, bh types.
 func (am *accountManager) threadedPruneExpiredAccounts() {
 	for {
 		his := am.h.managedInternalSettings()
-		accountExpiryTimeout := int64(his.EphemeralAccountExpiry)
+		accountExpiryTimeout := int64(his.EphemeralAccountExpiry.Seconds())
 
 		func() {
 			// A timeout of zero means the host never wants to expire accounts.

@@ -6,7 +6,8 @@ import (
 	"io"
 	"testing"
 
-	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/NebulousLabs/encoding"
+
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 )

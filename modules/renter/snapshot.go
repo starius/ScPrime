@@ -2,6 +2,7 @@ package renter
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,12 +12,12 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
 	"gitlab.com/scpcorp/ScPrime/types"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 )
@@ -323,24 +324,20 @@ func (r *Renter) managedUploadSnapshot(meta modules.UploadedBackup, dotSia []byt
 	}
 
 	// Cap the total amount of time that we wait for results.
-	maxWait := time.NewTimer(maxSnapshotUploadTime)
-	defer func() {
-		if !maxWait.Stop() {
-			<-maxWait.C
-		}
-	}()
+	maxWait, cancel := context.WithTimeout(r.tg.StopCtx(), maxSnapshotUploadTime)
+	defer cancel()
 
 	// Iteratively grab the responses from the workers.
 	responses := 0
 	successes := 0
+
+LOOP:
 	for responses < queued {
 		var resp *jobUploadSnapshotResponse
 		select {
 		case resp = <-responseChan:
-		case <-maxWait.C:
-			break
-		case <-r.tg.StopChan():
-			return errors.New("renter is shutting down")
+		case <-maxWait.Done():
+			break LOOP
 		}
 		responses++
 
@@ -359,6 +356,13 @@ func (r *Renter) managedUploadSnapshot(meta modules.UploadedBackup, dotSia []byt
 			continue
 		}
 		successes++
+	}
+
+	// Check for shutdown.
+	select {
+	case <-r.tg.StopChan():
+		return errors.New("renter is shutting down")
+	default:
 	}
 
 	// Check if there were too few successes to count this as a successful
@@ -411,12 +415,18 @@ func (r *Renter) managedDownloadSnapshot(uid [16]byte) (ub modules.UploadedBacku
 	})
 	for i := range contracts {
 		err := func() error {
-			host, err := r.hostContractor.Session(contracts[i].HostPublicKey, r.tg.StopChan())
+			w, err := r.staticWorkerPool.callWorker(contracts[i].HostPublicKey)
 			if err != nil {
 				return err
 			}
-			defer host.Close()
-			entryTable, err := r.managedDownloadSnapshotTable(host)
+			// TODO: Remove this when enough hosts have upgraded to fixed
+			// ReadOffset.
+			session, err := r.hostContractor.Session(w.staticHostPubKey, r.tg.StopChan())
+			if err != nil {
+				return err
+			}
+			defer session.Close()
+			entryTable, err := r.managedDownloadSnapshotTableRHP2(session)
 			if err != nil {
 				return err
 			}
@@ -434,7 +444,7 @@ func (r *Renter) managedDownloadSnapshot(uid [16]byte) (ub modules.UploadedBacku
 			// download the entry
 			dotSia = nil
 			for _, root := range entry.DataSectors {
-				data, err := host.Download(root, 0, uint32(modules.SectorSize))
+				data, err := w.ReadSector(r.tg.StopCtx(), root, 0, modules.SectorSize)
 				if err != nil {
 					return err
 				}
@@ -660,13 +670,22 @@ func (r *Renter) threadedSynchronizeSnapshots() {
 		// Synchronize the host.
 		r.log.Debugln("Synchronizing snapshots on host", c.HostPublicKey)
 		err = func() error {
-			// Download the host's entry table.
-			host, err := r.hostContractor.Session(c.HostPublicKey, r.tg.StopChan())
+			// Get the right worker for the host.
+			w, err := r.staticWorkerPool.callWorker(c.HostPublicKey)
 			if err != nil {
 				return err
 			}
-			defer host.Close()
-			entryTable, err := r.managedDownloadSnapshotTable(host)
+
+			// TODO: Remove this when enough hosts have upgraded to fixed
+			// ReadOffset.
+			session, err := r.hostContractor.Session(w.staticHostPubKey, r.tg.StopChan())
+			if err != nil {
+				return err
+			}
+			defer session.Close()
+
+			// Download the snapshot table.
+			entryTable, err := r.managedDownloadSnapshotTableRHP2(session)
 			if err != nil {
 				return err
 			}
@@ -703,7 +722,7 @@ func (r *Renter) threadedSynchronizeSnapshots() {
 					// TODO: if snapshot can't be found on any host, delete it
 					return err
 				}
-				if err := r.managedUploadSnapshotHost(ub, dotSia, host); err != nil {
+				if err := w.UploadSnapshot(r.tg.StopCtx(), ub, dotSia); err != nil {
 					return err
 				}
 				r.log.Printf("Replicated missing snapshot %q to host %v", ub.Name, c.HostPublicKey)

@@ -13,9 +13,9 @@ import (
 	"errors"
 	"hash"
 
-	"gitlab.com/scpcorp/ScPrime/encoding"
-
 	"golang.org/x/crypto/blake2b"
+
+	"gitlab.com/NebulousLabs/encoding"
 )
 
 const (
@@ -89,7 +89,7 @@ func (h *Hash) LoadString(s string) error {
 	return nil
 }
 
-// MarshalJSON marshales a hash as a hex string.
+// MarshalJSON marshals a hash as a hex string.
 func (h Hash) MarshalJSON() ([]byte, error) {
 	return json.Marshal(h.String())
 }

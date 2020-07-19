@@ -4,9 +4,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"gitlab.com/NebulousLabs/encoding"
 	bolt "go.etcd.io/bbolt"
 
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
@@ -73,17 +73,6 @@ func (e *Explorer) initPersist() error {
 				return err
 			}
 		}
-
-		//err = b.Put(internalBlockHeight, encoding.Marshal(types.BlockHeight(98112)))
-		//if err != nil {
-		//	fmt.Printf("internal err %v", err)
-		//	return err
-		//}
-
-		//err = b.Put(internalRecentChange, encoding.Marshal(modules.ConsensusChangeID{}))
-		//if err != nil {
-		//	return err
-		//}
 
 		return nil
 	})

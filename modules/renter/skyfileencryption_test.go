@@ -14,22 +14,35 @@ import (
 	"gitlab.com/NebulousLabs/fastrand"
 )
 
-// TestSkyfileBaseSectorEncryption
+// TestSkyfileBaseSectorEncryption runs base sector encryption tests with every
+// supported SkykeyType.
 func TestSkyfileBaseSectorEncryption(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
+	t.Parallel()
 
 	rt, err := newRenterTester(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
 	r := rt.renter
-	defer rt.Close()
+	defer func() {
+		if err := rt.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
 
-	// Create the 2 test pubaccesskeys.
-	keyName1 := t.Name() + "1"
-	sk1, err := r.CreateSkykey(keyName1, pubaccesskey.TypePublicID)
+	testBaseSectorEncryptionWithType(t, r, pubaccesskey.TypePublicID)
+	testBaseSectorEncryptionWithType(t, r, pubaccesskey.TypePrivateID)
+}
+
+// testBaseSectorEncryptionWithType tests base sector encryption and decryption
+// with multiple Skykeys of the specified type.
+func testBaseSectorEncryptionWithType(t *testing.T, r *Renter, skykeyType pubaccesskey.SkykeyType) {
+	// Create the 2 test skykeys, with different types
+	keyName1 := t.Name() + "1" + skykeyType.ToString()
+	sk1, err := r.CreateSkykey(keyName1, skykeyType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,8 +118,8 @@ func TestSkyfileBaseSectorEncryption(t *testing.T) {
 
 	// Create a entirely different pubaccesskey and sanity check that it produces
 	// different ciphertexts.
-	keyName2 := t.Name() + "2"
-	sk2, err := r.CreateSkykey(keyName2, pubaccesskey.TypePublicID)
+	keyName2 := t.Name() + "2" + skykeyType.ToString()
+	sk2, err := r.CreateSkykey(keyName2, skykeyType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,19 +144,19 @@ func TestSkyfileBaseSectorEncryption(t *testing.T) {
 
 	// Now decrypt all the base sectors. They should all be equal to the original
 	// now.
-	err = r.decryptBaseSector(bsCopy1)
+	sk, err := r.decryptBaseSector(bsCopy1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = r.decryptBaseSector(bsCopy2)
+	_, err = r.decryptBaseSector(bsCopy2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = r.decryptBaseSector(bsCopy3)
+	_, err = r.decryptBaseSector(bsCopy3)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = r.decryptBaseSector(otherBSCopy)
+	_, err = r.decryptBaseSector(otherBSCopy)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,7 +260,7 @@ func TestSkyfileBaseSectorEncryption(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fanoutKey, err := r.deriveFanoutKey(&layoutForFanout)
+	fanoutKey, err := r.deriveFanoutKey(&layoutForFanout, sk)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,5 +275,121 @@ func TestSkyfileBaseSectorEncryption(t *testing.T) {
 	}
 	if !bytes.Equal(fanoutKey2.Entropy[:], fanoutKeyEntropy[:]) {
 		t.Fatal("Expected fanout key returned from deriveFanoutKey to be same as manual derivation")
+	}
+}
+
+// TestBaseSectorKeyID checks that keyIDs are set correctly in base sectors
+// encrypted using TypePublicID and TypePrivateID skykeys.
+func TestBaseSectorKeyID(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	rt, err := newRenterTester(t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := rt.renter
+	defer rt.Close()
+
+	// Create a test pubaccesskey.
+	publicIDKeyName := t.Name() + "-public-id-key"
+	publicIDKey, err := r.CreateSkykey(publicIDKeyName, pubaccesskey.TypePublicID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a file that fits in one base sector and set it up for encryption.
+	fileBytes := fastrand.Bytes(1000)
+	metadata := modules.SkyfileMetadata{
+		Mode:     os.FileMode(0777),
+		Filename: "encryption_test_file",
+	}
+	// Grab the metadata bytes.
+	metadataBytes, err := skyfileMetadataBytes(metadata)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ll := skyfileLayout{
+		version:      SkyfileVersion,
+		filesize:     uint64(len(fileBytes)),
+		metadataSize: uint64(len(metadataBytes)),
+		cipherType:   crypto.TypePlain,
+	}
+	baseSector, _ := skyfileBuildBaseSector(ll.encode(), nil, metadataBytes, fileBytes) // 'nil' because there is no fanout
+
+	// Make a helper function for producing copies of the basesector
+	// because encryption is done in-place.
+	baseSectorCopy := func() []byte {
+		bsCopy := make([]byte, len(baseSector))
+		copy(bsCopy[:], baseSector[:])
+		return bsCopy
+	}
+
+	fsSkykey1, err := publicIDKey.GenerateFileSpecificSubkey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bsCopy := baseSectorCopy()
+	err = encryptBaseSectorWithSkykey(bsCopy, ll, fsSkykey1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var encLayout skyfileLayout
+	encLayout.decode(bsCopy)
+
+	// Check that pubaccesskey ID is stored correctly in the layout.
+	var keyID pubaccesskey.PubaccesskeyID
+	copy(keyID[:], encLayout.keyData[:pubaccesskey.SkykeyIDLen])
+	if keyID != publicIDKey.ID() {
+		t.Log(encLayout)
+		t.Log(keyID, publicIDKey.ID())
+		t.Fatal("Expected keyID to match pubaccesskey ID.")
+	}
+
+	// Create a TypePrivateID pubaccesskey to check the key ID not set, but the
+	// encrypted identifier is set.
+	privateIDKeyName := t.Name() + "-private-id-key"
+	privateIDKey, err := r.CreateSkykey(privateIDKeyName, pubaccesskey.TypePrivateID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fsSkykey2, err := privateIDKey.GenerateFileSpecificSubkey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bsCopy2 := baseSectorCopy()
+	err = encryptBaseSectorWithSkykey(bsCopy2, ll, fsSkykey2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var encLayout2 skyfileLayout
+	encLayout2.decode(bsCopy2)
+
+	// Check that pubaccesskey ID is NOT in the layout.
+	var keyID2 pubaccesskey.PubaccesskeyID
+	copy(keyID2[:], encLayout2.keyData[:pubaccesskey.SkykeyIDLen])
+	privateID := privateIDKey.ID()
+	if keyID2 == privateID {
+		t.Log(keyID, privateID)
+		t.Fatal("Expected keyID to match pubaccesskey ID.")
+	}
+	// Check if the key ID is anywhere in the base sector. There should be enough
+	// entropy in the 16-byte key ID to prevent incidental collisions (as opposed
+	// to accidental inclusion).
+	if bytes.Contains(bsCopy2, privateID[:]) {
+		t.Log(privateID, bsCopy2)
+		t.Fatal("Expected pubaccesskey ID to NOT be in base sector")
+	}
+
+	// Now check for the expected skyfile encryption ID.
+	expectedEncID, err := fsSkykey2.GenerateSkyfileEncryptionID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if keyID2 != expectedEncID {
+		t.Log(expectedEncID, keyID2)
+		t.Fatal("Expected to find the skyfile encryption ID")
 	}
 }

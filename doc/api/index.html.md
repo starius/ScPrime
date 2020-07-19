@@ -97,6 +97,11 @@ may specify other 2xx status codes on success.
 The standard error response indicating the request failed for any reason, is a
 4xx or 5xx HTTP status code with an error JSON object describing the error.
 
+### Module Not Loaded
+
+A module that is not reachable due to not being loaded by siad will return
+the custom status code `490 ModuleNotLoaded`.
+
 # Authentication
 > Example POST curl call with Authentication
 
@@ -420,7 +425,7 @@ In addition, each consensus change contains its own ID.
 
 ### Response
 
-A concatenation of Sia-encoded (binary) modules.ConsensusChange objects.
+A concatenation of ScPrime-encoded (binary) modules.ConsensusChange objects.
 
 ## /consensus/validate/transactionset [POST]
 > curl example  
@@ -529,7 +534,7 @@ Returns the some of the constants that the ScPrime daemon uses.
   
   "allowance":  // allowance
     {
-      "funds":"55000000000000000000000000000",  // currency
+      "funds":"250000000000000000000000000000",  // currency
       "hosts":50,                       // uint64
       "period":12096,                   // blockheight
       "renewwindow":4032,               // blockheight
@@ -653,7 +658,19 @@ Returns the settings for the daemon
 ```go
 {
   "maxdownloadspeed": 0,  // bytes per second
-  "maxuploadspeed": 0     // bytes per second
+  "maxuploadspeed":   0,  // bytes per second
+  "modules": { 
+    "consensus":       true,  // bool
+    "explorer":        false, // bool
+    "feemanager":      true,  // bool
+    "gateway":         true,  // bool
+    "host":            true,  // bool
+    "miner":           true,  // bool
+    "renter":          true,  // bool
+    "transactionpool": true,  // bool
+    "wallet":          true   // bool
+
+  } 
 }
 ```
 
@@ -664,6 +681,9 @@ limit set.
 **maxuploadspeed** | bytes per second  
 Is the maximum upload speed that the daemon can reach. 0 means there is no limit
 set.
+
+**modules** | struct  
+Is a list of the siad modules with a bool indicating if the module was launched.
 
 ## /daemon/settings [POST]
 > curl example  
@@ -4432,7 +4452,10 @@ siapath to test.
 standard success or error response, a successful response means a valid siapath.
 See [standard responses](#standard-responses).
 
-## /renter/wokers [GET]
+## /renter/workers [GET] 
+
+**UNSTABLE - subject to change**
+
 > curl example
 
 ```go
@@ -4475,11 +4498,53 @@ returns the the status of all the workers in the renter's workerpool.
       "uploadqueuesize":     0,                    // int
       "uploadterminated":    false,                // boolean
       
-      "availablebalance":    "0", // hastings
       "balancetarget":       "0", // hastings
       
       "backupjobqueuesize":       0, // int
       "downloadrootjobqueuesize": 0  // int
+
+      "backupjobqueuesize": 0,        // int
+      "downloadrootjobqueuesize": 0,  // int
+
+      "accountstatus": {
+        "availablebalance": "1000000000000000000000000", // hasting
+        "negativebalance": "0",                          // hasting
+        "funded": true,                                  // boolean
+        "oncooldown": false,                             // boolean
+        "oncooldownuntil": "0001-01-01T00:00:00Z",       // time
+        "consecutivefailures": 0,                        // int
+        "recenterr": "",                                 // string
+        "recenterrtime": "0001-01-01T00:00:00Z"          // time
+      },
+
+      "pricetablestatus": {
+        "expirytime": "2020-06-15T16:17:01.040481+02:00", // time
+        "updatetime": "2020-06-15T16:12:01.040481+02:00", // time
+        "active": true,                                   // boolean
+        "oncooldown": false,                              // boolean
+        "oncooldownuntil": "0001-01-01T00:00:00Z",        // time
+        "consecutivefailures": 0,                         // int
+        "recenterr": "",                                  // string
+        "recenterrtime": "0001-01-01T00:00:00Z"           // time
+      },
+
+      "readjobsstatus": {
+        "avgjobtime64k": 0,                               // int
+        "avgjobtime1m": 0,                                // int
+        "avgjobtime4m": 0,                                // int
+        "consecutivefailures": 0,                         // int
+        "jobqueuesize": 0,                                // int
+        "recenterr": "",                                  // string
+        "recenterrtime": "0001-01-01T00:00:00Z"           // time
+      },
+
+      "hassectorjobsstatus": {
+        "avgjobtime": 0,                                  // int
+        "consecutivefailures": 0,                         // int
+        "jobqueuesize": 0,                                // int
+        "recenterr": "",                                  // string
+        "recenterrtime": "0001-01-01T00:00:00Z"           // time
+      }
     }
   ]
 }
@@ -4555,6 +4620,18 @@ The size of the worker's backup job queue
 
 **downloadrootjobqueuesize** | int  
 The size of the worker's download by root job queue
+
+**accountstatus** | object
+Detailed information about the workers' ephemeral account status
+
+**pricetablestatus** | object
+Detailed information about the workers' price table status
+
+**readjobsstatus** | object
+Details of the workers' read jobs queue
+
+**hassectorjobsstatus** | object
+Details of the workers' has sector jobs queue
 
 # Pubaccess
 
@@ -4728,11 +4805,21 @@ the file as though it is an attachment instead of rendering it.
 **format** | string  
 If 'format' is set, the publink can point to a directory and it will return the
 data inside that directory. Format will decide the format in which it is
-returned. Currently we only support 'concat', which will return the concatenated
-data of all subfiles in that directory.
+returned. Currently, we support the following values: 'concat' will return the 
+concatenated data of all subfiles in that directory, 'tar' will return a tar 
+archive of all subfiles in that directory, and 'targz' will return gzipped tar 
+archive of all subfiles in that directory.
+
+**redirect** | bool
+If 'redirect' is omitted or set to true, the provided publink points to a 
+directory, no format was specified, and no explicit path was provided (e.g. 
+`folder/file.txt` from the example above) then the user's browser will be 
+redirected to the default path associated with this skyfile, if one exists.  
+If 'redirect' is set to false and the same conditions apply, an error will be 
+returned because there is no default action for this case.
 
 **timeout** | int  
-If 'timeout' is set, the download will fail if the Pubfile can not be retrieved 
+If 'timeout' is set, the download will fail if the pubfile can't be retrieved 
 before it expires. Note that this timeout does not cover the actual download 
 time, but rather covers the TTFB. Timeout is specified in seconds, a timeout 
 value of 0 will be ignored. If no timeout is given, the default will be used,
@@ -4803,6 +4890,12 @@ pubfile will be created. Both the new pubfile and the existing siafile are
 required to be maintained on the network in order for the publink to remain
 active. This field is mutually exclusive with uploading streaming.
 
+**defaultpath** string  
+The path to the default file to be used to represent this skyfile in case it
+contains multiple files (e.g. skapps, photo collections, etc.). If provided, the
+path must exist. If not provided, it will default to `index.html` if a file with
+that name exists within the skyfile.
+
 **filename** | string  
 The name of the file. This name will be encoded into the pubfile metadata, and
 will be a part of the publink. If the name changes, the publink will change as
@@ -4829,14 +4922,12 @@ this field is not set, the siapath will be interpreted as relative to
 'var/pubaccess'.
 
 
-**UNSTABLE - subject to change in v1.4.9**
 **pubaccesskeyname** | string  
 The name of the pubaccesskey that will be used to encrypt this pubfile. Only the
 name or the ID of the pubaccesskey should be specified.
 
 **OR**
 
-**UNSTABLE - subject to change in v1.4.9**
 **pubaccesskeyid** | string  
 The ID of the pubaccesskey that will be used to encrypt this pubfile. Only the
 name or the ID of the pubaccesskey should be specified.
@@ -4929,7 +5020,7 @@ Version is the spd version the node is running.
 **gitrevision** | string  
 Gitrevision refers to the commit hash used to build said.
 
-**performancestats** | object - api.SkynetPerforamnceStats  
+**performancestats** | object - api.SkynetPerformanceStats  
 PerformanceStats is an object that contains a breakdown of performance metrics
 for the pubaccess endpoints. Things are broken down into containers based on the
 type of action performed. For example, there is a container for downloads less
@@ -4997,22 +5088,26 @@ Returns a list of all Skykeys.
     "pubaccesskey": "pubaccesskey:AUI0eAOXWXHwW6KOLyI5O1OYduVvHxAA8qUR_fJ8Kluasb-ykPlHBEjDczrL21hmjhH0zAoQ3-Qq?name=testkey1"
     "name": "testkey1"
     "id": "ai5z8cf5NWbcvPBaBn0DFQ=="
+    "type": "private-id"
   },
   {
     "pubaccesskey": "pubaccesskey:AUqG0aQmgzCIlse2JxFLBGHCriZNz20IEKQu81XxYsak3rzmuVbZ2P6ZqeJHIlN5bjPqEmC67U8E?name=testpubaccesskey2"
     "name": "testpubaccesskey2"
     "id": "bi5z8cf5NWbcvPBaBn0DFQ=="
+    "type": "private-id"
   },
   {
     "pubaccesskey": "pubaccesskey:AShQI8fzxoIMc52ZRkoKjOE50bXnCpiPd4zrBl_E-CkmyLgfinAJSdWkJT2QOR6XCRYYgZb63OHw?name=testpubaccesskey3"
     "name": "testpubaccesskey3"
     "id": "ci5z8cf5NWbcvPBaBn0DFQ=="
+    "type": "public-id"
   }
 }
 ```
 
 **pubaccesskeys** | []pubaccesskeys
-array of 
+Array of pubaccesskeys. See the documentation for /pubaccess/pubaccesskeys for more detailed
+information.
 
 ## /pubaccess/createpubaccesskey [POST]
 > curl example
@@ -5028,6 +5123,13 @@ Returns a new pubaccesskey created and stored under that name.
 **name** | string  
 desired name of the pubaccesskey
 
+**type** | string  
+desired type of the pubaccesskey. The two supported types are "public-id" and
+"private-id". Users should use "private-id" pubaccesskeys unless they have a specific
+reason to use "public-id" pubaccesskeys which reveal pubaccesskey IDs and show which
+skyfiles are encrypted with the same pubaccesskey.
+
+
 ### JSON Response
 > JSON Response Example
 
@@ -5041,11 +5143,37 @@ desired name of the pubaccesskey
 base-64 encoded pubaccesskey
 
 
+## /pubaccess/deletepubaccesskey [POST]
+> curl example
+
+```go
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:4280/pubaccess/deletepubaccesskey"
+```
+
+Deletes the pubaccesskey with that name or ID.
+
+### Path Parameters
+### REQUIRED
+**name** | string  
+name of the pubaccesskey being deleted
+
+or
+
+**id** | string  
+base-64 encoded ID of the pubaccesskey being deleted
+
+
+### Response
+standard success or error response, a successful response means the pubaccesskey was
+deleted.
+See [standard responses](#standard-responses).
+
+
 ## /pubaccess/pubaccesskey [GET]
 > curl example
 
 ```go
-curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:4280/pubaccess/pubaccesskey"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=cellar_access_key" "localhost:4280/pubaccess/pubaccesskey"
 curl -A "ScPrime-Agent"  -u "":<apipassword> --data "id=gi5z8cf5NWbcvPBaBn0DFQ==" "localhost:4280/pubaccess/pubaccesskey"
 ```
 
@@ -5070,6 +5198,7 @@ base-64 encoded ID of the pubaccesskey being queried
   "pubaccesskey": "pubaccesskey:AShQI8fzxoIMc52ZRkoKjOE50bXnCpiPd4zrBl_E-CkmyLgfinAJSdWkJT2QOR6XCRYYgZb63OHw?name=testkey"
   "name": "testkey"
   "id": "gi5z8cf5NWbcvPBaBn0DFQ=="
+  "type": "private-id"
 }
 ```
 
@@ -5082,12 +5211,15 @@ name of the pubaccesskey
 **id** | string  
 base-64 encoded pubaccesskey ID
 
+**type** | string  
+human-readable pubaccesskey type. See the documentation for /pubaccess/createpubaccesskey for
+type information.
 
 ## /pubaccess/pubaccesskeyid [GET]
 > curl example
 
 ```go
-curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:4280/pubaccess/pubaccesskeyid"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=cellar_access_key" "localhost:4280/pubaccess/pubaccesskeyid"
 ```
 
 Returns the base-64 encoded ID of the pubaccesskey stored under that name.
