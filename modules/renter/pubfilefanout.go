@@ -19,6 +19,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 )
 
 // fanoutStreamBufferDataSource implements streamBufferDataSource with the
@@ -44,13 +45,13 @@ type fanoutStreamBufferDataSource struct {
 // newFanoutStreamer will create a modules.Streamer from the fanout of a
 // pubfile. The streamer is created by implementing the streamBufferDataSource
 // interface on the pubfile, and then passing that to the stream buffer set.
-func (r *Renter) newFanoutStreamer(link modules.Publink, ll skyfileLayout, fanoutBytes []byte, timeout time.Duration) (modules.Streamer, error) {
-	// Create the erasure coder and the master key.
-	masterKey, err := r.deriveFanoutKey(&ll)
+func (r *Renter) newFanoutStreamer(link modules.Publink, ll skyfileLayout, fanoutBytes []byte, timeout time.Duration, sk pubaccesskey.Pubaccesskey) (modules.Streamer, error) {
+	masterKey, err := r.deriveFanoutKey(&ll, sk)
 	if err != nil {
 		return nil, errors.AddContext(err, "count not recover siafile fanout because cipher key was unavailable")
 	}
 
+	// Create the erasure coder
 	ec, err := siafile.NewRSSubCode(int(ll.fanoutDataPieces), int(ll.fanoutParityPieces), crypto.SegmentSize)
 	if err != nil {
 		return nil, errors.New("unable to initialize erasure code")
@@ -68,7 +69,7 @@ func (r *Renter) newFanoutStreamer(link modules.Publink, ll skyfileLayout, fanou
 	}
 	err = fs.decodeFanout(fanoutBytes)
 	if err != nil {
-		return nil, errors.AddContext(err, "unable to decode fanout of pubfile")
+		return nil, errors.AddContext(err, "unable to decode fanout of skyfile")
 	}
 
 	// Grab and return the stream.

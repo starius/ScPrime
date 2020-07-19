@@ -1,0 +1,1 @@
+- Add Pubaccesskey delete methods to API.

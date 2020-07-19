@@ -3,7 +3,10 @@ package mdm
 import (
 	"testing"
 
+	"gitlab.com/NebulousLabs/fastrand"
+
 	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestInstructionHasSector tests executing a program with a single
@@ -14,7 +17,7 @@ func TestInstructionHasSector(t *testing.T) {
 	defer mdm.Stop()
 
 	// Create a program to check for a sector on the host.
-	so := newTestStorageObligation(true)
+	so := host.newTestStorageObligation(true)
 	so.sectorRoots = randomSectorRoots(1)
 
 	// Add sector to the host.
@@ -26,14 +29,15 @@ func TestInstructionHasSector(t *testing.T) {
 
 	// Build the program.
 	pt := newTestPriceTable()
-	tb := newTestProgramBuilder(pt)
+	duration := types.BlockHeight(fastrand.Uint64n(5))
+	tb := newTestProgramBuilder(pt, duration)
 	tb.AddHasSectorInstruction(sectorRoot)
 
 	ics := so.ContractSize()
 	imr := so.MerkleRoot()
 
 	// Execute it.
-	outputs, err := mdm.ExecuteProgramWithBuilder(tb, so, false)
+	outputs, err := mdm.ExecuteProgramWithBuilder(tb, so, duration, false)
 	if err != nil {
 		t.Fatal(err)
 	}

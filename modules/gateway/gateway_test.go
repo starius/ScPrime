@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/NebulousLabs/threadgroup"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
@@ -72,10 +74,10 @@ func TestExportedMethodsErrAfterClose(t *testing.T) {
 	if err := g.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if err := g.Close(); err != siasync.ErrStopped {
+	if err := g.Close(); err != threadgroup.ErrStopped {
 		t.Fatalf("expected %q, got %q", siasync.ErrStopped, err)
 	}
-	if err := g.Connect("localhost:1234"); err != siasync.ErrStopped {
+	if err := g.Connect("localhost:1234"); err != threadgroup.ErrStopped {
 		t.Fatalf("expected %q, got %q", siasync.ErrStopped, err)
 	}
 }

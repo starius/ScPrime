@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/consensus"
@@ -13,7 +14,6 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
 	"gitlab.com/scpcorp/ScPrime/modules/wallet"
 	"gitlab.com/scpcorp/ScPrime/persist"
-	"gitlab.com/scpcorp/siamux"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -51,7 +51,11 @@ func TestV120HostUpgrade(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	smux, err := siamux.New("localhost:0", "localhost:0", persist.NewLogger(logFile), persistDir)
+	logger, err := persist.NewLogger(logFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	smux, err := siamux.New("localhost:0", "localhost:0", logger.Logger, persistDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,11 +100,11 @@ func TestV120HostUpgrade(t *testing.T) {
 	// verify the upgrade properly decorated the ephemeral account related
 	// settings onto the persistence object
 	his := host.InternalSettings()
-	if his.EphemeralAccountExpiry != defaultEphemeralAccountExpiry {
+	if his.EphemeralAccountExpiry != modules.DefaultEphemeralAccountExpiry {
 		t.Fatal("EphemeralAccountExpiry not properly decorated on the persistence object after upgrade")
 	}
 
-	if !his.MaxEphemeralAccountBalance.Equals(defaultMaxEphemeralAccountBalance) {
+	if !his.MaxEphemeralAccountBalance.Equals(modules.DefaultMaxEphemeralAccountBalance) {
 		t.Fatal("MaxEphemeralAccountBalance not properly decorated on the persistence object after upgrade")
 	}
 

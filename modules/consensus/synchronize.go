@@ -7,10 +7,10 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	bolt "go.etcd.io/bbolt"
 )
@@ -18,7 +18,7 @@ import (
 const (
 	// minNumOutbound is the minimum number of outbound peers required before ibd
 	// is confident we are synced.
-	minNumOutbound = 1
+	minNumOutbound = 3
 )
 
 var (
@@ -49,9 +49,9 @@ var (
 	// other. Those nodes will likely have to wait minIBDWaitTime on every startup
 	// before IBD is done.
 	minIBDWaitTime = build.Select(build.Var{
-		Standard: 5 * time.Minute,
-		Dev:      1 * time.Second,
-		Testing:  1 * time.Second,
+		Standard: 10 * time.Minute,
+		Dev:      10 * time.Second,
+		Testing:  5 * time.Second,
 	}).(time.Duration)
 
 	// relayHeaderTimeout is the timeout for the RelayHeader RPC.

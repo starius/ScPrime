@@ -7,10 +7,10 @@ package consensus
 // ignored otherwise, which is suboptimal.
 
 import (
+	"gitlab.com/NebulousLabs/encoding"
 	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/scpcorp/ScPrime/build"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
@@ -77,17 +77,17 @@ var (
 
 var (
 	// FieldOakInit is a field in BucketOak that gets set to "true" after the
-	// oak initialiation process has completed.
+	// oak initialization process has completed.
 	FieldOakInit = []byte("OakInit")
 )
 
 var (
 	// ValueOakInit is the value that the oak init field is set to if the oak
-	// difficulty adjustment fields have been correctly intialized.
+	// difficulty adjustment fields have been correctly initialized.
 	ValueOakInit = []byte("true")
 )
 
-// createConsensusObjects initialzes the consensus portions of the database.
+// createConsensusObjects initializes the consensus portions of the database.
 func (cs *ConsensusSet) createConsensusDB(tx *bolt.Tx) error {
 	// Enumerate and create the database buckets.
 	buckets := [][]byte{
@@ -117,7 +117,7 @@ func (cs *ConsensusSet) createConsensusDB(tx *bolt.Tx) error {
 	}
 
 	// Update the siacoin output diffs map for the genesis block on disk. This
-	// needs to happen between the database being opened/initilized and the
+	// needs to happen between the database being opened/initialized and the
 	// consensus set hash being calculated
 	for _, scod := range cs.blockRoot.SiacoinOutputDiffs {
 		commitSiacoinOutputDiff(tx, scod, modules.DiffApply)
@@ -127,7 +127,7 @@ func (cs *ConsensusSet) createConsensusDB(tx *bolt.Tx) error {
 	setSiafundPool(tx, types.NewCurrency64(0))
 
 	// Update the siafund output diffs map for the genesis block on disk. This
-	// needs to happen between the database being opened/initilized and the
+	// needs to happen between the database being opened/initialized and the
 	// consensus set hash being calculated
 	for _, sfod := range cs.blockRoot.SiafundOutputDiffs {
 		commitSiafundOutputDiff(tx, sfod, modules.DiffApply)

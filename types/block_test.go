@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"testing"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 )
 
 // TestCalculateCoinbase probes the CalculateCoinbase function. The test code

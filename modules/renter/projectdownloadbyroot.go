@@ -1,12 +1,14 @@
 package renter
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
 
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -16,6 +18,12 @@ const (
 	// applied to the exponential weigted average used to compute the
 	// performance of the download by root projects that have run recently.
 	projectDownloadByRootPerformanceDecay = 0.9
+)
+
+var (
+	// sectorLookupToDownloadRatio is an arbitrary ratio that resembles the
+	// amount of lookups vs downloads. It is used in price gouging checks.
+	sectorLookupToDownloadRatio = 16
 )
 
 // projectDownloadByRootManager tracks metrics across multiple runs of
@@ -98,7 +106,12 @@ func (m *projectDownloadByRootManager) managedAverageProjectTime(length uint64) 
 // managedDownloadByRoot will fetch data using the merkle root of that data.
 // Unlike the exported version of this function, this function does not request
 // memory from the memory manager.
-func (r *Renter) managedDownloadByRoot(root crypto.Hash, offset, length uint64, timeout time.Duration) ([]byte, error) {
+func (r *Renter) managedDownloadByRoot(ctx context.Context, root crypto.Hash, offset, length uint64) ([]byte, error) {
+	// Create a context that dies when the function ends, this will cancel all
+	// of the worker jobs that get created by this function.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	// Convenience variable.
 	pm := r.staticProjectDownloadByRootManager
 	// Track the total duration of the project.
@@ -108,31 +121,6 @@ func (r *Renter) managedDownloadByRoot(root crypto.Hash, offset, length uint64, 
 	if r.deps.Disrupt("timeoutProjectDownloadByRoot") {
 		return nil, errors.Compose(ErrProjectTimedOut, ErrRootNotFound)
 	}
-
-	// Create a channel to time out the project. Use a nil channel if the
-	// timeout is zero, so that the timeout never fires.
-	var timeoutChan <-chan time.Time
-	if timeout > 0 {
-		timer := time.NewTimer(timeout)
-		timeoutChan = timer.C
-
-		// Defer a function to clean up the timer so nothing else in the
-		// function needs to worry about it.
-		defer func() {
-			if !timer.Stop() {
-				<-timer.C
-			}
-		}()
-	}
-
-	// Create a channel to signal to workers when the job has been completed.
-	// This will cause any workers who have not yet started the job to ignore it
-	// instead of doing duplicate work.
-	cancelChan := make(chan struct{})
-	defer func() {
-		// Automatically cancel the work when the function exits.
-		close(cancelChan)
-	}()
 
 	// Get the full list of workers and create a channel to receive all of the
 	// results from the workers. The channel is buffered with one slot per
@@ -152,15 +140,19 @@ func (r *Renter) managedDownloadByRoot(root crypto.Hash, offset, length uint64, 
 		if build.VersionCmp(cache.staticHostVersion, minAsyncVersion) < 0 {
 			continue
 		}
+
+		// check for price gouging
+		pt := worker.staticPriceTable().staticPriceTable
+		err := checkPDBRGouging(pt, cache.staticRenterAllowance)
+		if err != nil {
+			r.log.Debugf("price gouging detected in worker %v, err: %v\n", worker.staticHostPubKeyStr, err)
+			continue
+		}
+
 		jhs := &jobHasSector{
 			staticSector:       root,
 			staticResponseChan: staticResponseChan,
-
-			jobGeneric: &jobGeneric{
-				staticCancelChan: cancelChan,
-
-				staticQueue: worker.staticJobHasSectorQueue,
-			},
+			jobGeneric:         newJobGeneric(worker.staticJobHasSectorQueue, ctx.Done()),
 		}
 		if !worker.staticJobHasSectorQueue.callAdd(jhs) {
 			// This will filter out any workers that are on cooldown or
@@ -193,16 +185,8 @@ func (r *Renter) managedDownloadByRoot(root crypto.Hash, offset, length uint64, 
 	// After we have spent half of the whole historic time waiting for better
 	// workers to appear, we give up and use the best worker that we have found
 	// so far.
-	useBestWorkerChan := make(chan struct{})
-	useBestWorkerTimer := time.AfterFunc(pm.managedAverageProjectTime(length)/2, func() {
-		close(useBestWorkerChan)
-	})
-	// Clean up the timer. AfterFunc doesn't require draining the timer, you
-	// just call Stop. The return value only exists to indicate whether or not
-	// the function ran, which we don't care about.
-	defer func() {
-		useBestWorkerTimer.Stop()
-	}()
+	useBestWorkerCtx, useBestWorkerCancel := context.WithTimeout(ctx, pm.managedAverageProjectTime(length)/2)
+	defer useBestWorkerCancel()
 
 	// Run a loop to receive responses from the workers as they figure out
 	// whether or not they have the sector we are looking for. The loop needs to
@@ -222,7 +206,7 @@ func (r *Renter) managedDownloadByRoot(root crypto.Hash, offset, length uint64, 
 		// Check for the timeout. This is done separately to ensure the timeout
 		// has priority.
 		select {
-		case <-timeoutChan:
+		case <-ctx.Done():
 			return nil, errors.Compose(ErrProjectTimedOut, ErrRootNotFound)
 		default:
 		}
@@ -233,11 +217,11 @@ func (r *Renter) managedDownloadByRoot(root crypto.Hash, offset, length uint64, 
 			// not reported back yet. Because we have usable workers, we want to
 			// listen on the useBestWorkerChan.
 			select {
-			case <-useBestWorkerChan:
+			case <-useBestWorkerCtx.Done():
 				useBestWorker = true
 			case resp = <-staticResponseChan:
 				responses++
-			case <-timeoutChan:
+			case <-ctx.Done():
 				return nil, errors.Compose(ErrProjectTimedOut, ErrRootNotFound)
 			}
 		} else if len(usableWorkers) == 0 {
@@ -246,7 +230,7 @@ func (r *Renter) managedDownloadByRoot(root crypto.Hash, offset, length uint64, 
 			select {
 			case resp = <-staticResponseChan:
 				responses++
-			case <-timeoutChan:
+			case <-ctx.Done():
 				return nil, errors.Compose(ErrProjectTimedOut, ErrRootNotFound)
 			}
 		} else {
@@ -271,7 +255,7 @@ func (r *Renter) managedDownloadByRoot(root crypto.Hash, offset, length uint64, 
 		goodEnough := false
 		if resp != nil && resp.staticErr == nil && resp.staticAvailable {
 			w := resp.staticWorker
-			jq := w.staticJobReadSectorQueue
+			jq := w.staticJobReadQueue
 			usableWorkers[responses] = w
 			goodEnough = time.Since(start)+jq.callAverageJobTime(length) < pm.managedAverageProjectTime(length)
 		}
@@ -297,7 +281,7 @@ func (r *Renter) managedDownloadByRoot(root crypto.Hash, offset, length uint64, 
 		var bestWorker *worker
 		var bestWorkerTime time.Duration
 		for i, w := range usableWorkers {
-			wTime := w.staticJobReadSectorQueue.callAverageJobTime(length)
+			wTime := w.staticJobReadQueue.callAverageJobTime(length)
 			if bestWorkerTime == 0 || wTime < bestWorkerTime {
 				bestWorkerTime = wTime
 				bestWorkerIndex = i
@@ -309,21 +293,17 @@ func (r *Renter) managedDownloadByRoot(root crypto.Hash, offset, length uint64, 
 		delete(usableWorkers, bestWorkerIndex)
 
 		// Queue the job to download the sector root.
-		readSectorRespChan := make(chan *jobReadSectorResponse)
+		readSectorRespChan := make(chan *jobReadResponse)
 		jrs := &jobReadSector{
-			staticResponseChan: readSectorRespChan,
-
-			staticLength: length,
+			jobRead: jobRead{
+				staticResponseChan: readSectorRespChan,
+				staticLength:       length,
+				jobGeneric:         newJobGeneric(bestWorker.staticJobReadQueue, ctx.Done()),
+			},
 			staticOffset: offset,
 			staticSector: root,
-
-			jobGeneric: &jobGeneric{
-				staticCancelChan: cancelChan,
-
-				staticQueue: bestWorker.staticJobReadSectorQueue,
-			},
 		}
-		if !bestWorker.staticJobReadSectorQueue.callAdd(jrs) {
+		if !bestWorker.staticJobReadQueue.callAdd(jrs) {
 			continue
 		}
 
@@ -335,10 +315,10 @@ func (r *Renter) managedDownloadByRoot(root crypto.Hash, offset, length uint64, 
 		// I think the best way to fix this is to swich to the multi-worker
 		// paradigm, where we use multiple workers to fetch a single sector
 		// root.
-		var readSectorResp *jobReadSectorResponse
+		var readSectorResp *jobReadResponse
 		select {
 		case readSectorResp = <-readSectorRespChan:
-		case <-timeoutChan:
+		case <-ctx.Done():
 			return nil, errors.Compose(ErrProjectTimedOut, ErrRootNotFound)
 		}
 
@@ -363,13 +343,91 @@ func (r *Renter) managedDownloadByRoot(root crypto.Hash, offset, length uint64, 
 func (r *Renter) DownloadByRoot(root crypto.Hash, offset, length uint64, timeout time.Duration) ([]byte, error) {
 	// Block until there is memory available, and then ensure the memory gets
 	// returned.
-	if !r.memoryManager.Request(length, true) {
+	if !r.memoryManager.Request(length, memoryPriorityHigh) {
 		return nil, errors.New("renter shut down before memory could be allocated for the project")
 	}
 	defer r.memoryManager.Return(length)
-	data, err := r.managedDownloadByRoot(root, offset, length, timeout)
+
+	// Create a context. If the timeout is greater than zero, have the context
+	// expire when the timeout triggers.
+	ctx := r.tg.StopCtx()
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(r.tg.StopCtx(), timeout)
+		defer cancel()
+	}
+
+	data, err := r.managedDownloadByRoot(ctx, root, offset, length)
 	if errors.Contains(err, ErrProjectTimedOut) {
 		err = errors.AddContext(err, fmt.Sprintf("timed out after %vs", timeout.Seconds()))
 	}
 	return data, err
+}
+
+// checkPDBRGouging verifies the cost of executing the jobs performed by the
+// PDBR are reasonable in relation to the user's allowance and the amount of
+// data they intend to download
+func checkPDBRGouging(pt modules.RPCPriceTable, allowance modules.Allowance) error {
+	// Check whether the download bandwidth price is too high.
+	if !allowance.MaxDownloadBandwidthPrice.IsZero() && allowance.MaxDownloadBandwidthPrice.Cmp(pt.DownloadBandwidthCost) < 0 {
+		return fmt.Errorf("download bandwidth price of host is %v, which is above the maximum allowed by the allowance: %v - price gouging protection enabled", pt.DownloadBandwidthCost, allowance.MaxDownloadBandwidthPrice)
+	}
+
+	// Check whether the upload bandwidth price is too high.
+	if !allowance.MaxUploadBandwidthPrice.IsZero() && allowance.MaxUploadBandwidthPrice.Cmp(pt.UploadBandwidthCost) < 0 {
+		return fmt.Errorf("upload bandwidth price of host is %v, which is above the maximum allowed by the allowance: %v - price gouging protection enabled", pt.UploadBandwidthCost, allowance.MaxUploadBandwidthPrice)
+	}
+
+	// If there is no allowance, price gouging checks have to be disabled,
+	// because there is no baseline for understanding what might count as price
+	// gouging.
+	if allowance.Funds.IsZero() {
+		return nil
+	}
+
+	// In order to decide whether or not the cost of performing a PDBR is too
+	// expensive, we make some assumptions with regards to lookup vs download
+	// job ratio and avg download size. The total cost is then compared in
+	// relation to the allowance, where we verify that a fraction of the cost
+	// (which we'll call reduced cost) to download the amount of data the user
+	// intends to download does not exceed its allowance.
+
+	// Calculate the cost of a has sector job
+	pb := modules.NewProgramBuilder(&pt, 0)
+	pb.AddHasSectorInstruction(crypto.Hash{})
+	programCost, _, _ := pb.Cost(true)
+
+	ulbw, dlbw := hasSectorJobExpectedBandwidth()
+	bandwidthCost := modules.MDMBandwidthCost(pt, ulbw, dlbw)
+	costHasSectorJob := programCost.Add(bandwidthCost)
+
+	// Calculate the cost of a read sector job, we use StreamDownloadSize as an
+	// average download size here which is 64 KiB.
+	pb = modules.NewProgramBuilder(&pt, 0)
+	pb.AddReadSectorInstruction(modules.StreamDownloadSize, 0, crypto.Hash{}, true)
+	programCost, _, _ = pb.Cost(true)
+
+	ulbw, dlbw = readSectorJobExpectedBandwidth(modules.StreamDownloadSize)
+	bandwidthCost = modules.MDMBandwidthCost(pt, ulbw, dlbw)
+	costReadSectorJob := programCost.Add(bandwidthCost)
+
+	// Calculate the cost of a project
+	costProject := costReadSectorJob.Add(costHasSectorJob.Mul64(uint64(sectorLookupToDownloadRatio)))
+
+	// Now that we have the cost of each job, and we estimate a sector lookup to
+	// download ratio of 16, all we need to do is calculate the number of
+	// projects necessary to download the expected download amount.
+	numProjects := allowance.ExpectedDownload / modules.StreamDownloadSize
+
+	// The cost of downloading is considered too expensive if the allowance is
+	// insufficient to cover a fraction of the expense to download the amount of
+	// data the user intends to download
+	totalCost := costProject.Mul64(numProjects)
+	reducedCost := totalCost.Div64(downloadGougingFractionDenom)
+	if reducedCost.Cmp(allowance.Funds) > 0 {
+		errStr := fmt.Sprintf("combined PDBR pricing of host yields %v, which is more than the renter is willing to pay for downloads: %v - price gouging protection enabled", reducedCost, allowance.Funds)
+		return errors.New(errStr)
+	}
+
+	return nil
 }

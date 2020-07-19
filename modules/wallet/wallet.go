@@ -8,12 +8,12 @@ import (
 	"sort"
 	"sync"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/threadgroup"
 	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
@@ -55,8 +55,13 @@ type Wallet struct {
 	// wallet.
 	encrypted   bool
 	unlocked    bool
-	subscribed  bool
 	primarySeed modules.Seed
+
+	// Fields that handle the subscriptions to the cs and tpool. subscribedMu
+	// needs to be locked when subscribed is accessed and while calling the
+	// subscribing methods on the tpool and consensusset.
+	subscribedMu sync.Mutex
+	subscribed   bool
 
 	// The wallet's dependencies.
 	cs    modules.ConsensusSet

@@ -283,6 +283,34 @@ provider from the same IP address subnet.`,
 		Long:  "View the status of the Renter's workers",
 		Run:   wrap(renterworkerscmd),
 	}
+
+	renterWorkersAccountsCmd = &cobra.Command{
+		Use:   "ea",
+		Short: "View the workers' ephemeral account",
+		Long:  "View detailed information of the workers' ephemeral account",
+		Run:   wrap(renterworkerseacmd),
+	}
+
+	renterWorkersPriceTableCmd = &cobra.Command{
+		Use:   "pt",
+		Short: "View the workers's price table",
+		Long:  "View detailed information of the workers' price table",
+		Run:   wrap(renterworkersptcmd),
+	}
+
+	renterWorkersReadJobsCmd = &cobra.Command{
+		Use:   "rj",
+		Short: "View the workers' read jobs",
+		Long:  "View detailed information of the workers' read jobs",
+		Run:   wrap(renterworkersrjcmd),
+	}
+
+	renterWorkersHasSectorJobSCmd = &cobra.Command{
+		Use:   "hsj",
+		Short: "View the workers' has sector jobs",
+		Long:  "View detailed information of the workers' has sector jobs",
+		Run:   wrap(renterworkershsjcmd),
+	}
 )
 
 // abs returns the absolute representation of a path.
@@ -2028,7 +2056,7 @@ func downloadprogress(tfs []trackedFile) []api.DownloadInfo {
 				progressStr += fmt.Sprint(progressLine)
 			}
 		}
-		print(progressStr)
+		fmt.Print(progressStr)
 		progressStr = clearStr
 	}
 	// This code is unreachable, but the compiler requires this to be here.
@@ -2565,7 +2593,7 @@ func renterratelimitcmd(downloadSpeedStr, uploadSpeedStr string) {
 	fmt.Println("Set renter maxdownloadspeed to ", downloadSpeedInt, " and maxuploadspeed to ", uploadSpeedInt)
 }
 
-// renterworkerscmd is the handler for the comand `spc renter workers`.
+// renterworkerscmd is the handler for the command `spc renter workers`.
 // It lists the Renter's workers.
 func renterworkerscmd() {
 	rw, err := httpClient.RenterWorkersGet()
@@ -2608,6 +2636,213 @@ func renterworkerscmd() {
 	}
 }
 
+// renterworkerseacmd is the handler for the command `siac renter workers ea`.
+// It lists the status of the account of every worker.
+func renterworkerseacmd() {
+	rw, err := httpClient.RenterWorkersGet()
+	if err != nil {
+		die("Could not get worker statuses:", err)
+	}
+
+	// collect some overal account stats
+	var wocd, nfw uint64
+	for _, worker := range rw.Workers {
+		if worker.AccountStatus.OnCoolDown {
+			wocd++
+		}
+		if !worker.AccountStatus.Funded {
+			nfw++
+		}
+	}
+	fmt.Println("Worker Accounts Summary")
+
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	defer func() {
+		err := w.Flush()
+		if err != nil {
+			die("Could not flush tabwriter:", err)
+		}
+	}()
+
+	// print summary
+	fmt.Fprintf(w, "Total Workers: \t%v\n", rw.NumWorkers)
+	fmt.Fprintf(w, "Workers On Cooldown: \t%v\n", wocd)
+	fmt.Fprintf(w, "Non Funded Workers: \t%v\n", nfw)
+
+	// print header
+	hostInfo := "Host PubKey"
+	accountInfo := "\tFunded\tAvailBal\tNegBal\tBalTarget"
+	queueInfo := "\tOnCoolDown\tCoolDownUntil\tConsecFail\tErrorAt\tError"
+	header := hostInfo + accountInfo + queueInfo
+	fmt.Fprintln(w, "\nWorker Accounts Detail  \n\n"+header)
+
+	// print rows
+	for _, worker := range rw.Workers {
+		as := worker.AccountStatus
+
+		// Host Info
+		fmt.Fprintf(w, "%v", worker.HostPubKey.String())
+
+		// Account Info
+		fmt.Fprintf(w, "\t%t\t%s\t%s\t%s",
+			as.Funded,
+			as.AvailableBalance.HumanString(),
+			as.NegativeBalance.HumanString(),
+			worker.AccountBalanceTarget.HumanString())
+
+		// Queue Info
+		fmt.Fprintf(w, "\t%t\t%v\t%v\t%v\t%v\n",
+			as.OnCoolDown,
+			sanitizeTime(as.OnCoolDownUntil, as.OnCoolDown),
+			as.ConsecutiveFailures,
+			sanitizeTime(as.RecentErrTime, as.RecentErr != ""),
+			sanitizeErr(as.RecentErr))
+	}
+}
+
+// renterworkersptcmd is the handler for the command `siac renter workers pt`.
+// It lists the status of the price table of every worker.
+func renterworkersptcmd() {
+	rw, err := httpClient.RenterWorkersGet()
+	if err != nil {
+		die("Could not get worker statuses:", err)
+	}
+
+	// collect some overal account stats
+	var wocd, wnpt uint64
+	for _, worker := range rw.Workers {
+		if worker.PriceTableStatus.OnCoolDown {
+			wocd++
+		}
+		if !worker.PriceTableStatus.Active {
+			wnpt++
+		}
+	}
+	fmt.Println("Worker Price Tables Summary")
+
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	defer func() {
+		err := w.Flush()
+		if err != nil {
+			die("Could not flush tabwriter:", err)
+		}
+	}()
+
+	// print summary
+	fmt.Fprintf(w, "Total Workers: \t%v\n", rw.NumWorkers)
+	fmt.Fprintf(w, "Workers On Cooldown: \t%v\n", wocd)
+	fmt.Fprintf(w, "Workers Without Price Table: \t%v\n", wnpt)
+
+	// print header
+	hostInfo := "Host PubKey"
+	priceTableInfo := "\tActive\tExpiry\tUpdate"
+	queueInfo := "\tOnCoolDown\tCoolDownUntil\tConsecFail\tErrorAt\tError"
+	header := hostInfo + priceTableInfo + queueInfo
+	fmt.Fprintln(w, "\nWorker Price Tables Detail  \n\n"+header)
+
+	// print rows
+	for _, worker := range rw.Workers {
+		pts := worker.PriceTableStatus
+
+		// Host Info
+		fmt.Fprintf(w, "%v", worker.HostPubKey.String())
+
+		// Price Table Info
+		fmt.Fprintf(w, "\t%t\t%s\t%s",
+			pts.Active,
+			sanitizeTime(pts.ExpiryTime, pts.Active),
+			sanitizeTime(pts.UpdateTime, pts.Active))
+
+		// QueueInfo
+		fmt.Fprintf(w, "\t%t\t%v\t%v\t%v\t%v\n",
+			pts.OnCoolDown,
+			sanitizeTime(pts.OnCoolDownUntil, pts.OnCoolDown),
+			pts.ConsecutiveFailures,
+			sanitizeTime(pts.RecentErrTime, pts.RecentErr != ""),
+			sanitizeErr(pts.RecentErr))
+	}
+}
+
+// renterworkersrjcmd is the handler for the command `siac renter workers rj`.
+// It lists the status of the read job queue for every worker.
+func renterworkersrjcmd() {
+	rw, err := httpClient.RenterWorkersGet()
+	if err != nil {
+		die("Could not get worker statuses:", err)
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	defer func() {
+		err := w.Flush()
+		if err != nil {
+			die("Could not flush tabwriter:", err)
+		}
+	}()
+
+	// print header
+	hostInfo := "Host PubKey"
+	queueInfo := "\tJobs\tAvgJobTime64k (ms)\tAvgJobTime1m (ms)\tAvgJobTime4m (ms)\tConsecFail\tErrorAt\tError"
+	header := hostInfo + queueInfo
+	fmt.Fprintln(w, "\nWorker Read Jobs  \n\n"+header)
+
+	// print rows
+	for _, worker := range rw.Workers {
+		rjs := worker.ReadJobsStatus
+
+		// Host Info
+		fmt.Fprintf(w, "%v", worker.HostPubKey.String())
+
+		// ReadJobs Info
+		fmt.Fprintf(w, "\t%v\t%v\t%v\t%v\t%v\t%v\t%v\n",
+			rjs.JobQueueSize,
+			rjs.AvgJobTime64k,
+			rjs.AvgJobTime1m,
+			rjs.AvgJobTime4m,
+			rjs.ConsecutiveFailures,
+			sanitizeTime(rjs.RecentErrTime, rjs.RecentErr != ""),
+			sanitizeErr(rjs.RecentErr))
+	}
+}
+
+// renterworkershsjcmd is the handler for the command `siac renter workers hs`.
+// It lists the status of the has sector job queue for every worker.
+func renterworkershsjcmd() {
+	rw, err := httpClient.RenterWorkersGet()
+	if err != nil {
+		die("Could not get worker statuses:", err)
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	defer func() {
+		err := w.Flush()
+		if err != nil {
+			die("Could not flush tabwriter:", err)
+		}
+	}()
+
+	// print header
+	hostInfo := "Host PubKey"
+	queueInfo := "\tJobs\tAvgJobTime (ms)\tConsecFail\tErrorAt\tError"
+	header := hostInfo + queueInfo
+	fmt.Fprintln(w, "\nWorker Has Sector Jobs  \n\n"+header)
+
+	// print rows
+	for _, worker := range rw.Workers {
+		hsjs := worker.HasSectorJobsStatus
+
+		// Host Info
+		fmt.Fprintf(w, "%v", worker.HostPubKey.String())
+
+		// HasSector Jobs Info
+		fmt.Fprintf(w, "\t%v\t%v\t%v\t%v\t%v\n",
+			hsjs.JobQueueSize,
+			hsjs.AvgJobTime,
+			hsjs.ConsecutiveFailures,
+			sanitizeTime(hsjs.RecentErrTime, hsjs.RecentErr != ""),
+			sanitizeErr(hsjs.RecentErr))
+	}
+}
+
 // writeWorkers is a helper function to display workers
 func writeWorkers(workers []modules.WorkerStatus) {
 	fmt.Println("  Number of Workers:", len(workers))
@@ -2647,8 +2882,8 @@ func writeWorkers(workers []modules.WorkerStatus) {
 
 		// EA Info
 		fmt.Fprintf(w, "\t%v\t%v",
-			worker.AvailableBalance,
-			worker.BalanceTarget)
+			worker.AccountStatus.AvailableBalance,
+			worker.AccountBalanceTarget)
 
 		// Job Info
 		fmt.Fprintf(w, "\t%v\t%v\n",
@@ -2656,6 +2891,26 @@ func writeWorkers(workers []modules.WorkerStatus) {
 			worker.DownloadRootJobQueueSize)
 	}
 	w.Flush()
+}
+
+// sanitizeTime is a small helper function that sanitizes the output for the
+// given time. If the given 'cond' value is false, it will print "-", if it is
+// true it will print the time in a predefined format.
+func sanitizeTime(t time.Time, cond bool) string {
+	if !cond {
+		return "-"
+	}
+	return fmt.Sprintf("%v", t.Format(time.RFC3339))
+}
+
+// sanitizeErr is a small helper function that sanitizes the output for the
+// given error string. It will print "-", if the error string is the equivalent
+// of a nil error.
+func sanitizeErr(errStr string) string {
+	if errStr == "" {
+		return "-"
+	}
+	return errStr
 }
 
 // enableiprestriction is the handler for the command `renter enableiprestriction`

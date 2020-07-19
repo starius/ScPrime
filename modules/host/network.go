@@ -21,12 +21,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	connmonitor "gitlab.com/NebulousLabs/monitor"
-	"gitlab.com/scpcorp/siamux"
+	"gitlab.com/NebulousLabs/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
@@ -390,6 +390,8 @@ func (h *Host) threadedHandleStream(stream siamux.Stream) {
 		err = h.managedRPCUpdatePriceTable(stream)
 	case modules.RPCFundAccount:
 		err = h.managedRPCFundEphemeralAccount(stream)
+	case modules.RPCLatestRevision:
+		err = h.managedRPCLatestRevision(stream)
 	default:
 		h.log.Debugf("WARN: incoming stream %v requested unknown RPC \"%v\"", stream.RemoteAddr().String(), rpcID)
 		err = errors.New(fmt.Sprintf("Unrecognized RPC id %v", rpcID))

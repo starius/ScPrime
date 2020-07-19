@@ -28,6 +28,10 @@ var (
 	// ErrMissingVoidOutput is the error returned when the void output of a
 	// contract or revision is accessed that no longer has one.
 	ErrMissingVoidOutput = errors.New("void output is missing")
+
+	// ErrRevisionNotIncremented is returned if the revision number wasn't
+	// incremented when creating a new revision.
+	ErrRevisionNotIncremented = errors.New("revision number was not incremented")
 )
 
 type (
@@ -123,8 +127,50 @@ func (fcr FileContractRevision) HostPublicKey() SiaPublicKey {
 }
 
 // PaymentRevision returns a copy of the revision with incremented revision
-// number where the given amount has moved from renter to the host.
+// number where the given amount has moved from the renter to the host (for
+// valid outputs) and from renter to the void (for missed outputs).
 func (fcr FileContractRevision) PaymentRevision(amount Currency) (FileContractRevision, error) {
+	rev := fcr
+
+	// need to manually copy slice memory
+	rev.NewValidProofOutputs = append([]SiacoinOutput{}, fcr.NewValidProofOutputs...)
+	rev.NewMissedProofOutputs = append([]SiacoinOutput{}, fcr.NewMissedProofOutputs...)
+
+	// Check that there are enough funds to pay this cost.
+	if fcr.ValidRenterPayout().Cmp(amount) < 0 {
+		return FileContractRevision{}, errors.AddContext(ErrRevisionCostTooHigh, "valid proof output smaller than cost")
+	}
+	if fcr.MissedRenterOutput().Value.Cmp(amount) < 0 {
+		return FileContractRevision{}, errors.AddContext(ErrRevisionCostTooHigh, "missed proof output smaller than cost")
+	}
+
+	// move valid payout from renter to host
+	rev.SetValidRenterPayout(fcr.ValidRenterPayout().Sub(amount))
+	rev.SetValidHostPayout(fcr.ValidHostPayout().Add(amount))
+
+	// move missed payout from renter to void
+	rev.SetMissedRenterPayout(fcr.MissedRenterOutput().Value.Sub(amount))
+	void, err := fcr.MissedVoidOutput()
+	if err != nil {
+		return FileContractRevision{}, err
+	}
+	rev.SetMissedVoidPayout(void.Value.Add(amount))
+
+	// increment revision number
+	rev.NewRevisionNumber++
+	return rev, nil
+}
+
+// EAFundRevision returns a copy of the revision with incremented revision
+// number where the given amount has moved from renter to the host. This is
+// similar to PaymentRevision but instead of moving the missed renter payout to
+// the void it is moved to the host. That's because the money used to fund an EA
+// should always go to the host. A contract might only be used for
+// downloading/uploading so the merkle root might never change. Which means a
+// storage proof can't be submitted by the host. Once the contract is used for
+// uploading using the MDM, a separate revision will be created to move the
+// money from the missed host output to the void.
+func (fcr FileContractRevision) EAFundRevision(amount Currency) (FileContractRevision, error) {
 	rev := fcr
 
 	// need to manually copy slice memory
@@ -150,6 +196,49 @@ func (fcr FileContractRevision) PaymentRevision(amount Currency) (FileContractRe
 	// increment revision number
 	rev.NewRevisionNumber++
 	return rev, nil
+}
+
+// ExecuteProgramRevision creates a new ExecuteProgramRevision based off of an
+// existing revision. Since the MDM program is already paid for using EAs and EA
+// funded money is moved to the host's valid and missed output but not the void,
+// this revision moves a certain amount of that money from the missed host
+// output to the void for collateral and per-block storage cost in case the host
+// can't provide a storage proof.
+func (fcr FileContractRevision) ExecuteProgramRevision(revisionNumber uint64, transfer Currency, newRoot crypto.Hash, newSize uint64) (FileContractRevision, error) {
+	newRevision := fcr
+
+	// need to manually copy slice memory
+	newRevision.NewValidProofOutputs = append([]SiacoinOutput{}, fcr.NewValidProofOutputs...)
+	newRevision.NewMissedProofOutputs = append([]SiacoinOutput{}, fcr.NewMissedProofOutputs...)
+
+	// Set the new contract root, revision number and size.
+	newRevision.NewFileMerkleRoot = newRoot
+	newRevision.NewFileSize = newSize
+	newRevision.NewRevisionNumber = revisionNumber
+
+	// sanity check revision number.
+	if fcr.NewRevisionNumber >= revisionNumber {
+		return FileContractRevision{}, ErrRevisionNotIncremented
+	}
+
+	// sanity check transfer.
+	if newRevision.MissedHostPayout().Cmp(transfer) < 0 {
+		return FileContractRevision{}, ErrRevisionCostTooHigh
+	}
+	// move money from the host.
+	newRevision.SetMissedHostPayout(newRevision.MissedHostPayout().Sub(transfer))
+
+	// move money into void.
+	voidPayout, err := newRevision.MissedVoidPayout()
+	if err != nil {
+		return FileContractRevision{}, errors.AddContext(err, "failed to get void payout")
+	}
+	err = newRevision.SetMissedVoidPayout(voidPayout.Add(transfer))
+	if err != nil {
+		return FileContractRevision{}, errors.AddContext(err, "failed to set void payout")
+	}
+
+	return newRevision, nil
 }
 
 // ToTransaction wraps the revision in a Transaction. Note that the
@@ -293,6 +382,11 @@ func (fcr FileContractRevision) MissedRenterOutput() SiacoinOutput {
 	return fcr.NewMissedProofOutputs[0]
 }
 
+// MissedRenterPayout gets the value of the renter's missed proof output.
+func (fcr FileContractRevision) MissedRenterPayout() Currency {
+	return fcr.MissedRenterOutput().Value
+}
+
 // MissedHostOutput gets the host's missed proof output.
 func (fcr FileContractRevision) MissedHostOutput() SiacoinOutput {
 	return fcr.NewMissedProofOutputs[1]
@@ -309,6 +403,15 @@ func (fcr FileContractRevision) MissedVoidOutput() (SiacoinOutput, error) {
 		return SiacoinOutput{}, ErrMissingVoidOutput
 	}
 	return fcr.NewMissedProofOutputs[2], nil
+}
+
+// MissedVoidPayout gets the void's missed proof output's value.
+func (fcr FileContractRevision) MissedVoidPayout() (Currency, error) {
+	sco, err := fcr.MissedVoidOutput()
+	if err != nil {
+		return Currency{}, err
+	}
+	return sco.Value, nil
 }
 
 // StorageProofOutputID returns the ID of an output created by a file

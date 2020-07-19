@@ -3,7 +3,7 @@ package consensus
 import (
 	"sort"
 
-	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 

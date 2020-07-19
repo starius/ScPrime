@@ -3,10 +3,10 @@ package consensus
 import (
 	"errors"
 
+	"gitlab.com/NebulousLabs/encoding"
 	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/scpcorp/ScPrime/build"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 )

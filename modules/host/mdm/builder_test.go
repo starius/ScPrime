@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // testProgramBuilder is a helper used for constructing test programs and
@@ -22,13 +23,13 @@ type testProgramBuilder struct {
 }
 
 // newTestProgramBuilder creates a new testBuilder.
-func newTestProgramBuilder(pt *modules.RPCPriceTable) *testProgramBuilder {
+func newTestProgramBuilder(pt *modules.RPCPriceTable, duration types.BlockHeight) *testProgramBuilder {
 	return &testProgramBuilder{
 		readonly: true,
 		staticPT: pt,
 
-		staticPB:     modules.NewProgramBuilder(pt),
-		staticValues: NewTestValues(pt),
+		staticPB:     modules.NewProgramBuilder(pt, duration),
+		staticValues: NewTestValues(pt, duration),
 	}
 }
 
@@ -90,6 +91,13 @@ func (tb *testProgramBuilder) AddReadOffsetInstruction(length, offset uint64, me
 func (tb *testProgramBuilder) AddReadSectorInstruction(length, offset uint64, merkleRoot crypto.Hash, merkleProof bool) {
 	tb.staticPB.AddReadSectorInstruction(length, offset, merkleRoot, merkleProof)
 	tb.staticValues.AddReadSectorInstruction(length)
+}
+
+// AddRevisionInstruction adds a revision instruction to the builder, keeping
+// track of running values.
+func (tb *testProgramBuilder) AddRevisionInstruction() {
+	tb.staticPB.AddRevisionInstruction()
+	tb.staticValues.AddRevisionInstruction()
 }
 
 // Program returns the built program.

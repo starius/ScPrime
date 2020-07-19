@@ -2,10 +2,10 @@ package wallet
 
 import (
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 )
@@ -106,9 +106,8 @@ func (w *Wallet) loadSpendableKey(masterKey crypto.CipherKey, sk spendableKey) e
 	// Encrypt and save the key.
 	skf.SpendableKey = encryptionKey.EncryptBytes(encoding.Marshal(sk))
 
-	err := checkMasterKey(w.dbTx, masterKey)
 	var current []spendableKeyFile
-	err = encoding.Unmarshal(w.dbTx.Bucket(bucketWallet).Get(keySpendableKeyFiles), &current)
+	err := errors.Compose(checkMasterKey(w.dbTx, masterKey), encoding.Unmarshal(w.dbTx.Bucket(bucketWallet).Get(keySpendableKeyFiles), &current))
 	if err != nil {
 		return err
 	}

@@ -3,8 +3,8 @@ package types
 import (
 	"testing"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 )
 
 // BenchmarkStandaloneValid times how long it takes to verify a single

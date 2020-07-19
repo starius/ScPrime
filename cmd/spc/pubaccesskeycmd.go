@@ -7,8 +7,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	"gitlab.com/NebulousLabs/errors"
 
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/scpcorp/ScPrime/node/api/client"
 	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 )
@@ -16,16 +16,16 @@ import (
 var (
 	skykeyCmd = &cobra.Command{
 		Use:   "pubaccesskey",
-		Short: "Perform actions related to Pubaccesskeys",
-		Long:  `Perform actions related to Pubaccesskeys, the encryption keys used for Skyfiles.`,
+		Short: "Perform actions related to Pubaccess keys",
+		Long:  `Perform actions related to Public access keys, the encryption keys used for files uploaded for Public access.`,
 		Run:   skykeycmd,
 	}
 
 	skykeyCreateCmd = &cobra.Command{
 		Use:   "create [name]",
 		Short: "Create a pubaccesskey with the given name.",
-		Long: `Create a pubaccesskey  with the given name. The --cipher-type flag can be
-		used to specify the cipher type. Its default is XChaCha20.`,
+		Long: `Create a pubaccesskey  with the given name. The --type flag can be
+		used to specify the pubaccesskey type. Its default is private-id.`,
 		Run: wrap(skykeycreatecmd),
 	}
 
@@ -53,7 +53,7 @@ var (
 	skykeyListCmd = &cobra.Command{
 		Use:   "ls",
 		Short: "List all pubaccesskeys",
-		Long:  "List all public access keys. Use with --show-priv-keys to show full encoding with private key also.",
+		Long:  "List all pubaccesskeys. Use with --show-priv-keys to show full encoding with private key also.",
 		Run:   wrap(skykeylistcmd),
 	}
 )
@@ -66,18 +66,24 @@ func skykeycmd(cmd *cobra.Command, args []string) {
 
 // skykeycreatecmd is a wrapper for skykeyCreate used to handle pubaccesskey creation.
 func skykeycreatecmd(name string) {
-	skykeyStr, err := skykeyCreate(httpClient, name, pubaccesskey.TypePublicID)
+	skykeyStr, err := skykeyCreate(httpClient, name, skykeyType)
 	if err != nil {
 		die(errors.AddContext(err, "Failed to create new pubaccesskey"))
 	}
 	fmt.Printf("Created new pubaccesskey: %v\n", skykeyStr)
 }
 
-// skykeyCreate creates a new pubaccesskey with the given name and cipher type
-func skykeyCreate(c client.Client, name string, skykeyType pubaccesskey.SkykeyType) (string, error) {
-	sk, err := c.SkykeyCreateKeyPost(name, skykeyType)
+// skykeyCreate creates a new Pubaccesskey with the given name and cipher type
+func skykeyCreate(c client.Client, name, skykeyTypeString string) (string, error) {
+	var st pubaccesskey.SkykeyType
+	err := st.FromString(skykeyTypeString)
 	if err != nil {
-		return "", errors.AddContext(err, "Could not create pubaccess key")
+		return "", errors.AddContext(err, "Unable to decode pubaccesskey type")
+	}
+
+	sk, err := c.SkykeyCreateKeyPost(name, st)
+	if err != nil {
+		return "", errors.AddContext(err, "Could not create pubaccesskey")
 	}
 	return sk.ToString()
 }
@@ -140,12 +146,11 @@ func skykeyGet(c client.Client, name, id string) (string, error) {
 	if name != "" {
 		sk, err = c.SkykeyGetByName(name)
 	} else {
-		var skykeyID pubaccesskey.SkykeyID
+		var skykeyID pubaccesskey.PubaccesskeyID
 		err = skykeyID.FromString(id)
 		if err != nil {
 			return "", errors.AddContext(err, "Could not decode pubaccesskey ID")
 		}
-
 		sk, err = c.SkykeyGetByID(skykeyID)
 	}
 
@@ -189,9 +194,9 @@ func skykeyListKeys(c client.Client, showPrivateKeys bool) (string, error) {
 
 	// Print a title row.
 	if showPrivateKeys {
-		fmt.Fprintf(w, "ID\tName\tFull Pubaccesskey\n")
+		fmt.Fprintf(w, "ID\tName\tType\tFull Pubaccesskey\n")
 	} else {
-		fmt.Fprintf(w, "ID\tName\n")
+		fmt.Fprintf(w, "ID\tName\tType\n")
 	}
 
 	if err = w.Flush(); err != nil {
@@ -206,14 +211,14 @@ func skykeyListKeys(c client.Client, showPrivateKeys bool) (string, error) {
 	for _, sk := range pubaccesskeys {
 		idStr := sk.ID().ToString()
 		if !showPrivateKeys {
-			fmt.Fprintf(w, "%s\t%s\n", idStr, sk.Name)
+			fmt.Fprintf(w, "%s\t%s\t%s\n", idStr, sk.Name, sk.Type.ToString())
 			continue
 		}
 		skStr, err := sk.ToString()
 		if err != nil {
 			return "", err
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\n", idStr, sk.Name, skStr)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", idStr, sk.Name, sk.Type.ToString(), skStr)
 	}
 
 	if err = w.Flush(); err != nil {

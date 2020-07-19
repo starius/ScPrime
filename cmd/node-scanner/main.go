@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/gateway"
 	siaPersist "gitlab.com/scpcorp/ScPrime/persist"
@@ -184,7 +184,7 @@ func newNodeScanner(scannerDirPrefix string) (ns *nodeScanner) {
 	log.Printf("Logging data in:  %s\n", scannerDirPath)
 
 	// Create the file for this scan.
-	startTime := time.Now().Format("01_02-15-04")
+	startTime := time.Now().Format("01_02:15:04")
 	scanLogName := filepath.Join(scannerDirPath, "scan-"+startTime+".json")
 	scanLog, err := os.Create(scanLogName)
 	if err != nil {

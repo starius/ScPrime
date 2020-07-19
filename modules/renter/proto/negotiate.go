@@ -5,12 +5,12 @@ import (
 	"net"
 	"time"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	"golang.org/x/crypto/chacha20poly1305"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
@@ -84,9 +84,6 @@ func verifySettings(conn net.Conn, host modules.HostDBEntry) (modules.HostDBEntr
 		UploadBandwidthPrice:   recvSettings.UploadBandwidthPrice,
 		RevisionNumber:         recvSettings.RevisionNumber,
 		Version:                recvSettings.Version,
-		// New fields are set to zero.
-		BaseRPCPrice:      types.ZeroCurrency,
-		SectorAccessPrice: types.ZeroCurrency,
 	}
 	return host, nil
 }

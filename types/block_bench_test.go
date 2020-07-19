@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/NebulousLabs/encoding"
 )
 
 // BenchmarkEncodeEmptyBlock benchmarks encoding an empty block.

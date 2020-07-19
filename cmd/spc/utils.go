@@ -16,10 +16,10 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
+	"gitlab.com/NebulousLabs/encoding"
 	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter"
 	"gitlab.com/scpcorp/ScPrime/siatest"

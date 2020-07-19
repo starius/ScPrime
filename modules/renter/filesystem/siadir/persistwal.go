@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/scpcorp/ScPrime/build"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/writeaheadlog"
 )

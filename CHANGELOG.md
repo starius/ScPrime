@@ -10,7 +10,7 @@ Version History
 ---------------
 
 Latest:
-### v1.4.3.1
+### v1.4.4.0
 
 **Bugs Fixed**
 - fixed issue where workers would freeze for a bit after a new block appeared

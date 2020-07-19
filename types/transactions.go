@@ -8,8 +8,8 @@ package types
 import (
 	"errors"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 )
 
 const (
