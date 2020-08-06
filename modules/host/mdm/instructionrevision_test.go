@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
@@ -49,8 +50,25 @@ func TestInstructionRevision(t *testing.T) {
 	}
 
 	// Assert output.
-	expectedOutput := encoding.Marshal(rev)
+	expectedOutput := encoding.Marshal(modules.MDMInstructionRevisionResponse{
+		RevisionTxn: so.RevisionTxn(),
+	})
 	err = outputs[0].assert(ics, imr, []crypto.Hash{}, expectedOutput)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify revision signature.
+	var response modules.MDMInstructionRevisionResponse
+	err = encoding.Unmarshal(outputs[0].Output, &response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	revisionTxn := response.RevisionTxn
+	var signature crypto.Signature
+	copy(signature[:], revisionTxn.RenterSignature().Signature)
+	hash := revisionTxn.SigHash(0, host.BlockHeight()) // this should be the start height but this works too
+	err = crypto.VerifyHash(hash, so.sk.PublicKey(), signature)
 	if err != nil {
 		t.Fatal(err)
 	}

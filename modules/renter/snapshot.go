@@ -13,6 +13,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
 	"gitlab.com/scpcorp/ScPrime/types"
@@ -125,6 +126,12 @@ func (r *Renter) managedUploadBackup(src, name string) (err error) {
 		return errors.New("name is too long")
 	}
 
+	// Check if snapshot already exists.
+	if r.managedSnapshotExists(name) {
+		s := fmt.Sprintf("snapshot with name '%s' already exists", name)
+		return errors.AddContext(filesystem.ErrExists, s)
+	}
+
 	// Open the backup for uploading.
 	backup, err := os.Open(src)
 	if err != nil {
@@ -159,7 +166,7 @@ func (r *Renter) managedUploadBackup(src, name string) (err error) {
 	}
 	// Begin uploading the backup. When the upload finishes, the backup .sia
 	// file will be uploaded by r.threadedSynchronizeSnapshots and then deleted.
-	fileNode, err := r.callUploadStreamFromReader(up, backup, true)
+	fileNode, err := r.callUploadStreamFromReader(up, backup)
 	if err != nil {
 		return errors.AddContext(err, "failed to upload backup")
 	}
@@ -246,6 +253,19 @@ func (r *Renter) DownloadBackup(dst string, name string) (err error) {
 	defer s.Close()
 	_, err = io.Copy(dstFile, s)
 	return err
+}
+
+// managedSnapshotExists returns true if a snapshot with a given name already
+// exists.
+func (r *Renter) managedSnapshotExists(name string) bool {
+	id := r.mu.Lock()
+	defer r.mu.Unlock(id)
+	for _, ub := range r.persist.UploadedBackups {
+		if ub.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 // managedSaveSnapshot saves snapshot metadata to disk.
@@ -421,12 +441,17 @@ func (r *Renter) managedDownloadSnapshot(uid [16]byte) (ub modules.UploadedBacku
 			}
 			// TODO: Remove this when enough hosts have upgraded to fixed
 			// ReadOffset.
-			session, err := r.hostContractor.Session(w.staticHostPubKey, r.tg.StopChan())
-			if err != nil {
-				return err
+			var entryTable []snapshotEntry
+			if build.Release == "standard" {
+				session, err := r.hostContractor.Session(w.staticHostPubKey, r.tg.StopChan())
+				if err != nil {
+					return err
+				}
+				defer session.Close()
+				entryTable, err = r.managedDownloadSnapshotTableRHP2(session)
+			} else {
+				entryTable, err = r.managedDownloadSnapshotTable(w)
 			}
-			defer session.Close()
-			entryTable, err := r.managedDownloadSnapshotTableRHP2(session)
 			if err != nil {
 				return err
 			}
@@ -523,6 +548,7 @@ func (r *Renter) threadedSynchronizeSnapshots() {
 			}
 			continue
 		}
+		r.staticWorkerPool.callUpdate()
 
 		// First, process any snapshot siafiles that may have finished uploading.
 		offlineMap, goodForRenewMap, contractsMap := r.managedContractUtilityMaps()
@@ -676,16 +702,34 @@ func (r *Renter) threadedSynchronizeSnapshots() {
 				return err
 			}
 
+			// Check for out-of-bounds before doing network I/O. This way we
+			// don't put the worker on cooldown when trying to fetch a snapshot
+			// table from an empty contract.
+			contract, found := w.renter.hostContractor.ContractByPublicKey(w.staticHostPubKey)
+			if !found {
+				return errors.New("threadedSynchronizeSnapshots: failed to retrieve contract")
+			}
+			revs := contract.Transaction.FileContractRevisions
+			if len(revs) == 0 {
+				return errors.New("threadedSynchronizeSnapshots: transaction doesn't contain a revision")
+			}
+			if revs[0].NewFileSize == 0 {
+				return errors.New("contract of size 0 doesn't have a snapshot table yet")
+			}
+
 			// TODO: Remove this when enough hosts have upgraded to fixed
 			// ReadOffset.
-			session, err := r.hostContractor.Session(w.staticHostPubKey, r.tg.StopChan())
-			if err != nil {
-				return err
+			var entryTable []snapshotEntry
+			if build.Release == "standard" {
+				session, err := r.hostContractor.Session(w.staticHostPubKey, r.tg.StopChan())
+				if err != nil {
+					return err
+				}
+				defer session.Close()
+				entryTable, err = r.managedDownloadSnapshotTableRHP2(session)
+			} else {
+				entryTable, err = r.managedDownloadSnapshotTable(w)
 			}
-			defer session.Close()
-
-			// Download the snapshot table.
-			entryTable, err := r.managedDownloadSnapshotTableRHP2(session)
 			if err != nil {
 				return err
 			}

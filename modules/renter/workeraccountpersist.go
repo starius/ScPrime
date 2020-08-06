@@ -28,6 +28,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
@@ -42,7 +43,7 @@ var (
 
 	// Metadata
 	metadataHeader  = types.NewSpecifier("Accounts\n")
-	metadataVersion = types.NewSpecifier("v1.5.0\n")
+	metadataVersion = persist.MetadataVersionv150
 	metadataSize    = 2*types.SpecifierLen + 1 // 1 byte for 'clean' flag
 
 	// Metadata validation errors

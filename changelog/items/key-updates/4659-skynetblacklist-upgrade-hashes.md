@@ -1,0 +1,1 @@
+- Convert pubaccessblacklist from merkleroots to hashes of the merkleroots

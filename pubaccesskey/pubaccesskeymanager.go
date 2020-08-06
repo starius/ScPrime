@@ -8,9 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"gitlab.com/NebulousLabs/errors"
-
 	"gitlab.com/NebulousLabs/encoding"
+	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -28,37 +27,40 @@ const (
 	defaultDirPerm  = 0700
 )
 
+// Persistence constants
 var (
 	skykeyVersionString = "1.4.4.0"
 	skykeyVersion       = types.NewSpecifier(skykeyVersionString)
+
+	// SkykeyFileMagic is the first piece of data found in a Pubaccesskey file.
+	SkykeyFileMagic = types.NewSpecifier("PubaccesskeyFile")
+
+	// SkykeyFileMagic is the first piece of data found in a Pubaccesskey file.
+	oldSkykeyFileMagic = types.NewSpecifier("SkykeyFile")
+
+	// SkykeyPersistFilename is the name of the pubaccesskey persistence file.
+	SkykeyPersistFilename = "pubaccesskeys.dat"
 
 	// oldFormatSkykeyVersionString is the version number which used a different
 	// marshaling/unmarshaling scheme for pubaccesskeys.
 	oldFormatSkykeyVersionString = "1.4.3"
 
-	// SkykeyFileMagic is the first piece of data found in a Pubaccesskey file.
-	SkykeyFileMagic = types.NewSpecifier("PubaccesskeyFile")
-
-	// oldSkykeyFileMagic is the specifier in a version 1.4.3 Pubaccesskey file.
-	oldSkykeyFileMagic = types.NewSpecifier("SkykeyFile")
-
-	// ErrSkykeyWithNameAlreadyExists indicates that a key cannot be created or added
-	// because a key with the same name is already being stored.
-	ErrSkykeyWithNameAlreadyExists = errors.New("Pubaccesskey name already used by another key.")
+	// ErrNoSkykeysWithThatID indicates that the Pubaccesskey manager doesn't have a key
+	// with that ID.
+	ErrNoSkykeysWithThatID = errors.New("No Pubaccesskey is associated with that ID")
 
 	// ErrSkykeyWithIDAlreadyExists indicates that a key cannot be created or
 	// added because a key with the same ID (and therefore same key entropy) is
 	// already being stored.
 	ErrSkykeyWithIDAlreadyExists = errors.New("Pubaccesskey ID already exists.")
 
-	// ErrNoSkykeysWithThatID indicates that the Pubaccesskey manager doesn't have a key
-	// with that ID.
-	ErrNoSkykeysWithThatID   = errors.New("No Pubaccesskey is associated with that ID")
+	// ErrSkykeyWithNameAlreadyExists indicates that a key cannot be created or added
+	// because a key with the same name is already being stored.
+	ErrSkykeyWithNameAlreadyExists = errors.New("Pubaccesskey name already used by another key.")
+
+	// Skykey name errors
 	errNoSkykeysWithThatName = errors.New("No Pubaccesskey with that name")
 	errSkykeyNameToolong     = errors.New("Pubaccesskey name exceeds max length")
-
-	// SkykeyPersistFilename is the name of the pubaccesskey persistence file.
-	SkykeyPersistFilename = "pubaccesskeys.dat"
 )
 
 // SkykeyManager manages the creation and handling of new pubaccesskeys which can be
@@ -86,6 +88,12 @@ func newCountingWriter(w io.Writer) *countingWriter {
 	return &countingWriter{w, 0}
 }
 
+// BytesWritten returns the total number of bytes written through
+// this writer.
+func (cw countingWriter) BytesWritten() uint64 {
+	return uint64(cw.count)
+}
+
 // Write implements the io.Writer interface.
 func (cw *countingWriter) Write(p []byte) (n int, err error) {
 	n, err = cw.writer.Write(p)
@@ -93,21 +101,106 @@ func (cw *countingWriter) Write(p []byte) (n int, err error) {
 	return
 }
 
-// BytesWritten returns the total number of returns the bytes written through
-// this writer.
-func (cw countingWriter) BytesWritten() uint64 {
-	return uint64(cw.count)
+// NewSkykeyManager creates a SkykeyManager for managing pubaccesskeys.
+func NewSkykeyManager(persistDir string) (*SkykeyManager, error) {
+	sm := &SkykeyManager{
+		idsByName:         make(map[string]PubaccesskeyID),
+		keysByID:          make(map[PubaccesskeyID]Pubaccesskey),
+		fileLen:           0,
+		staticPersistFile: filepath.Join(persistDir, SkykeyPersistFilename),
+	}
+
+	// create the persist dir if it doesn't already exist.
+	err := os.MkdirAll(persistDir, defaultDirPerm)
+	if err != nil {
+		return nil, err
+	}
+
+	// Load the persist. If it's empty, it will be initialized.
+	err = sm.load()
+	if err != nil {
+		return nil, err
+	}
+	return sm, nil
 }
 
-// SupportsSkykeyType returns true if and only if the SkykeyManager supports
-// pubaccesskeys with the given type.
-func (sm *SkykeyManager) SupportsSkykeyType(skykeyType SkykeyType) bool {
-	switch skykeyType {
-	case TypePublicID, TypePrivateID:
-		return true
-	default:
-		return false
+// loadSkykey loads a pubaccesskey from the file starting at the offset n. It returns
+// the pubaccesskey and the offset to the first byte after the pubaccesskey.
+func loadSkykey(file *os.File, n int) (Pubaccesskey, int, error) {
+	var sk Pubaccesskey
+	err := sk.unmarshalSia(file)
+
+	// Try unmarshaling with the old format and converting if the error could be
+	// a data-related error.
+	if err != nil {
+		// Seek back to the beginning of this key.
+		_, seekErr := file.Seek(int64(n), io.SeekStart)
+		if seekErr != nil {
+			return sk, 0, errors.Compose(err, seekErr)
+		}
+
+		oldFormatUnmarshalErr := sk.unmarshalAndConvertFromOldFormat(file)
+		if oldFormatUnmarshalErr != nil {
+			err = errors.Compose(err, oldFormatUnmarshalErr)
+			return sk, 0, errors.AddContext(err, "Error unmarshaling Pubaccesskey")
+		}
 	}
+
+	// Get and return current offset in file.
+	currOffset, err := file.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return sk, 0, errors.AddContext(err, "Error getting pubaccesskey file offset")
+	}
+	return sk, int(currOffset), nil
+}
+
+// marshalDeletedSkykey writes a deleted pubaccesskey of a given size to the writer.
+func marshalDeletedSkykey(w io.Writer, size int) error {
+	e := encoding.NewEncoder(w)
+	e.WriteByte(byte(typeDeletedSkykey))
+	e.WriteUint64(uint64(size))
+	e.Write(make([]byte, size))
+	return e.Err()
+}
+
+// markSkykeyDeleted writes a typeDeletedSkykey to the file between startOffset
+// and endOffset (inclusive).
+func markSkykeyDeleted(file *os.File, startOffset, endOffset int) error {
+	size := endOffset - startOffset - 8 - 1
+
+	// Seek back to the beginning of this key.
+	_, err := file.Seek(int64(startOffset), io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	writer := newCountingWriter(file)
+	err = marshalDeletedSkykey(writer, size)
+	if err != nil {
+		return err
+	}
+	return file.Sync()
+}
+
+// AddKey adds the given Pubaccesskey to the pubaccesskey manager.
+func (sm *SkykeyManager) AddKey(sk Pubaccesskey) error {
+	if err := sk.IsValid(); err != nil {
+		return errors.AddContext(err, "Invalid pubaccesskey cannot be added")
+	}
+
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	_, ok := sm.keysByID[sk.ID()]
+	if ok {
+		return ErrSkykeyWithIDAlreadyExists
+	}
+
+	_, ok = sm.idsByName[sk.Name]
+	if ok {
+		return ErrSkykeyWithNameAlreadyExists
+	}
+
+	return sm.saveKey(sk)
 }
 
 // CreateKey creates a new Pubaccesskey under the given name and SkykeyType.
@@ -137,25 +230,11 @@ func (sm *SkykeyManager) CreateKey(name string, skykeyType SkykeyType) (Pubacces
 	return pubaccesskey, nil
 }
 
-// AddKey adds the given Pubaccesskey to the pubaccesskey manager.
-func (sm *SkykeyManager) AddKey(sk Pubaccesskey) error {
-	if err := sk.IsValid(); err != nil {
-		return errors.AddContext(err, "Invalid pubaccesskey cannot be added")
-	}
-
+// DeleteKeyByID deletes the pubaccesskey with the given ID.
+func (sm *SkykeyManager) DeleteKeyByID(id PubaccesskeyID) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	_, ok := sm.keysByID[sk.ID()]
-	if ok {
-		return ErrSkykeyWithIDAlreadyExists
-	}
-
-	_, ok = sm.idsByName[sk.Name]
-	if ok {
-		return ErrSkykeyWithNameAlreadyExists
-	}
-
-	return sm.saveKey(sk)
+	return sm.deleteKeyByID(id)
 }
 
 // DeleteKeyByName deletes the pubaccesskey with the given name.
@@ -171,11 +250,69 @@ func (sm *SkykeyManager) DeleteKeyByName(name string) error {
 	return sm.deleteKeyByID(id)
 }
 
-// DeleteKeyByID deletes the pubaccesskey with the given ID.
-func (sm *SkykeyManager) DeleteKeyByID(id PubaccesskeyID) error {
+// IDByName returns the ID associated with the given key name.
+func (sm *SkykeyManager) IDByName(name string) (PubaccesskeyID, error) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	return sm.deleteKeyByID(id)
+
+	id, ok := sm.idsByName[name]
+	if !ok {
+		return PubaccesskeyID{}, errNoSkykeysWithThatName
+	}
+	return id, nil
+}
+
+// KeyByID returns the Pubaccesskey associated with that ID.
+func (sm *SkykeyManager) KeyByID(id PubaccesskeyID) (Pubaccesskey, error) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	key, ok := sm.keysByID[id]
+	if !ok {
+		return Pubaccesskey{}, ErrNoSkykeysWithThatID
+	}
+	return key, nil
+}
+
+// KeyByName returns the Pubaccesskey associated with that key name.
+func (sm *SkykeyManager) KeyByName(name string) (Pubaccesskey, error) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	id, ok := sm.idsByName[name]
+	if !ok {
+		return Pubaccesskey{}, errNoSkykeysWithThatName
+	}
+
+	key, ok := sm.keysByID[id]
+	if !ok {
+		return Pubaccesskey{}, ErrNoSkykeysWithThatID
+	}
+
+	return key, nil
+}
+
+// Skykeys returns a slice containing each Pubaccesskey being stored.
+func (sm *SkykeyManager) Skykeys() []Pubaccesskey {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	keys := make([]Pubaccesskey, 0, len(sm.keysByID))
+	for _, sk := range sm.keysByID {
+		keys = append(keys, sk)
+	}
+	return keys
+}
+
+// SupportsSkykeyType returns true if and only if the SkykeyManager supports
+// skykeys with the given type.
+func (sm *SkykeyManager) SupportsSkykeyType(skykeyType SkykeyType) bool {
+	switch skykeyType {
+	case TypePublicID, TypePrivateID:
+		return true
+	default:
+		return false
+	}
 }
 
 // deleteKeyByID deletes the pubaccesskey with the given ID, it must be called while
@@ -231,81 +368,65 @@ func (sm *SkykeyManager) deleteKeyByID(id PubaccesskeyID) (err error) {
 	return nil
 }
 
-// IDByName returns the ID associated with the given key name.
-func (sm *SkykeyManager) IDByName(name string) (PubaccesskeyID, error) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	id, ok := sm.idsByName[name]
-	if !ok {
-		return PubaccesskeyID{}, errNoSkykeysWithThatName
-	}
-	return id, nil
-}
-
-// KeyByName returns the Pubaccesskey associated with that key name.
-func (sm *SkykeyManager) KeyByName(name string) (Pubaccesskey, error) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	id, ok := sm.idsByName[name]
-	if !ok {
-		return Pubaccesskey{}, errNoSkykeysWithThatName
-	}
-
-	key, ok := sm.keysByID[id]
-	if !ok {
-		return Pubaccesskey{}, ErrNoSkykeysWithThatID
-	}
-
-	return key, nil
-}
-
-// KeyByID returns the Pubaccesskey associated with that ID.
-func (sm *SkykeyManager) KeyByID(id PubaccesskeyID) (Pubaccesskey, error) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	key, ok := sm.keysByID[id]
-	if !ok {
-		return Pubaccesskey{}, ErrNoSkykeysWithThatID
-	}
-	return key, nil
-}
-
-// Skykeys returns a slice containing each Pubaccesskey being stored.
-func (sm *SkykeyManager) Skykeys() []Pubaccesskey {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	keys := make([]Pubaccesskey, 0, len(sm.keysByID))
-	for _, sk := range sm.keysByID {
-		keys = append(keys, sk)
-	}
-	return keys
-}
-
-// NewSkykeyManager creates a SkykeyManager for managing pubaccesskeys.
-func NewSkykeyManager(persistDir string) (*SkykeyManager, error) {
-	sm := &SkykeyManager{
-		idsByName:         make(map[string]PubaccesskeyID),
-		keysByID:          make(map[PubaccesskeyID]Pubaccesskey),
-		fileLen:           0,
-		staticPersistFile: filepath.Join(persistDir, SkykeyPersistFilename),
-	}
-
-	// create the persist dir if it doesn't already exist.
-	err := os.MkdirAll(persistDir, defaultDirPerm)
+// load initializes the SkykeyManager with the data stored in the pubaccesskey file if
+// it exists. If it does not exist, it initializes that file with the default
+// header values.
+func (sm *SkykeyManager) load() error {
+	file, err := os.OpenFile(sm.staticPersistFile, os.O_RDWR|os.O_CREATE, defaultFilePerm)
 	if err != nil {
-		return nil, err
+		return errors.AddContext(err, "Unable to open SkykeyManager persist file")
+	}
+	defer file.Close()
+
+	// Check if the file has a header. If there is not, then set the default
+	// values and save it.
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	if fileInfo.Size() < int64(headerLen) {
+		sm.staticVersion = skykeyVersion
+		sm.fileLen = uint64(headerLen)
+		return sm.saveHeader(file)
 	}
 
-	// Load the persist. If it's empty, it will be initialized.
-	err = sm.load()
+	// Otherwise load the existing header and all the skykeys in the file.
+	err = sm.loadHeader(file)
 	if err != nil {
-		return nil, err
+		return errors.AddContext(err, "Error loading header")
 	}
-	return sm, nil
+
+	_, err = file.Seek(int64(headerLen), io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	// Read all the pubaccesskeys up to the length set in the header.
+	n := headerLen
+	for n < int(sm.fileLen) {
+		sk, currOffset, err := loadSkykey(file, n)
+		if err != nil {
+			return errors.AddContext(err, "Error loading pubaccesskey")
+		}
+		n = currOffset
+
+		// Store the pubaccesskey, if it's not a deleted key.
+		if sk.Type != typeDeletedSkykey {
+			sm.idsByName[sk.Name] = sk.ID()
+			sm.keysByID[sk.ID()] = sk
+		}
+	}
+
+	if n != int(sm.fileLen) {
+		return errors.New("Expected to read entire specified pubaccesskey file length")
+	}
+
+	// Update the stored version if necessary.
+	if sm.staticVersion != skykeyVersion {
+		sm.staticVersion = skykeyVersion
+		return sm.saveHeader(file)
+	}
+	return nil
 }
 
 // loadHeader loads the header from the pubaccesskey file.
@@ -370,127 +491,6 @@ func (sm *SkykeyManager) saveHeader(file *os.File) error {
 		return errors.AddContext(e.Err(), "Error encoding pubaccesskey file header")
 	}
 	return file.Sync()
-}
-
-// marshalDeletedSkykey writes a deleted pubaccesskey of a given size to the writer.
-func marshalDeletedSkykey(w io.Writer, size int) error {
-	e := encoding.NewEncoder(w)
-	e.WriteByte(byte(typeDeletedSkykey))
-	e.WriteUint64(uint64(size))
-	e.Write(make([]byte, size))
-	return e.Err()
-}
-
-// markSkykeyDeleted writes a typeDeletedSkykey to the file between startOffset
-// and endOffset (inclusive).
-func markSkykeyDeleted(file *os.File, startOffset, endOffset int) error {
-	size := endOffset - startOffset - 8 - 1
-
-	// Seek back to the beginning of this key.
-	_, err := file.Seek(int64(startOffset), io.SeekStart)
-	if err != nil {
-		return err
-	}
-
-	writer := newCountingWriter(file)
-	err = marshalDeletedSkykey(writer, size)
-	if err != nil {
-		return err
-	}
-	return file.Sync()
-}
-
-// loadSkykey loads a pubaccesskey from the file starting at the offset n. It returns
-// the pubaccesskey and the offset to the first byte after the pubaccesskey.
-func loadSkykey(file *os.File, n int) (Pubaccesskey, int, error) {
-	var sk Pubaccesskey
-	err := sk.unmarshalSia(file)
-
-	// Try unmarshaling with the old format and converting if the error could be
-	// a data-related error.
-	if err != nil {
-		// Seek back to the beginning of this key.
-		_, seekErr := file.Seek(int64(n), io.SeekStart)
-		if seekErr != nil {
-			return sk, 0, errors.Compose(err, seekErr)
-		}
-
-		oldFormatUnmarshalErr := sk.unmarshalAndConvertFromOldFormat(file)
-		if oldFormatUnmarshalErr != nil {
-			err = errors.Compose(err, oldFormatUnmarshalErr)
-			return sk, 0, errors.AddContext(err, "Error unmarshaling Pubaccesskey")
-		}
-	}
-
-	// Get and return current offset in file.
-	currOffset, err := file.Seek(0, io.SeekCurrent)
-	if err != nil {
-		return sk, 0, errors.AddContext(err, "Error getting pubaccesskey file offset")
-	}
-	return sk, int(currOffset), nil
-}
-
-// load initializes the SkykeyManager with the data stored in the pubaccesskey file if
-// it exists. If it does not exist, it initializes that file with the default
-// header values.
-func (sm *SkykeyManager) load() (err error) {
-	file, err := os.OpenFile(sm.staticPersistFile, os.O_RDWR|os.O_CREATE, defaultFilePerm)
-	if err != nil {
-		return errors.AddContext(err, "Unable to open SkykeyManager persist file")
-	}
-	defer func() {
-		err = errors.Compose(err, file.Close())
-	}()
-
-	// Check if the file has a header. If there is not, then set the default
-	// values and save it.
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return err
-	}
-	if fileInfo.Size() < int64(headerLen) {
-		sm.staticVersion = skykeyVersion
-		sm.fileLen = uint64(headerLen)
-		return sm.saveHeader(file)
-	}
-
-	// Otherwise load the existing header and all the pubaccesskeys in the file.
-	err = sm.loadHeader(file)
-	if err != nil {
-		return errors.AddContext(err, "Error loading header")
-	}
-
-	_, err = file.Seek(int64(headerLen), io.SeekStart)
-	if err != nil {
-		return err
-	}
-
-	// Read all the pubaccesskeys up to the length set in the header.
-	n := headerLen
-	for n < int(sm.fileLen) {
-		sk, currOffset, err := loadSkykey(file, n)
-		if err != nil {
-			return errors.AddContext(err, "Error loading pubaccesskey")
-		}
-		n = currOffset
-
-		// Store the pubaccesskey, if it's not a deleted key.
-		if sk.Type != typeDeletedSkykey {
-			sm.idsByName[sk.Name] = sk.ID()
-			sm.keysByID[sk.ID()] = sk
-		}
-	}
-
-	if n != int(sm.fileLen) {
-		return errors.New("Expected to read entire specified pubaccesskey file length")
-	}
-
-	// Update the stored version if necessary.
-	if sm.staticVersion != skykeyVersion {
-		sm.staticVersion = skykeyVersion
-		return sm.saveHeader(file)
-	}
-	return nil
 }
 
 // saveKey saves the key and appends it to the pubaccesskey file and updates/syncs

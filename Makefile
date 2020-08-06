@@ -84,10 +84,23 @@ release-pkgs = ./cmd/spc ./cmd/spd
 # lockcheckpkgs are the packages that are checked for locking violations.
 lockcheckpkgs = \
 	./benchmark \
+	./build \
+	./cmd/node-scanner \
 	./cmd/spc \
+	./cmd/spd \
+	./cmd/pubaccess-benchmark \
+	./node \
+	./node/api \
+	./node/api/client \
+	./node/api/server \
 	./modules/host/mdm \
 	./modules/renter/hostdb \
 	./modules/renter/proto \
+	./modules/renter/pubaccessblacklist \
+	./modules/renter/pubaccessportals \
+	./pubaccesskeykey \
+	./types \
+	./types/typesutil 
 
 # run determines which tests run when running any variation of 'make test'.
 run = .
@@ -187,7 +200,7 @@ test-v:
 	GORACE='$(racevars)' go test -race -v -short -tags='debug testing netgo' -timeout=15s $(pkgs) -run=$(run) -count=$(count)
 test-long: clean fmt vet lint-ci
 	@mkdir -p cover
-	go test -race --coverprofile='./cover/cover.out' -v -failfast -tags='testing debug netgo' -timeout=3600s $(pkgs) -run=$(run) -count=$(count)
+	GORACE='$(racevars)' go test -race --coverprofile='./cover/cover.out' -v -failfast -tags='testing debug netgo' -timeout=3600s $(pkgs) -run=$(run) -count=$(count)
 
 test-vlong: clean fmt vet lint-ci
 ifneq ("$(OS)","Windows_NT")

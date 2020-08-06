@@ -100,7 +100,14 @@ The standard error response indicating the request failed for any reason, is a
 ### Module Not Loaded
 
 A module that is not reachable due to not being loaded by siad will return
-the custom status code `490 ModuleNotLoaded`.
+the custom status code `490 ModuleNotLoaded`. This is only returned during
+startup. Once the startup is complete and the module is still not available,
+ModuleDisabled will be returned.
+
+### Module Disabled
+
+A module that is not reachable due to being disabled, will return the custom
+status code `491 ModuleDisabled`.
 
 # Authentication
 > Example POST curl call with Authentication
@@ -685,6 +692,27 @@ set.
 **modules** | struct  
 Is a list of the siad modules with a bool indicating if the module was launched.
 
+## /daemon/stack [GET]
+**UNSTABLE**
+> curl example  
+
+```go
+curl -A "Sia-Agent" "localhost:9980/daemon/stack"
+```
+Returns the daemon's current stack trace.
+
+### JSON Response
+> JSON Response Example
+ 
+```go
+{
+  "stack": [1,2,21,1,13,32,14,141,13,2,41,120], // []byte
+}
+```
+
+**stack** | []byte  
+Current stack trace. 
+
 ## /daemon/settings [POST]
 > curl example  
 
@@ -1166,21 +1194,21 @@ Example IPV6 address: [123::456]:789
 standard success or error response. See [standard
 responses](#standard-responses).
 
-## /gateway/blacklist [GET]
+## /gateway/blocklist [GET]
 > curl example  
 
 ```go
-curl -A "ScPrime-Agent" "localhost:4280/gateway/blacklist"
+curl -A "ScPrime-Agent" "localhost:4280/gateway/blocklist"
 ```
 
-fetches the list of blacklisted addresses.
+fetches the list of blocklisted addresses.
 
 ### JSON Response
 > JSON Response Example
 
 ```JSON
 {
-  "blacklist":
+  "blocklist":
     [
     "123.123.123.123",  // string
     "123.123.123.123",  // string
@@ -1188,35 +1216,35 @@ fetches the list of blacklisted addresses.
     ],
 }
 ```
-**blacklist** | string  
-blacklist is a list of blacklisted address
+**blocklist** | string  
+blocklist is a list of blocklisted addresses
 
-## /gateway/blacklist [POST]
+## /gateway/blocklist [POST]
 > curl example  
 
 ```go
-curl -A "ScPrime-Agent" -u "":<apipassword> --data '{"action":"append","addresses":["123.123.123.123","123.123.123.123","123.123.123.123"]}' "localhost:4280/gateway/blacklist"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data '{"action":"append","addresses":["123.123.123.123","123.123.123.123","123.123.123.123"]}' "localhost:4280/gateway/blocklist"
 ```
 ```go
-curl -A "ScPrime-Agent" -u "":<apipassword> --data '{"action":"set","addresses":[]}' "localhost:4280/gateway/blacklist"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data '{"action":"set","addresses":[]}' "localhost:4280/gateway/blocklist"
 ```
 
-performs actions on the Gateway's blacklist. There are three `actions` that can
+performs actions on the Gateway's blocklist. There are three `actions` that can
 be performed. `append` and `remove` are used for appending or removing addresses
-from the Gateway's blacklist. `set` is used to define all the addresses in the
-blacklist. If a list of addresses is provided with `set`, that list of addresses
-will become the Gateway's blacklist, replacing any blacklist that was currently
-in place. To clear the Gateway's blacklist, submit an empty list with `set`.
+from the Gateway's blocklist. `set` is used to define all the addresses in the
+blocklist. If a list of addresses is provided with `set`, that list of addresses
+will become the Gateway's blocklist, replacing any blocklist that was currently
+in place. To clear the Gateway's blocklist, submit an empty list with `set`.
 
 ### Path Parameters
 ### REQUIRED
 **action** | string  
-this is the action to be performed on the blacklist. Allowed inputs are
+this is the action to be performed on the blocklist. Allowed inputs are
 `append`, `remove`, and `set`.
 
 **addresses** | string  
 this is a comma separated list of addresses that are to be appended to or
-removed from the blacklist. If the action is `append` or `remove` this field is
+removed from the blocklist. If the action is `append` or `remove` this field is
 required.
 
 ### Response
@@ -4471,6 +4499,7 @@ returns the the status of all the workers in the renter's workerpool.
 {
   "numworkers":            2, // int
   "totaldownloadcooldown": 0, // int
+  "totalmaintenancecooldown": 0, // int
   "totaluploadcooldown":   0, // int
   
   "workers": [ // []WorkerStatus
@@ -4506,13 +4535,14 @@ returns the the status of all the workers in the renter's workerpool.
       "backupjobqueuesize": 0,        // int
       "downloadrootjobqueuesize": 0,  // int
 
+      "maintenanceoncooldown": false,                      // bool
+      "maintenancerecenterr": "",                          // string
+      "maintenancerecenterrtime": "0001-01-01T00:00:00Z",  // time
+
       "accountstatus": {
         "availablebalance": "1000000000000000000000000", // hasting
         "negativebalance": "0",                          // hasting
         "funded": true,                                  // boolean
-        "oncooldown": false,                             // boolean
-        "oncooldownuntil": "0001-01-01T00:00:00Z",       // time
-        "consecutivefailures": 0,                        // int
         "recenterr": "",                                 // string
         "recenterrtime": "0001-01-01T00:00:00Z"          // time
       },
@@ -4521,9 +4551,6 @@ returns the the status of all the workers in the renter's workerpool.
         "expirytime": "2020-06-15T16:17:01.040481+02:00", // time
         "updatetime": "2020-06-15T16:12:01.040481+02:00", // time
         "active": true,                                   // boolean
-        "oncooldown": false,                              // boolean
-        "oncooldownuntil": "0001-01-01T00:00:00Z",        // time
-        "consecutivefailures": 0,                         // int
         "recenterr": "",                                  // string
         "recenterrtime": "0001-01-01T00:00:00Z"           // time
       },
@@ -4550,11 +4577,15 @@ returns the the status of all the workers in the renter's workerpool.
 }
 ```
 
+
 **numworkers** | int  
 Number of workers in the workerpool
 
 **totaldownloadcooldown** | int  
 Number of workers on download cooldown
+
+**totalmaintenancecooldown** | int  
+Number of workers on maintenance cooldown
 
 **totaluploadcooldown** | int  
 Number of workers on upload cooldown
@@ -4621,6 +4652,15 @@ The size of the worker's backup job queue
 **downloadrootjobqueuesize** | int  
 The size of the worker's download by root job queue
 
+**maintenanceoncooldown** | boolean  
+Indicates if the worker is on maintenance cooldown
+
+**maintenancecooldownerror** | string  
+The error reason for the worker being on maintenance cooldown
+
+**maintenancecooldowntime** | time.Duration  
+How long the worker is on maintenance cooldown
+
 **accountstatus** | object
 Detailed information about the workers' ephemeral account status
 
@@ -4642,7 +4682,14 @@ Details of the workers' has sector jobs queue
 curl -A "ScPrime-Agent" "localhost:4280/pubaccess/blacklist"
 ```
 
-returns the list of merkleroots that are blacklisted.
+returns the list of hashed merkleroots that are blacklisted. 
+
+NOTE: these are not the same values that were submitted via the POST endpoint.
+This is intentional so that it is harder to find the blocked content.
+	
+NOTE: With v1.5.0 the return value for the Blacklist changed. Pre v1.5.0 the
+[]crypto.Hash was a slice of MerkleRoots. Post v1.5.0 the []crypto.Hash is
+a slice of the Hashes of the MerkleRoots
 
 ### JSON Response
 > JSON Response Example
@@ -4657,7 +4704,7 @@ returns the list of merkleroots that are blacklisted.
 }
 ```
 **blacklist** | Hashes  
-The blacklist is a list of merkle roots, which are hashes, that are blacklisted.
+The blacklist is a list of hashed merkleroots, that are blacklisted.
 
 ## /pubaccess/blacklist [POST]
 > curl example
@@ -4805,18 +4852,12 @@ the file as though it is an attachment instead of rendering it.
 **format** | string  
 If 'format' is set, the publink can point to a directory and it will return the
 data inside that directory. Format will decide the format in which it is
-returned. Currently, we support the following values: 'concat' will return the 
-concatenated data of all subfiles in that directory, 'tar' will return a tar 
-archive of all subfiles in that directory, and 'targz' will return gzipped tar 
-archive of all subfiles in that directory.
-
-**redirect** | bool
-If 'redirect' is omitted or set to true, the provided publink points to a 
-directory, no format was specified, and no explicit path was provided (e.g. 
-`folder/file.txt` from the example above) then the user's browser will be 
-redirected to the default path associated with this skyfile, if one exists.  
-If 'redirect' is set to false and the same conditions apply, an error will be 
-returned because there is no default action for this case.
+returned. Currently, we support the following values: 'concat' will return the
+concatenated data of all subfiles in that directory, 'zip' will return a zip
+archive, 'tar' will return a tar archive of all subfiles in that directory, and
+'targz' will return a gzipped tar archive of all subfiles in that directory. If
+the format is not specified, and the publink points at a directory, we default
+to the zip format and the contents will be downloaded as a zip archive.
 
 **timeout** | int  
 If 'timeout' is set, the download will fail if the pubfile can't be retrieved 
@@ -4827,10 +4868,10 @@ which is a 30 second timeout. The maximum allowed timeout is 900s (15 minutes).
 
 ### Response Header
 
-**Pubaccess-File-Metadata** | SkyfileMetadata
+**Pubaccess-File-Metadata** | PubfileMetadata
 
 The header field "Pubaccess-FileMetadata" will be set such that it has an encoded
-json object which matches the modules.SkyfileMetadata struct. If a path was
+json object which matches the modules.PubfileMetadata struct. If a path was
 supplied, this metadata will be relative to the given path.
 
 > Pubaccess-File-Metadata Response Header Example 
@@ -4839,7 +4880,7 @@ supplied, this metadata will be relative to the given path.
 {
 "mode":     640,      // os.FileMode
 "filename": "folder", // string
-"subfiles": [         // []SkyfileSubfileMetadata | null
+"subfiles": [         // []PubfileSubfileMetadata | null
   {
   "mode":         640,                // os.FileMode
   "filename":     "folder/file1.txt", // string
@@ -4891,15 +4932,23 @@ required to be maintained on the network in order for the publink to remain
 active. This field is mutually exclusive with uploading streaming.
 
 **defaultpath** string  
-The path to the default file to be used to represent this skyfile in case it
-contains multiple files (e.g. skapps, photo collections, etc.). If provided, the
-path must exist. If not provided, it will default to `index.html` if a file with
-that name exists within the skyfile.
+The path to the default file to returned when the pubfile is visited at the root
+path. If the defaultpath parameter is not provided, it will default to
+`index.html` for directories that have that file, or it will default to the only
+file in the directory, if a single file directory is uploaded. This behaviour
+can be disabled using the `disabledefaultpath` parameter.
+
+**disabledefaultpath** bool  
+The 'disabledefaultpath' allows to disable the default path behaviour. If this
+parameter is set to true, there will be no automatic default to `index.html`,
+nor to the single file in directory upload.
+ 
 
 **filename** | string  
 The name of the file. This name will be encoded into the pubfile metadata, and
 will be a part of the publink. If the name changes, the publink will change as
-well.
+well. The name must be non-empty, may not include any path traversal strings
+("./", "../"), and may not begin with a forward-slash character.
 
 **dryrun** | bool  
 If dryrun is set to true, the request will return the Publink of the file
@@ -5056,7 +5105,7 @@ may change over time.
 curl -A "ScPrime-Agent"  -u "":<apipassword> --data "pubaccesskey=BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a" "localhost:4280/pubaccess/addpubaccesskey"
 ```
 
-Stores the given pubaccesskey with the renter's pubaccesskey manager.
+Stores the given pubaccesskey with the pubaccesskey manager.
 
 ### Path Parameters
 ### REQUIRED
@@ -5085,21 +5134,21 @@ Returns a list of all Skykeys.
 {
   "pubaccesskeys": [
   {
-    "pubaccesskey": "pubaccesskey:AUI0eAOXWXHwW6KOLyI5O1OYduVvHxAA8qUR_fJ8Kluasb-ykPlHBEjDczrL21hmjhH0zAoQ3-Qq?name=testkey1"
-    "name": "testkey1"
-    "id": "ai5z8cf5NWbcvPBaBn0DFQ=="
+    "pubaccesskey": "pubaccesskey:AUI0eAOXWXHwW6KOLyI5O1OYduVvHxAA8qUR_fJ8Kluasb-ykPlHBEjDczrL21hmjhH0zAoQ3-Qq?name=testkey1",
+    "name": "testkey1",
+    "id": "ai5z8cf5NWbcvPBaBn0DFQ==",
     "type": "private-id"
   },
   {
-    "pubaccesskey": "pubaccesskey:AUqG0aQmgzCIlse2JxFLBGHCriZNz20IEKQu81XxYsak3rzmuVbZ2P6ZqeJHIlN5bjPqEmC67U8E?name=testpubaccesskey2"
-    "name": "testpubaccesskey2"
-    "id": "bi5z8cf5NWbcvPBaBn0DFQ=="
+    "pubaccesskey": "pubaccesskey:AUqG0aQmgzCIlse2JxFLBGHCriZNz20IEKQu81XxYsak3rzmuVbZ2P6ZqeJHIlN5bjPqEmC67U8E?name=testpubaccesskey2",
+    "name": "testpubaccesskey2",
+    "id": "bi5z8cf5NWbcvPBaBn0DFQ==",
     "type": "private-id"
   },
   {
-    "pubaccesskey": "pubaccesskey:AShQI8fzxoIMc52ZRkoKjOE50bXnCpiPd4zrBl_E-CkmyLgfinAJSdWkJT2QOR6XCRYYgZb63OHw?name=testpubaccesskey3"
-    "name": "testpubaccesskey3"
-    "id": "ci5z8cf5NWbcvPBaBn0DFQ=="
+    "pubaccesskey": "pubaccesskey:AShQI8fzxoIMc52ZRkoKjOE50bXnCpiPd4zrBl_E-CkmyLgfinAJSdWkJT2QOR6XCRYYgZb63OHw?name=testpubaccesskey3",
+    "name": "testpubaccesskey3",
+    "id": "ci5z8cf5NWbcvPBaBn0DFQ==",
     "type": "public-id"
   }
 }
@@ -5127,7 +5176,7 @@ desired name of the pubaccesskey
 desired type of the pubaccesskey. The two supported types are "public-id" and
 "private-id". Users should use "private-id" pubaccesskeys unless they have a specific
 reason to use "public-id" pubaccesskeys which reveal pubaccesskey IDs and show which
-skyfiles are encrypted with the same pubaccesskey.
+pubfiles are encrypted with the same pubaccesskey.
 
 
 ### JSON Response
@@ -5135,7 +5184,10 @@ skyfiles are encrypted with the same pubaccesskey.
 
 ```go
 {
-  "pubaccesskey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
+  "pubaccesskey": "skykey:AUI0eAOXWXHwW6KOLyI5O1OYduVvHxAA8qUR_fJ8Kluasb-ykPlHBEjDczrL21hmjhH0zAoQ3-Qq?name=testskykey1",
+  "name": "key_to_the_castle",
+  "id": "ai5z8cf5NWbcvPBaBn0DFQ==",
+  "type": "private-id"
 }
 ```
 
@@ -5195,9 +5247,9 @@ base-64 encoded ID of the pubaccesskey being queried
 
 ```go
 {
-  "pubaccesskey": "pubaccesskey:AShQI8fzxoIMc52ZRkoKjOE50bXnCpiPd4zrBl_E-CkmyLgfinAJSdWkJT2QOR6XCRYYgZb63OHw?name=testkey"
-  "name": "testkey"
-  "id": "gi5z8cf5NWbcvPBaBn0DFQ=="
+  "pubaccesskey": "pubaccesskey:AShQI8fzxoIMc52ZRkoKjOE50bXnCpiPd4zrBl_E-CkmyLgfinAJSdWkJT2QOR6XCRYYgZb63OHw?name=testkey",
+  "name": "testkey",
+  "id": "gi5z8cf5NWbcvPBaBn0DFQ==",
   "type": "private-id"
 }
 ```
@@ -5214,34 +5266,6 @@ base-64 encoded pubaccesskey ID
 **type** | string  
 human-readable pubaccesskey type. See the documentation for /pubaccess/createpubaccesskey for
 type information.
-
-## /pubaccess/pubaccesskeyid [GET]
-> curl example
-
-```go
-curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=cellar_access_key" "localhost:4280/pubaccess/pubaccesskeyid"
-```
-
-Returns the base-64 encoded ID of the pubaccesskey stored under that name.
-
-### Path Parameters
-### REQUIRED
-**name** | string  
-name of the pubaccesskey being queried
-
-
-### JSON Response
-> JSON Response Example
- 
-```go
-{
-  "pubaccesskeyid": "gi5z8cf5NWbcvPBaBn0DFQ=="
-}
-```
-
-**pubaccesskeyid** | string  
-base-64 encoded pubaccesskey ID
-
 
 
 # Transaction Pool

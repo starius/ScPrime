@@ -10,6 +10,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
+// TestLoad probes loading a gateway from a persist file
 func TestLoad(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()

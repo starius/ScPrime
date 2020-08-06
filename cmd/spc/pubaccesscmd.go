@@ -28,16 +28,29 @@ var (
 		Use:   "pubaccess",
 		Short: "Perform actions related to Pubaccess",
 		Long: `Perform actions related to Pubaccess, a file sharing and data publication platform
-on top of Sia.`,
+on top of ScPrime.`,
 		Run: skynetcmd,
 	}
 
 	skynetBlacklistCmd = &cobra.Command{
-		Use:   "blacklist [publink]",
-		Short: "Blacklist a publink from pubaccess.",
-		Long: `Blacklist a publink from public access. Use the --remove flag to
-remove a publink from the blacklist.`,
-		Run: skynetblacklistcmd,
+		Use:   "blacklist",
+		Short: "Do actionson publink blacklist.",
+		Long:  "Add, remove, or list blacklisted publinks.",
+		Run:   skynetblacklistgetcmd,
+	}
+
+	skynetBlacklistAddCmd = &cobra.Command{
+		Use:   "add [publink] ...",
+		Short: "Add publinks to the blacklist",
+		Long:  "Add space separated publinks to the blacklist.",
+		Run:   skynetblacklistaddcmd,
+	}
+
+	skynetBlacklistRemoveCmd = &cobra.Command{
+		Use:   "remove [publink] ...",
+		Short: "Remove publinks from the blacklist",
+		Long:  "Remove space separated publinks from the blacklist.",
+		Run:   skynetblacklistremovecmd,
 	}
 
 	skynetConvertCmd = &cobra.Command{
@@ -105,32 +118,53 @@ func skynetcmd(cmd *cobra.Command, args []string) {
 	os.Exit(exitCodeUsage)
 }
 
-// skynetblacklistcmd handles adding and removing a publink from the Pubaccess
-// Blacklist
-func skynetblacklistcmd(cmd *cobra.Command, args []string) {
-	if len(args) != 1 {
-		cmd.UsageFunc()(cmd)
-		os.Exit(exitCodeUsage)
-	}
+// skynetblacklistaddcmd adds publinks to the blacklist
+func skynetblacklistaddcmd(cmd *cobra.Command, args []string) {
+	skynetblacklistUpdate(args, nil)
+}
 
-	// Get the publink
-	publink := args[0]
-	publink = strings.TrimPrefix(publink, "scp://")
+// skynetblacklistremovecmd removes publinks from the blacklist
+func skynetblacklistremovecmd(cmd *cobra.Command, args []string) {
+	skynetblacklistUpdate(nil, args)
+}
 
-	// Check if this is an addition or removal
-	var add, remove []string
-	if skynetBlacklistRemove {
-		remove = append(remove, publink)
-	} else {
-		add = append(add, publink)
-	}
+// skynetblacklistUpdate adds/removes trimmed publinks to the blacklist
+func skynetblacklistUpdate(additions, removals []string) {
+	additions = skynetblacklistTrimLinks(additions)
+	removals = skynetblacklistTrimLinks(removals)
 
-	// Try to update the Pubaccess Blacklist.
-	err := httpClient.SkynetBlacklistPost(add, remove)
+	err := httpClient.SkynetBlacklistPost(additions, removals)
 	if err != nil {
 		die("Unable to update pubaccess blacklist:", err)
 	}
-	fmt.Println("Pubaccess Blacklist updated")
+
+	fmt.Println("Pubaccess publink blacklist updated")
+}
+
+// skynetblacklistTrimLinks will trim away `scp://` from publinks
+func skynetblacklistTrimLinks(links []string) []string {
+	var result []string
+
+	for _, link := range links {
+		trimmed := strings.TrimPrefix(link, "scp://")
+		result = append(result, trimmed)
+	}
+
+	return result
+}
+
+// skynetblacklistgetcmd will return the list of hashed merkleroots that are blocked
+// from Pubaccess.
+func skynetblacklistgetcmd(cmd *cobra.Command, args []string) {
+	response, err := httpClient.SkynetBlacklistGet()
+	if err != nil {
+		die("Unable to get pubaccess blacklist:", err)
+	}
+
+	fmt.Printf("Listing %d blacklisted publink(s) merkleroots:\n", len(response.Blacklist))
+	for _, hash := range response.Blacklist {
+		fmt.Printf("\t%s\n", hash)
+	}
 }
 
 // skynetconvertcmd will convert an existing siafile to a pubfile and publink on

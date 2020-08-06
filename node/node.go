@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/NebulousLabs/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -567,14 +568,15 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printfRelease("(%d/%d) Loading renter...", i, numModules)
 
 		// HostDB
-		hdb, errChanHDB := hostdb.NewCustomHostDB(g, cs, tp, persistDir, hostDBDeps)
+		hdb, errChanHDB := hostdb.NewCustomHostDB(g, cs, tp, mux, persistDir, hostDBDeps)
 		if err := modules.PeekErr(errChanHDB); err != nil {
 			c <- err
 			close(c)
 			return nil, c
 		}
 		// ContractSet
-		contractSet, err := proto.NewContractSet(filepath.Join(persistDir, "contracts"), contractSetDeps)
+		renterRateLimit := ratelimit.NewRateLimit(0, 0, 0)
+		contractSet, err := proto.NewContractSet(filepath.Join(persistDir, "contracts"), renterRateLimit, contractSetDeps)
 		if err != nil {
 			c <- err
 			close(c)
@@ -593,7 +595,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 			close(c)
 			return nil, c
 		}
-		renter, errChanRenter := renter.NewCustomRenter(g, cs, tp, hdb, w, hc, mux, persistDir, renterDeps)
+		renter, errChanRenter := renter.NewCustomRenter(g, cs, tp, hdb, w, hc, mux, persistDir, renterRateLimit, renterDeps)
 		if err := modules.PeekErr(errChanRenter); err != nil {
 			c <- err
 			close(c)

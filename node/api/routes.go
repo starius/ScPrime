@@ -18,18 +18,19 @@ func (api *API) buildHTTPRoutes() {
 	requiredPassword := api.requiredPassword
 	requiredUserAgent := api.requiredUserAgent
 
-	router.NotFound = http.HandlerFunc(UnrecognizedCallHandler)
+	router.NotFound = http.HandlerFunc(api.UnrecognizedCallHandler)
 	router.RedirectTrailingSlash = false
 
 	// Daemon API Calls
 	router.GET("/daemon/alerts", api.daemonAlertsHandlerGET)
 	router.GET("/daemon/constants", api.daemonConstantsHandler)
-	router.GET("/daemon/version", api.daemonVersionHandler)
-	router.GET("/daemon/update", api.daemonUpdateHandlerGET)
-	router.POST("/daemon/update", api.daemonUpdateHandlerPOST)
-	router.GET("/daemon/stop", RequirePassword(api.daemonStopHandler, requiredPassword))
 	router.GET("/daemon/settings", api.daemonSettingsHandlerGET)
 	router.POST("/daemon/settings", api.daemonSettingsHandlerPOST)
+	router.GET("/daemon/stack", api.daemonStackHandlerGET)
+	router.GET("/daemon/stop", RequirePassword(api.daemonStopHandler, requiredPassword))
+	router.GET("/daemon/update", api.daemonUpdateHandlerGET)
+	router.POST("/daemon/update", api.daemonUpdateHandlerPOST)
+	router.GET("/daemon/version", api.daemonVersionHandler)
 
 	// Consensus API Calls
 	if api.cs != nil {
@@ -63,8 +64,12 @@ func (api *API) buildHTTPRoutes() {
 		router.GET("/gateway/bandwidth", api.gatewayBandwidthHandlerGET)
 		router.POST("/gateway/connect/:netaddress", RequirePassword(api.gatewayConnectHandler, requiredPassword))
 		router.POST("/gateway/disconnect/:netaddress", RequirePassword(api.gatewayDisconnectHandler, requiredPassword))
-		router.GET("/gateway/blacklist", api.gatewayBlacklistHandlerGET)
-		router.POST("/gateway/blacklist", RequirePassword(api.gatewayBlacklistHandlerPOST, requiredPassword))
+		router.GET("/gateway/blocklist", api.gatewayBlocklistHandlerGET)
+		router.POST("/gateway/blocklist", RequirePassword(api.gatewayBlocklistHandlerPOST, requiredPassword))
+
+		// Deprecated fields
+		router.GET("/gateway/blacklist", api.gatewayBlocklistHandlerGET)
+		router.POST("/gateway/blacklist", RequirePassword(api.gatewayBlocklistHandlerPOST, requiredPassword))
 	}
 
 	// Host API Calls

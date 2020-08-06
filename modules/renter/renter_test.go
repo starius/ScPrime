@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/NebulousLabs/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -52,10 +53,8 @@ func (rt *renterTester) Close() error {
 	return nil
 }
 
-// addHost adds a host to the test group so that it appears in the host db
-func (rt *renterTester) addCustomHost(name string, deps modules.Dependencies) (modules.Host, error) {
-	testdir := build.TempDir("renter", name)
-
+// addCustomHost adds a host to the test group so that it appears in the host db
+func (rt *renterTester) addCustomHost(testdir string, deps modules.Dependencies) (modules.Host, error) {
 	// create a siamux for this particular host
 	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
 	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
@@ -120,7 +119,7 @@ func (rt *renterTester) addCustomHost(name string, deps modules.Dependencies) (m
 
 // addHost adds a host to the test group so that it appears in the host db
 func (rt *renterTester) addHost(name string) (modules.Host, error) {
-	return rt.addCustomHost(name, modules.ProdDependencies)
+	return rt.addCustomHost(filepath.Join(rt.dir, name), modules.ProdDependencies)
 }
 
 // addRenter adds a renter to the renter tester and then make sure there is
@@ -184,7 +183,8 @@ func newRenterTester(name string) (*renterTester, error) {
 		return nil, err
 	}
 
-	r, errChan := New(rt.gateway, rt.cs, rt.wallet, rt.tpool, rt.mux, filepath.Join(testdir, modules.RenterDir))
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	r, errChan := New(rt.gateway, rt.cs, rt.wallet, rt.tpool, rt.mux, rl, filepath.Join(testdir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
@@ -280,12 +280,12 @@ func newRenterTesterWithDependency(name string, deps modules.Dependencies) (*ren
 
 // newRenterWithDependency creates a Renter with custom dependency
 func newRenterWithDependency(g modules.Gateway, cs modules.ConsensusSet, wallet modules.Wallet, tpool modules.TransactionPool, mux *siamux.SiaMux, persistDir string, deps modules.Dependencies) (*Renter, error) {
-	hdb, errChan := hostdb.NewCustomHostDB(g, cs, tpool, persistDir, deps)
+	hdb, errChan := hostdb.NewCustomHostDB(g, cs, tpool, mux, persistDir, deps)
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
-
-	contractSet, err := proto.NewContractSet(filepath.Join(persistDir, "contracts"), modules.ProdDependencies)
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	contractSet, err := proto.NewContractSet(filepath.Join(persistDir, "contracts"), rl, modules.ProdDependencies)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +299,7 @@ func newRenterWithDependency(g modules.Gateway, cs modules.ConsensusSet, wallet 
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
-	renter, errChan := NewCustomRenter(g, cs, tpool, hdb, wallet, hc, mux, persistDir, deps)
+	renter, errChan := NewCustomRenter(g, cs, tpool, hdb, wallet, hc, mux, persistDir, rl, deps)
 	return renter, <-errChan
 }
 

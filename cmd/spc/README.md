@@ -50,7 +50,9 @@ Full Descriptions
 
 ### Daemon tasks
 
-* `spc stop` sends the stop signal to spd to safely terminate. This has the
+* `spc stack` writes the current stack trace to an output file.
+
+* `spc stop` sends the stop signal to siad to safely terminate. This has the
   same effect as C^c on the terminal.
 
 * `spc update` checks the server for updates.
@@ -192,8 +194,13 @@ TODO - Fill in
 
 ### Public access tasks
 
-* `spc pubaccess blacklist [publink]` will add or remove a publink from the
-  Renter's Pubaccess Blacklist
+* `spc pubaccess blacklist` lists the merkleroots of all blacklisted publinks.
+
+* `spc pubaccess blacklist add [publink]` will add any publinks separated by
+  spaces to the blacklist.
+
+* `spc pubaccess blacklist remove [publinks]` will remove any publinks
+  separated by spaces from the blacklist.
 
 * `spc pubaccess convert [source siaPath] [destination siaPath]` converts
   a siafile to a pubfile and then generates its publink. A new publink will be

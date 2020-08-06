@@ -32,7 +32,7 @@ type FnFinalize func(StorageObligation) error
 type programState struct {
 	// host related fields
 	host                    Host
-	staticRevision          types.FileContractRevision
+	staticRevisionTxn       types.Transaction
 	staticRemainingDuration types.BlockHeight
 
 	// program cache
@@ -63,7 +63,6 @@ type program struct {
 	additionalStorageCost  types.Currency // cost of additional storage. This is refunded if the program doesn't commit.
 	usedMemory             uint64
 
-	renterSig  types.TransactionSignature
 	outputChan chan Output
 	outputErr  error // contains the error of the first instruction of the program that failed
 
@@ -99,6 +98,8 @@ func decodeInstruction(p *program, i modules.Instruction) (instruction, error) {
 		return p.staticDecodeReadOffsetInstruction(i)
 	case modules.SpecifierRevision:
 		return p.staticDecodeRevisionInstruction(i)
+	case modules.SpecifierSwapSector:
+		return p.staticDecodeSwapSectorInstruction(i)
 	default:
 		return nil, fmt.Errorf("unknown instruction specifier: %v", i.Specifier)
 	}
@@ -126,7 +127,7 @@ func (mdm *MDM) ExecuteProgram(ctx context.Context, pt *modules.RPCPriceTable, p
 			host:                    mdm.host,
 			priceTable:              pt,
 			sectors:                 newSectors(sos.SectorRoots()),
-			staticRevision:          sos.RecentRevision(),
+			staticRevisionTxn:       sos.RevisionTxn(),
 		},
 		staticBudget:           budget,
 		usedMemory:             modules.MDMInitMemory(),

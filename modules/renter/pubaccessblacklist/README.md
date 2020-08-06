@@ -10,7 +10,7 @@ responsibilities:
 
 ### Pubaccess Blacklist Subsystem
 **Key Files**
- - [skynetblacklist.go](./skynetblacklist.go)
+ - [pubaccessblacklist.go](./pubaccessblacklist.go)
 
 The Pubaccess Blacklist subsystem contains the structure of the Pubaccess Blacklist
 and is used to create a new Pubaccess Blacklist and return information about the

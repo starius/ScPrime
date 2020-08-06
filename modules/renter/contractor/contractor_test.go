@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
-
+	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -38,31 +38,36 @@ func tryClose(cf closeFn, t *testing.T) {
 }
 
 // newModules initializes the modules needed to test creating a new contractor
-func newModules(testdir string) (modules.ConsensusSet, modules.Wallet, modules.TransactionPool, modules.HostDB, closeFn, error) {
+func newModules(testdir string) (modules.ConsensusSet, modules.Wallet, modules.TransactionPool, *siamux.SiaMux, modules.HostDB, closeFn, error) {
 	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
 	if err := <-errChan; err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	w, err := wallet.New(cs, tp, filepath.Join(testdir, modules.WalletDir))
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
-	hdb, errChanHDB := hostdb.New(g, cs, tp, testdir)
+	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, err
+	}
+	hdb, errChanHDB := hostdb.New(g, cs, tp, mux, testdir)
 	if err := <-errChanHDB; err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 	cf := func() error {
-		return errors.Compose(hdb.Close(), w.Close(), tp.Close(), cs.Close(), g.Close())
+		return errors.Compose(hdb.Close(), mux.Close(), w.Close(), tp.Close(), cs.Close(), g.Close())
 	}
-	return cs, w, tp, hdb, cf, nil
+	return cs, w, tp, mux, hdb, cf, nil
 }
 
 // newStream is a helper to get a ready-to-use stream that is connected to a
@@ -81,43 +86,44 @@ func TestNew(t *testing.T) {
 	}
 	// Create the modules.
 	dir := build.TempDir("contractor", t.Name())
-	cs, w, tpool, hdb, closeFn, err := newModules(dir)
+	cs, w, tpool, _, hdb, closeFn, err := newModules(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tryClose(closeFn, t)
 
 	// Sane values.
-	_, errChan := New(cs, w, tpool, hdb, dir)
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	_, errChan := New(cs, w, tpool, hdb, rl, dir)
 	if err := <-errChan; err != nil {
 		t.Fatalf("expected nil, got %v", err)
 	}
 
 	// Nil consensus set.
-	_, errChan = New(nil, w, tpool, hdb, dir)
+	_, errChan = New(nil, w, tpool, hdb, rl, dir)
 	if err := <-errChan; err != errNilCS {
 		t.Fatalf("expected %v, got %v", errNilCS, err)
 	}
 
 	// Nil wallet.
-	_, errChan = New(cs, nil, tpool, hdb, dir)
+	_, errChan = New(cs, nil, tpool, hdb, rl, dir)
 	if err := <-errChan; err != errNilWallet {
 		t.Fatalf("expected %v, got %v", errNilWallet, err)
 	}
 
 	// Nil transaction pool.
-	_, errChan = New(cs, w, nil, hdb, dir)
+	_, errChan = New(cs, w, nil, hdb, rl, dir)
 	if err := <-errChan; err != errNilTpool {
 		t.Fatalf("expected %v, got %v", errNilTpool, err)
 	}
 	// Nil hostdb.
-	_, errChan = New(cs, w, tpool, nil, dir)
+	_, errChan = New(cs, w, tpool, nil, rl, dir)
 	if err := <-errChan; err != errNilHDB {
 		t.Fatalf("expected %v, got %v", errNilHDB, err)
 	}
 
 	// Bad persistDir.
-	_, errChan = New(cs, w, tpool, hdb, "")
+	_, errChan = New(cs, w, tpool, hdb, rl, "")
 	if err := <-errChan; !os.IsNotExist(err) {
 		t.Fatalf("expected invalid directory, got %v", err)
 	}
@@ -255,7 +261,7 @@ func TestIntegrationSetAllowance(t *testing.T) {
 	a.MaxPeriodChurn = modules.DefaultAllowance.MaxPeriodChurn
 
 	// reasonable values; should succeed
-	a.Funds = types.ScPrimecoinPrecision.Mul64(300)
+	a.Funds = types.ScPrimecoinPrecision.Mul64(100)
 	a.ExpectedStorage = 8192
 	a.ExpectedUpload = 2048
 	a.ExpectedDownload = 2048
@@ -527,12 +533,15 @@ func TestPayment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = build.Retry(50, 100*time.Millisecond, func() error {
+	err = build.Retry(50, 100*time.Millisecond, func() error {
 		if len(c.Contracts()) == 0 {
 			return errors.New("no contract created")
 		}
 		return nil
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// create a refund account
 	aid, _ := modules.NewAccountID()

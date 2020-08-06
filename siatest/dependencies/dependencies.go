@@ -9,6 +9,15 @@ import (
 )
 
 type (
+	// DependencyDisableWorker will disable the worker's work loop, the health
+	// loop, the repair loop and the snapshot loop.
+	DependencyDisableWorker struct {
+		modules.ProductionDependencies
+	}
+	// DependencyDisableHostSiamux will disable siamux in the host.
+	DependencyDisableHostSiamux struct {
+		modules.ProductionDependencies
+	}
 	// DependencyStorageObligationNotFound will cause the host to return that it
 	// wasn't able to find a storage obligation in managedPayByContract.
 	DependencyStorageObligationNotFound struct {
@@ -124,6 +133,13 @@ type (
 	// DependencyInterruptAccountSaveOnShutdown will interrupt the account save
 	// when the renter shuts down.
 	DependencyInterruptAccountSaveOnShutdown struct {
+		modules.ProductionDependencies
+	}
+
+	// DependencyNoSnapshotSyncInterruptAccountSaveOnShutdown will interrupt the
+	// account save when the renter shuts down and also disable the snapshot
+	// syncing thread.
+	DependencyNoSnapshotSyncInterruptAccountSaveOnShutdown struct {
 		modules.ProductionDependencies
 	}
 
@@ -249,6 +265,31 @@ func newDependencyInterruptCountOccurrences(str string) *DependencyInterruptCoun
 }
 
 // Disrupt returns true if the correct string is provided.
+func (d *DependencyDisableWorker) Disrupt(s string) bool {
+	if s == "DisableWorkerLoop" {
+		return true
+	}
+	if s == "DisableRepairAndHealthLoops" {
+		return true
+	}
+	if s == "DisableSnapshotSync" {
+		return true
+	}
+	return false
+}
+
+// Disrupt returns true if the correct string is provided.
+func (d *DependencyNoSnapshotSyncInterruptAccountSaveOnShutdown) Disrupt(s string) bool {
+	if s == "InterruptAccountSaveOnShutdown" {
+		return true
+	}
+	if s == "DisableSnapshotSync" {
+		return true
+	}
+	return false
+}
+
+// Disrupt returns true if the correct string is provided.
 func (d *DependencyStorageObligationNotFound) Disrupt(s string) bool {
 	return s == "StorageObligationNotFound"
 }
@@ -278,6 +319,11 @@ func (d *DependencyDisableCriticalOnMaxBalance) Disrupt(s string) bool {
 // Disrupt returns true if the correct string is provided.
 func (d *DependencyDisableAsyncStartup) Disrupt(s string) bool {
 	return s == "BlockAsyncStartup"
+}
+
+// Disrupt returns true if the correct string is provided.
+func (d *DependencyDisableHostSiamux) Disrupt(s string) bool {
+	return s == "DisableHostSiamux"
 }
 
 // Disrupt returns true if the correct string is provided.

@@ -45,14 +45,6 @@ func (c *Client) SkynetPublinkGetWithTimeout(publink string, timeout int) ([]byt
 	return c.skynetSkylinkGetWithParameters(publink, params)
 }
 
-// SkynetSkylinkGetWithRedirect uses the /pubaccess/publink endpoint to download a
-// publink file, specifying whether redirecting is allowed or not.
-func (c *Client) SkynetSkylinkGetWithRedirect(publink string, allowRedirect bool) ([]byte, modules.SkyfileMetadata, error) {
-	params := make(map[string]string)
-	params["redirect"] = fmt.Sprintf("%t", allowRedirect)
-	return c.skynetSkylinkGetWithParameters(publink, params)
-}
-
 // skynetSkylinkGetWithParameters uses the /pubaccess/publink endpoint to download
 // a publink file, specifying the given parameters.
 // The caller of this function is responsible for validating the parameters!
@@ -82,8 +74,43 @@ func (c *Client) skynetSkylinkGetWithParameters(publink string, params map[strin
 // SkynetPublinkHead uses the /pubaccess/publink endpoint to get the headers that
 // are returned if the pubfile were to be requested using the SkynetPublinkGet
 // method.
-func (c *Client) SkynetPublinkHead(publink string, timeout int) (int, http.Header, error) {
-	getQuery := fmt.Sprintf("/pubaccess/publink/%s?timeout=%d", publink, timeout)
+func (c *Client) SkynetPublinkHead(publink string) (int, http.Header, error) {
+	return c.SkynetPublinkHeadWithParameters(publink, url.Values{})
+}
+
+// SkynetPublinkHeadWithTimeout uses the /pubaccess/publink endpoint to get the
+// headers that are returned if the skyfile were to be requested using the
+// SkynetPublinkGet method. It allows to pass a timeout parameter for the
+// request.
+func (c *Client) SkynetPublinkHeadWithTimeout(publink string, timeout int) (int, http.Header, error) {
+	values := url.Values{}
+	values.Set("timeout", fmt.Sprintf("%d", timeout))
+	return c.SkynetPublinkHeadWithParameters(publink, values)
+}
+
+// SkynetPublinkHeadWithAttachment uses the /pubaccess/publink endpoint to get the
+// headers that are returned if the skyfile were to be requested using the
+// SkynetPublinkGet method. It allows to pass the 'attachment' parameter.
+func (c *Client) SkynetPublinkHeadWithAttachment(publink string, attachment bool) (int, http.Header, error) {
+	values := url.Values{}
+	values.Set("attachment", fmt.Sprintf("%t", attachment))
+	return c.SkynetPublinkHeadWithParameters(publink, values)
+}
+
+// SkynetPublinkHeadWithFormat uses the /pubaccess/publink endpoint to get the
+// headers that are returned if the skyfile were to be requested using the
+// SkynetPublinkGet method. It allows to pass the 'format' parameter.
+func (c *Client) SkynetPublinkHeadWithFormat(publink string, format modules.SkyfileFormat) (int, http.Header, error) {
+	values := url.Values{}
+	values.Set("format", string(format))
+	return c.SkynetPublinkHeadWithParameters(publink, values)
+}
+
+// SkynetPublinkHeadWithParameters uses the /pubaccess/publink endpoint to get the
+// headers that are returned if the skyfile were to be requested using the
+// SkynetPublinkGet method. The values are encoded in the querystring.
+func (c *Client) SkynetPublinkHeadWithParameters(publink string, values url.Values) (int, http.Header, error) {
+	getQuery := fmt.Sprintf("/pubaccess/publink/%s?%s", publink, values.Encode())
 	return c.head(getQuery)
 }
 
@@ -138,22 +165,32 @@ func (c *Client) SkynetPublinkConcatReaderGet(publink string) (io.ReadCloser, er
 
 // SkynetPublinkTarReaderGet uses the /pubaccess/publink endpoint to fetch a
 // reader of the file data with the 'tar' format specified.
-func (c *Client) SkynetPublinkTarReaderGet(publink string) (io.ReadCloser, error) {
+func (c *Client) SkynetPublinkTarReaderGet(publink string) (http.Header, io.ReadCloser, error) {
 	values := url.Values{}
 	values.Set("format", string(modules.SkyfileFormatTar))
 	getQuery := fmt.Sprintf("/pubaccess/publink/%s?%s", publink, values.Encode())
-	_, reader, err := c.getReaderResponse(getQuery)
-	return reader, errors.AddContext(err, "unable to fetch publink data")
+	header, reader, err := c.getReaderResponse(getQuery)
+	return header, reader, errors.AddContext(err, "unable to fetch publink data")
 }
 
 // SkynetPublinkTarGzReaderGet uses the /pubaccess/publink endpoint to fetch a
 // reader of the file data with the 'targz' format specified.
-func (c *Client) SkynetPublinkTarGzReaderGet(publink string) (io.ReadCloser, error) {
+func (c *Client) SkynetPublinkTarGzReaderGet(publink string) (http.Header, io.ReadCloser, error) {
 	values := url.Values{}
 	values.Set("format", string(modules.SkyfileFormatTarGz))
 	getQuery := fmt.Sprintf("/pubaccess/publink/%s?%s", publink, values.Encode())
-	_, reader, err := c.getReaderResponse(getQuery)
-	return reader, errors.AddContext(err, "unable to fetch publink data")
+	header, reader, err := c.getReaderResponse(getQuery)
+	return header, reader, errors.AddContext(err, "unable to fetch publink data")
+}
+
+// SkynetPublinkZipReaderGet uses the /pubaccess/publink endpoint to fetch a
+// reader of the file data with the 'zip' format specified.
+func (c *Client) SkynetPublinkZipReaderGet(publink string) (http.Header, io.ReadCloser, error) {
+	values := url.Values{}
+	values.Set("format", string(modules.SkyfileFormatZip))
+	getQuery := fmt.Sprintf("/pubaccess/publink/%s?%s", publink, values.Encode())
+	header, reader, err := c.getReaderResponse(getQuery)
+	return header, reader, errors.AddContext(err, "unable to fetch publink data")
 }
 
 // SkynetPublinkPinPost uses the /pubaccess/pin endpoint to pin the file at the
@@ -271,9 +308,8 @@ func (c *Client) SkynetSkyfileMultiPartPost(params modules.SkyfileMultipartUploa
 	// Set the url values.
 	values := url.Values{}
 	values.Set("filename", params.Filename)
-	if params.DefaultPath != nil {
-		values.Set(modules.SkyfileDefaultPathParamName, *params.DefaultPath)
-	}
+	values.Set(modules.SkyfileDisableDefaultPathParamName, strconv.FormatBool(params.DisableDefaultPath))
+	values.Set(modules.SkyfileDefaultPathParamName, params.DefaultPath)
 	forceStr := fmt.Sprintf("%t", params.Force)
 	values.Set("force", forceStr)
 	redundancyStr := fmt.Sprintf("%v", params.BaseChunkRedundancy)
@@ -489,4 +525,12 @@ func (c *Client) SkykeySkykeysGet() ([]pubaccesskey.Pubaccesskey, error) {
 		}
 	}
 	return res, nil
+}
+
+// SkynetPublinkGetWithRedirect uses the /pubaccess/publink endpoint to download a
+// publink file, specifying whether redirecting is allowed or not.
+func (c *Client) SkynetPublinkGetWithRedirect(publink string, allowRedirect bool) ([]byte, modules.SkyfileMetadata, error) {
+	params := make(map[string]string)
+	params["redirect"] = fmt.Sprintf("%t", allowRedirect)
+	return c.skynetSkylinkGetWithParameters(publink, params)
 }

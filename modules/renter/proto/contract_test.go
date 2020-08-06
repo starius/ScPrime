@@ -11,6 +11,8 @@ import (
 
 	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/NebulousLabs/ratelimit"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -129,7 +131,8 @@ func testContractUncomittedTxn(t *testing.T, initialHeader contractHeader, updat
 	t.Parallel()
 	// create contract set with one contract
 	dir := build.TempDir(filepath.Join("proto", t.Name()))
-	cs, err := NewContractSet(dir, modules.ProdDependencies)
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	cs, err := NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +166,7 @@ func testContractUncomittedTxn(t *testing.T, initialHeader contractHeader, updat
 	if err := cs.Close(); err != nil {
 		t.Fatal(err)
 	}
-	cs, err = NewContractSet(dir, modules.ProdDependencies)
+	cs, err = NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +211,7 @@ func testContractUncomittedTxn(t *testing.T, initialHeader contractHeader, updat
 	if err := cs.Close(); err != nil {
 		t.Fatal(err)
 	}
-	cs, err = NewContractSet(dir, modules.ProdDependencies)
+	cs, err = NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -229,7 +232,8 @@ func TestContractIncompleteWrite(t *testing.T) {
 	t.Parallel()
 	// create contract set with one contract
 	dir := build.TempDir(filepath.Join("proto", t.Name()))
-	cs, err := NewContractSet(dir, modules.ProdDependencies)
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	cs, err := NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -308,7 +312,7 @@ func TestContractIncompleteWrite(t *testing.T) {
 	if err := cs.Close(); err != nil {
 		t.Fatal(err)
 	}
-	cs, err = NewContractSet(dir, modules.ProdDependencies)
+	cs, err = NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -333,7 +337,8 @@ func TestContractLargeHeader(t *testing.T) {
 	t.Parallel()
 	// create contract set with one contract
 	dir := build.TempDir(filepath.Join("proto", t.Name()))
-	cs, err := NewContractSet(dir, modules.ProdDependencies)
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	cs, err := NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -374,7 +379,8 @@ func TestContractSetInsertInterrupted(t *testing.T) {
 	t.Parallel()
 	// create contract set with a custom dependency.
 	dir := build.TempDir(filepath.Join("proto", t.Name()))
-	cs, err := NewContractSet(dir, &dependencyInterruptContractInsertion{})
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	cs, err := NewContractSet(dir, rl, &dependencyInterruptContractInsertion{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -397,7 +403,7 @@ func TestContractSetInsertInterrupted(t *testing.T) {
 	}
 
 	// Reload the contract set. The contract should be there.
-	cs, err = NewContractSet(dir, modules.ProdDependencies)
+	cs, err = NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -431,7 +437,8 @@ func TestContractRecordAndCommitPaymentIntent(t *testing.T) {
 
 	// create contract set
 	dir := build.TempDir(filepath.Join("proto", t.Name()))
-	cs, err := NewContractSet(dir, modules.ProdDependencies)
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	cs, err := NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -489,7 +496,7 @@ func TestContractRecordAndCommitPaymentIntent(t *testing.T) {
 	}
 
 	// reload the contract set
-	cs, err = NewContractSet(dir, modules.ProdDependencies)
+	cs, err = NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -512,7 +519,8 @@ func TestContractRefCounter(t *testing.T) {
 
 	// create a contract set
 	dir := build.TempDir(filepath.Join("proto", t.Name()))
-	cs, err := NewContractSet(dir, modules.ProdDependencies)
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	cs, err := NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -618,7 +626,8 @@ func TestContractRecordCommitDownloadIntent(t *testing.T) {
 
 	// create contract set
 	dir := build.TempDir(filepath.Join("proto", t.Name()))
-	cs, err := NewContractSet(dir, modules.ProdDependencies)
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	cs, err := NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -674,7 +683,7 @@ func TestContractRecordCommitDownloadIntent(t *testing.T) {
 
 	// don't commit the download. Instead simulate a crash by reloading the
 	// contract set.
-	cs, err = NewContractSet(dir, modules.ProdDependencies)
+	cs, err = NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -706,7 +715,7 @@ func TestContractRecordCommitDownloadIntent(t *testing.T) {
 	}
 
 	// restart again. We still expect 0 unapplied txns.
-	cs, err = NewContractSet(dir, modules.ProdDependencies)
+	cs, err = NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -732,7 +741,8 @@ func TestContractRecordCommitAppendIntent(t *testing.T) {
 
 	// create contract set
 	dir := build.TempDir(filepath.Join("proto", t.Name()))
-	cs, err := NewContractSet(dir, modules.ProdDependencies)
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	cs, err := NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -791,7 +801,7 @@ func TestContractRecordCommitAppendIntent(t *testing.T) {
 
 	// don't commit the download. Instead simulate a crash by reloading the
 	// contract set.
-	cs, err = NewContractSet(dir, modules.ProdDependencies)
+	cs, err = NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -823,7 +833,7 @@ func TestContractRecordCommitAppendIntent(t *testing.T) {
 	}
 
 	// restart again. We still expect 0 unapplied txns.
-	cs, err = NewContractSet(dir, modules.ProdDependencies)
+	cs, err = NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -849,7 +859,8 @@ func TestContractRecordCommitRenewAndClearIntent(t *testing.T) {
 
 	// create contract set
 	dir := build.TempDir(filepath.Join("proto", t.Name()))
-	cs, err := NewContractSet(dir, modules.ProdDependencies)
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	cs, err := NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -911,7 +922,7 @@ func TestContractRecordCommitRenewAndClearIntent(t *testing.T) {
 
 	// don't commit the download. Instead simulate a crash by reloading the
 	// contract set.
-	cs, err = NewContractSet(dir, modules.ProdDependencies)
+	cs, err = NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -943,7 +954,7 @@ func TestContractRecordCommitRenewAndClearIntent(t *testing.T) {
 	}
 
 	// restart again. We still expect 0 unapplied txns.
-	cs, err = NewContractSet(dir, modules.ProdDependencies)
+	cs, err = NewContractSet(dir, rl, modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}

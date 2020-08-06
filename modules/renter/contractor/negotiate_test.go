@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/ratelimit"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -72,7 +73,12 @@ func newContractorTester(name string) (*contractorTester, closeFn, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	hdb, errChan := hostdb.New(g, cs, tp, filepath.Join(testdir, modules.RenterDir))
+	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
+	if err != nil {
+		return nil, nil, err
+	}
+	hdb, errChan := hostdb.New(g, cs, tp, mux, filepath.Join(testdir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		return nil, nil, err
 	}
@@ -80,7 +86,8 @@ func newContractorTester(name string) (*contractorTester, closeFn, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	c, errChan := New(cs, w, tp, hdb, filepath.Join(testdir, modules.RenterDir))
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	c, errChan := New(cs, w, tp, hdb, rl, filepath.Join(testdir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		return nil, nil, err
 	}
@@ -106,7 +113,7 @@ func newContractorTester(name string) (*contractorTester, closeFn, error) {
 	}
 
 	cf := func() error {
-		return errors.Compose(c.Close(), m.Close(), hdb.Close(), w.Close(), tp.Close(), cs.Close(), g.Close())
+		return errors.Compose(c.Close(), m.Close(), hdb.Close(), mux.Close(), w.Close(), tp.Close(), cs.Close(), g.Close())
 	}
 	return ct, cf, nil
 }

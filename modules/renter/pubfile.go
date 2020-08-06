@@ -258,6 +258,27 @@ func (r *Renter) CreatePublinkFromSiafile(lup modules.SkyfileUploadParameters, s
 // its own name, which allows the file to be renamed concurrently without
 // causing any race conditions.
 func (r *Renter) managedCreatePublinkFromFileNode(lup modules.SkyfileUploadParameters, metadataBytes []byte, fileNode *filesystem.FileNode, filename string) (modules.Publink, error) {
+	// First check if any of the publinks associated with the siafile are
+	// blacklisted
+	skylinkstrs := fileNode.Metadata().Publinks
+	for _, skylinkstr := range skylinkstrs {
+		var publink modules.Publink
+		err := publink.LoadString(skylinkstr)
+		if err != nil {
+			// If there is an error just continue as we shouldn't prevent the
+			// conversion due to bad old publink
+			//
+			// Log the error for debugging purposes
+			r.log.Printf("WARN: previous publink for siafile %v could not be loaded from string; potentially corrupt publink: %v", fileNode.SiaFilePath(), skylinkstr)
+			continue
+		}
+		// Check if publink is blacklisted
+		if r.staticSkynetBlacklist.IsBlacklisted(publink) {
+			// Publink is blacklisted, return error and try and delete file
+			return modules.Publink{}, errors.Compose(ErrPublinkBlacklisted, r.DeleteFile(lup.SiaPath))
+		}
+	}
+
 	// Check that the encryption key and erasure code is compatible with the
 	// pubfile format. This is intentionally done before any heavy computation
 	// to catch early errors.
@@ -336,9 +357,9 @@ func (r *Renter) managedCreatePublinkFromFileNode(lup modules.SkyfileUploadParam
 		return publink, nil
 	}
 
-	// Check if publink is blacklisted
+	// Check if the new publink is blacklisted
 	if r.staticSkynetBlacklist.IsBlacklisted(publink) {
-		// Publink is blacklisted, return error and try and delete file
+		// publink is blacklisted, return error and try and delete file
 		return modules.Publink{}, errors.Compose(ErrPublinkBlacklisted, r.DeleteFile(lup.SiaPath))
 	}
 
@@ -363,7 +384,7 @@ func (r *Renter) managedCreatePublinkFromFileNode(lup modules.SkyfileUploadParam
 // upload.
 func (r *Renter) managedCreateFileNodeFromReader(up modules.FileUploadParams, reader io.Reader) (*filesystem.FileNode, error) {
 	// Check the upload params first.
-	fileNode, err := r.managedInitUploadStream(up, false)
+	fileNode, err := r.managedInitUploadStream(up)
 	if err != nil {
 		return nil, err
 	}
@@ -569,7 +590,7 @@ func (r *Renter) managedUploadSkyfileLargeFile(lup modules.SkyfileUploadParamete
 		}
 	} else {
 		// Upload the file using a streamer.
-		fileNode, err = r.callUploadStreamFromReader(fup, fileReader, false)
+		fileNode, err = r.callUploadStreamFromReader(fup, fileReader)
 		if err != nil {
 			return modules.Publink{}, errors.AddContext(err, "unable to upload large pubfile")
 		}
@@ -607,7 +628,7 @@ func (r *Renter) managedUploadBaseSector(lup modules.SkyfileUploadParameters, ba
 	// Perform the actual upload. This will require turning the base sector into
 	// a reader.
 	baseSectorReader := bytes.NewReader(baseSector)
-	fileNode, err := r.callUploadStreamFromReader(fileUploadParams, baseSectorReader, false)
+	fileNode, err := r.callUploadStreamFromReader(fileUploadParams, baseSectorReader)
 	if err != nil {
 		return errors.AddContext(err, "failed to stream upload small pubfile")
 	}
@@ -862,7 +883,7 @@ func (r *Renter) PinPublink(publink modules.Publink, lup modules.SkyfileUploadPa
 	}
 
 	// Upload directly from the fanout download streamer.
-	fileNode, err := r.callUploadStreamFromReader(fup, streamer, false)
+	fileNode, err := r.callUploadStreamFromReader(fup, streamer)
 	if err != nil {
 		return errors.AddContext(err, "unable to upload large pubfile")
 	}

@@ -247,11 +247,11 @@ func TestManualConnectDisconnect(t *testing.T) {
 	if err := connectToNode(g1, g2, false); err != nil {
 		t.Fatal("failed to connect:", err)
 	}
-	// g2 manually disconnects from g1 and therefore blacklists it
+	// g2 manually disconnects from g1 and therefore blocklists it
 	if err := disconnectFromNode(g2, g1, true); err != nil {
 		t.Fatal("failed to disconnect:", err)
 	}
-	// Neither g1 nor g2 can connect after g1 being blacklisted
+	// Neither g1 nor g2 can connect after g1 being blocklisted
 	if err := connectToNode(g1, g2, false); err == nil {
 		t.Fatal("shouldn't be able to connect")
 	}
@@ -262,7 +262,7 @@ func TestManualConnectDisconnect(t *testing.T) {
 		t.Fatal("shouldn't be able to connect")
 	}
 
-	// g2 manually connects and therefore removes g1 from the blacklist again
+	// g2 manually connects and therefore removes g1 from the blocklist again
 	if err := connectToNode(g2, g1, true); err != nil {
 		t.Fatal("failed to connect:", err)
 	}
@@ -284,7 +284,7 @@ func TestManualConnectDisconnect(t *testing.T) {
 	}
 }
 
-// TestManualConnectDisconnectPersist checks if the blacklist is persistet on
+// TestManualConnectDisconnectPersist checks if the blocklist is persistet on
 // disk
 func TestManualConnectDisconnectPersist(t *testing.T) {
 	if testing.Short() {
@@ -300,12 +300,12 @@ func TestManualConnectDisconnectPersist(t *testing.T) {
 		t.Fatal("failed to connect:", err)
 	}
 
-	// g2 manually disconnects from g1 and therefore blacklists it
+	// g2 manually disconnects from g1 and therefore blocklists it
 	if err := disconnectFromNode(g2, g1, true); err != nil {
 		t.Fatal("failed to disconnect:", err)
 	}
 
-	// Neither g1 nor g2 can connect after g1 being blacklisted
+	// Neither g1 nor g2 can connect after g1 being blocklisted
 	if err := connectToNode(g1, g2, false); err == nil {
 		t.Fatal("shouldn't be able to connect")
 	}
@@ -324,7 +324,7 @@ func TestManualConnectDisconnectPersist(t *testing.T) {
 	}
 	defer g2.Close()
 
-	// Neither g1 nor g2 can connect after g1 being blacklisted
+	// Neither g1 nor g2 can connect after g1 being blocklisted
 	if err := connectToNode(g1, g2, false); err == nil {
 		t.Fatal("shouldn't be able to connect")
 	}
