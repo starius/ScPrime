@@ -615,7 +615,7 @@ func verifyDownloadAsArchive(t *testing.T, r *siatest.TestNode, skylink string, 
 	}
 
 	var md modules.SkyfileMetadata
-	mdStr := header.Get("Skynet-File-Metadata")
+	mdStr := header.Get("Pubaccess-File-Metadata")
 	if mdStr != "" {
 		err = json.Unmarshal([]byte(mdStr), &md)
 		if err != nil {
@@ -654,7 +654,7 @@ func verifyDownloadAsArchive(t *testing.T, r *siatest.TestNode, skylink string, 
 		return fmt.Errorf("unexpected 'Content-Type' header, expected 'application/x-tar' actual '%v'", ct)
 	}
 
-	mdStr = header.Get("Skynet-File-Metadata")
+	mdStr = header.Get("Pubaccess-File-Metadata")
 	if mdStr != "" {
 		err = json.Unmarshal([]byte(mdStr), &md)
 		if err != nil {
@@ -696,7 +696,7 @@ func verifyDownloadAsArchive(t *testing.T, r *siatest.TestNode, skylink string, 
 		return fmt.Errorf("unexpected 'Content-Type' header, expected 'application/gzip' actual '%v'", ct)
 	}
 
-	mdStr = header.Get("Skynet-File-Metadata")
+	mdStr = header.Get("Pubaccess-File-Metadata")
 	if mdStr != "" {
 		err = json.Unmarshal([]byte(mdStr), &md)
 		if err != nil {
