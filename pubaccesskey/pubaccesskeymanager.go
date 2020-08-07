@@ -58,9 +58,12 @@ var (
 	// because a key with the same name is already being stored.
 	ErrSkykeyWithNameAlreadyExists = errors.New("Pubaccesskey name already used by another key.")
 
-	// Skykey name errors
-	errNoSkykeysWithThatName = errors.New("No Pubaccesskey with that name")
-	errSkykeyNameToolong     = errors.New("Pubaccesskey name exceeds max length")
+	// ErrNoSkykeysWithThatName indicates that the key manager doesn't have
+	// a key with that ID
+	ErrNoSkykeysWithThatName = errors.New("No Pubaccesskey with that name")
+
+	// errSkykeyNameToolong indicates that the name is too long
+	errSkykeyNameToolong = errors.New("Pubaccesskey name exceeds max length")
 )
 
 // SkykeyManager manages the creation and handling of new pubaccesskeys which can be
@@ -244,7 +247,7 @@ func (sm *SkykeyManager) DeleteKeyByName(name string) error {
 
 	id, ok := sm.idsByName[name]
 	if !ok {
-		return errNoSkykeysWithThatName
+		return ErrNoSkykeysWithThatName
 	}
 
 	return sm.deleteKeyByID(id)
@@ -257,7 +260,7 @@ func (sm *SkykeyManager) IDByName(name string) (PubaccesskeyID, error) {
 
 	id, ok := sm.idsByName[name]
 	if !ok {
-		return PubaccesskeyID{}, errNoSkykeysWithThatName
+		return PubaccesskeyID{}, ErrNoSkykeysWithThatName
 	}
 	return id, nil
 }
@@ -281,7 +284,7 @@ func (sm *SkykeyManager) KeyByName(name string) (Pubaccesskey, error) {
 
 	id, ok := sm.idsByName[name]
 	if !ok {
-		return Pubaccesskey{}, errNoSkykeysWithThatName
+		return Pubaccesskey{}, ErrNoSkykeysWithThatName
 	}
 
 	key, ok := sm.keysByID[id]

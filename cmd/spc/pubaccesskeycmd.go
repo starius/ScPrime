@@ -21,6 +21,13 @@ var (
 		Run:   skykeycmd,
 	}
 
+	skykeyAddCmd = &cobra.Command{
+		Use:   "add [pubaccesskey base64-encoded pubaccesskey]",
+		Short: "Add a base64-encoded pubaccesskey to the key manager.",
+		Long:  `Add a base64-encoded pubaccesskey to the key manager.`,
+		Run:   wrap(skykeyaddcmd),
+	}
+
 	skykeyCreateCmd = &cobra.Command{
 		Use:   "create [name]",
 		Short: "Create a pubaccesskey with the given name.",
@@ -29,11 +36,11 @@ var (
 		Run: wrap(skykeycreatecmd),
 	}
 
-	skykeyAddCmd = &cobra.Command{
-		Use:   "add [pubaccesskey base64-encoded pubaccesskey]",
-		Short: "Add a base64-encoded pubaccesskey to the key manager.",
-		Long:  `Add a base64-encoded pubaccesskey to the key manager.`,
-		Run:   wrap(skykeyaddcmd),
+	skykeyDeleteCmd = &cobra.Command{
+		Use:   "delete",
+		Short: "Delete the pubaccesskey by its name or id",
+		Long:  `Delete the base64-encoded pubaccesskey using either its name with --name or id with --id`,
+		Run:   wrap(skykeydeletecmd),
 	}
 
 	skykeyGetCmd = &cobra.Command{
@@ -122,6 +129,41 @@ func skykeyAdd(c client.Client, skykeyString string) error {
 	return nil
 }
 
+// skykeydeletecmd is a wrapper for skykeyDelete that handles pubaccesskey delete
+// commands.
+func skykeydeletecmd() {
+	err := skykeyDelete(httpClient, skykeyName, skykeyID)
+	if err != nil {
+		die(err)
+	}
+
+	fmt.Println("Public access key Deleted!")
+}
+
+// skykeyDelete deletes the pubaccesskey using a name or id flag.
+func skykeyDelete(c client.Client, name, id string) error {
+	// Validate the usage of name and ID
+	err := validateNameAndIDUsage(name, id)
+	if err != nil {
+		return errors.AddContext(err, "cannot validate pubaccesskey name and ID usage to delete pubaccesskey")
+	}
+
+	// Delete the Skykey with the provide parameter
+	if name != "" {
+		err = c.SkykeyDeleteByNamePost(name)
+	} else {
+		var pubaccesskeyID pubaccesskey.PubaccesskeyID
+		err = pubaccesskeyID.FromString(id)
+		if err != nil {
+			return errors.AddContext(err, "could not decode pubaccesskey ID")
+		}
+		err = c.SkykeyDeleteByIDPost(pubaccesskeyID)
+	}
+
+	// Return error with context if there is an error
+	return errors.AddContext(err, "failed to delete pubaccesskey")
+}
+
 // skykeygetcmd is a wrapper for skykeyGet that handles pubaccesskey get commands.
 func skykeygetcmd() {
 	skykeyStr, err := skykeyGet(httpClient, skykeyName, skykeyID)
@@ -134,24 +176,21 @@ func skykeygetcmd() {
 
 // skykeyGet retrieves the pubaccesskey using a name or id flag.
 func skykeyGet(c client.Client, name, id string) (string, error) {
-	if name == "" && id == "" {
-		return "", errors.New("Cannot get pubaccesskey without using --name or --id flag")
-	}
-	if name != "" && id != "" {
-		return "", errors.New("Use only one flag to get the pubaccesskey: --name or --id flag")
+	err := validateNameAndIDUsage(name, id)
+	if err != nil {
+		return "", errors.AddContext(err, "cannot validate pubaccesskey name and ID usage to get pubaccesskey")
 	}
 
 	var sk pubaccesskey.Pubaccesskey
-	var err error
 	if name != "" {
 		sk, err = c.SkykeyGetByName(name)
 	} else {
-		var skykeyID pubaccesskey.PubaccesskeyID
-		err = skykeyID.FromString(id)
+		var pubaccesskeyID pubaccesskey.PubaccesskeyID
+		err = pubaccesskeyID.FromString(id)
 		if err != nil {
 			return "", errors.AddContext(err, "Could not decode pubaccesskey ID")
 		}
-		sk, err = c.SkykeyGetByID(skykeyID)
+		sk, err = c.SkykeyGetByID(pubaccesskeyID)
 	}
 
 	if err != nil {
@@ -225,4 +264,16 @@ func skykeyListKeys(c client.Client, showPrivateKeys bool) (string, error) {
 		return "", err
 	}
 	return b.String(), nil
+}
+
+// validateNameAndIDUsage validates the usage of name and ID, ensuring that only
+// one is used.
+func validateNameAndIDUsage(name, id string) error {
+	if name == "" && id == "" {
+		return errors.New("Must use either the --name or --id flag")
+	}
+	if name != "" && id != "" {
+		return errors.New("Can only use one flag: --name or --id flag")
+	}
+	return nil
 }

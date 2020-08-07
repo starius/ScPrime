@@ -36,9 +36,11 @@ Renter:
 * `spc renter download [nickname] [filepath]` download a file
 * `spc renter workers` show worker status
 * `spc renter workers ea` show worker account status
+* `spc renter workers dj` show worker download info
 * `spc renter workers pt` show worker price table status
 * `spc renter workers rj` show worker read jobs status
 * `spc renter workers hsj` show worker has sector jobs status
+* `spc renter workers uj` show worker upload info
 
 Full Descriptions
 -----------------
@@ -176,6 +178,10 @@ have the nickname be the same as the filename.
   account statuses, such as balance information, whether its on cooldown or not
   and potentially the most recent error.
 
+* `spc renter workers dj` shows a detailed overview of the workers' download
+  statuses, such as whether its on cooldown or not and potentially the most
+  recent error.
+
 * `spc renter workers pt` shows a detailed overview of the workers's price table
   statuses, such as when it was updated, when it expires, whether its on cooldown
   or not and potentially the most recent error.
@@ -189,8 +195,27 @@ have the nickname be the same as the filename.
   there was an error it will also display the most recent error and when it
   occurred.
 
+* `spc renter workers uj` shows a detailed overview of the workers' upload
+  statuses, such as whether its on cooldown or not and potentially the most
+  recent error.
+
 ### Pubaccesskey tasks
-TODO - Fill in
+* `spc pubaccesskey add [pubaccesskey base64-encoded pubaccesskey]`will add a base64-encoded
+  pubaccesskey to the key manager.
+
+* `spc pubaccesskey create [name]` will create a pubaccesskey  with the given name. The
+  --type flag can be used to specify the pubaccesskey type. Its default is private-id.
+
+* `spc pubaccesskey delete` will delete the base64-encoded pubaccesskey using either its
+  name with --name or id with --id
+
+* `spc pubaccesskey get` will get the base64-encoded pubaccesskey using either its name
+  with --name or id with --id
+
+* `spc pubaccesskey get-id [name]` will get the base64-encoded pubaccesskey id by its name
+
+* `spc pubaccesskey ls` will list all pubaccesskeys. Use with --show-priv-keys to show full
+  encoding with private key also.
 
 ### Public access tasks
 
