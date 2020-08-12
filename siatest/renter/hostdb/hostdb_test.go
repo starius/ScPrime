@@ -22,6 +22,7 @@ import (
 // TestSiamuxRequired checks that the hostdb will count a host as offline if the
 // host is not running siamux.
 func TestSiamuxRequired(t *testing.T) {
+	t.Skip("Siamux is not an enforced requirement in ScPrime yet.")
 	if testing.Short() {
 		t.SkipNow()
 	}
