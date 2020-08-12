@@ -66,7 +66,10 @@ func TestPersistCompatv143Tov150(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
+	err = f.Close()
+	if err != nil {
+		t.Fatal(errors.AddContext(err, "Can not close file"))
+	}
 
 	// Verify the persistence
 	err = loadAndVerifyPersistence(subTestDir)
@@ -95,10 +98,13 @@ func TestPersistCompatv143Tov150(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
 	_, err = f.Write(fastrand.Bytes(100))
 	if err != nil {
 		t.Fatal(err)
+	}
+	err = f.Close()
+	if err != nil {
+		t.Fatal(errors.AddContext(err, "Can not close file"))
 	}
 
 	// Verify the persistence
@@ -139,9 +145,19 @@ func TestPersistCompatv143Tov150(t *testing.T) {
 // conversion from v1.4.3 to v1.5.0 updated the persistence as expected
 func loadAndVerifyPersistence(testDir string) error {
 	// Verify that loading the older persist file works
+	// Load the persistence of the blacklist.
 	aop, reader, err := persist.NewAppendOnlyPersist(testDir, persistFile, metadataHeader, metadataVersionV143)
+	//aop, reader, err := loadPersist(testDir)
+
+	//in case wrong header try load with Skynet header
 	if err != nil {
-		return err
+		aop.Close()
+		if errors.Contains(err, persist.ErrWrongHeader) {
+			aop, reader, err = persist.NewAppendOnlyPersist(testDir, persistFile, oldMetadataHeader, metadataVersionV143)
+		}
+	}
+	if err != nil {
+		return errors.AddContext(err, "unable to create new AppendOnlyPersist")
 	}
 
 	// Grab the merkleroots that were persisted
@@ -159,7 +175,7 @@ func loadAndVerifyPersistence(testDir string) error {
 		return err
 	}
 
-	// Create a new SkynetBlacklist, this should convert the persistence
+	// Create a new PubaccessBlacklist, this should convert the persistence
 	sb, err := New(testDir)
 	if err != nil {
 		return err
@@ -175,7 +191,7 @@ func loadAndVerifyPersistence(testDir string) error {
 	for mr := range merkleroots {
 		mrHash := crypto.HashObject(mr)
 		if _, ok := sb.hashes[mrHash]; !ok {
-			return fmt.Errorf("Original MerkleRoots: %v \nLoaded Hashes: %v \n MerkleRoot hash not found in list of hashes", merkleroots, sb.hashes)
+			return fmt.Errorf("\nOriginal MerkleRoots: %+v \nLoaded Hashes: %+v \n MerkleRoot hash not found in list of hashes", merkleroots, sb.hashes)
 		}
 	}
 	return nil

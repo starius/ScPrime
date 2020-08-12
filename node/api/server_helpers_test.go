@@ -609,7 +609,13 @@ func (st *serverTester) announceHost() error {
 	if err != nil {
 		return err
 	}
-	for i := 0; i < 50 && len(hosts.Hosts) <= initialHosts; i++ {
+	for i := 0; i < 100 && len(hosts.Hosts) <= initialHosts; i++ {
+		if i%24 == 0 {
+			_, err := st.miner.AddBlock()
+			if err != nil {
+				return err
+			}
+		}
 		time.Sleep(100 * time.Millisecond)
 		err = st.getAPI("/hostdb/active", &hosts)
 		if err != nil {

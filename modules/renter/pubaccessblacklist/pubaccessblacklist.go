@@ -28,6 +28,9 @@ var (
 	// metadataHeader is the header of the metadata for the persist file
 	metadataHeader = types.NewSpecifier("PublicBlacklist\n")
 
+	// oldMetadataHeader is the Skynet header that was not updated previously by mistake
+	oldMetadataHeader = types.NewSpecifier("SkynetBlacklist\n")
+
 	// metadataVersion is the version of the persistence file
 	metadataVersion = persist.MetadataVersionv150
 )
@@ -57,7 +60,7 @@ func New(persistDir string) (*SkynetBlacklist, error) {
 	// Load the persistence of the blacklist.
 	aop, reader, err := loadPersist(persistDir)
 	if err != nil {
-		return nil, errors.AddContext(err, fmt.Sprintf("unable to initialize the public access blacklist persistence from '%v'", aop.FilePath()))
+		return nil, errors.AddContext(err, fmt.Sprintf("unable to initialize the public access blacklist persistence from '%v'", persistDir))
 	}
 
 	sb := &SkynetBlacklist{
