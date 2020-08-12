@@ -403,11 +403,11 @@ func testUnsafeClient(t *testing.T, tg *siatest.TestGroup) {
 		skykeySet[skykeyStr] = struct{}{}
 	}
 
-	// Test misuse of the /skynet/pubaccesskey endpoint using an UnsafeClient.
+	// Test misuse of the /pubaccess/pubaccesskey endpoint using an UnsafeClient.
 	uc := client.NewUnsafeClient(r.Client)
 
 	// Passing in 0 params shouild return an error.
-	baseQuery := "/skynet/pubaccesskey"
+	baseQuery := "/pubaccess/pubaccesskey"
 	var skykeyGet api.SkykeyGET
 	err = uc.Get(baseQuery, &skykeyGet)
 	if err == nil {
@@ -445,7 +445,7 @@ func testUnsafeClient(t *testing.T, tg *siatest.TestGroup) {
 	// GET response.
 	values = url.Values{}
 	values.Set("name", sk.Name)
-	getQuery := fmt.Sprintf("/skynet/pubaccesskey?%s", values.Encode())
+	getQuery := fmt.Sprintf("/pubaccess/pubaccesskey?%s", values.Encode())
 
 	skykeyGet = api.SkykeyGET{}
 	err = uc.Get(getQuery, &skykeyGet)
@@ -465,9 +465,9 @@ func testUnsafeClient(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal("Wrong pubaccesskey string")
 	}
 
-	// Check the Name and ID params from the /skynet/pubaccesskeys GET response.
+	// Check the Name and ID params from the /pubaccess/pubaccesskeys GET response.
 	var skykeysGet api.SkykeysGET
-	err = uc.Get("/skynet/pubaccesskeys", &skykeysGet)
+	err = uc.Get("/pubaccess/pubaccesskeys", &skykeysGet)
 	if err != nil {
 		t.Fatal(err)
 	}
