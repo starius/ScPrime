@@ -7,6 +7,7 @@ package types
 
 import (
 	"errors"
+	"strings"
 
 	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -141,6 +142,13 @@ func (t Transaction) ID() TransactionID {
 	t.MarshalSiaNoSignatures(h)
 	h.Sum(txid[:0])
 	return txid
+}
+
+// RuneToString converts a rune type to a string.
+func RuneToString(r rune) string {
+	var sb strings.Builder
+	sb.WriteRune(r)
+	return sb.String()
 }
 
 // SiacoinOutputID returns the ID of a siacoin output at the given index,

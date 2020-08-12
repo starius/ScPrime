@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -175,7 +177,7 @@ func (h *Host) load() error {
 	} else if os.IsNotExist(err) {
 		// There is no host.json file, set up sane defaults.
 		return h.establishDefaults()
-	} else if err == persist.ErrBadVersion {
+	} else if errors.Contains(err, persist.ErrBadVersion) || errors.Contains(err, persist.ErrWrongHeader) {
 		// Then upgrade to V143.
 		err = h.upgradeFromV120ToV143()
 		if err != nil {
@@ -185,7 +187,7 @@ func (h *Host) load() error {
 		err = h.upgradeFromV143ToV151()
 		if err != nil {
 			h.log.Println("WARNING: v143 to v151 host upgrade failed, nothing left to try", err)
-			return err
+			return errors.AddContext(err, "v143 to v151 host upgrade failed")
 		}
 
 		h.log.Println("SUCCESS: successfully upgraded host to v143")

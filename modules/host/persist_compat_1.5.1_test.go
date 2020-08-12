@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/log"
 	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/NebulousLabs/siamux/mux"
@@ -37,11 +38,11 @@ func TestV143HostUpgrade(t *testing.T) {
 	persistDir := build.TempDir(t.Name())
 
 	// extract the legacy host data
-	hostDir := build.TempDir(persistDir, modules.HostDir)
+	hostDir := filepath.Join(persistDir, modules.HostDir)
 	source := filepath.Join("testdata", v143Host)
 	err := build.ExtractTarGz(source, hostDir)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal(errors.AddContext(err, "Error extracting TarGZ: "+source+" -> "+hostDir))
 	}
 
 	// copy its persistence file into the appropriate location

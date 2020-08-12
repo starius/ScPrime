@@ -147,7 +147,6 @@ func loadAndVerifyPersistence(testDir string) error {
 	// Verify that loading the older persist file works
 	// Load the persistence of the blacklist.
 	aop, reader, err := persist.NewAppendOnlyPersist(testDir, persistFile, metadataHeader, metadataVersionV143)
-	//aop, reader, err := loadPersist(testDir)
 
 	//in case wrong header try load with Skynet header
 	if err != nil {
