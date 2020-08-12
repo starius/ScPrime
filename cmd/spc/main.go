@@ -337,7 +337,7 @@ func initCmds() *cobra.Command {
 		renterFilesListCmd, renterFilesRenameCmd, renterFilesUnstuckCmd, renterFilesUploadCmd,
 		renterFuseCmd, renterPricesCmd, renterRatelimitCmd, renterSetAllowanceCmd, renterSetIPRestrictionCmd,
 		renterSetLocalPathCmd, renterTriggerContractRecoveryScanCmd, renterUploadsCmd, renterWorkersCmd)
-	renterWorkersCmd.AddCommand(renterWorkersAccountsCmd, renterWorkersPriceTableCmd, renterWorkersReadJobsCmd, renterWorkersHasSectorJobSCmd)
+	renterWorkersCmd.AddCommand(renterWorkersAccountsCmd, renterWorkersDownloadsCmd, renterWorkersPriceTableCmd, renterWorkersReadJobsCmd, renterWorkersHasSectorJobSCmd, renterWorkersUploadsCmd)
 
 	renterAllowanceCmd.AddCommand(renterAllowanceCancelCmd)
 	renterContractsCmd.AddCommand(renterContractsViewCmd)
@@ -389,9 +389,11 @@ func initCmds() *cobra.Command {
 	skynetLsCmd.Flags().BoolVar(&skynetLsRoot, "root", false, "Use the root folder as the base instead of the pubaccess folder")
 
 	root.AddCommand(skykeyCmd)
-	skykeyCmd.AddCommand(skykeyCreateCmd, skykeyAddCmd, skykeyGetCmd, skykeyGetIDCmd, skykeyListCmd)
+	skykeyCmd.AddCommand(skykeyAddCmd, skykeyCreateCmd, skykeyDeleteCmd, skykeyGetCmd, skykeyGetIDCmd, skykeyListCmd)
 	skykeyAddCmd.Flags().StringVar(&skykeyRenameAs, "rename-as", "", "The new name for the pubaccesskey being added")
 	skykeyCreateCmd.Flags().StringVar(&skykeyType, "type", "", "The type of the pubaccesskey")
+	skykeyDeleteCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the pubaccesskey")
+	skykeyDeleteCmd.Flags().StringVar(&skykeyID, "id", "", "The base-64 encoded pubaccesskey ID")
 	skykeyGetCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the pubaccesskey")
 	skykeyGetCmd.Flags().StringVar(&skykeyID, "id", "", "The base-64 encoded pubaccesskey ID")
 	skykeyListCmd.Flags().BoolVar(&skykeyShowPrivateKeys, "show-priv-keys", false, "Show private key data.")

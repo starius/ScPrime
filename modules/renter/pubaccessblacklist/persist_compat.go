@@ -84,14 +84,14 @@ func convertPersistVersionFromv143Tov150(persistDir string) error {
 // a temporary file and returns a reader for the data. This function checks for
 // the existence of a temp file first and will return a reader for the temporary
 // file if the temporary file contains a valid checksum.
-func createTempFileFromPersistFile(persistDir string) (io.Reader, error) {
+func createTempFileFromPersistFile(persistDir string) (reader io.Reader, err error) {
 	// Try and load the temporary file first. This is done first because an
 	// unclean shutdown could result in a valid temporary file existing but no
 	// persist file existing. In this case we do not want a call to
 	// NewAppendOnlyPersist to create a new persist file resulting in a loss of
 	// the data in the temporary file
 	tempFilePath := filepath.Join(persistDir, tempPersistFile)
-	reader, err := loadTempFile(persistDir)
+	reader, err = loadTempFile(persistDir)
 	if err == nil {
 		// Temporary file is valid, return the reader
 		return reader, nil
@@ -107,25 +107,33 @@ func createTempFileFromPersistFile(persistDir string) (io.Reader, error) {
 	// Open the v1.4.3 persist file
 	aop, reader, err := persist.NewAppendOnlyPersist(persistDir, persistFile, metadataHeader, metadataVersionV143)
 	if err != nil {
+		aop.Close()
+		if errors.Contains(err, persist.ErrWrongHeader) {
+			aop, reader, err = persist.NewAppendOnlyPersist(persistDir, persistFile, oldMetadataHeader, metadataVersionV143)
+		}
+	}
+	defer func() {
+		err = errors.Compose(err, aop.Close())
+	}()
+	if err != nil {
 		return nil, errors.AddContext(err, "unable to load v1.4.3 persistence")
 	}
-	defer aop.Close()
-
 	// Read the persist file
 	v143Data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, errors.AddContext(err, "unable to read v1.4.3 persist file")
 	}
-
 	// Create the checksum for the persist file
 	checksum := crypto.HashBytes(v143Data)
 
 	// Create the temporary file
 	f, err := os.Create(tempFilePath)
 	if err != nil {
-		return nil, errors.AddContext(err, "unable to open temp file")
+		return nil, errors.AddContext(err, "unable to create temp file")
 	}
-	defer f.Close()
+	defer func() {
+		err = errors.Compose(err, f.Close())
+	}()
 
 	// Write the data to the temp file, leaving space for the checksum at the
 	// beginning of the file
@@ -153,14 +161,16 @@ func createTempFileFromPersistFile(persistDir string) (io.Reader, error) {
 
 // loadTempFile will load a temporary file and verifies the checksum that was
 // prefixed. If the checksum is valid a reader will be returned.
-func loadTempFile(persistDir string) (io.Reader, error) {
+func loadTempFile(persistDir string) (reader io.Reader, err error) {
 	// Open the temporary file
 	tempFilePath := filepath.Join(persistDir, tempPersistFile)
 	f, err := os.Open(tempFilePath)
 	if err != nil {
 		return nil, errors.AddContext(err, "unable to open temp file")
 	}
-	defer f.Close()
+	defer func() {
+		err = errors.Compose(err, f.Close())
+	}()
 
 	// Read file
 	fileBytes, err := ioutil.ReadAll(f)
@@ -207,7 +217,9 @@ func loadPersist(persistDir string) (*persist.AppendOnlyPersist, io.Reader, erro
 
 	// Load Persistence
 	aop, reader, err := persist.NewAppendOnlyPersist(persistDir, persistFile, metadataHeader, metadataVersion)
-	if errors.Contains(err, persist.ErrWrongVersion) {
+	if errors.Contains(err, persist.ErrWrongVersion) || errors.Contains(err, persist.ErrWrongHeader) {
+		//Close the opened aop
+		aop.Close()
 		// Try and convert the persistence from v143 to v150
 		err = convertPersistVersionFromv143Tov150(persistDir)
 		if err != nil {

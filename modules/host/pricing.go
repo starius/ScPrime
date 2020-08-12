@@ -6,9 +6,7 @@ import (
 )
 
 func (h *Host) calculatePriceByResource(resourceType types.Specifier, resourceAmount int64) types.Currency {
-	h.mu.RLock()
-	settings := h.externalSettings()
-	h.mu.RUnlock()
+	settings := h.managedExternalSettings()
 	var resourceCost types.Currency
 	switch resourceType {
 	case modules.DownloadBytes:

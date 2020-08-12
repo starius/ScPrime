@@ -66,6 +66,7 @@ func (tn *TestNode) UploadNewSkyfileWithDataBlocking(filename string, filedata [
 		BaseChunkRedundancy: 2,
 		FileMetadata: modules.SkyfileMetadata{
 			Filename: filename,
+			Length:   uint64(len(filedata)),
 			Mode:     modules.DefaultFilePerm,
 		},
 		Reader: reader,

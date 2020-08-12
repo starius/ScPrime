@@ -4998,7 +4998,25 @@ func TestWorkerSyncBalanceWithHost(t *testing.T) {
 	if !found {
 		t.Fatal("Expected worker to be found")
 	}
+
+	//Wait a second
+	timeout := time.Now().Add(2 * time.Second)
+	for w.AccountStatus.AvailableBalance.IsZero() && time.Now().Before(timeout) {
+		// get the workers
+		rwg, err := r.RenterWorkersGet()
+		if err != nil {
+			t.Fatal(err)
+		}
+		// grab the balance of the worker, this should have been synced to use the
+		// host's version of the balance
+		w, found = worker(rwg.Workers)
+		if !found {
+			t.Fatal("Expected worker to be found")
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 	if w.AccountStatus.AvailableBalance.IsZero() {
+		t.Logf("Renter workers: \n %+v\n", rwg)
 		t.Fatal("Expected the renter to have synced its balance to the host's version of the balance")
 	}
 

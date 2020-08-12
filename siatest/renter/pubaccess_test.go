@@ -708,7 +708,12 @@ func testPubaccessMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	expected := modules.SkyfileMetadata{Filename: uploadSiaPath.String(), Subfiles: subfiles}
+	var length uint64
+	for _, file := range subfiles {
+		length += uint64(file.Len)
+	}
+
+	expected := modules.SkyfileMetadata{Filename: uploadSiaPath.String(), Subfiles: subfiles, Length: length}
 	if !reflect.DeepEqual(expected, fileMetadata) {
 		t.Log("Expected:", expected)
 		t.Log("Actual:", fileMetadata)
@@ -1741,7 +1746,7 @@ func testPubaccessPortals(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
 	portal1 := modules.SkynetPortal{
-		Address: modules.NetAddress("siasky.net:4280"),
+		Address: modules.NetAddress("portal.scpri.me:4280"),
 		Public:  true,
 	}
 	// loopback address
@@ -1751,7 +1756,7 @@ func testPubaccessPortals(t *testing.T, tg *siatest.TestGroup) {
 	}
 	// address without a port
 	portal3 := modules.SkynetPortal{
-		Address: modules.NetAddress("siasky.net"),
+		Address: modules.NetAddress("portal.scpri.me"),
 		Public:  true,
 	}
 
@@ -2386,7 +2391,7 @@ func testPubaccessDefaultPath(t *testing.T, tg *siatest.TestGroup) {
 
 	// TEST: Does not contain "index.html".
 	// Contains a single file and specifies an empty default path (disabled).
-	// It should not return an error and download the file as zip
+	// It should not return an error and download the file as zip.
 	filename = "index.js_empty"
 	files = []siatest.TestFile{
 		{Name: "index.js", Data: []byte(fc1)},
@@ -2406,15 +2411,18 @@ func testPubaccessDefaultPath(t *testing.T, tg *siatest.TestGroup) {
 
 	// TEST: Does not contain "index.html".
 	// Contains a single file and doesn't specify a default path (not disabled).
-	// It should fail with 'format required'.
+	// It should serve the only file's content.
 	filename = "index.js"
 	publink, _, _, err = r.UploadNewMultipartSkyfileBlocking(filename, files, "", false, false)
 	if err != nil {
 		t.Fatal("Failed to upload multipart file.", err)
 	}
 	content, _, err = r.SkynetPublinkGet(publink)
-	if err == nil || !strings.Contains(err.Error(), "please specify a format") {
-		t.Fatalf("Expected error 'please specify a format', got %+v\n", err)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(content, files[0].Data) {
+		t.Fatalf("Expected to get content '%s', instead got '%s'", files[0].Data, string(content))
 	}
 }
 
@@ -2498,12 +2506,13 @@ func testPubaccessDefaultPath_TableTest(t *testing.T, tg *siatest.TestGroup) {
 		},
 
 		{
-			// Single dir with valid default path.
-			// OK
-			name:            "single_dir_correct",
-			files:           singleDir,
-			defaultPath:     dirAbout,
-			expectedContent: fc1,
+			// Single dir with default path set to a nested file.
+			// Error: invalid default path.
+			name:                 "single_dir_nested",
+			files:                singleDir,
+			defaultPath:          dirAbout,
+			expectedContent:      nil,
+			expectedErrStrUpload: "invalid default path provided",
 		},
 		{
 			// Single dir without default path (not disabled).
@@ -2562,12 +2571,12 @@ func testPubaccessDefaultPath_TableTest(t *testing.T, tg *siatest.TestGroup) {
 		{
 			// Multi dir with index, non-html default path.
 			// Error on download: specify a format.
-			name:                   "multi_idx_non_html",
-			files:                  multiHasIndexIndexJs,
-			defaultPath:            nonHTML,
-			disableDefaultPath:     false,
-			expectedContent:        multiHasIndexIndexJs[1].Data,
-			expectedErrStrDownload: "please specify a format",
+			name:                 "multi_idx_non_html",
+			files:                multiHasIndexIndexJs,
+			defaultPath:          nonHTML,
+			disableDefaultPath:   false,
+			expectedContent:      nil,
+			expectedErrStrUpload: "invalid default path provided",
 		},
 		{
 			// Multi dir with index, bad default path.
