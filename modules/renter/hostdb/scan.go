@@ -755,6 +755,12 @@ func fetchPriceTable(siamux *siamux.SiaMux, hostAddr string, timeout time.Durati
 	}
 	defer stream.Close()
 
+	// set a deadline on the stream.
+	err = stream.SetDeadline(time.Now().Add(hostScanDeadline))
+	if err != nil {
+		return nil, errors.AddContext(err, "failed to set stream deadline")
+	}
+
 	// initiate the RPC
 	err = modules.RPCWrite(stream, modules.RPCUpdatePriceTable)
 	if err != nil {

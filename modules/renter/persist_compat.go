@@ -430,6 +430,7 @@ func (r *Renter) convertPersistVersionFrom140To142(path string) error {
 	var p persistence
 	err := persist.LoadJSON(metadata, &p, path)
 	if err != nil {
+		r.log.Printf("Error loading persistence from %v : %v\n", path, err)
 		return errors.AddContext(err, "could not load json")
 	}
 	// Rename siafiles folder to fs/home/user and snapshots to fs/snapshots.

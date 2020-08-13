@@ -113,7 +113,7 @@ func TestV120HostUpgrade(t *testing.T) {
 	}
 
 	// sanity check the metadata version
-	err = persist.LoadJSON(modules.Hostv143PersistMetadata, struct{}{}, filepath.Join(hostPersistDir, modules.HostSettingsFile))
+	err = persist.LoadJSON(modules.Hostv151PersistMetadata, struct{}{}, filepath.Join(hostPersistDir, modules.HostSettingsFile))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,31 +125,31 @@ func loadExistingHostWithNewDeps(modulesDir, siaMuxDir, hostDir string) (closeFn
 	// Create the siamux
 	mux, err := modules.NewSiaMux(siaMuxDir, modulesDir, "localhost:0", "localhost:0")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.AddContext(err, "Cannot create new SiaMux")
 	}
 
 	// Create the host dependencies.
 	g, err := gateway.New("localhost:0", false, filepath.Join(modulesDir, modules.GatewayDir))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.AddContext(err, "Error creating gateway")
 	}
 	cs, errChan := consensus.New(g, false, filepath.Join(modulesDir, modules.ConsensusDir))
 	if err := <-errChan; err != nil {
-		return nil, nil, err
+		return nil, nil, errors.AddContext(err, "Error creating consensus")
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(modulesDir, modules.TransactionPoolDir))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.AddContext(err, "Error creating transactionpool")
 	}
 	w, err := wallet.New(cs, tp, filepath.Join(modulesDir, modules.WalletDir))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.AddContext(err, "Error creating wallet")
 	}
 
 	// Create the host.
 	h, err := NewCustomHost(modules.ProdDependencies, cs, g, tp, w, mux, "localhost:0", hostDir)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.AddContext(err, "Error creating host")
 	}
 
 	pubKey := mux.PublicKey()

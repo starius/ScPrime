@@ -10,6 +10,7 @@ package persist
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -114,23 +115,26 @@ func readJSON(meta Metadata, object interface{}, filename string) (err error) {
 		return errors.AddContext(err, "unable to open persisted json object file")
 	}
 	defer func() {
-		err = errors.AddContext(errors.Compose(err, file.Close()), "Error reading JSON file "+filename)
+		err = errors.AddContext(errors.Compose(err, file.Close()), "Error reading JSON file")
 	}()
 
 	// Read the metadata from the file.
 	var header, version string
 	dec := json.NewDecoder(file)
-	if err := dec.Decode(&header); err != nil {
+	if err = dec.Decode(&header); err != nil {
 		return errors.AddContext(err, "unable to read header from persisted json object file")
 	}
 	if header != meta.Header {
 		return ErrBadHeader
 	}
-	if err := dec.Decode(&version); err != nil {
+	if err = dec.Decode(&version); err != nil {
 		return errors.AddContext(err, "unable to read version from persisted json object file")
 	}
-	if version != meta.Version {
-		return ErrBadVersion
+	if build.VersionCmp(version, meta.Version) < 0 {
+		return errors.AddContext(ErrBadVersion, fmt.Sprintf("got %v but need at least %v", version, meta.Version))
+	}
+	if build.VersionCmp(version, meta.Version) > 0 {
+		return errors.AddContext(ErrBadVersion, fmt.Sprintf("got %v but need at most %v", version, meta.Version))
 	}
 
 	// Read everything else.
@@ -217,8 +221,11 @@ func LoadJSON(meta Metadata, object interface{}, filename string) error {
 
 	// Try opening the primary file.
 	err = readJSON(meta, object, filename)
-	if errors.Contains(err, ErrBadHeader) || errors.Contains(err, ErrBadVersion) || os.IsNotExist(err) {
+	if os.IsNotExist(err) {
 		return err
+	}
+	if errors.Contains(err, ErrBadHeader) || errors.Contains(err, ErrBadVersion) {
+		return errors.AddContext(err, "Error reading json from "+filename)
 	}
 	if err != nil {
 		// Try opening the temp file.

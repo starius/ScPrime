@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/node/api/client"
 	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 )
@@ -110,7 +112,32 @@ func testDeleteKey(t *testing.T, c client.Client) {
 		t.Fatal(err)
 	}
 	if sk.Name != keyName {
-		t.Fatalf("Expected SkyKey name %v but got %v", keyName, sk.Name)
+		t.Fatalf("Expected Skykey name %v but got %v", keyName, sk.Name)
+	}
+
+	// Verify incorrect param usage will return an error and will not delete the
+	// key
+	err = skykeyDelete(c, "name", "id")
+	if !errors.Contains(err, errBothNameAndIDUsed) {
+		t.Fatalf("Unexpected Error: got `%v`, expected `%v`", err, errBothNameAndIDUsed)
+	}
+	sk, err = c.SkykeyGetByName(keyName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sk.Name != keyName {
+		t.Fatalf("Expected Skykey name %v but got %v", keyName, sk.Name)
+	}
+	err = skykeyDelete(c, "", "")
+	if !errors.Contains(err, errNeitherNameNorIDUsed) {
+		t.Fatalf("Unexpected Error: got `%v`, expected `%v`", err, errNeitherNameNorIDUsed)
+	}
+	sk, err = c.SkykeyGetByName(keyName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sk.Name != keyName {
+		t.Fatalf("Expected Skykey name %v but got %v", keyName, sk.Name)
 	}
 
 	// Delete key by name

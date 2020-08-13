@@ -18,6 +18,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/proto"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // managedDownloadSnapshotTable will fetch the snapshot table from the host.
@@ -122,7 +123,7 @@ func (r *Renter) callFetchHostBackups(session contractor.Session) ([]modules.Upl
 	uploadedBackups := make([]modules.UploadedBackup, len(entryTable))
 	for i, e := range entryTable {
 		uploadedBackups[i] = modules.UploadedBackup{
-			Name:           string(bytes.TrimRight(e.Name[:], string(0))),
+			Name:           string(bytes.TrimRight(e.Name[:], types.RuneToString(0))),
 			UID:            e.UID,
 			CreationDate:   e.CreationDate,
 			Size:           e.Size,

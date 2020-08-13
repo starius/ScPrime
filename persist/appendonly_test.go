@@ -271,8 +271,8 @@ func TestMarshalMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = aop.updateMetadata(aopm)
-	if !errors.Contains(err, ErrWrongVersion) {
-		t.Fatalf("Expected %v got %v", ErrWrongVersion, err)
+	if !errors.Contains(err, ErrBadVersion) {
+		t.Fatalf("Expected %v got %v", ErrBadVersion, err)
 	}
 
 	// Write an incorrect header and verify that unmarshaling the metadata will
@@ -300,7 +300,7 @@ func TestMarshalMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = aop.updateMetadata(aopm)
-	if !errors.Contains(err, ErrWrongHeader) {
-		t.Fatalf("Expected %v got %v", ErrWrongHeader, err)
+	if !errors.Contains(err, ErrBadHeader) {
+		t.Fatalf("Expected %v got %v", ErrBadHeader, err)
 	}
 }
