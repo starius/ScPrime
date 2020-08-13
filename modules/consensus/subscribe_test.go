@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 	"testing"
@@ -287,7 +288,8 @@ func TestPerBlockDiffs(t *testing.T) {
 			ccd.SiafundPoolDiffs = append(ccd.SiafundPoolDiffs, diff.SiafundPoolDiffs...)
 		}
 		if !reflect.DeepEqual(ccd, cc.ConsensusChangeDiffs) {
-			t.Error("per-block diffs did not match")
+			difference := fmt.Sprintf("per-block diffs did not match\n ccd= %+v\ncc.ccd=%+v\n", ccd, cc.ConsensusChangeDiffs)
+			t.Error(difference)
 		}
 	}
 }

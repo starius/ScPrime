@@ -151,7 +151,7 @@ func loadAndVerifyPersistence(testDir string) error {
 	//in case wrong header try load with Skynet header
 	if err != nil {
 		aop.Close()
-		if errors.Contains(err, persist.ErrWrongHeader) {
+		if errors.Contains(err, persist.ErrBadHeader) {
 			aop, reader, err = persist.NewAppendOnlyPersist(testDir, persistFile, oldMetadataHeader, metadataVersionV143)
 		}
 	}

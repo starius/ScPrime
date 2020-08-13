@@ -117,14 +117,6 @@ type (
 		// AppliedDiffs.
 		ConsensusChangeDiffs
 
-		// DelayedSiacoinOutputDiffs contains the set of delayed siacoin output
-		// diffs that were applied to the consensus set in the recent change.
-		DelayedSiacoinOutputDiffs []DelayedSiacoinOutputDiff
-
-		// SiafundPoolDiffs are the siafund pool diffs that were applied to the
-		// consensus set in the recent change.
-		SiafundPoolDiffs []SiafundPoolDiff
-
 		// ChildTarget defines the target of any block that would be the child
 		// of the block most recently appended to the consensus set.
 		ChildTarget types.Target

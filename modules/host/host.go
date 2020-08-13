@@ -450,14 +450,14 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Create the perist directory if it does not yet exist.
 	err = dependencies.MkdirAll(h.persistDir, 0700)
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Could not create directory "+h.persistDir)
 	}
 
 	tokenStorageDir := filepath.Join(h.persistDir, tokenStorDir)
 	if _, err := os.Stat(tokenStorageDir); os.IsNotExist(err) {
 		// Create the token storage directory if it does not yet exist.
 		if err := os.Mkdir(tokenStorageDir, 0755); err != nil {
-			return nil, err
+			return nil, errors.AddContext(err, "Could not create token storage directory")
 		}
 	}
 	// Initialize token storage.
@@ -465,7 +465,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
 	h.tokenStor, err = newTokenStorage(tokenStorageDir)
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Could not initialize token storage")
 	}
 	h.tg.AfterStop(func() {
 		err = h.tokenStor.close()
@@ -478,7 +478,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// logger.
 	h.log, err = dependencies.NewLogger(filepath.Join(h.persistDir, logFile))
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Error creating logger")
 	}
 
 	h.tg.AfterStop(func() {
@@ -495,12 +495,13 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	h.StorageManager, err = contractmanager.NewCustomContractManager(smDeps, filepath.Join(persistDir, "contractmanager"))
 	if err != nil {
 		h.log.Println("Could not open the storage manager:", err)
-		return nil, err
+		return nil, errors.AddContext(err, "Could not open the contract manager")
 	}
 	h.tg.AfterStop(func() {
 		err = h.StorageManager.Close()
 		if err != nil {
 			h.log.Println("Could not close storage manager:", err)
+			err = errors.AddContext(err, "Could not close the storage manager")
 		}
 	})
 
@@ -508,7 +509,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// before shutting down.
 	err = h.load()
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Error loading persistence")
 	}
 	h.tg.AfterStop(func() {
 		err = h.saveSync()
@@ -520,7 +521,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Add the account manager subsystem
 	h.staticAccountManager, err = h.newAccountManager()
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Could not create account manager")
 	}
 
 	// Subscribe to the consensus set.
@@ -532,7 +533,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Ensure the host is consistent by pruning any stale storage obligations.
 	if err := h.PruneStaleStorageObligations(); err != nil {
 		h.log.Println("Could not prune stale storage obligations:", err)
-		return nil, err
+		return nil, errors.AddContext(err, "Error pruning stale contracts")
 	}
 
 	// Create bandwidth monitor

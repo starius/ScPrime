@@ -241,17 +241,21 @@ func newMockHostTester(d modules.Dependencies, name string) (*hostTester, error)
 
 // Close safely closes the hostTester. It panics if err != nil because there
 // isn't a good way to errcheck when deferring a close.
-func (ht *hostTester) Close() error {
-	errs := []error{
-		ht.host.Close(),
+func (ht *hostTester) Close() (err error) {
+	if ht.host != nil {
+		err = ht.host.Close()
+	}
+	err = errors.Compose(
+		err,
 		ht.miner.Close(),
 		ht.wallet.Close(),
 		ht.tpool.Close(),
 		ht.cs.Close(),
 		ht.gateway.Close(),
 		ht.mux.Close(),
-	}
-	if err := build.JoinErrors(errs, "; "); err != nil {
+	)
+
+	if err != nil {
 		panic(err)
 	}
 	return nil

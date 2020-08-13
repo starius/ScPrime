@@ -28,13 +28,6 @@ const (
 	lengthSize uint64 = 8
 )
 
-var (
-	// ErrWrongHeader is the wrong header error.
-	ErrWrongHeader = errors.New("wrong header")
-	// ErrWrongVersion is the wrong version error.
-	ErrWrongVersion = errors.New("wrong version")
-)
-
 type (
 	// AppendOnlyPersist is the object responsible for creating, loading, and
 	// updating append-only persist files.
@@ -254,13 +247,13 @@ func (aop *AppendOnlyPersist) updateMetadata(metadata appendOnlyPersistMetadata)
 		// Convert headers to strings and strip newlines for displaying.
 		expected := string(bytes.Split(aop.metadata.Header[:], []byte{'\n'})[0])
 		received := string(bytes.Split(metadata.Header[:], []byte{'\n'})[0])
-		return errors.AddContext(ErrWrongHeader, fmt.Sprintf("expected %v, received %v", expected, received))
+		return errors.AddContext(ErrBadHeader, fmt.Sprintf("expected %v, received %v", expected, received))
 	}
 	if metadata.Version != aop.metadata.Version {
 		// Convert versions to strings and strip newlines for displaying.
 		expected := string(bytes.Split(aop.metadata.Version[:], []byte{'\n'})[0])
 		received := string(bytes.Split(metadata.Version[:], []byte{'\n'})[0])
-		return errors.AddContext(ErrWrongVersion, fmt.Sprintf("expected %v, received %v", expected, received))
+		return errors.AddContext(ErrBadVersion, fmt.Sprintf("expected %v, received %v", expected, received))
 	}
 
 	aop.metadata = metadata

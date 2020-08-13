@@ -108,7 +108,7 @@ func createTempFileFromPersistFile(persistDir string) (reader io.Reader, err err
 	aop, reader, err := persist.NewAppendOnlyPersist(persistDir, persistFile, metadataHeader, metadataVersionV143)
 	if err != nil {
 		aop.Close()
-		if errors.Contains(err, persist.ErrWrongHeader) {
+		if errors.Contains(err, persist.ErrBadHeader) {
 			aop, reader, err = persist.NewAppendOnlyPersist(persistDir, persistFile, oldMetadataHeader, metadataVersionV143)
 		}
 	}
@@ -217,7 +217,7 @@ func loadPersist(persistDir string) (*persist.AppendOnlyPersist, io.Reader, erro
 
 	// Load Persistence
 	aop, reader, err := persist.NewAppendOnlyPersist(persistDir, persistFile, metadataHeader, metadataVersion)
-	if errors.Contains(err, persist.ErrWrongVersion) || errors.Contains(err, persist.ErrWrongHeader) {
+	if errors.Contains(err, persist.ErrBadVersion) || errors.Contains(err, persist.ErrBadHeader) {
 		//Close the opened aop
 		aop.Close()
 		// Try and convert the persistence from v143 to v150
