@@ -43,7 +43,7 @@ require (
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200618090950-8ee80206cd37
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
-	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
+	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc // indirect
 	golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d // indirect
-	gopkg.in/ini.v1 v1.57.0 // indirect
+	gopkg.in/ini.v1 v1.58.0 // indirect
 )

@@ -12,13 +12,14 @@ import (
 
 	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/threadgroup"
 	bolt "go.etcd.io/bbolt"
 )
 
 const (
 	// minNumOutbound is the minimum number of outbound peers required before ibd
 	// is confident we are synced.
-	minNumOutbound = 3
+	minNumOutbound = 4
 )
 
 var (
@@ -49,9 +50,9 @@ var (
 	// other. Those nodes will likely have to wait minIBDWaitTime on every startup
 	// before IBD is done.
 	minIBDWaitTime = build.Select(build.Var{
-		Standard: 10 * time.Minute,
-		Dev:      10 * time.Second,
-		Testing:  5 * time.Second,
+		Standard: 30 * time.Minute,
+		Dev:      30 * time.Second,
+		Testing:  10 * time.Second,
 	}).(time.Duration)
 
 	// relayHeaderTimeout is the timeout for the RelayHeader RPC.
@@ -622,7 +623,9 @@ func (cs *ConsensusSet) managedInitialBlockchainDownload() error {
 			break
 		} else {
 			// Sleep so we don't hammer the network with SendBlock requests.
-			time.Sleep(ibdLoopDelay)
+			if !cs.tg.Sleep(ibdLoopDelay) {
+				return threadgroup.ErrStopped
+			}
 		}
 	}
 
