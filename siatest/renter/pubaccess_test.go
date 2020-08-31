@@ -100,12 +100,12 @@ func testPubaccessBasic(t *testing.T, tg *siatest.TestGroup) {
 	if fastrand.Intn(2) == 0 {
 		force = true
 	}
-	sup := modules.SkyfileUploadParameters{
+	sup := modules.PubfileUploadParameters{
 		SiaPath:             uploadSiaPath,
 		Force:               force,
 		Root:                false,
 		BaseChunkRedundancy: 2,
-		FileMetadata: modules.SkyfileMetadata{
+		FileMetadata: modules.PubfileMetadata{
 			Filename: filename,
 			Mode:     0640, // Intentionally does not match any defaults.
 		},
@@ -321,12 +321,12 @@ func testPubaccessBasic(t *testing.T, tg *siatest.TestGroup) {
 	if fastrand.Intn(2) == 0 {
 		rootForce = true
 	}
-	rootLup := modules.SkyfileUploadParameters{
+	rootLup := modules.PubfileUploadParameters{
 		SiaPath:             rootUploadSiaPath,
 		Force:               rootForce,
 		Root:                true,
 		BaseChunkRedundancy: 3,
-		FileMetadata: modules.SkyfileMetadata{
+		FileMetadata: modules.PubfileMetadata{
 			Filename: rootFilename,
 			Mode:     0600, // Intentionally does not match any defaults.
 		},
@@ -374,12 +374,12 @@ func testPubaccessBasic(t *testing.T, tg *siatest.TestGroup) {
 	if fastrand.Intn(2) == 0 {
 		force2 = true
 	}
-	largeLup := modules.SkyfileUploadParameters{
+	largeLup := modules.PubfileUploadParameters{
 		SiaPath:             largeSiaPath,
 		Force:               force2,
 		Root:                false,
 		BaseChunkRedundancy: 2,
-		FileMetadata: modules.SkyfileMetadata{
+		FileMetadata: modules.PubfileMetadata{
 			Filename: largeFilename,
 			// Remaining fields intentionally left blank so the renter sets
 			// defaults.
@@ -568,7 +568,7 @@ func testConvertSiaFile(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// Create Pubfile Upload Parameters
-	sup := modules.SkyfileUploadParameters{
+	sup := modules.PubfileUploadParameters{
 		SiaPath: modules.RandomSiaPath(),
 	}
 
@@ -713,7 +713,7 @@ func testPubaccessMultipartUpload(t *testing.T, tg *siatest.TestGroup) {
 		length += uint64(file.Len)
 	}
 
-	expected := modules.SkyfileMetadata{Filename: uploadSiaPath.String(), Subfiles: subfiles, Length: length}
+	expected := modules.PubfileMetadata{Filename: uploadSiaPath.String(), Subfiles: subfiles, Length: length}
 	if !reflect.DeepEqual(expected, fileMetadata) {
 		t.Log("Expected:", expected)
 		t.Log("Actual:", fileMetadata)
@@ -886,7 +886,7 @@ func testPubaccessStats(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// TestPubaccessInvalidFilename verifies that posting a Skyfile with invalid
+// TestPubaccessInvalidFilename verifies that posting a Pubfile with invalid
 // filenames such as empty filenames, names containing ./ or ../ or names
 // starting with a forward-slash fails.
 func testPubaccessInvalidFilename(t *testing.T, tg *siatest.TestGroup) {
@@ -913,12 +913,12 @@ func testPubaccessInvalidFilename(t *testing.T, tg *siatest.TestGroup) {
 			t.Fatal(err)
 		}
 
-		sup := modules.SkyfileUploadParameters{
+		sup := modules.PubfileUploadParameters{
 			SiaPath:             uploadSiaPath,
 			Force:               false,
 			Root:                false,
 			BaseChunkRedundancy: 2,
-			FileMetadata: modules.SkyfileMetadata{
+			FileMetadata: modules.PubfileMetadata{
 				Filename: filename,
 				Mode:     0640, // Intentionally does not match any defaults.
 			},
@@ -926,7 +926,7 @@ func testPubaccessInvalidFilename(t *testing.T, tg *siatest.TestGroup) {
 			Reader: reader,
 		}
 
-		// Try posting the skyfile with an invalid filename
+		// Try posting the pubfile with an invalid filename
 		_, _, err = r.SkynetSkyfilePost(sup)
 		if err == nil || !strings.Contains(err.Error(), modules.ErrInvalidPathString.Error()) {
 			t.Log("Error:", err)
@@ -944,7 +944,7 @@ func testPubaccessInvalidFilename(t *testing.T, tg *siatest.TestGroup) {
 		}
 		reader = bytes.NewReader(body.Bytes())
 
-		// Call the upload skyfile client call.
+		// Call the upload pubfile client call.
 		uploadSiaPath, err = modules.NewSiaPath("testInvalidFilenameMultipart" + persist.RandomSuffix())
 		if err != nil {
 			t.Fatal(err)
@@ -988,12 +988,12 @@ func testPubaccessInvalidFilename(t *testing.T, tg *siatest.TestGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sup := modules.SkyfileUploadParameters{
+	sup := modules.PubfileUploadParameters{
 		SiaPath:             uploadSiaPath,
 		Force:               false,
 		Root:                false,
 		BaseChunkRedundancy: 2,
-		FileMetadata: modules.SkyfileMetadata{
+		FileMetadata: modules.PubfileMetadata{
 			Filename: "testInvalidFilename",
 			Mode:     0640, // Intentionally does not match any defaults.
 		},
@@ -1326,7 +1326,7 @@ func testPubaccessDownloadFormats(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testPubaccessSubDirDownload verifies downloading data from a skyfile using a
+// testPubaccessSubDirDownload verifies downloading data from a pubfile using a
 // path to download single subfiles or subdirectories
 func testPubaccessSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
@@ -1414,7 +1414,7 @@ func testPubaccessSubDirDownload(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal("Expected subfile metadata of file3 to be present")
 	}
 
-	mdF3Expected := modules.SkyfileSubfileMetadata{
+	mdF3Expected := modules.PubfileSubfileMetadata{
 		FileMode:    os.FileMode(0640),
 		Filename:    "b/file3.txt",
 		ContentType: "application/octet-stream",
@@ -1644,8 +1644,8 @@ func testPubaccessBlacklist(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Convert to a skyfile
-	convertUP := modules.SkyfileUploadParameters{
+	// Convert to a pubfile
+	convertUP := modules.PubfileUploadParameters{
 		SiaPath: siafileSiaPath,
 	}
 	convertSkylink, err := r.SkynetConvertSiafileToSkyfilePost(convertUP, siafileSiaPath)
@@ -1653,7 +1653,7 @@ func testPubaccessBlacklist(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal(err)
 	}
 
-	// Confirm there is a siafile and a skyfile
+	// Confirm there is a siafile and a pubfile
 	_, err = r.RenterFileGet(siafileSiaPath)
 	if err != nil {
 		t.Fatal(err)
@@ -1689,7 +1689,7 @@ func testPubaccessBlacklist(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatalf("Incorrect number of blacklisted merkleroots, expected %v got %v", 1, len(sbg.Blacklist))
 	}
 
-	// Confirm skyfile download returns blacklisted error
+	// Confirm pubfile download returns blacklisted error
 	//
 	// NOTE: Calling DownloadSkylink doesn't attempt to delete any underlying file
 	_, _, err = r.SkynetPublinkGet(convertSkylink)
@@ -1705,7 +1705,7 @@ func testPubaccessBlacklist(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatalf("Expected error %v but got %v", renter.ErrPublinkBlacklisted, err)
 	}
 
-	// This should delete the skyfile but not the siafile
+	// This should delete the pubfile but not the siafile
 	_, err = r.RenterFileGet(siafileSiaPath)
 	if err != nil {
 		t.Fatal(err)
@@ -1741,7 +1741,7 @@ func testPubaccessBlacklist(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testPubaccessPortals tests the skynet portals module.
+// testPubaccessPortals tests the pubaccess portals module.
 func testPubaccessPortals(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
 
@@ -1919,7 +1919,7 @@ func testPubaccessHeadRequest(t *testing.T, tg *siatest.TestGroup) {
 	if strMetadata == "" {
 		t.Fatal("Expected 'Pubaccess-File-Metadata' response header to be present")
 	}
-	var sm modules.SkyfileMetadata
+	var sm modules.PubfileMetadata
 	err = json.Unmarshal([]byte(strMetadata), &sm)
 	if err != nil {
 		t.Fatal(err)
@@ -2014,10 +2014,10 @@ func testPubaccessDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 	// verify we can perform a pubfile upload (note that we need this to trigger
 	// contracts being created, this issue only surfaces when commenting out all
 	// other pubaccess tets)
-	_, _, err = r.SkynetSkyfilePost(modules.SkyfileUploadParameters{
+	_, _, err = r.SkynetSkyfilePost(modules.PubfileUploadParameters{
 		SiaPath:             siaPath,
 		BaseChunkRedundancy: 2,
-		FileMetadata: modules.SkyfileMetadata{
+		FileMetadata: modules.PubfileMetadata{
 			Filename: "testPubaccessDryRun",
 			Mode:     0640,
 		},
@@ -2027,10 +2027,10 @@ func testPubaccessDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 	}
 
 	// verify you can't perform a dry-run using the force parameter
-	_, _, err = r.SkynetSkyfilePost(modules.SkyfileUploadParameters{
+	_, _, err = r.SkynetSkyfilePost(modules.PubfileUploadParameters{
 		SiaPath:             siaPath,
 		BaseChunkRedundancy: 2,
-		FileMetadata: modules.SkyfileMetadata{
+		FileMetadata: modules.PubfileMetadata{
 			Filename: "testPubaccessDryRun",
 			Mode:     0640,
 		},
@@ -2041,7 +2041,7 @@ func testPubaccessDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 		t.Fatal("Expected failure when both 'force' and 'dryrun' parameter are given")
 	}
 
-	verifyDryRun := func(sup modules.SkyfileUploadParameters, dataSize int) {
+	verifyDryRun := func(sup modules.PubfileUploadParameters, dataSize int) {
 		data := fastrand.Bytes(dataSize)
 
 		sup.DryRun = true
@@ -2086,10 +2086,10 @@ func testPubaccessDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	verifyDryRun(modules.SkyfileUploadParameters{
+	verifyDryRun(modules.PubfileUploadParameters{
 		SiaPath:             uploadSiaPath,
 		BaseChunkRedundancy: 2,
-		FileMetadata: modules.SkyfileMetadata{
+		FileMetadata: modules.PubfileMetadata{
 			Filename: "testPubaccessDryRunUploadSmall",
 			Mode:     0640,
 		},
@@ -2100,10 +2100,10 @@ func testPubaccessDryRunUpload(t *testing.T, tg *siatest.TestGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	verifyDryRun(modules.SkyfileUploadParameters{
+	verifyDryRun(modules.PubfileUploadParameters{
 		SiaPath:             uploadSiaPath,
 		BaseChunkRedundancy: 2,
-		FileMetadata: modules.SkyfileMetadata{
+		FileMetadata: modules.PubfileMetadata{
 			Filename: "testPubaccessDryRunUploadLarge",
 			Mode:     0640,
 		},
@@ -2226,12 +2226,12 @@ func testPubaccessLargeMetadata(t *testing.T, tg *siatest.TestGroup) {
 	}
 }
 
-// testRenameSiaPath verifies that the siapath to the skyfile can be renamed.
+// testRenameSiaPath verifies that the siapath to the pubfile can be renamed.
 func testRenameSiaPath(t *testing.T, tg *siatest.TestGroup) {
 	// Grab Renter
 	r := tg.Renters()[0]
 
-	// Create a skyfile
+	// Create a pubfile
 	publink, sup, _, err := r.UploadNewSkyfileBlocking("testRenameFile", 100, false)
 	if err != nil {
 		t.Fatal(err)
@@ -2452,6 +2452,7 @@ func testPubaccessDefaultPath_TableTest(t *testing.T, tg *siatest.TestGroup) {
 	multiNoIndex := []siatest.TestFile{
 		{Name: "hello.html", Data: fc1},
 		{Name: "about.html", Data: fc2},
+		{Name: "dir/about.html", Data: fc2},
 	}
 
 	about := "/about.html"
@@ -2624,6 +2625,25 @@ func testPubaccessDefaultPath_TableTest(t *testing.T, tg *siatest.TestGroup) {
 			expectedContent:      nil,
 			expectedErrStrUpload: "invalid default path provided",
 		},
+		{
+			// Multi dir with both defaultPath and disableDefaultPath set.
+			// Error on upload.
+			name:                 "multi_defpath_disabledefpath",
+			files:                multiHasIndex,
+			defaultPath:          index,
+			disableDefaultPath:   true,
+			expectedContent:      nil,
+			expectedErrStrUpload: "DefaultPath and DisableDefaultPath are mutually exclusive and cannot be set together",
+		},
+		{
+			// Multi dir with defaultPath pointing to a non-root file..
+			// Error on upload.
+			name:                 "multi_nonroot_defpath",
+			files:                multiNoIndex,
+			defaultPath:          dirAbout,
+			expectedContent:      nil,
+			expectedErrStrUpload: "DefaultPath must point to a file in the root directory of the pubfile",
+		},
 	}
 
 	for _, tt := range tests {
@@ -2669,7 +2689,7 @@ func testPubaccessDefaultPath_TableTest(t *testing.T, tg *siatest.TestGroup) {
 }
 
 // testPubaccessSingleFileNoSubfiles ensures that a single file uploaded as a
-// skyfile will not have `subfiles` defined in its metadata. This is required by
+// pubfile will not have `subfiles` defined in its metadata. This is required by
 // the `defaultPath` logic.
 func testPubaccessSingleFileNoSubfiles(t *testing.T, tg *siatest.TestGroup) {
 	r := tg.Renters()[0]
@@ -2714,7 +2734,7 @@ func BenchmarkSkynetSingleSector(b *testing.B) {
 
 	// Upload a file that is a single sector big.
 	r := tg.Renters()[0]
-	skylink, _, _, err := r.UploadNewSkyfileBlocking("foo", modules.SectorSize, false)
+	publink, _, _, err := r.UploadNewSkyfileBlocking("foo", modules.SectorSize, false)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -2728,7 +2748,7 @@ func BenchmarkSkynetSingleSector(b *testing.B) {
 
 	// Download the file.
 	for i := 0; i < b.N; i++ {
-		_, _, err := r.SkynetPublinkGet(skylink)
+		_, _, err := r.SkynetPublinkGet(publink)
 		if err != nil {
 			b.Fatal(err)
 		}

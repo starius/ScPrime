@@ -19,7 +19,7 @@ import (
 // AddMultipartFile is a helper function to add a file to the multipart form-
 // data. Note that the given data will be treated as binary data, and the multi
 // part's ContentType header will be set accordingly.
-func AddMultipartFile(w *multipart.Writer, filedata []byte, filekey, filename string, filemode uint64, offset *uint64) modules.SkyfileSubfileMetadata {
+func AddMultipartFile(w *multipart.Writer, filedata []byte, filekey, filename string, filemode uint64, offset *uint64) modules.PubfileSubfileMetadata {
 	filemodeStr := fmt.Sprintf("%o", filemode)
 	partHeader := createFormFileHeaders(filekey, filename, filemodeStr)
 	part, err := w.CreatePart(partHeader)
@@ -32,7 +32,7 @@ func AddMultipartFile(w *multipart.Writer, filedata []byte, filekey, filename st
 		panic(err)
 	}
 
-	metadata := modules.SkyfileSubfileMetadata{
+	metadata := modules.PubfileSubfileMetadata{
 		Filename:    filename,
 		ContentType: "application/octet-stream",
 		FileMode:    os.FileMode(filemode),
@@ -51,7 +51,7 @@ func AddMultipartFile(w *multipart.Writer, filedata []byte, filekey, filename st
 // data. After it has successfully performed the upload, it will verify the file
 // can be downloaded using its Publink. Returns the publink, the parameters used
 // for the upload and potentially an error.
-func (tn *TestNode) UploadNewSkyfileWithDataBlocking(filename string, filedata []byte, force bool) (publink string, sup modules.SkyfileUploadParameters, sshp api.SkynetSkyfileHandlerPOST, err error) {
+func (tn *TestNode) UploadNewSkyfileWithDataBlocking(filename string, filedata []byte, force bool) (publink string, sup modules.PubfileUploadParameters, sshp api.SkynetSkyfileHandlerPOST, err error) {
 	// create the siapath
 	skyfilePath, err := modules.NewSiaPath(filename)
 	if err != nil {
@@ -61,10 +61,10 @@ func (tn *TestNode) UploadNewSkyfileWithDataBlocking(filename string, filedata [
 
 	// wrap the data in a reader
 	reader := bytes.NewReader(filedata)
-	sup = modules.SkyfileUploadParameters{
+	sup = modules.PubfileUploadParameters{
 		SiaPath:             skyfilePath,
 		BaseChunkRedundancy: 2,
-		FileMetadata: modules.SkyfileMetadata{
+		FileMetadata: modules.PubfileMetadata{
 			Filename: filename,
 			Length:   uint64(len(filedata)),
 			Mode:     modules.DefaultFilePerm,
@@ -113,7 +113,7 @@ func (tn *TestNode) UploadNewSkyfileWithDataBlocking(filename string, filedata [
 // has successfully performed the upload, it will verify the file can be
 // downloaded using its Publink. Returns the publink, the parameters used for
 // the upload and potentially an error.
-func (tn *TestNode) UploadNewSkyfileBlocking(filename string, filesize uint64, force bool) (publink string, sup modules.SkyfileUploadParameters, sshp api.SkynetSkyfileHandlerPOST, err error) {
+func (tn *TestNode) UploadNewSkyfileBlocking(filename string, filesize uint64, force bool) (publink string, sup modules.PubfileUploadParameters, sshp api.SkynetSkyfileHandlerPOST, err error) {
 	data := fastrand.Bytes(int(filesize))
 	return tn.UploadNewSkyfileWithDataBlocking(filename, data, force)
 }
@@ -166,17 +166,17 @@ func (tn *TestNode) UploadNewMultipartSkyfileBlocking(filename string, files []T
 		DisableDefaultPath:  disableDefaultPath,
 	}
 
-	// upload a skyfile
+	// upload a pubfile
 	publink, sshp, err = tn.SkynetSkyfileMultiPartPost(sup)
 	if err != nil {
-		err = errors.AddContext(err, "Failed to upload skyfile")
+		err = errors.AddContext(err, "Failed to upload pubfile")
 		return
 	}
 
 	if !sup.Root {
 		skyfilePath, err = modules.SkynetFolder.Join(skyfilePath.String())
 		if err != nil {
-			err = errors.AddContext(err, "Failed to rebase skyfile path")
+			err = errors.AddContext(err, "Failed to rebase pubfile path")
 			return
 		}
 	}
@@ -188,13 +188,13 @@ func (tn *TestNode) UploadNewMultipartSkyfileBlocking(filename string, files []T
 
 	// Wait until upload reached the specified progress
 	if err = tn.WaitForUploadProgress(rf, 1); err != nil {
-		err = errors.AddContext(err, "Skyfile upload failed, progress did not reach a value of 1")
+		err = errors.AddContext(err, "Pubfile upload failed, progress did not reach a value of 1")
 		return
 	}
 
 	// wait until upload reaches a certain health
 	if err = tn.WaitForUploadHealth(rf); err != nil {
-		err = errors.AddContext(err, "Skyfile upload failed, health did not reach the repair threshold")
+		err = errors.AddContext(err, "Pubfile upload failed, health did not reach the repair threshold")
 		return
 	}
 

@@ -134,6 +134,8 @@ type (
 		spdConfig         *modules.SpdConfig
 
 		staticStartTime time.Time
+
+		staticDeps modules.Dependencies
 	}
 
 	// configModules contains booleans that indicate if a module was part of the
@@ -202,6 +204,15 @@ func (api *API) StartTime() time.Time {
 // authentication using HTTP basic auth for certain endpoints of the supplied
 // password is not the empty string.  Usernames are ignored for authentication.
 func New(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner, index modules.Index) *API {
+	return NewCustom(cfg, requiredUserAgent, requiredPassword, cs, e, fm, g, h, m, r, tp, w, p, sm, index, modules.ProdDependencies)
+}
+
+// NewCustom creates a new Sia API from the provided modules. The API will
+// require authentication using HTTP basic auth for certain endpoints of the
+// supplied password is not the empty string. Usernames are ignored for
+// authentication. It is custom because it allows to inject custom dependencies
+// into the API.
+func NewCustom(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner, index modules.Index, a modules.Dependencies) *API {
 	api := &API{
 		cs:                cs,
 		explorer:          e,
@@ -219,6 +230,7 @@ func New(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword stri
 		requiredUserAgent: requiredUserAgent,
 		requiredPassword:  requiredPassword,
 		spdConfig:         cfg,
+		staticDeps:        a,
 		staticStartTime:   time.Now(),
 	}
 

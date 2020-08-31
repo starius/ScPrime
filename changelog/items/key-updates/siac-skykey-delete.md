@@ -1,1 +1,1 @@
-- Add support for skykey delete in siac.
+- Add support for pubaccesskey delete in siac.

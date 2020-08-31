@@ -531,8 +531,8 @@ func TestStorageProofEmptyContract(t *testing.T) {
 	renters := tg.Renters()
 	renterUpload, renterDownload := renters[0], renters[1]
 
-	// Upload a file to skynet from one renter.
-	skylink, _, _, err := renterUpload.UploadNewSkyfileBlocking("test", 100, false)
+	// Upload a file to pubaccess from one renter.
+	publink, _, _, err := renterUpload.UploadNewSkyfileBlocking("test", 100, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -540,7 +540,7 @@ func TestStorageProofEmptyContract(t *testing.T) {
 	// Download a file from the second renter. This should cause the second
 	// renter to spend money on its contracts without increasing their size.
 	err = build.Retry(100, 100*time.Millisecond, func() error {
-		_, _, err = renterDownload.SkynetPublinkGet(skylink)
+		_, _, err = renterDownload.SkynetPublinkGet(publink)
 		if err != nil {
 			return err
 		}

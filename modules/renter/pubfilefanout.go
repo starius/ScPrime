@@ -32,7 +32,8 @@ type fanoutStreamBufferDataSource struct {
 	staticErasureCoder modules.ErasureCoder
 	staticLayout       skyfileLayout
 	staticMasterKey    crypto.CipherKey
-	staticStreamID     streamDataSourceID
+	staticMetadata     modules.PubfileMetadata
+	staticStreamID     modules.DataSourceID
 
 	// staticTimeout defines a timeout that is applied to every chunk download
 	staticTimeout time.Duration
@@ -45,7 +46,7 @@ type fanoutStreamBufferDataSource struct {
 // newFanoutStreamer will create a modules.Streamer from the fanout of a
 // pubfile. The streamer is created by implementing the streamBufferDataSource
 // interface on the pubfile, and then passing that to the stream buffer set.
-func (r *Renter) newFanoutStreamer(link modules.Publink, ll skyfileLayout, fanoutBytes []byte, timeout time.Duration, sk pubaccesskey.Pubaccesskey) (modules.Streamer, error) {
+func (r *Renter) newFanoutStreamer(link modules.Publink, ll skyfileLayout, metadata modules.PubfileMetadata, fanoutBytes []byte, timeout time.Duration, sk pubaccesskey.Pubaccesskey) (modules.Streamer, error) {
 	masterKey, err := r.deriveFanoutKey(&ll, sk)
 	if err != nil {
 		return nil, errors.AddContext(err, "count not recover siafile fanout because cipher key was unavailable")
@@ -63,13 +64,14 @@ func (r *Renter) newFanoutStreamer(link modules.Publink, ll skyfileLayout, fanou
 		staticErasureCoder: ec,
 		staticLayout:       ll,
 		staticMasterKey:    masterKey,
-		staticStreamID:     streamDataSourceID(crypto.HashObject(link.String())),
+		staticMetadata:     metadata,
+		staticStreamID:     link.DataSourceID(),
 		staticTimeout:      timeout,
 		staticRenter:       r,
 	}
 	err = fs.decodeFanout(fanoutBytes)
 	if err != nil {
-		return nil, errors.AddContext(err, "unable to decode fanout of skyfile")
+		return nil, errors.AddContext(err, "unable to decode fanout of pubfile")
 	}
 
 	// Grab and return the stream.
@@ -189,8 +191,13 @@ func (fs *fanoutStreamBufferDataSource) DataSize() uint64 {
 
 // ID returns the id of the publink being fetched, this is just the hash of the
 // publink.
-func (fs *fanoutStreamBufferDataSource) ID() streamDataSourceID {
+func (fs *fanoutStreamBufferDataSource) ID() modules.DataSourceID {
 	return fs.staticStreamID
+}
+
+// Metadata returns the metadata of the publink being fetched.
+func (fs *fanoutStreamBufferDataSource) Metadata() modules.PubfileMetadata {
+	return fs.staticMetadata
 }
 
 // ReadAt will fetch data from the siafile at the provided offset.

@@ -51,6 +51,12 @@ var (
 	BackupKeySpecifier = types.NewSpecifier("backupkey")
 )
 
+// DataSourceID is an identifier to uniquely identify a data source, such as for
+// loading a file. Adding data sources that have the same ID should return the
+// exact same data when queried. This is typically used inside of the renter to
+// build stream buffers.
+type DataSourceID crypto.Hash
+
 // FilterMode is the helper type for the enum constants for the HostDB filter
 // mode
 type FilterMode int
@@ -1054,7 +1060,7 @@ type Renter interface {
 	AddSkykey(pubaccesskey.Pubaccesskey) error
 
 	// CreateSkykey creates a new Pubaccesskey with the given name and ciphertype.
-	CreateSkykey(string, pubaccesskey.SkykeyType) (pubaccesskey.Pubaccesskey, error)
+	CreateSkykey(string, pubaccesskey.PubaccesskeyType) (pubaccesskey.Pubaccesskey, error)
 
 	// DeleteSkykeyByID deletes the Pubaccesskey with the given name from the renter's
 	// pubaccesskey manager if it exists.
@@ -1083,10 +1089,10 @@ type Renter interface {
 	// result in some uploading - the base sector pubfile needs to be uploaded
 	// separately, and if there is a fanout expansion that needs to be uploaded
 	// separately as well.
-	CreatePublinkFromSiafile(SkyfileUploadParameters, SiaPath) (Publink, error)
+	CreatePublinkFromSiafile(PubfileUploadParameters, SiaPath) (Publink, error)
 
 	// DownloadPublink will fetch a file from the ScPrime network using the publink.
-	DownloadPublink(Publink, time.Duration) (SkyfileMetadata, Streamer, error)
+	DownloadPublink(Publink, time.Duration) (PubfileMetadata, Streamer, error)
 
 	// UploadSkyfile will upload data to the ScPrime network from a reader and
 	// create a pubfile, returning the publink that can be used to access the
@@ -1096,7 +1102,7 @@ type Renter interface {
 	// pubfile contains more than just the file data, it also contains metadata
 	// about the file and other information which is useful in fetching the
 	// file.
-	UploadSkyfile(SkyfileUploadParameters) (Publink, error)
+	UploadSkyfile(PubfileUploadParameters) (Publink, error)
 
 	// Blacklist returns the merkleroots that are blacklisted
 	Blacklist() ([]crypto.Hash, error)
@@ -1106,7 +1112,7 @@ type Renter interface {
 
 	// PinPublink re-uploads the data stored at the file under that publink with
 	// the given parameters.
-	PinPublink(Publink, SkyfileUploadParameters, time.Duration) error
+	PinPublink(Publink, PubfileUploadParameters, time.Duration) error
 
 	// Portals returns the list of known pubaccess portals.
 	Portals() ([]SkynetPortal, error)

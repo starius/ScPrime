@@ -48,7 +48,7 @@ func TestDefaultPath(t *testing.T) {
 		{
 			name:               "single file multipart nil",
 			queryForm:          url.Values{},
-			subfiles:           modules.SkyfileSubfiles{"about.html": modules.SkyfileSubfileMetadata{}},
+			subfiles:           modules.SkyfileSubfiles{"about.html": modules.PubfileSubfileMetadata{}},
 			defaultPath:        "",
 			disableDefaultPath: false,
 			err:                nil,
@@ -56,7 +56,7 @@ func TestDefaultPath(t *testing.T) {
 		{
 			name:               "single file multipart empty",
 			queryForm:          url.Values{modules.SkyfileDisableDefaultPathParamName: []string{"true"}},
-			subfiles:           modules.SkyfileSubfiles{"about.html": modules.SkyfileSubfileMetadata{}},
+			subfiles:           modules.SkyfileSubfiles{"about.html": modules.PubfileSubfileMetadata{}},
 			defaultPath:        "",
 			disableDefaultPath: true,
 			err:                nil,
@@ -64,7 +64,7 @@ func TestDefaultPath(t *testing.T) {
 		{
 			name:               "single file multipart set to only",
 			queryForm:          url.Values{modules.SkyfileDefaultPathParamName: []string{"about.html"}},
-			subfiles:           modules.SkyfileSubfiles{"about.html": modules.SkyfileSubfileMetadata{}},
+			subfiles:           modules.SkyfileSubfiles{"about.html": modules.PubfileSubfileMetadata{}},
 			defaultPath:        "/about.html",
 			disableDefaultPath: false,
 			err:                nil,
@@ -72,7 +72,7 @@ func TestDefaultPath(t *testing.T) {
 		{
 			name:               "single file multipart set to nonexistent",
 			queryForm:          url.Values{modules.SkyfileDefaultPathParamName: []string{"nonexistent.html"}},
-			subfiles:           modules.SkyfileSubfiles{"about.html": modules.SkyfileSubfileMetadata{}},
+			subfiles:           modules.SkyfileSubfiles{"about.html": modules.PubfileSubfileMetadata{}},
 			defaultPath:        "",
 			disableDefaultPath: false,
 			err:                ErrInvalidDefaultPath,
@@ -80,7 +80,7 @@ func TestDefaultPath(t *testing.T) {
 		{
 			name:               "single file multipart set to non-html",
 			queryForm:          url.Values{modules.SkyfileDefaultPathParamName: []string{"about.js"}},
-			subfiles:           modules.SkyfileSubfiles{"about.js": modules.SkyfileSubfileMetadata{}},
+			subfiles:           modules.SkyfileSubfiles{"about.js": modules.PubfileSubfileMetadata{}},
 			defaultPath:        "",
 			disableDefaultPath: false,
 			err:                ErrInvalidDefaultPath,
@@ -91,7 +91,7 @@ func TestDefaultPath(t *testing.T) {
 				modules.SkyfileDefaultPathParamName:        []string{"about.html"},
 				modules.SkyfileDisableDefaultPathParamName: []string{"true"},
 			},
-			subfiles:           modules.SkyfileSubfiles{"about.html": modules.SkyfileSubfileMetadata{}},
+			subfiles:           modules.SkyfileSubfiles{"about.html": modules.PubfileSubfileMetadata{}},
 			defaultPath:        "",
 			disableDefaultPath: false,
 			err:                ErrInvalidDefaultPath,
@@ -99,7 +99,7 @@ func TestDefaultPath(t *testing.T) {
 		{
 			name:               "single file multipart set to non-root",
 			queryForm:          url.Values{modules.SkyfileDefaultPathParamName: []string{"foo/bar/about.html"}},
-			subfiles:           modules.SkyfileSubfiles{"foo/bar/about.html": modules.SkyfileSubfileMetadata{}},
+			subfiles:           modules.SkyfileSubfiles{"foo/bar/about.html": modules.PubfileSubfileMetadata{}},
 			defaultPath:        "",
 			disableDefaultPath: false,
 			err:                ErrInvalidDefaultPath,
@@ -109,8 +109,8 @@ func TestDefaultPath(t *testing.T) {
 			name:      "multi file nil has index.html",
 			queryForm: url.Values{},
 			subfiles: modules.SkyfileSubfiles{
-				"about.html": modules.SkyfileSubfileMetadata{},
-				"index.html": modules.SkyfileSubfileMetadata{},
+				"about.html": modules.PubfileSubfileMetadata{},
+				"index.html": modules.PubfileSubfileMetadata{},
 			},
 			defaultPath:        "",
 			disableDefaultPath: false,
@@ -120,8 +120,8 @@ func TestDefaultPath(t *testing.T) {
 			name:      "multi file nil no index.html",
 			queryForm: url.Values{},
 			subfiles: modules.SkyfileSubfiles{
-				"about.html": modules.SkyfileSubfileMetadata{},
-				"hello.html": modules.SkyfileSubfileMetadata{},
+				"about.html": modules.PubfileSubfileMetadata{},
+				"hello.html": modules.PubfileSubfileMetadata{},
 			},
 			defaultPath:        "",
 			disableDefaultPath: false,
@@ -131,8 +131,8 @@ func TestDefaultPath(t *testing.T) {
 			name:      "multi file set to empty",
 			queryForm: url.Values{modules.SkyfileDisableDefaultPathParamName: []string{"true"}},
 			subfiles: modules.SkyfileSubfiles{
-				"about.html": modules.SkyfileSubfileMetadata{},
-				"index.html": modules.SkyfileSubfileMetadata{},
+				"about.html": modules.PubfileSubfileMetadata{},
+				"index.html": modules.PubfileSubfileMetadata{},
 			},
 			defaultPath:        "",
 			disableDefaultPath: true,
@@ -142,8 +142,8 @@ func TestDefaultPath(t *testing.T) {
 			name:      "multi file set to existing",
 			queryForm: url.Values{modules.SkyfileDefaultPathParamName: []string{"about.html"}},
 			subfiles: modules.SkyfileSubfiles{
-				"about.html": modules.SkyfileSubfileMetadata{},
-				"index.html": modules.SkyfileSubfileMetadata{},
+				"about.html": modules.PubfileSubfileMetadata{},
+				"index.html": modules.PubfileSubfileMetadata{},
 			},
 			defaultPath:        "/about.html",
 			disableDefaultPath: false,
@@ -153,8 +153,8 @@ func TestDefaultPath(t *testing.T) {
 			name:      "multi file set to nonexistent",
 			queryForm: url.Values{modules.SkyfileDefaultPathParamName: []string{"nonexistent.html"}},
 			subfiles: modules.SkyfileSubfiles{
-				"about.html": modules.SkyfileSubfileMetadata{},
-				"index.html": modules.SkyfileSubfileMetadata{},
+				"about.html": modules.PubfileSubfileMetadata{},
+				"index.html": modules.PubfileSubfileMetadata{},
 			},
 			defaultPath:        "",
 			disableDefaultPath: false,
@@ -164,8 +164,8 @@ func TestDefaultPath(t *testing.T) {
 			name:      "multi file set to non-html",
 			queryForm: url.Values{modules.SkyfileDefaultPathParamName: []string{"about.js"}},
 			subfiles: modules.SkyfileSubfiles{
-				"about.js":   modules.SkyfileSubfileMetadata{},
-				"index.html": modules.SkyfileSubfileMetadata{},
+				"about.js":   modules.PubfileSubfileMetadata{},
+				"index.html": modules.PubfileSubfileMetadata{},
 			},
 			defaultPath:        "",
 			disableDefaultPath: false,
@@ -178,8 +178,8 @@ func TestDefaultPath(t *testing.T) {
 				modules.SkyfileDisableDefaultPathParamName: []string{"true"},
 			},
 			subfiles: modules.SkyfileSubfiles{
-				"about.html": modules.SkyfileSubfileMetadata{},
-				"index.html": modules.SkyfileSubfileMetadata{},
+				"about.html": modules.PubfileSubfileMetadata{},
+				"index.html": modules.PubfileSubfileMetadata{},
 			},
 			defaultPath:        "",
 			disableDefaultPath: false,
@@ -189,8 +189,8 @@ func TestDefaultPath(t *testing.T) {
 			name:      "multi file set to non-root",
 			queryForm: url.Values{modules.SkyfileDefaultPathParamName: []string{"foo/bar/about.html"}},
 			subfiles: modules.SkyfileSubfiles{
-				"foo/bar/about.html": modules.SkyfileSubfileMetadata{},
-				"foo/bar/baz.html":   modules.SkyfileSubfileMetadata{},
+				"foo/bar/about.html": modules.PubfileSubfileMetadata{},
+				"foo/bar/baz.html":   modules.PubfileSubfileMetadata{},
 			},
 			defaultPath:        "",
 			disableDefaultPath: false,
@@ -219,7 +219,7 @@ func TestSplitSkylinkString(t *testing.T) {
 	tests := []struct {
 		name                 string
 		strToParse           string
-		skylink              string
+		publink              string
 		skylinkStringNoQuery string
 		path                 string
 		errMsg               string
@@ -227,7 +227,7 @@ func TestSplitSkylinkString(t *testing.T) {
 		{
 			name:                 "no path",
 			strToParse:           "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
-			skylink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
+			publink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
 			skylinkStringNoQuery: "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
 			path:                 "/",
 			errMsg:               "",
@@ -235,7 +235,7 @@ func TestSplitSkylinkString(t *testing.T) {
 		{
 			name:                 "no path with query",
 			strToParse:           "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w?foo=bar",
-			skylink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
+			publink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
 			skylinkStringNoQuery: "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
 			path:                 "/",
 			errMsg:               "",
@@ -243,7 +243,7 @@ func TestSplitSkylinkString(t *testing.T) {
 		{
 			name:                 "with path to file",
 			strToParse:           "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w/foo/bar.baz",
-			skylink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
+			publink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
 			skylinkStringNoQuery: "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w/foo/bar.baz",
 			path:                 "/foo/bar.baz",
 			errMsg:               "",
@@ -251,7 +251,7 @@ func TestSplitSkylinkString(t *testing.T) {
 		{
 			name:                 "with path to dir with trailing slash",
 			strToParse:           "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w/foo/bar/",
-			skylink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
+			publink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
 			skylinkStringNoQuery: "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w/foo/bar/",
 			path:                 "/foo/bar/",
 			errMsg:               "",
@@ -259,7 +259,7 @@ func TestSplitSkylinkString(t *testing.T) {
 		{
 			name:                 "with path to dir without trailing slash",
 			strToParse:           "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w/foo/bar",
-			skylink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
+			publink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
 			skylinkStringNoQuery: "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w/foo/bar",
 			path:                 "/foo/bar",
 			errMsg:               "",
@@ -267,7 +267,7 @@ func TestSplitSkylinkString(t *testing.T) {
 		{
 			name:                 "with path to file with query",
 			strToParse:           "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w/foo/bar.baz?foobar=nope",
-			skylink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
+			publink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
 			skylinkStringNoQuery: "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w/foo/bar.baz",
 			path:                 "/foo/bar.baz",
 			errMsg:               "",
@@ -275,7 +275,7 @@ func TestSplitSkylinkString(t *testing.T) {
 		{
 			name:                 "with path to dir with query with trailing slash",
 			strToParse:           "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w/foo/bar/?foobar=nope",
-			skylink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
+			publink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
 			skylinkStringNoQuery: "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w/foo/bar/",
 			path:                 "/foo/bar/",
 			errMsg:               "",
@@ -283,40 +283,40 @@ func TestSplitSkylinkString(t *testing.T) {
 		{
 			name:                 "with path to dir with query without trailing slash",
 			strToParse:           "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w/foo/bar?foobar=nope",
-			skylink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
+			publink:              "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w",
 			skylinkStringNoQuery: "IAC6CkhNYuWZqMVr1gob1B6tPg4MrBGRzTaDvAIAeu9A9w/foo/bar",
 			path:                 "/foo/bar",
 			errMsg:               "",
 		},
 		{
-			name:                 "invalid skylink",
-			strToParse:           "invalid_skylink/foo/bar?foobar=nope",
-			skylink:              "",
+			name:                 "invalid publink",
+			strToParse:           "invalid_publink/foo/bar?foobar=nope",
+			publink:              "",
 			skylinkStringNoQuery: "",
 			path:                 "",
-			errMsg:               "not a publink, publinks are always 46 bytes",
+			errMsg:               modules.ErrPublinkIncorrectSize.Error(),
 		},
 		{
 			name:                 "empty input",
 			strToParse:           "",
-			skylink:              "",
+			publink:              "",
 			skylinkStringNoQuery: "",
 			path:                 "",
-			errMsg:               "not a publink, publinks are always 46 bytes",
+			errMsg:               modules.ErrPublinkIncorrectSize.Error(),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			skylink, skylinkStringNoQuery, path, err := splitSkylinkString(tt.strToParse)
+			publink, skylinkStringNoQuery, path, err := splitSkylinkString(tt.strToParse)
 			if (err != nil || tt.errMsg != "") && !strings.Contains(err.Error(), tt.errMsg) {
 				t.Fatalf("Expected error '%s', got %v\n", tt.errMsg, err)
 			}
 			if tt.errMsg != "" {
 				return
 			}
-			if skylink.String() != tt.skylink {
-				t.Fatalf("Expected skylink '%v', got '%v'\n", tt.skylink, skylink)
+			if publink.String() != tt.publink {
+				t.Fatalf("Expected publink '%v', got '%v'\n", tt.publink, publink)
 			}
 			if skylinkStringNoQuery != tt.skylinkStringNoQuery {
 				t.Fatalf("Expected skylinkStringNoQuery '%v', got '%v'\n", tt.skylinkStringNoQuery, skylinkStringNoQuery)

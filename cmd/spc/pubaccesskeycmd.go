@@ -91,12 +91,16 @@ func skykeycreatecmd(name string) {
 
 // skykeyCreate creates a new Pubaccesskey with the given name and cipher type
 func skykeyCreate(c client.Client, name, skykeyTypeString string) (string, error) {
-	var st pubaccesskey.SkykeyType
-	err := st.FromString(skykeyTypeString)
-	if err != nil {
-		return "", errors.AddContext(err, "Unable to decode pubaccesskey type")
+	var st pubaccesskey.PubaccesskeyType
+	if skykeyTypeString == "" {
+		// If not type is provided, set the type as Private by default
+		st = pubaccesskey.TypePrivateID
+	} else {
+		err := st.FromString(skykeyTypeString)
+		if err != nil {
+			return "", errors.AddContext(err, "Unable to decode pubaccesskey type")
+		}
 	}
-
 	sk, err := c.SkykeyCreateKeyPost(name, st)
 	if err != nil {
 		return "", errors.AddContext(err, "Could not create pubaccesskey")

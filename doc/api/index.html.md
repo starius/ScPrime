@@ -5211,7 +5211,7 @@ pubfiles are encrypted with the same pubaccesskey.
 
 ```go
 {
-  "pubaccesskey": "skykey:AUI0eAOXWXHwW6KOLyI5O1OYduVvHxAA8qUR_fJ8Kluasb-ykPlHBEjDczrL21hmjhH0zAoQ3-Qq?name=testskykey1",
+  "pubaccesskey": "pubaccesskey:AUI0eAOXWXHwW6KOLyI5O1OYduVvHxAA8qUR_fJ8Kluasb-ykPlHBEjDczrL21hmjhH0zAoQ3-Qq?name=testskykey1",
   "name": "key_to_the_castle",
   "id": "ai5z8cf5NWbcvPBaBn0DFQ==",
   "type": "private-id"

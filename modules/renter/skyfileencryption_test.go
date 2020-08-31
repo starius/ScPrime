@@ -15,7 +15,7 @@ import (
 )
 
 // TestSkyfileBaseSectorEncryption runs base sector encryption tests with every
-// supported SkykeyType.
+// supported PubaccesskeyType.
 func TestSkyfileBaseSectorEncryption(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -39,7 +39,7 @@ func TestSkyfileBaseSectorEncryption(t *testing.T) {
 
 // testBaseSectorEncryptionWithType tests base sector encryption and decryption
 // with multiple Skykeys of the specified type.
-func testBaseSectorEncryptionWithType(t *testing.T, r *Renter, skykeyType pubaccesskey.SkykeyType) {
+func testBaseSectorEncryptionWithType(t *testing.T, r *Renter, skykeyType pubaccesskey.PubaccesskeyType) {
 	// Create the 2 test skykeys, with different types
 	keyName1 := t.Name() + "1" + skykeyType.ToString()
 	sk1, err := r.CreateSkykey(keyName1, skykeyType)
@@ -49,7 +49,7 @@ func testBaseSectorEncryptionWithType(t *testing.T, r *Renter, skykeyType pubacc
 
 	// Create a file that fits in one base sector and set it up for encryption.
 	fileBytes := fastrand.Bytes(1000)
-	metadata := modules.SkyfileMetadata{
+	metadata := modules.PubfileMetadata{
 		Mode:     os.FileMode(0777),
 		Filename: "encryption_test_file",
 	}
@@ -302,7 +302,7 @@ func TestBaseSectorKeyID(t *testing.T) {
 
 	// Create a file that fits in one base sector and set it up for encryption.
 	fileBytes := fastrand.Bytes(1000)
-	metadata := modules.SkyfileMetadata{
+	metadata := modules.PubfileMetadata{
 		Mode:     os.FileMode(0777),
 		Filename: "encryption_test_file",
 	}
@@ -383,13 +383,13 @@ func TestBaseSectorKeyID(t *testing.T) {
 		t.Fatal("Expected pubaccesskey ID to NOT be in base sector")
 	}
 
-	// Now check for the expected skyfile encryption ID.
+	// Now check for the expected pubfile encryption ID.
 	expectedEncID, err := fsSkykey2.GenerateSkyfileEncryptionID()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if keyID2 != expectedEncID {
 		t.Log(expectedEncID, keyID2)
-		t.Fatal("Expected to find the skyfile encryption ID")
+		t.Fatal("Expected to find the pubfile encryption ID")
 	}
 }

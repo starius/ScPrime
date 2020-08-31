@@ -34,27 +34,27 @@ const (
 	// cipher-type.
 	maxEntropyLen = 256
 
-	// Define SkykeyTypes. Constants stated explicitly (instead of
-	// `SkykeyType(iota)`) to avoid re-ordering mistakes in the future.
+	// Define PubaccesskeyTypes. Constants stated explicitly (instead of
+	// `PubaccesskeyType(iota)`) to avoid re-ordering mistakes in the future.
 
 	// TypeInvalid represents an invalid pubaccesskey type.
-	TypeInvalid = SkykeyType(0x00)
+	TypeInvalid = PubaccesskeyType(0x00)
 
 	// TypePublicID is a Pubaccesskey that uses XChaCha20. It reveals its
-	// pubaccesskey ID in *every* skyfile it encrypts.
-	TypePublicID = SkykeyType(0x01)
+	// pubaccesskey ID in *every* pubfile it encrypts.
+	TypePublicID = PubaccesskeyType(0x01)
 
 	// TypePrivateID is a Pubaccesskey that uses XChaCha20 that does not
 	// reveal its pubaccesskey ID when encrypting Skyfiles. Instead, it marks the pubaccesskey
 	// used for encryption by storing an encrypted identifier that can only be
 	// successfully decrypted with the correct pubaccesskey.
-	TypePrivateID = SkykeyType(0x02)
+	TypePrivateID = PubaccesskeyType(0x02)
 
 	// typeDeletedSkykey is used internally to mark a key as deleted in the pubaccesskey
 	// manager. It is different from TypeInvalid because TypeInvalid can be used
 	// to catch other kinds of errors, i.e. accidentally using a Pubaccesskey{} with
 	// unset fields will cause an invalid-related error.
-	typeDeletedSkykey = SkykeyType(0xFF)
+	typeDeletedSkykey = PubaccesskeyType(0xFF)
 )
 
 var (
@@ -64,28 +64,28 @@ var (
 	skyfileEncryptionIDSpecifier  = types.NewSpecifier("PubfileEncID")
 	skyfileEncryptionIDDerivation = types.NewSpecifier("PFEncIDDerivPath")
 
-	errUnsupportedSkykeyType            = errors.New("Unsupported Pubaccesskey type")
+	errUnsupportedPubaccesskeyType            = errors.New("Unsupported Pubaccesskey type")
 	errUnmarshalDataErr                 = errors.New("Unable to unmarshal Pubaccesskey data")
 	errCannotMarshalTypeInvalidSkykey   = errors.New("Cannot marshal or unmarshal Pubaccesskey of TypeInvalid type")
 	errInvalidEntropyLength             = errors.New("Invalid pubaccesskey entropy length")
-	errSkykeyTypeDoesNotSupportFunction = errors.New("Operation not supported by this PubaccesskeyType")
+	errPubaccesskeyTypeDoesNotSupportFunction = errors.New("Operation not supported by this PubaccesskeyType")
 
 	errInvalidIDorNonceLength = errors.New("Invalid length for encryptionID or nonce in MatchesPubfileEncryptionID")
 
-	// ErrInvalidSkykeyType is returned when an invalid SkykeyType is being used.
-	ErrInvalidSkykeyType = errors.New("Invalid pubaccesskey type")
+	// ErrInvalidPubaccesskeyType is returned when an invalid PubaccesskeyType is being used.
+	ErrInvalidPubaccesskeyType = errors.New("Invalid pubaccesskey type")
 )
 
 // PubaccesskeyID is the identifier of a pubaccesskey.
 type PubaccesskeyID [SkykeyIDLen]byte
 
-// SkykeyType encodes the encryption scheme and method used by the Pubaccesskey.
-type SkykeyType byte
+// PubaccesskeyType encodes the encryption scheme and method used by the Pubaccesskey.
+type PubaccesskeyType byte
 
 // Pubaccesskey is a key used to encrypt/decrypt skyfiles.
 type Pubaccesskey struct {
 	Name    string
-	Type    SkykeyType
+	Type    PubaccesskeyType
 	Entropy []byte
 }
 
@@ -99,7 +99,7 @@ type compatSkykeyV148 struct {
 }
 
 // ToString returns the string representation of the ciphertype.
-func (t SkykeyType) ToString() string {
+func (t PubaccesskeyType) ToString() string {
 	switch t {
 	case TypePublicID:
 		return "public-id"
@@ -110,15 +110,15 @@ func (t SkykeyType) ToString() string {
 	}
 }
 
-// FromString reads a SkykeyType from a string.
-func (t *SkykeyType) FromString(s string) error {
+// FromString reads a PubaccesskeyType from a string.
+func (t *PubaccesskeyType) FromString(s string) error {
 	switch s {
 	case "public-id":
 		*t = TypePublicID
 	case "private-id":
 		*t = TypePrivateID
 	default:
-		return ErrInvalidSkykeyType
+		return ErrInvalidPubaccesskeyType
 	}
 	return nil
 }
@@ -199,7 +199,7 @@ func (sk *Pubaccesskey) unmarshalAndConvertFromOldFormat(r io.Reader) error {
 }
 
 // CipherType returns the crypto.CipherType used by this Pubaccesskey.
-func (t SkykeyType) CipherType() crypto.CipherType {
+func (t PubaccesskeyType) CipherType() crypto.CipherType {
 	switch t {
 	case TypePublicID, TypePrivateID:
 		return crypto.TypeXChaCha20
@@ -217,7 +217,7 @@ func (sk *Pubaccesskey) CipherType() crypto.CipherType {
 func (sk *Pubaccesskey) unmarshalDataOnly(r io.Reader) error {
 	d := encoding.NewDecoder(r, encoding.DefaultAllocLimit)
 	typeByte, _ := d.ReadByte()
-	sk.Type = SkykeyType(typeByte)
+	sk.Type = PubaccesskeyType(typeByte)
 
 	var entropyLen uint64
 	switch sk.Type {
@@ -232,7 +232,7 @@ func (sk *Pubaccesskey) unmarshalDataOnly(r io.Reader) error {
 			return errInvalidEntropyLength
 		}
 	default:
-		return errUnsupportedSkykeyType
+		return errUnsupportedPubaccesskeyType
 	}
 
 	sk.Entropy = make([]byte, entropyLen)
@@ -274,7 +274,7 @@ func (sk Pubaccesskey) marshalDataOnly(w io.Writer) error {
 	case TypeInvalid:
 		return errCannotMarshalTypeInvalidSkykey
 	default:
-		return errUnsupportedSkykeyType
+		return errUnsupportedPubaccesskeyType
 	}
 
 	if len(sk.Entropy) != entropyLen {
@@ -454,7 +454,7 @@ func (sk *Pubaccesskey) SubkeyWithNonce(nonce []byte) (Pubaccesskey, error) {
 // NOTE: This method MUST only be called using a FileSpecificSkykey.
 func (sk *Pubaccesskey) GenerateSkyfileEncryptionID() ([SkykeyIDLen]byte, error) {
 	if sk.Type != TypePrivateID {
-		return [SkykeyIDLen]byte{}, errSkykeyTypeDoesNotSupportFunction
+		return [SkykeyIDLen]byte{}, errPubaccesskeyTypeDoesNotSupportFunction
 	}
 	if SkykeyIDLen != types.SpecifierLen {
 		build.Critical("PubaccesskeyID and Specifier expected to have same size")
@@ -542,7 +542,7 @@ func (sk *Pubaccesskey) IsValid() error {
 		}
 
 	default:
-		return errUnsupportedSkykeyType
+		return errUnsupportedPubaccesskeyType
 	}
 
 	_, err := crypto.NewSiaKey(sk.CipherType(), sk.Entropy)

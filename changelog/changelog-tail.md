@@ -75,7 +75,7 @@ log repo.
 - fix hostdb log being incorrectly named
 - Refactor the environment variables into the `build` package to address bug
   where `spc` and `siad` could be using different API Passwords.
-- Fix bug in converting siafile to skyfile and enable testing.
+- Fix bug in converting siafile to pubfile and enable testing.
 - Fixed bug in bubble code that would overwrite the `siadir` metadata with old
   metadata
 - Fixed the output of `spc pubaccess ls` not counting subdirectories.

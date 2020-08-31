@@ -128,7 +128,7 @@ type (
 
 	// archiveFunc is a function that serves subfiles from src to dst and
 	// archives them using a certain algorithm.
-	archiveFunc func(dst io.Writer, src io.Reader, files []modules.SkyfileSubfileMetadata) error
+	archiveFunc func(dst io.Writer, src io.Reader, files []modules.PubfileSubfileMetadata) error
 )
 
 // skynetBlacklistHandlerGET handles the API call to get the list of
@@ -272,7 +272,7 @@ func (api *API) skynetPublinkHandlerGET(w http.ResponseWriter, req *http.Request
 	}
 
 	// Parse the format.
-	format := modules.SkyfileFormat(strings.ToLower(queryForm.Get("format")))
+	format := modules.PubfileFormat(strings.ToLower(queryForm.Get("format")))
 	switch format {
 	case modules.SkyfileFormatNotSpecified:
 	case modules.SkyfileFormatTar:
@@ -323,10 +323,8 @@ func (api *API) skynetPublinkHandlerGET(w http.ResponseWriter, req *http.Request
 	defaultPath := metadata.DefaultPath
 	if metadata.DefaultPath == "" && !metadata.DisableDefaultPath {
 		if len(metadata.Subfiles) == 1 {
-			// Handle the legacy case in which the fields `defaultpath` and
-			// `disabledefaultpath` are not defined. If the pubfile has a single
-			// subfile we want to automatically default to it in order to retain
-			// the current behaviour.
+			// If `defaultpath` and `disabledefaultpath` are not set and the
+			// pubfile has a single subfile we automatically default to it.
 			for filename := range metadata.Subfiles {
 				defaultPath = modules.EnsurePrefix(filename, "/")
 				break
@@ -367,9 +365,13 @@ func (api *API) skynetPublinkHandlerGET(w http.ResponseWriter, req *http.Request
 			WriteError(w, Error{fmt.Sprintf("pubfile has invalid default path (%s), please specify a format", defaultPath)}, http.StatusBadRequest)
 			return
 		}
-		metaForPath, file, offset, size := metadata.ForPath(defaultPath)
+		metaForPath, isFile, offset, size := metadata.ForPath(defaultPath)
 		if len(metaForPath.Subfiles) == 0 {
 			WriteError(w, Error{fmt.Sprintf("failed to download contents for default path: %v", path)}, http.StatusNotFound)
+			return
+		}
+		if !isFile {
+			WriteError(w, Error{fmt.Sprintf("failed to download contents for default path: %v, please specify a specific path or a format in order to download the content", defaultPath)}, http.StatusNotFound)
 			return
 		}
 		streamer, err = NewLimitStreamer(streamer, offset, size)
@@ -377,7 +379,7 @@ func (api *API) skynetPublinkHandlerGET(w http.ResponseWriter, req *http.Request
 			WriteError(w, Error{fmt.Sprintf("failed to download contents for default path: %v, could not create limit streamer", path)}, http.StatusInternalServerError)
 			return
 		}
-		isSubfile = file
+		isSubfile = isFile
 		responseContentType = metaForPath.ContentType()
 	}
 
@@ -493,7 +495,6 @@ func (api *API) skynetPublinkHandlerGET(w http.ResponseWriter, req *http.Request
 		w.Header().Set("Content-Type", responseContentType)
 	}
 	w.Header().Set("Pubaccess-File-Metadata", string(encMetadata))
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	http.ServeContent(w, req, metadata.Filename, time.Time{}, streamer)
 }
@@ -608,7 +609,7 @@ func (api *API) skynetPublinkPinHandlerPOST(w http.ResponseWriter, req *http.Req
 	// Create the upload parameters. Notably, the fanout redundancy, the file
 	// metadata and the filename are not included. Changing those would change
 	// the publink, which is not the goal.
-	lup := modules.SkyfileUploadParameters{
+	lup := modules.PubfileUploadParameters{
 		SiaPath:             siaPath,
 		Force:               force,
 		BaseChunkRedundancy: redundancy,
@@ -735,7 +736,7 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 	}
 
 	// Build the upload parameters
-	lup := modules.SkyfileUploadParameters{
+	lup := modules.PubfileUploadParameters{
 		SiaPath:             siaPath,
 		DryRun:              dryRun,
 		Force:               force,
@@ -767,7 +768,7 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 		}
 
 		lup.Reader = reader
-		lup.FileMetadata = modules.SkyfileMetadata{
+		lup.FileMetadata = modules.PubfileMetadata{
 			Filename:           filename,
 			Subfiles:           subfiles,
 			DefaultPath:        defaultPath,
@@ -786,7 +787,7 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 		}
 
 		lup.Reader = req.Body
-		lup.FileMetadata = modules.SkyfileMetadata{
+		lup.FileMetadata = modules.PubfileMetadata{
 			Mode:     mode,
 			Filename: filename,
 		}
@@ -812,9 +813,6 @@ func (api *API) skynetSkyfileHandlerPOST(w http.ResponseWriter, req *http.Reques
 		}
 		lup.PubaccesskeyID = ID
 	}
-
-	// Enable CORS
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Check for a convertpath input
 	convertPathStr := queryForm.Get("convertpath")
@@ -953,9 +951,9 @@ func (api *API) skynetStatsHandlerGET(w http.ResponseWriter, _ *http.Request, _ 
 
 // serveArchive serves skyfiles as an archive by reading them from r and writing
 // the archive to dst using the given archiveFunc.
-func serveArchive(dst io.Writer, src io.ReadSeeker, md modules.SkyfileMetadata, archiveFunc archiveFunc) error {
+func serveArchive(dst io.Writer, src io.ReadSeeker, md modules.PubfileMetadata, archiveFunc archiveFunc) error {
 	// Get the files to archive.
-	var files []modules.SkyfileSubfileMetadata
+	var files []modules.PubfileSubfileMetadata
 	for _, file := range md.Subfiles {
 		files = append(files, file)
 	}
@@ -963,14 +961,14 @@ func serveArchive(dst io.Writer, src io.ReadSeeker, md modules.SkyfileMetadata, 
 		return files[i].Offset < files[j].Offset
 	})
 	// If there are no files, it's a single file download. Manually construct a
-	// SkyfileSubfileMetadata from the SkyfileMetadata.
+	// PubfileSubfileMetadata from the PubfileMetadata.
 	if len(files) == 0 {
 		length := md.Length
 		if md.Length == 0 {
 			// v150Compat a missing length is fine for legacy links but new
 			// links should always have the length set.
 			if build.Release == "testing" {
-				build.Critical("SkyfileMetadata is missing length")
+				build.Critical("PubfileMetadata is missing length")
 			}
 			// Fetch the length of the file by seeking to the end and then back to
 			// the start.
@@ -984,8 +982,8 @@ func serveArchive(dst io.Writer, src io.ReadSeeker, md modules.SkyfileMetadata, 
 			}
 			length = uint64(seekLen)
 		}
-		// Construct the SkyfileSubfileMetadata.
-		files = append(files, modules.SkyfileSubfileMetadata{
+		// Construct the PubfileSubfileMetadata.
+		files = append(files, modules.PubfileSubfileMetadata{
 			FileMode: md.Mode,
 			Filename: md.Filename,
 			Offset:   0,
@@ -997,7 +995,7 @@ func serveArchive(dst io.Writer, src io.ReadSeeker, md modules.SkyfileMetadata, 
 
 // serveTar is an archiveFunc that implements serving the files from src to dst
 // as a tar.
-func serveTar(dst io.Writer, src io.Reader, files []modules.SkyfileSubfileMetadata) error {
+func serveTar(dst io.Writer, src io.Reader, files []modules.PubfileSubfileMetadata) error {
 	tw := tar.NewWriter(dst)
 	for _, file := range files {
 		// Create header.
@@ -1021,7 +1019,7 @@ func serveTar(dst io.Writer, src io.Reader, files []modules.SkyfileSubfileMetada
 
 // serveZip is an archiveFunc that implements serving the files from src to dst
 // as a zip.
-func serveZip(dst io.Writer, src io.Reader, files []modules.SkyfileSubfileMetadata) error {
+func serveZip(dst io.Writer, src io.Reader, files []modules.PubfileSubfileMetadata) error {
 	zw := zip.NewWriter(dst)
 	for _, file := range files {
 		f, err := zw.Create(file.Filename)
@@ -1103,7 +1101,7 @@ func skyfileParseMultiPartRequest(req *http.Request) (modules.SkyfileSubfiles, i
 
 		// parse content type from multipart header
 		contentType := fh.Header.Get("Content-Type")
-		subfiles[fh.Filename] = modules.SkyfileSubfileMetadata{
+		subfiles[fh.Filename] = modules.PubfileSubfileMetadata{
 			FileMode:    mode,
 			Filename:    filename,
 			ContentType: contentType,
@@ -1217,7 +1215,7 @@ func (api *API) skykeyCreateKeyHandlerPOST(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	var skykeyType pubaccesskey.SkykeyType
+	var skykeyType pubaccesskey.PubaccesskeyType
 	err := skykeyType.FromString(skykeyTypeString)
 	if err != nil {
 		WriteError(w, Error{"failed to decode pubaccesskey type" + err.Error()}, http.StatusInternalServerError)

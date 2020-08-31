@@ -53,12 +53,12 @@ func TestSkykeyManager(t *testing.T) {
 	}
 
 	// Unsupported cipher types should cause an error.
-	_, err = keyMan.CreateKey("test_key1", SkykeyType(0x00))
-	if !errors.Contains(err, errUnsupportedSkykeyType) {
+	_, err = keyMan.CreateKey("test_key1", PubaccesskeyType(0x00))
+	if !errors.Contains(err, errUnsupportedPubaccesskeyType) {
 		t.Fatal(err)
 	}
-	_, err = keyMan.CreateKey("test_key1", SkykeyType(0xFF))
-	if !errors.Contains(err, errUnsupportedSkykeyType) {
+	_, err = keyMan.CreateKey("test_key1", PubaccesskeyType(0xFF))
+	if !errors.Contains(err, errUnsupportedPubaccesskeyType) {
 		t.Fatal(err)
 	}
 
@@ -503,10 +503,10 @@ func TestSkykeyMarshalling(t *testing.T) {
 	}
 
 	// Use an unknown type and check for the marshal error.
-	pubaccesskey.Type = SkykeyType(0xF0)
+	pubaccesskey.Type = PubaccesskeyType(0xF0)
 	buf.Reset()
 	err = pubaccesskey.marshalSia(&buf)
-	if !errors.Contains(err, errUnsupportedSkykeyType) {
+	if !errors.Contains(err, errUnsupportedPubaccesskeyType) {
 		t.Fatal("Expected error for trying to marshal an unknown pubaccesskey type", err)
 	}
 
@@ -521,7 +521,7 @@ func TestSkykeyMarshalling(t *testing.T) {
 	}
 	// Check for the unmarshal error.
 	err = sk.unmarshalSia(&buf)
-	if !errors.Contains(err, errUnsupportedSkykeyType) {
+	if !errors.Contains(err, errUnsupportedPubaccesskeyType) {
 		t.Fatal("Expected error for trying to unmarshal an unknown pubaccesskey type", err)
 	}
 
@@ -621,20 +621,20 @@ func TestSkykeyMarshalling(t *testing.T) {
 	}
 }
 
-// TestSkykeyTypeStrings tests FromString and ToString methods for SkykeyTypes
-func TestSkykeyTypeStrings(t *testing.T) {
+// TestPubaccesskeyTypeStrings tests FromString and ToString methods for PubaccesskeyTypes
+func TestPubaccesskeyTypeStrings(t *testing.T) {
 	publicIDString := TypePublicID.ToString()
 	if publicIDString != "public-id" {
 		t.Fatal("Incorrect skykeytype name", publicIDString)
 	}
 
-	var st SkykeyType
+	var st PubaccesskeyType
 	err := st.FromString(publicIDString)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if st != TypePublicID {
-		t.Fatal("Wrong SkykeyType", st)
+		t.Fatal("Wrong PubaccesskeyType", st)
 	}
 
 	invalidTypeString := TypeInvalid.ToString()
@@ -642,9 +642,9 @@ func TestSkykeyTypeStrings(t *testing.T) {
 		t.Fatal("Incorrect skykeytype name", invalidTypeString)
 	}
 
-	var invalidSt SkykeyType
+	var invalidSt PubaccesskeyType
 	err = invalidSt.FromString(invalidTypeString)
-	if err != ErrInvalidSkykeyType {
+	if err != ErrInvalidPubaccesskeyType {
 		t.Fatal(err)
 	}
 
@@ -658,11 +658,11 @@ func TestSkykeyTypeStrings(t *testing.T) {
 		t.Fatal(err)
 	}
 	if st != TypePrivateID {
-		t.Fatal("Wrong SkykeyType", st)
+		t.Fatal("Wrong PubaccesskeyType", st)
 	}
 }
 
-// TestSkyfileEncryptionIDs tests the generation and verification of skyfile
+// TestSkyfileEncryptionIDs tests the generation and verification of pubfile
 // encryption IDs.
 func TestSkyfileEncryptionIDs(t *testing.T) {
 	// Create a key manager.
@@ -682,7 +682,7 @@ func TestSkyfileEncryptionIDs(t *testing.T) {
 	}
 	// We should not be able to generate encryption IDs with a TypePublicID key.
 	_, err = pubFsKey.GenerateSkyfileEncryptionID()
-	if !errors.Contains(err, errSkykeyTypeDoesNotSupportFunction) {
+	if !errors.Contains(err, errPubaccesskeyTypeDoesNotSupportFunction) {
 		t.Fatal(err)
 	}
 
@@ -929,14 +929,22 @@ func TestSkykeyDeleteCompat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer persistFile.Close()
+	defer func() {
+		if err := persistFile.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	testDataFileName := filepath.Join("testdata", "v144_pubaccesskeys.dat")
 	testDataFile, err := os.Open(testDataFileName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer testDataFile.Close()
+	defer func() {
+		if err := testDataFile.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
 	_, err = io.Copy(persistFile, testDataFile)
 
 	if err != nil {

@@ -19,7 +19,7 @@ once again.
 A `Pubaccesskey` is a key associated with a name to be used in Pubaccess to share
 encrypted files. Each key has a name and a unique identifier.
 
-The `Pubaccesskey` format is one byte called the `SkykeyType` followed by rest of the
+The `Pubaccesskey` format is one byte called the `PubaccesskeyType` followed by rest of the
 data associated with that key.
 
 ## Types
@@ -27,7 +27,7 @@ data associated with that key.
 `TypeInvalid` represents an unusable, invalid key.
 
 `TypePublicID` represents a pubaccesskey that uses the XChaCha20 cipher schemes and is
-currently used for encrypting skyfiles. In skyfile encryption the key ID is
+currently used for encrypting skyfiles. In pubfile encryption the key ID is
 revealed in plaintext, therefore its name is `TypePublicID` Implicitly, this
 specifies the entropy length as the length of a key and nonce in that scheme.
 Its byte representation is 1 type byte and 56 entropy bytes.
@@ -35,11 +35,11 @@ Its byte representation is 1 type byte and 56 entropy bytes.
 `TypePrivateID` represents a pubaccesskey that uses the XChaCha20 cipher schemes and
 is can be used for encrypting skyfiles.  Implicitly, this specifies the entropy
 length as the length of a key and nonce in that scheme.  Its byte representation
-is 1 type byte and 56 entropy bytes. When used for skyfile encryption, the key ID
+is 1 type byte and 56 entropy bytes. When used for pubfile encryption, the key ID
 is never revealed. Instead the Pubaccesskey is used to derive a file-specific key,
 which is then used to encrypt a known identifier. This means that without
 knowledge of the Pubaccesskey, you cannot tell which Skykeys were used for which
-skyfile and cannot even group together skyfiles encrypted with the same
+pubfile and cannot even group together skyfiles encrypted with the same
 `TypePrivateID` Pubaccesskey. If you do have the Pubaccesskey, you can verify that fact by
 decrypting the identifier and checking against the known plaintext.
 

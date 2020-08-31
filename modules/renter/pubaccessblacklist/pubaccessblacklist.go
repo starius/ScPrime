@@ -135,7 +135,7 @@ func (sb *SkynetBlacklist) marshalObjects(additions, removals []modules.Publink)
 	}
 	listed = false
 	for _, publink := range removals {
-		// Remove skylink merkleroot from map
+		// Remove publink merkleroot from map
 		hash := crypto.HashObject(publink.MerkleRoot())
 		delete(sb.hashes, hash)
 

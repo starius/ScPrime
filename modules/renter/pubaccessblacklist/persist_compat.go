@@ -229,7 +229,7 @@ func loadPersist(persistDir string) (*persist.AppendOnlyPersist, io.Reader, erro
 		aop, reader, err = persist.NewAppendOnlyPersist(persistDir, persistFile, metadataHeader, metadataVersion)
 	}
 	if err != nil {
-		return nil, nil, errors.AddContext(err, fmt.Sprintf("unable to initialize the skynet blacklist persistence at '%v'", aop.FilePath()))
+		return nil, nil, errors.AddContext(err, fmt.Sprintf("unable to initialize the pubaccess blacklist persistence at '%v'", aop.FilePath()))
 	}
 
 	return aop, reader, nil

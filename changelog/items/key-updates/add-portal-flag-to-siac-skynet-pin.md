@@ -1,0 +1,1 @@
+- Add `--portal` flag to `spc pubaccess pin`

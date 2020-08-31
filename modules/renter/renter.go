@@ -851,7 +851,7 @@ func (r *Renter) SkykeyByName(name string) (pubaccesskey.Pubaccesskey, error) {
 }
 
 // CreateSkykey creates a new Pubaccesskey with the given name and ciphertype.
-func (r *Renter) CreateSkykey(name string, skType pubaccesskey.SkykeyType) (pubaccesskey.Pubaccesskey, error) {
+func (r *Renter) CreateSkykey(name string, skType pubaccesskey.PubaccesskeyType) (pubaccesskey.Pubaccesskey, error) {
 	if err := r.tg.Add(); err != nil {
 		return pubaccesskey.Pubaccesskey{}, err
 	}

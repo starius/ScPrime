@@ -25,7 +25,7 @@ var fanoutNonceDerivation = types.NewSpecifier("FanoutNonce")
 var errNoSkykeyMatchesSkyfileEncryptionID = errors.New("Unable to find matching pubaccesskey for public ID encryption")
 
 // deriveFanoutKey returns the crypto.CipherKey that should be used for
-// decrypting the fanout stream from the skyfile stored using this layout.
+// decrypting the fanout stream from the pubfile stored using this layout.
 func (r *Renter) deriveFanoutKey(sl *skyfileLayout, fileSkykey pubaccesskey.Pubaccesskey) (crypto.CipherKey, error) {
 	if sl.cipherType != crypto.TypeXChaCha20 {
 		return crypto.NewSiaKey(sl.cipherType, sl.keyData[:])
@@ -40,7 +40,7 @@ func (r *Renter) deriveFanoutKey(sl *skyfileLayout, fileSkykey pubaccesskey.Puba
 }
 
 // checkSkyfileEncryptionIDMatch tries to find a Pubaccesskey that can decrypt the
-// identifier and be used for decrypting the associated skyfile. It returns an
+// identifier and be used for decrypting the associated pubfile. It returns an
 // error if it is not found.
 func (r *Renter) checkSkyfileEncryptionIDMatch(encryptionIdentifer []byte, nonce []byte) (pubaccesskey.Pubaccesskey, error) {
 	allSkykeys := r.staticSkykeyManager.Skykeys()
@@ -59,7 +59,7 @@ func (r *Renter) checkSkyfileEncryptionIDMatch(encryptionIdentifer []byte, nonce
 
 // decryptBaseSector attempts to decrypt the baseSector. If it has the necessary
 // Pubaccesskey, it will decrypt the baseSector in-place. It returns the file-specific
-// pubaccesskey to be used for decrypting the rest of the associated skyfile.
+// pubaccesskey to be used for decrypting the rest of the associated pubfile.
 func (r *Renter) decryptBaseSector(baseSector []byte) (pubaccesskey.Pubaccesskey, error) {
 	// Sanity check - baseSector should not be more than modules.SectorSize.
 	// Note that the base sector may be smaller in the event of a packed
@@ -165,7 +165,7 @@ func encryptBaseSectorWithSkykey(baseSector []byte, plaintextLayout skyfileLayou
 	encryptedLayout.version = plaintextLayout.version
 	encryptedLayout.cipherType = baseSectorKey.CipherType()
 
-	// Add the key ID or the encrypted skyfile identifier, depending on the key
+	// Add the key ID or the encrypted pubfile identifier, depending on the key
 	// type.
 	switch sk.Type {
 	case pubaccesskey.TypePublicID:
@@ -175,7 +175,7 @@ func encryptBaseSectorWithSkykey(baseSector []byte, plaintextLayout skyfileLayou
 	case pubaccesskey.TypePrivateID:
 		encryptedIdentifier, err := sk.GenerateSkyfileEncryptionID()
 		if err != nil {
-			return errors.AddContext(err, "Unable to generate encrypted skyfile ID")
+			return errors.AddContext(err, "Unable to generate encrypted pubfile ID")
 		}
 		copy(encryptedLayout.keyData[:pubaccesskey.SkykeyIDLen], encryptedIdentifier[:])
 
@@ -207,6 +207,6 @@ func isEncryptedLayout(sl skyfileLayout) bool {
 	return sl.version == 1 && sl.cipherType == crypto.TypeXChaCha20
 }
 
-func encryptionEnabled(sup modules.SkyfileUploadParameters) bool {
+func encryptionEnabled(sup modules.PubfileUploadParameters) bool {
 	return sup.SkykeyName != "" || sup.PubaccesskeyID != pubaccesskey.PubaccesskeyID{}
 }

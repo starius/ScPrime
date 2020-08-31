@@ -181,7 +181,7 @@ func skynetconvertcmd(sourceSiaPathStr, destSiaPathStr string) {
 	}
 
 	// Perform the conversion and print the result.
-	sup := modules.SkyfileUploadParameters{
+	sup := modules.PubfileUploadParameters{
 		SiaPath: destSiaPath,
 	}
 	publink, err := httpClient.SkynetConvertSiafileToSkyfilePost(sup, sourceSiaPath)
@@ -217,6 +217,11 @@ func skynetdownloadcmd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		die("Unable to create destination file:", err)
 	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			die(err)
+		}
+	}()
 
 	// Check whether the portal flag is set, if so use the portal download
 	// method.
@@ -408,6 +413,56 @@ func skynetlscmd(cmd *cobra.Command, args []string) {
 	}
 }
 
+// skynetPin will pin the pubfile associated with the provided publink at the
+// provided SiaPath
+func skynetPin(publink string, siaPath modules.SiaPath) (string, error) {
+	// Check if --portal was set
+	if skynetPinPortal == "" {
+		spp := modules.SkyfilePinParameters{
+			SiaPath: siaPath,
+			Root:    skynetUploadRoot,
+		}
+		fmt.Println("Pinning pubfile ...")
+		return publink, httpClient.SkynetPublinkPinPost(publink, spp)
+	}
+
+	// Download pubfile from the Portal
+	fmt.Printf("Downloading Pubfile from %v ...", skynetPinPortal)
+	url := skynetPinPortal + "/" + publink
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", errors.AddContext(err, "unable to download from portal")
+	}
+	reader := resp.Body
+	defer reader.Close()
+
+	// Get the PubfileMetadata from the Header
+	var sm modules.PubfileMetadata
+	strMetadata := resp.Header.Get("Pubacces-File-Metadata")
+	if strMetadata != "" {
+		err = json.Unmarshal([]byte(strMetadata), &sm)
+		if err != nil {
+			return "", errors.AddContext(err, "unable to unmarshal pubfile metadata")
+		}
+	}
+
+	// Upload the pubfile to pin it to the renter node
+	sup := modules.PubfileUploadParameters{
+		SiaPath:      siaPath,
+		Reader:       reader,
+		FileMetadata: sm,
+	}
+	// NOTE: Since the user can define a new siapath for the pubfile the publink
+	// returned from the upload may be different than the original publink which
+	// is why we are overwriting the publink here.
+	fmt.Println("Pinning pubfile ...")
+	publink, _, err = httpClient.SkynetSkyfilePost(sup)
+	if err != nil {
+		return "", errors.AddContext(err, "unable to upload pubfile")
+	}
+	return publink, nil
+}
+
 // skynetpincmd will pin the file from this publink.
 func skynetpincmd(sourceSkylink, destSiaPath string) {
 	publink := strings.TrimPrefix(sourceSkylink, "scp://")
@@ -417,12 +472,8 @@ func skynetpincmd(sourceSkylink, destSiaPath string) {
 		die("Could not parse destination siapath:", err)
 	}
 
-	spp := modules.SkyfilePinParameters{
-		SiaPath: siaPath,
-		Root:    skynetUploadRoot,
-	}
-
-	err = httpClient.SkynetPublinkPinPost(publink, spp)
+	// Pin the Pubfile
+	publink, err = skynetPin(publink, siaPath)
 	if err != nil {
 		die("could not pin file to Pubaccess:", err)
 	}
@@ -488,10 +539,16 @@ func skynetuploadcmd(sourcePath, destSiaPath string) {
 	if err != nil {
 		die("Unable to open source path:", err)
 	}
-
+	defer func() {
+		if err := file.Close(); err != nil {
+			die("Unable to close file", err)
+		}
+	}()
 	fi, err := file.Stat()
-	errors.AddContext(err, "Unable to fetch source fileinfo")
-	file.Close()
+	if err != nil {
+		die("Unable to fetch source fileinfo:", err)
+	}
+
 	// create a new progress bar set:
 	pbs := mpb.New(mpb.WithWidth(40))
 	if !fi.IsDir() {
@@ -502,10 +559,6 @@ func skynetuploadcmd(sourcePath, destSiaPath string) {
 		pbs.Wait()
 		fmt.Printf("Successfully uploaded file for public access!\n")
 		return
-	}
-
-	if err != nil {
-		die(err)
 	}
 
 	// Walk the target directory and collect all files that are going to be
@@ -576,18 +629,20 @@ func skynetUploadFile(basePath, sourcePath string, destSiaPath string, pbs *mpb.
 	if err != nil {
 		die("Unable to open source path:", err)
 	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			die("File error:", err)
+		}
+	}()
 	fi, err := file.Stat()
 	if err != nil {
-		die("Unable to fetch source fileinfo:", errors.Compose(err, file.Close()))
+		die("Unable to fetch source fileinfo:", err)
 	}
 
 	if skynetUploadSilent {
 		// Silently upload the file and print a simple source -> publink
 		// matching after it's done.
 		publink = skynetUploadFileFromReader(file, filename, siaPath, fi.Mode())
-		if err = file.Close(); err != nil {
-			die("File error:", err)
-		}
 		fmt.Printf("%s -> %s\n", sourcePath, publink)
 		return
 	}
@@ -622,13 +677,13 @@ func skynetUploadFile(basePath, sourcePath string, destSiaPath string, pbs *mpb.
 // skynetUploadFileFromReader is a helper method that uploads a file to Pubaccess
 func skynetUploadFileFromReader(source io.Reader, filename string, siaPath modules.SiaPath, mode os.FileMode) (publink string) {
 	// Upload the file and return a publink
-	sup := modules.SkyfileUploadParameters{
+	sup := modules.PubfileUploadParameters{
 		SiaPath: siaPath,
 		Root:    skynetUploadRoot,
 
 		DryRun: skynetUploadDryRun,
 
-		FileMetadata: modules.SkyfileMetadata{
+		FileMetadata: modules.PubfileMetadata{
 			Filename: filename,
 			Mode:     mode,
 		},
