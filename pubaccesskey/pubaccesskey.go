@@ -65,9 +65,9 @@ var (
 	skyfileEncryptionIDDerivation = types.NewSpecifier("PFEncIDDerivPath")
 
 	errUnsupportedPubaccesskeyType            = errors.New("Unsupported Pubaccesskey type")
-	errUnmarshalDataErr                 = errors.New("Unable to unmarshal Pubaccesskey data")
-	errCannotMarshalTypeInvalidSkykey   = errors.New("Cannot marshal or unmarshal Pubaccesskey of TypeInvalid type")
-	errInvalidEntropyLength             = errors.New("Invalid pubaccesskey entropy length")
+	errUnmarshalDataErr                       = errors.New("Unable to unmarshal Pubaccesskey data")
+	errCannotMarshalTypeInvalidSkykey         = errors.New("Cannot marshal or unmarshal Pubaccesskey of TypeInvalid type")
+	errInvalidEntropyLength                   = errors.New("Invalid pubaccesskey entropy length")
 	errPubaccesskeyTypeDoesNotSupportFunction = errors.New("Operation not supported by this PubaccesskeyType")
 
 	errInvalidIDorNonceLength = errors.New("Invalid length for encryptionID or nonce in MatchesPubfileEncryptionID")

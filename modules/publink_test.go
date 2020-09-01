@@ -4,9 +4,9 @@ import (
 	"encoding/base32"
 	"testing"
 
-	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/scpcorp/ScPrime/crypto"
 )
 
 // TestPublinkManualExamples checks a pile of manual examples using table driven

@@ -192,7 +192,7 @@ func main() {
 	root.Flags().StringVarP(&globalConfig.Spd.RPCaddr, "rpc-addr", "", ":4281", "which port the gateway listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.SiaMuxTCPAddr, "siamux-addr", "", ":4283", "which port the SiaMux listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.SiaMuxWSAddr, "siamux-addr-ws", "", ":4284", "which port the SiaMux websocket listens on")
-	root.Flags().StringVarP(&globalConfig.Spd.Modules, "modules", "M", "gctwrhf", "enabled modules, see 'spd modules' for more info")
+	root.Flags().StringVarP(&globalConfig.Spd.Modules, "modules", "M", "gctwrh", "enabled modules, see 'spd modules' for more info")
 	root.Flags().BoolVarP(&globalConfig.Spd.AuthenticateAPI, "authenticate-api", "", true, "enable API password protection")
 	root.Flags().BoolVarP(&globalConfig.Spd.TempPassword, "temp-password", "", false, "enter a temporary API password during startup")
 	root.Flags().BoolVarP(&globalConfig.Spd.AllowAPIBind, "disable-api-security", "", false, "allow spd to listen on a non-localhost address (DANGEROUS)")

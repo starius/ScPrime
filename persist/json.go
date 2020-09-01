@@ -55,8 +55,7 @@ func verifyChecksum(filename string) (valid bool) {
 	}
 	if err != nil {
 		//stop reading and processing if file is wrong format
-		err = errors.Compose(err, file.Close())
-		return
+		return false
 	}
 	var remainingBytes, remainingBytesExtra []byte
 	if err == nil {
@@ -68,14 +67,13 @@ func verifyChecksum(filename string) (valid bool) {
 		// of the file to be certain.
 		remainingBytesExtra, err = ioutil.ReadAll(file)
 	}
-	//reading file is done, close it
-	err = errors.AddContext(errors.Compose(err, file.Close()), "Error reading file")
 	if err != nil {
 		//stop processing if file is not readable
-		return
+		return false
 	}
 
 	remainingBytes = append(remainingBytes, remainingBytesExtra...)
+
 	// Determine whether the leading bytes contain a checksum. A proper checksum
 	// will be 67 bytes (quote, 64 byte checksum, quote, newline). A manual
 	// checksum will be the characters "manual\n" (9 characters). If neither
@@ -309,9 +307,8 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 		// which may be the only good version of the persistence remaining.
 		// We'll skip writing the temp file to make sure it stays intact, and go
 		// straight to over-writing the real file.
-		valid := verifyChecksum(filename)
-		if !valid {
-			return
+		if !verifyChecksum(filename) {
+			return nil
 		}
 
 		file, err := os.OpenFile(filename+tempSuffix, os.O_RDWR|os.O_TRUNC|os.O_CREATE, defaultFilePermissions)
