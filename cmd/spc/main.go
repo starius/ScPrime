@@ -80,6 +80,7 @@ var (
 	skynetDownloadPortal string // Portal to use when trying to download a publink.
 	skynetLsRecursive    bool   // List files of folder recursively.
 	skynetLsRoot         bool   // Use root as the base instead of the Public access folder.
+	skynetPinPortal      string // Portal to use when trying to pin a publink.
 	skynetUnpinRoot      bool   // Use root as the base instead of the Public access folder.
 	skynetUploadDryRun   bool   // Perform a dry-run of the upload. This returns the publink without actually uploading the file to the network.
 	skynetUploadRoot     bool   // Use root as the base instead of the Public access folder.
@@ -387,6 +388,8 @@ func initCmds() *cobra.Command {
 	skynetDownloadCmd.Flags().StringVar(&skynetDownloadPortal, "portal", "", "Use a Public access portal to complete the download")
 	skynetLsCmd.Flags().BoolVarP(&skynetLsRecursive, "recursive", "R", false, "Recursively list pubfiles and folders")
 	skynetLsCmd.Flags().BoolVar(&skynetLsRoot, "root", false, "Use the root folder as the base instead of the pubaccess folder")
+	skynetPinCmd.Flags().StringVar(&skynetPinPortal, "portal", "", "Use specified Pubaccess portal to download the publink in order to pin the pubfile")
+	skynetBlacklistCmd.AddCommand(skynetBlacklistAddCmd, skynetBlacklistRemoveCmd)
 
 	root.AddCommand(skykeyCmd)
 	skykeyCmd.AddCommand(skykeyAddCmd, skykeyCreateCmd, skykeyDeleteCmd, skykeyGetCmd, skykeyGetIDCmd, skykeyListCmd)

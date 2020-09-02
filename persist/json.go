@@ -24,21 +24,25 @@ import (
 // verifyChecksum will disregard the metadata of the saved file, and just verify
 // that the checksum matches the data below the checksum to be certain that the
 // file is correct.
-func verifyChecksum(filename string) (err error, valid bool) {
+func verifyChecksum(filename string) (valid bool) {
 	// Open the file.
 	file, err := os.Open(filename)
 	if os.IsNotExist(err) {
 		// No file at all means that everything is okay. This is a condition we
 		// are going to hit the first time that we ever save a file.
-		return nil, true
+		return true
 	}
-	//Start verification
-	valid = false
 	if err != nil {
 		// An error opening the file means that the checksum verification has
-		// failed, we don't have confidence that this a a good file.
-		return
+		// failed, we don't have confidence that this a good file.
+		return false
 	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			// If we are unable to cleanly close the file then return false
+			valid = false
+		}
+	}()
 
 	// Read the metadata from the file. This is not covered by the checksum but
 	// we have to read it anyway to get to the checksum.
@@ -51,8 +55,7 @@ func verifyChecksum(filename string) (err error, valid bool) {
 	}
 	if err != nil {
 		//stop reading and processing if file is wrong format
-		err = errors.Compose(err, file.Close())
-		return
+		return false
 	}
 	var remainingBytes, remainingBytesExtra []byte
 	if err == nil {
@@ -64,14 +67,13 @@ func verifyChecksum(filename string) (err error, valid bool) {
 		// of the file to be certain.
 		remainingBytesExtra, err = ioutil.ReadAll(file)
 	}
-	//reading file is done, close it
-	err = errors.AddContext(errors.Compose(err, file.Close()), "Error reading file")
 	if err != nil {
 		//stop processing if file is not readable
-		return
+		return false
 	}
 
 	remainingBytes = append(remainingBytes, remainingBytesExtra...)
+
 	// Determine whether the leading bytes contain a checksum. A proper checksum
 	// will be 67 bytes (quote, 64 byte checksum, quote, newline). A manual
 	// checksum will be the characters "manual\n" (9 characters). If neither
@@ -82,7 +84,7 @@ func verifyChecksum(filename string) (err error, valid bool) {
 		if err == nil {
 			// The checksum was read successfully. Return 'true' if the checksum
 			// matches the remaining data, and false otherwise.
-			return nil, checksum == crypto.HashBytes(remainingBytes[68:])
+			return checksum == crypto.HashBytes(remainingBytes[68:])
 		}
 	}
 
@@ -92,7 +94,7 @@ func verifyChecksum(filename string) (err error, valid bool) {
 	if len(remainingBytes) >= 9 {
 		err = json.Unmarshal(remainingBytes[:9], &manualChecksum)
 		if err == nil && manualChecksum == "manual" {
-			return nil, true
+			return true
 		}
 	}
 
@@ -305,9 +307,8 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 		// which may be the only good version of the persistence remaining.
 		// We'll skip writing the temp file to make sure it stays intact, and go
 		// straight to over-writing the real file.
-		err, valid := verifyChecksum(filename)
-		if !valid {
-			return
+		if !verifyChecksum(filename) {
+			return nil
 		}
 
 		file, err := os.OpenFile(filename+tempSuffix, os.O_RDWR|os.O_TRUNC|os.O_CREATE, defaultFilePermissions)

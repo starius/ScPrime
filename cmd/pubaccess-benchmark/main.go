@@ -326,12 +326,12 @@ func uploadFileSet(dir modules.SiaPath, fileSize uint64, expectedFetchSize uint6
 		}
 		buf := bytes.NewReader(fastrand.Bytes(int(fileSize)))
 		// Fill out the upload parameters.
-		sup := modules.SkyfileUploadParameters{
+		sup := modules.PubfileUploadParameters{
 			SiaPath: sp,
 			Root:    true,
 			Force:   true, // This will overwrite other files in the dir.
 
-			FileMetadata: modules.SkyfileMetadata{
+			FileMetadata: modules.PubfileMetadata{
 				Filename: strconv.Itoa(i) + ".rand",
 				Mode:     modules.DefaultFilePerm,
 			},

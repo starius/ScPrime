@@ -136,7 +136,7 @@ func TestRHP2DownloadOnMaintenanceCoolDown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fup, err := fileUploadParamsFromLUP(modules.SkyfileUploadParameters{
+	fup, err := fileUploadParamsFromLUP(modules.PubfileUploadParameters{
 		SiaPath:             sp,
 		DryRun:              false,
 		Force:               false,

@@ -1,11 +1,12 @@
 package modules
 
 import (
+	"encoding/base32"
 	"testing"
 
-	"gitlab.com/scpcorp/ScPrime/crypto"
-
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/scpcorp/ScPrime/crypto"
 )
 
 // TestPublinkManualExamples checks a pile of manual examples using table driven
@@ -127,7 +128,7 @@ func TestPublink(t *testing.T) {
 	// without problems.
 	var slMin Publink
 	str := slMin.String()
-	if len(str) != encodedPublinkSize {
+	if len(str) != base64EncodedPublinkSize {
 		t.Error("publink is not the right size")
 	}
 	var slMinDecoded Publink
@@ -150,7 +151,7 @@ func TestPublink(t *testing.T) {
 		slMax.merkleRoot[i] = 255
 	}
 	str = slMax.String()
-	if len(str) != encodedPublinkSize {
+	if len(str) != base64EncodedPublinkSize {
 		t.Error("str is not the right size")
 	}
 	var slMaxDecoded Publink
@@ -162,15 +163,62 @@ func TestPublink(t *testing.T) {
 		t.Error("encoding and decoding is not symmetric")
 	}
 
+	// Verify the base32 encoded representation of the Publink
+	b32 := slMax.Base32EncodedString()
+	if len(b32) != base32EncodedPublinkSize {
+		t.Error("encoded base32 string is not the right size")
+	}
+	var slMaxB32Decoded Publink
+	err = slMaxB32Decoded.LoadString(b32)
+	if err != nil {
+		t.Error("should be no issues loading a base32 encoded publink")
+	}
+	if slMaxB32Decoded != slMax {
+		t.Error("base32 encoding and decoding is not symmetric")
+	}
+	if slMaxB32Decoded.String() != slMax.String() {
+		t.Error("base32 encoding and decoding is not symmetric")
+	}
+
+	// Try loading a base32 encoded string that has an incorrect size
+	b32OffByOne := b32[1:]
+	err = slMaxB32Decoded.LoadString(b32OffByOne)
+	if !errors.Contains(err, ErrPublinkIncorrectSize) {
+		t.Error("expecting 'ErrPublinkIncorrectSize' when loading string that is too small")
+	}
+
+	// Try loading a base32 encoded string that has an incorrect size
+	b32OffByOne = b32 + "a"
+	err = slMaxB32Decoded.LoadString(b32OffByOne)
+	if !errors.Contains(err, ErrPublinkIncorrectSize) {
+		t.Error("expecting 'ErrPublinkIncorrectSize' when loading string that is too large")
+	}
+
+	// Try loading a base32 encoded string that has an illegal character
+	b32IllegalChar := "_" + b32[1:]
+	err = slMaxB32Decoded.LoadString(b32IllegalChar)
+	if err == nil {
+		t.Error("expecting error when loading a string containing an illegal character")
+	}
+
+	// Try loading a base32 encoded string with invalid bitfield
+	var slInvalidBitfield Publink
+	slInvalidBitfield.bitfield = 1
+	b32BadBitfield := slInvalidBitfield.Base32EncodedString()
+	err = slMaxB32Decoded.LoadString(b32BadBitfield)
+	if err == nil {
+		t.Error("expecting error when loading a string representing a publink with an illegal bitfield")
+	}
+
 	// Try loading an arbitrary string that is too small.
 	var sl Publink
 	var arb string
-	for i := 0; i < encodedPublinkSize-1; i++ {
+	for i := 0; i < base64EncodedPublinkSize-1; i++ {
 		arb = arb + "a"
 	}
 	err = sl.LoadString(arb)
-	if err == nil {
-		t.Error("expecting error when loading string that is too small")
+	if !errors.Contains(err, ErrPublinkIncorrectSize) {
+		t.Error("expecting 'ErrPublinkIncorrectSize' when loading string that is too small")
 	}
 	// Try loading a siafile that's just arbitrary/meaningless data.
 	arb = arb + "a"
@@ -187,8 +235,8 @@ func TestPublink(t *testing.T) {
 	// Try loading a blank siafile.
 	blank := ""
 	err = sl.LoadString(blank)
-	if err == nil {
-		t.Error("expecting an error when loading a blank publink")
+	if !errors.Contains(err, ErrPublinkIncorrectSize) {
+		t.Error("expecting 'ErrPublinkIncorrectSize' when loading a blank string")
 	}
 
 	// Try giving a publink extra params and loading that.
@@ -327,4 +375,10 @@ func TestPublinkAutoExamples(t *testing.T) {
 			}
 		}
 	}
+}
+
+// Base32EncodedString converts Publink to a base32 encoded string.
+func (sl Publink) Base32EncodedString() string {
+	// Encode the raw bytes to base32
+	return base32.HexEncoding.WithPadding(base32.NoPadding).EncodeToString(sl.Bytes())
 }

@@ -5,22 +5,16 @@ package modules
 // subsections of a sector.
 
 import (
+	"encoding/base32"
 	"encoding/base64"
 	"encoding/binary"
 	"math/bits"
 	"strings"
 
-	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-)
 
-const (
-	// rawPublinkSize is the raw size of the data that gets put into a link.
-	rawPublinkSize = 34
-
-	// encodedPublinkSize is the size of the Publink after it has been encoded
-	// using base64.
-	encodedPublinkSize = 46
+	"gitlab.com/NebulousLabs/errors"
 )
 
 const (
@@ -30,18 +24,38 @@ const (
 	// modules.SectorSize directly because during testing that value is too
 	// small to properly test the link format.
 	PublinkMaxFetchSize = 1 << 22
+
+	// base32EncodedPublinkSize is the size of the Publink after it has been
+	// encoded using base32.
+	base32EncodedPublinkSize = 55
+
+	// base64EncodedPublinkSize is the size of the Publink after it has been
+	// encoded using base64.
+	base64EncodedPublinkSize = 46
+
+	// rawPublinkSize is the raw size of the data that gets put into a link.
+	rawPublinkSize = 34
 )
 
-// Publink contains all of the information that can be encoded into a publink.
-// This information consists of a 32 byte MerkleRoot and a 2 byte bitfield.
-//
-// The first two bits of the bitfield (values 1 and 2 in decimal) determine the
-// version of the publink. The publink version determines how the remaining bits
-// are used. Not all values of the bitfield are legal.
-type Publink struct {
-	bitfield   uint16
-	merkleRoot crypto.Hash
-}
+var (
+	// ErrPublinkIncorrectSize is returned when a string could not be decoded
+	// into a Publink due to it having an incorrect size.
+	ErrPublinkIncorrectSize = errors.New("publink has incorrect size")
+)
+
+type (
+	// Publink contains all of the information that can be encoded into a
+	// publink. This information consists of a 32 byte MerkleRoot and a 2 byte
+	// bitfield.
+	//
+	// The first two bits of the bitfield (values 1 and 2 in decimal) determine
+	// the version of the publink. The publink version determines how the
+	// remaining bits are used. Not all values of the bitfield are legal.
+	Publink struct {
+		bitfield   uint16
+		merkleRoot crypto.Hash
+	}
+)
 
 // NewPublinkV1 will return a v1 Publink object with the version set to 1 and
 // the remaining fields set appropriately. Note that the offset needs to be
@@ -126,6 +140,20 @@ func (sl *Publink) Bitfield() uint16 {
 	return sl.bitfield
 }
 
+// Bytes returns the raw bytes representation of a Publink
+func (sl *Publink) Bytes() []byte {
+	raw := make([]byte, rawPublinkSize)
+	binary.LittleEndian.PutUint16(raw, sl.bitfield)
+	copy(raw[2:], sl.merkleRoot[:])
+	return raw
+}
+
+// DataSourceID returns a resource ID for the Publink. This ID is typically used
+// inside of the renter to uniquely identify a stream buffer.
+func (sl Publink) DataSourceID() DataSourceID {
+	return DataSourceID(crypto.HashObject(sl.String()))
+}
+
 // LoadString converts from a string and loads the result into sl.
 func (sl *Publink) LoadString(s string) error {
 	// Trim any parameters that may exist after a question mark. Eventually, it
@@ -144,30 +172,14 @@ func (sl *Publink) LoadString(s string) error {
 		base = splits[0]
 	}
 
-	// Input check, ensure that this string is the expected size.
-	if len(base) != encodedPublinkSize {
-		return errors.New("not a publink, publinks are always 46 bytes")
-	}
-
-	// Decode the publink from base64 into raw.
-	raw, err := base64.RawURLEncoding.DecodeString(base)
+	// Decode the base into raw data
+	raw, err := decodePublink(base)
 	if err != nil {
 		return errors.AddContext(err, "unable to decode publink")
 	}
 
-	// Load and check the bitfield. The bitfield is checked before modifying the
-	// Publink so that the Publink remains unchanged if there is any error
-	// parsing the string.
-	bitfield := binary.LittleEndian.Uint16(raw)
-	_, _, err = validateAndParseV1Bitfield(bitfield)
-	if err != nil {
-		return errors.AddContext(err, "publink failed verification")
-	}
-
-	// Load the raw data.
-	sl.bitfield = bitfield
-	copy(sl.merkleRoot[:], raw[2:])
-	return nil
+	// Load the raw data
+	return sl.loadBytes(raw)
 }
 
 // MerkleRoot returns the merkle root of the Publink.
@@ -286,13 +298,8 @@ func (sl Publink) OffsetAndFetchSize() (offset uint64, fetchSize uint64, err err
 
 // String converts Publink to a string.
 func (sl Publink) String() string {
-	// Build the raw string.
-	raw := make([]byte, rawPublinkSize)
-	binary.LittleEndian.PutUint16(raw, sl.bitfield)
-	copy(raw[2:], sl.merkleRoot[:])
-
 	// Encode the raw bytes to base64.
-	return base64.RawURLEncoding.EncodeToString(raw)
+	return base64.RawURLEncoding.EncodeToString(sl.Bytes())
 }
 
 // Version will pull the version out of the bitfield and return it. The version
@@ -301,6 +308,29 @@ func (sl Publink) String() string {
 // [1, 4], so we increment the bitwise result.
 func (sl Publink) Version() uint16 {
 	return (sl.bitfield & 3) + 1
+}
+
+// loadBytes loads the given raw data onto the publink.
+func (sl *Publink) loadBytes(data []byte) error {
+	// Sanity check the size of the given data
+	if len(data) != rawPublinkSize {
+		build.Critical("raw publink data has the incorrect size")
+		return errors.New("failed to load publink data")
+	}
+
+	// Load and check the bitfield. The bitfield is checked before modifying the
+	// Publink so that the Publink remains unchanged if there is any error
+	// parsing the string.
+	bitfield := binary.LittleEndian.Uint16(data)
+	_, _, err := validateAndParseV1Bitfield(bitfield)
+	if err != nil {
+		return errors.AddContext(err, "publink failed verification")
+	}
+
+	// Load the raw data.
+	sl.bitfield = bitfield
+	copy(sl.merkleRoot[:], data[2:])
+	return nil
 }
 
 // setOffsetAndFetchSize will set the offset and fetch size of the data within
@@ -373,4 +403,18 @@ func (sl *Publink) setOffsetAndFetchSize(offset, fetchSize uint64) error {
 	// Set the bitfield and return.
 	sl.bitfield = bitfield
 	return nil
+}
+
+// decodePublink is a helper function that decodes the given string
+// representation of a publink  into raw bytes. It either performs a base32
+// decoding, or base64 decoding, depending on the length.
+func decodePublink(encoded string) ([]byte, error) {
+	switch len(encoded) {
+	case base32EncodedPublinkSize:
+		return base32.HexEncoding.WithPadding(base32.NoPadding).DecodeString(strings.ToUpper(encoded))
+	case base64EncodedPublinkSize:
+		return base64.RawURLEncoding.DecodeString(encoded)
+	default:
+		return nil, ErrPublinkIncorrectSize
+	}
 }

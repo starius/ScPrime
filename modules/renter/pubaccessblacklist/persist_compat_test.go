@@ -14,7 +14,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
-// TestPersistCompatv143Tov150 tests converting the skynet blacklist persistence
+// TestPersistCompatv143Tov150 tests converting the pubaccess blacklist persistence
 // from v143 to v150
 func TestPersistCompatv143Tov150(t *testing.T) {
 	if testing.Short() {
@@ -203,7 +203,9 @@ func loadV143CompatPersistFile(testDir string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		err = errors.Compose(err, f.Close())
+	}()
 	bytes, err := ioutil.ReadAll(f)
 	if err != nil {
 		return err
@@ -212,7 +214,9 @@ func loadV143CompatPersistFile(testDir string) error {
 	if err != nil {
 		return err
 	}
-	defer pf.Close()
+	defer func() {
+		err = errors.Compose(err, pf.Close())
+	}()
 	_, err = pf.Write(bytes)
 	if err != nil {
 		return err

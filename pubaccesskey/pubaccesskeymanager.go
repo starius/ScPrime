@@ -206,13 +206,13 @@ func (sm *SkykeyManager) AddKey(sk Pubaccesskey) error {
 	return sm.saveKey(sk)
 }
 
-// CreateKey creates a new Pubaccesskey under the given name and SkykeyType.
-func (sm *SkykeyManager) CreateKey(name string, skykeyType SkykeyType) (Pubaccesskey, error) {
+// CreateKey creates a new Pubaccesskey under the given name and PubaccesskeyType.
+func (sm *SkykeyManager) CreateKey(name string, skykeyType PubaccesskeyType) (Pubaccesskey, error) {
 	if len(name) > MaxKeyNameLen {
 		return Pubaccesskey{}, errSkykeyNameToolong
 	}
-	if !sm.SupportsSkykeyType(skykeyType) {
-		return Pubaccesskey{}, errUnsupportedSkykeyType
+	if !sm.SupportsPubaccesskeyType(skykeyType) {
+		return Pubaccesskey{}, errUnsupportedPubaccesskeyType
 	}
 
 	sm.mu.Lock()
@@ -307,9 +307,9 @@ func (sm *SkykeyManager) Skykeys() []Pubaccesskey {
 	return keys
 }
 
-// SupportsSkykeyType returns true if and only if the SkykeyManager supports
+// SupportsPubaccesskeyType returns true if and only if the SkykeyManager supports
 // skykeys with the given type.
-func (sm *SkykeyManager) SupportsSkykeyType(skykeyType SkykeyType) bool {
+func (sm *SkykeyManager) SupportsPubaccesskeyType(skykeyType PubaccesskeyType) bool {
 	switch skykeyType {
 	case TypePublicID, TypePrivateID:
 		return true

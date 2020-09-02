@@ -11,16 +11,16 @@ func TestSkyfileMetadata_ForPath(t *testing.T) {
 	filePath3 := "/file3.txt"
 	filePath4 := "/bar/file4.txt"
 	filePath5 := "/bar/baz/file5.txt"
-	fullMeta := SkyfileMetadata{
+	fullMeta := PubfileMetadata{
 		Subfiles: SkyfileSubfiles{
-			filePath1: SkyfileSubfileMetadata{Filename: filePath1, Offset: 1, Len: 1},
-			filePath2: SkyfileSubfileMetadata{Filename: filePath2, Offset: 2, Len: 2},
-			filePath3: SkyfileSubfileMetadata{Filename: filePath3, Offset: 3, Len: 3},
-			filePath4: SkyfileSubfileMetadata{Filename: filePath4, Offset: 4, Len: 4},
-			filePath5: SkyfileSubfileMetadata{Filename: filePath5, Offset: 5, Len: 5},
+			filePath1: PubfileSubfileMetadata{Filename: filePath1, Offset: 1, Len: 1},
+			filePath2: PubfileSubfileMetadata{Filename: filePath2, Offset: 2, Len: 2},
+			filePath3: PubfileSubfileMetadata{Filename: filePath3, Offset: 3, Len: 3},
+			filePath4: PubfileSubfileMetadata{Filename: filePath4, Offset: 4, Len: 4},
+			filePath5: PubfileSubfileMetadata{Filename: filePath5, Offset: 5, Len: 5},
 		},
 	}
-	emptyMeta := SkyfileMetadata{}
+	emptyMeta := PubfileMetadata{}
 
 	// Find an exact match.
 	subMeta, isSubFile, offset, size := fullMeta.ForPath(filePath1)

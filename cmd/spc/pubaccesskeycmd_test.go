@@ -29,7 +29,7 @@ func TestSkykeyCommands(t *testing.T) {
 		{name: "TestChangeKeyEntropyKeepName", test: testChangeKeyEntropyKeepName},
 		{name: "TestAddKeyTwice", test: testAddKeyTwice},
 		{name: "TestDelete", test: testDeleteKey},
-		{name: "TestInvalidSkykeyType", test: testInvalidSkykeyType},
+		{name: "TestInvalidPubaccesskeyType", test: testInvalidPubaccesskeyType},
 		{name: "TestSkykeyGet", test: testSkykeyGet},
 		{name: "TestSkykeyGetUsingNameAndID", test: testSkykeyGetUsingNameAndID},
 		{name: "TestSkykeyGetUsingNoNameAndNoID", test: testSkykeyGetUsingNoNameAndNoID},
@@ -177,11 +177,37 @@ func testDeleteKey(t *testing.T, c client.Client) {
 	}
 }
 
-// testInvalidSkykeyType tests that invalid cipher types are caught.
-func testInvalidSkykeyType(t *testing.T, c client.Client) {
+// testInvalidPubaccesskeyType tests that invalid cipher types are caught.
+func testInvalidPubaccesskeyType(t *testing.T, c client.Client) {
+	// Verify invalid type returns error
 	_, err := skykeyCreate(c, "createkey2", pubaccesskey.TypeInvalid.ToString())
-	if !strings.Contains(err.Error(), pubaccesskey.ErrInvalidSkykeyType.Error()) {
+	if !strings.Contains(err.Error(), pubaccesskey.ErrInvalidPubaccesskeyType.Error()) {
 		t.Fatal("Expected error when creating key with invalid type", err)
+	}
+
+	// Submitting a blank pubaccesskey type should succeed and default to private
+	keyName := "blankType"
+	_, err = skykeyCreate(c, keyName, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sk, err := c.SkykeyGetByName(keyName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sk.Type != pubaccesskey.TypePrivateID {
+		t.Fatal("Skykey type expected to be private")
+	}
+	// Delete Key to not impact future sub tests
+	err = skykeyDelete(c, keyName, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify a random type gives an error
+	_, err = skykeyCreate(c, "", "not a type")
+	if !strings.Contains(err.Error(), pubaccesskey.ErrInvalidPubaccesskeyType.Error()) {
+		t.Fatal("Expected error when creating key with invalid skykeytpe", err)
 	}
 }
 
