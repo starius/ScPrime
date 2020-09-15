@@ -11,7 +11,7 @@ Version History
 
 Latest:
 
-### v1.5.0.0
+### v1.5.0
 **Key Updates**
 - Add `zip` download format and set it as default format.
 - add support for write MDM programs to host

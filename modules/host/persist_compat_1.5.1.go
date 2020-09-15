@@ -12,7 +12,7 @@ import (
 // uint64 to a time.Duration. At that time, no compat was added, resulting in a
 // persist value in seconds, that is being interpreted as nanoseconds.
 func (h *Host) upgradeFromV143ToV151() error {
-	h.log.Println("Attempting an upgrade for the host from v1.4.3 to v1.5.0.0")
+	h.log.Println("Attempting an upgrade for the host from v1.4.3 to v1.5.0")
 
 	// Load the persistence object
 	p := new(persistence)

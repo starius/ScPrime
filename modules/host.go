@@ -43,7 +43,7 @@ var (
 	// Hostv151PersistMetadata is the header of the v151 host persist file.
 	Hostv151PersistMetadata = persist.Metadata{
 		Header:  "ScPrime Host",
-		Version: "1.5.0.0",
+		Version: "1.5.0",
 	}
 )
 
