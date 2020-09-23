@@ -15,6 +15,10 @@ import (
 	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
+// nebulousAddress is the nebulous address that is used to send SiaCoin to
+// Nebulous.
+//var nebulousAddress = [32]byte{14, 56, 201, 152, 87, 64, 139, 125, 38, 4, 161, 206, 32, 198, 119, 108, 158, 66, 177, 5, 178, 222, 155, 12, 209, 231, 91, 170, 213, 236, 57, 197}
+
 // ProdDependencies act as a global instance of the production dependencies to
 // avoid having to instantiate new dependencies every time we want to pass
 // production dependencies.
@@ -24,9 +28,13 @@ var ProdDependencies = new(ProductionDependencies)
 // dependencies can be created to inject certain behavior during testing.
 type (
 	Dependencies interface {
+		// NebulousAddress will return an address that can be used to send
+		// SiaCoin to a Nebulous managed Wallet.
+		//NebulousAddress() types.UnlockHash
+
 		// AtLeastOne will return a value that is at least one. In production,
 		// the value should always be one. This function is used to test the
-		// idempotency of actions, so during testing sometimes the value
+		// idempotence of actions, so during testing sometimes the value
 		// returned will be higher, causing an idempotent action to be
 		// committed multiple times. If the action is truly idempotent,
 		// committing it multiple times should not cause any problems or
@@ -164,6 +172,12 @@ func (pf *ProductionFile) Close() error {
 	return pf.File.Close()
 }
 
+// NebulousAddress will return an address that can be used to send SiaCoin to a
+// Nebulous managed Wallet.
+//func (*ProductionDependencies) NebulousAddress() types.UnlockHash {
+//	return nebulousAddress
+//}
+
 // AtLeastOne will return a value that is equal to 1 if debugging is disabled.
 // If debugging is enabled, a higher value may be returned.
 func (*ProductionDependencies) AtLeastOne() uint64 {
@@ -243,7 +257,7 @@ func (*ProductionDependencies) LoadFile(meta persist.Metadata, data interface{},
 // LookupIP resolves a hostname to a number of IP addresses. If an IP address
 // is provided as an argument it will just return that IP.
 func (*ProductionDependencies) LookupIP(host string) ([]net.IP, error) {
-	return net.LookupIP(host)
+	return (ProductionResolver{}).LookupIP(host)
 }
 
 // SaveFileSync writes JSON encoded data to a file and syncs the file to disk

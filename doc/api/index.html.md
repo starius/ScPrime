@@ -97,6 +97,18 @@ may specify other 2xx status codes on success.
 The standard error response indicating the request failed for any reason, is a
 4xx or 5xx HTTP status code with an error JSON object describing the error.
 
+### Module Not Loaded
+
+A module that is not reachable due to not being loaded by siad will return
+the custom status code `490 ModuleNotLoaded`. This is only returned during
+startup. Once the startup is complete and the module is still not available,
+ModuleDisabled will be returned.
+
+### Module Disabled
+
+A module that is not reachable due to being disabled, will return the custom
+status code `491 ModuleDisabled`.
+
 # Authentication
 > Example POST curl call with Authentication
 
@@ -395,6 +407,33 @@ Block timestamp
 **transactions** | ConsensusBlocksGetTxn  
 Transactions contained within the block
 
+## /consensus/subscribe/:id [GET]
+> curl example
+
+```go
+curl -A "ScPrime-Agent" "localhost:4280/consensus/subscribe/0000000000000000000000000000000000000000000000000000000000000000"
+```
+
+Streams a series of consensus changes, starting from the provided change ID.
+
+### Path Parameters
+### REQUIRED
+**id** | string
+The consensus change ID to subscribe from. There are two sentinel values:
+to subscribe from the genesis block use:
+```
+0000000000000000000000000000000000000000000000000000000000000000
+```
+To skip all existing blocks and subscribe only to subsequent changes, use:
+```
+0100000000000000000000000000000000000000000000000000000000000000
+```
+In addition, each consensus change contains its own ID.
+
+### Response
+
+A concatenation of ScPrime-encoded (binary) modules.ConsensusChange objects.
+
 ## /consensus/validate/transactionset [POST]
 > curl example  
 
@@ -502,7 +541,7 @@ Returns the some of the constants that the ScPrime daemon uses.
   
   "allowance":  // allowance
     {
-      "funds":"55000000000000000000000000000",  // currency
+      "funds":"250000000000000000000000000000",  // currency
       "hosts":50,                       // uint64
       "period":12096,                   // blockheight
       "renewwindow":4032,               // blockheight
@@ -626,7 +665,19 @@ Returns the settings for the daemon
 ```go
 {
   "maxdownloadspeed": 0,  // bytes per second
-  "maxuploadspeed": 0     // bytes per second
+  "maxuploadspeed":   0,  // bytes per second
+  "modules": { 
+    "consensus":       true,  // bool
+    "explorer":        false, // bool
+    "feemanager":      true,  // bool
+    "gateway":         true,  // bool
+    "host":            true,  // bool
+    "miner":           true,  // bool
+    "renter":          true,  // bool
+    "transactionpool": true,  // bool
+    "wallet":          true   // bool
+
+  } 
 }
 ```
 
@@ -637,6 +688,32 @@ limit set.
 **maxuploadspeed** | bytes per second  
 Is the maximum upload speed that the daemon can reach. 0 means there is no limit
 set.
+
+**modules** | struct  
+Is a list of the siad modules with a bool indicating if the module was launched.
+
+## /daemon/stack [GET]
+**UNSTABLE**
+> curl example  
+
+```go
+curl -A "Sia-Agent" "localhost:9980/daemon/stack"
+```
+Returns the daemon's current stack trace. The maximum buffer size that will be
+returned is 64MB. If the stack trace is larger than 64MB the first 64MB are
+returned.
+
+### JSON Response
+> JSON Response Example
+ 
+```go
+{
+  "stack": [1,2,21,1,13,32,14,141,13,2,41,120], // []byte
+}
+```
+
+**stack** | []byte  
+Current stack trace. 
 
 ## /daemon/settings [POST]
 > curl example  
@@ -1119,21 +1196,21 @@ Example IPV6 address: [123::456]:789
 standard success or error response. See [standard
 responses](#standard-responses).
 
-## /gateway/blacklist [GET]
+## /gateway/blocklist [GET]
 > curl example  
 
 ```go
-curl -A "ScPrime-Agent" "localhost:4280/gateway/blacklist"
+curl -A "ScPrime-Agent" "localhost:4280/gateway/blocklist"
 ```
 
-fetches the list of blacklisted addresses.
+fetches the list of blocklisted addresses.
 
 ### JSON Response
 > JSON Response Example
 
 ```JSON
 {
-  "blacklist":
+  "blocklist":
     [
     "123.123.123.123",  // string
     "123.123.123.123",  // string
@@ -1141,35 +1218,35 @@ fetches the list of blacklisted addresses.
     ],
 }
 ```
-**blacklist** | string  
-blacklist is a list of blacklisted address
+**blocklist** | string  
+blocklist is a list of blocklisted addresses
 
-## /gateway/blacklist [POST]
+## /gateway/blocklist [POST]
 > curl example  
 
 ```go
-curl -A "ScPrime-Agent" -u "":<apipassword> --data '{"action":"append","addresses":["123.123.123.123","123.123.123.123","123.123.123.123"]}' "localhost:4280/gateway/blacklist"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data '{"action":"append","addresses":["123.123.123.123","123.123.123.123","123.123.123.123"]}' "localhost:4280/gateway/blocklist"
 ```
 ```go
-curl -A "ScPrime-Agent" -u "":<apipassword> --data '{"action":"set","addresses":[]}' "localhost:4280/gateway/blacklist"
+curl -A "ScPrime-Agent" -u "":<apipassword> --data '{"action":"set","addresses":[]}' "localhost:4280/gateway/blocklist"
 ```
 
-performs actions on the Gateway's blacklist. There are three `actions` that can
+performs actions on the Gateway's blocklist. There are three `actions` that can
 be performed. `append` and `remove` are used for appending or removing addresses
-from the Gateway's blacklist. `set` is used to define all the addresses in the
-blacklist. If a list of addresses is provided with `set`, that list of addresses
-will become the Gateway's blacklist, replacing any blacklist that was currently
-in place. To clear the Gateway's blacklist, submit an empty list with `set`.
+from the Gateway's blocklist. `set` is used to define all the addresses in the
+blocklist. If a list of addresses is provided with `set`, that list of addresses
+will become the Gateway's blocklist, replacing any blocklist that was currently
+in place. To clear the Gateway's blocklist, submit an empty list with `set`.
 
 ### Path Parameters
 ### REQUIRED
 **action** | string  
-this is the action to be performed on the blacklist. Allowed inputs are
+this is the action to be performed on the blocklist. Allowed inputs are
 `append`, `remove`, and `set`.
 
 **addresses** | string  
 this is a comma separated list of addresses that are to be appended to or
-removed from the blacklist. If the action is `append` or `remove` this field is
+removed from the blocklist. If the action is `append` or `remove` this field is
 required.
 
 ### Response
@@ -3348,6 +3425,12 @@ retrieves the contents of a directory on the ScPrime network
 **siapath** | string  
 Path to the directory on the ScPrime network  
 
+### OPTIONAL
+**root** | bool  
+Whether or not to treat the siapath as being relative to the user's home
+directory. If this field is not set, the siapath will be interpreted as
+relative to 'home/user/'.  
+
 ### JSON Response
 > JSON Response Example
 
@@ -3437,7 +3520,8 @@ Location where the directory will reside in the renter on the network. The path
 must be non-empty, may not include any path traversal strings ("./", "../"), and
 may not begin with a forward-slash character.  
 
-**root** | bool
+### OPTIONAL
+**root** | bool  
 Whether or not to treat the siapath as being relative to the user's home
 directory. If this field is not set, the siapath will be interpreted as
 relative to 'home/user/'.  
@@ -3451,14 +3535,14 @@ Action can be either `create`, `delete` or `rename`.
    return an error if the target is a file.
  - `rename` will rename a directory on the ScPrime network
 
- **newsiapath** | string  
- The new siapath of the renamed folder. Only required for the `rename` action.
+**newsiapath** | string  
+The new siapath of the renamed folder. Only required for the `rename` action.
 
- ### OPTIONAL
- **mode** | uint32  
- The mode can be specified in addition to the `create` action to create the
- directory with specific permissions. If not specified, the default
- permissions 0755 will be used.
+### OPTIONAL
+**mode** | uint32  
+The mode can be specified in addition to the `create` action to create the
+directory with specific permissions. If not specified, the default permissions
+0755 will be used.
 
 ### Response
 
@@ -4405,7 +4489,10 @@ siapath to test.
 standard success or error response, a successful response means a valid siapath.
 See [standard responses](#standard-responses).
 
-## /renter/wokers [GET]
+## /renter/workers [GET] 
+
+**UNSTABLE - subject to change**
+
 > curl example
 
 ```go
@@ -4421,6 +4508,7 @@ returns the the status of all the workers in the renter's workerpool.
 {
   "numworkers":            2, // int
   "totaldownloadcooldown": 0, // int
+  "totalmaintenancecooldown": 0, // int
   "totaluploadcooldown":   0, // int
   
   "workers": [ // []WorkerStatus
@@ -4438,9 +4526,11 @@ returns the the status of all the workers in the renter's workerpool.
         "key": "BervnaN85yB02PzIA66y/3MfWpsjRIgovCU9/L4d8zQ=" // hash
       },
       
-      "downloadoncooldown": false, // boolean
-      "downloadqueuesize":  0,     // int
-      "downloadterminated": false, // boolean
+      "downloadcooldownerror": "",                   // string
+      "downloadcooldowntime":  -9223372036854775808, // time.Duration
+      "downloadoncooldown":    false,                // boolean
+      "downloadqueuesize":     0,                    // int
+      "downloadterminated":    false,                // boolean
       
       "uploadcooldownerror": "",                   // string
       "uploadcooldowntime":  -9223372036854775808, // time.Duration
@@ -4448,22 +4538,65 @@ returns the the status of all the workers in the renter's workerpool.
       "uploadqueuesize":     0,                    // int
       "uploadterminated":    false,                // boolean
       
-      "availablebalance":    "0", // hastings
       "balancetarget":       "0", // hastings
-      "fundaccountjobqueuesize": 0,   // int
       
       "backupjobqueuesize":       0, // int
       "downloadrootjobqueuesize": 0  // int
+
+      "backupjobqueuesize": 0,        // int
+      "downloadrootjobqueuesize": 0,  // int
+
+      "maintenanceoncooldown": false,                      // bool
+      "maintenancerecenterr": "",                          // string
+      "maintenancerecenterrtime": "0001-01-01T00:00:00Z",  // time
+
+      "accountstatus": {
+        "availablebalance": "1000000000000000000000000", // hasting
+        "negativebalance": "0",                          // hasting
+        "funded": true,                                  // boolean
+        "recenterr": "",                                 // string
+        "recenterrtime": "0001-01-01T00:00:00Z"          // time
+      },
+
+      "pricetablestatus": {
+        "expirytime": "2020-06-15T16:17:01.040481+02:00", // time
+        "updatetime": "2020-06-15T16:12:01.040481+02:00", // time
+        "active": true,                                   // boolean
+        "recenterr": "",                                  // string
+        "recenterrtime": "0001-01-01T00:00:00Z"           // time
+      },
+
+      "readjobsstatus": {
+        "avgjobtime64k": 0,                               // int
+        "avgjobtime1m": 0,                                // int
+        "avgjobtime4m": 0,                                // int
+        "consecutivefailures": 0,                         // int
+        "jobqueuesize": 0,                                // int
+        "recenterr": "",                                  // string
+        "recenterrtime": "0001-01-01T00:00:00Z"           // time
+      },
+
+      "hassectorjobsstatus": {
+        "avgjobtime": 0,                                  // int
+        "consecutivefailures": 0,                         // int
+        "jobqueuesize": 0,                                // int
+        "recenterr": "",                                  // string
+        "recenterrtime": "0001-01-01T00:00:00Z"           // time
+      }
     }
   ]
 }
 ```
+
 
 **numworkers** | int  
 Number of workers in the workerpool
 
 **totaldownloadcooldown** | int  
 Number of workers on download cooldown
+
+**totalmaintenancecooldown** | int  
+Number of workers on maintenance cooldown
 
 **totaluploadcooldown** | int  
 Number of workers on upload cooldown
@@ -4493,6 +4626,12 @@ The worker's contract's utility is locked
 
 **hostpublickey** | SiaPublicKey  
 Public key of the host that the file contract is formed with.  
+
+**downloadcooldownerror** | error  
+The error reason for the worker being on download cooldown
+
+**downloadcooldowntime** | time.Duration  
+How long the worker is on download cooldown
 
 **downloadoncooldown** | boolean  
 Indicates if the worker is on download cooldown
@@ -4524,14 +4663,32 @@ The worker's Ephemeral Account available balance
 **balancetarget** | hastings  
 The worker's Ephemeral Account target balance
 
-**fundaccountjobqueuesize** | int  
-The size of the worker's Ephemeral Account fund account job queue
-
 **backupjobqueuesize** | int  
 The size of the worker's backup job queue
 
 **downloadrootjobqueuesize** | int  
 The size of the worker's download by root job queue
+
+**maintenanceoncooldown** | boolean  
+Indicates if the worker is on maintenance cooldown
+
+**maintenancecooldownerror** | string  
+The error reason for the worker being on maintenance cooldown
+
+**maintenancecooldowntime** | time.Duration  
+How long the worker is on maintenance cooldown
+
+**accountstatus** | object
+Detailed information about the workers' ephemeral account status
+
+**pricetablestatus** | object
+Detailed information about the workers' price table status
+
+**readjobsstatus** | object
+Details of the workers' read jobs queue
+
+**hassectorjobsstatus** | object
+Details of the workers' has sector jobs queue
 
 # Pubaccess
 
@@ -4542,7 +4699,14 @@ The size of the worker's download by root job queue
 curl -A "ScPrime-Agent" "localhost:4280/pubaccess/blacklist"
 ```
 
-returns the list of merkleroots that are blacklisted.
+returns the list of hashed merkleroots that are blacklisted. 
+
+NOTE: these are not the same values that were submitted via the POST endpoint.
+This is intentional so that it is harder to find the blocked content.
+	
+NOTE: With v1.5.0 the return value for the Blacklist changed. Pre v1.5.0 the
+[]crypto.Hash was a slice of MerkleRoots. Post v1.5.0 the []crypto.Hash is
+a slice of the Hashes of the MerkleRoots
 
 ### JSON Response
 > JSON Response Example
@@ -4557,7 +4721,7 @@ returns the list of merkleroots that are blacklisted.
 }
 ```
 **blacklist** | Hashes  
-The blacklist is a list of merkle roots, which are hashes, that are blacklisted.
+The blacklist is a list of hashed merkleroots, that are blacklisted.
 
 ## /pubaccess/blacklist [POST]
 > curl example
@@ -4602,7 +4766,7 @@ returns the list of known Pubaccess portals.
 {
   "portals": [ // []SkynetPortal | null
     {
-      "address": "siasky.net:443", // string
+      "address": "portal.scpri.me:443", // string
       "public":  true              // bool
     }
   ]
@@ -4618,9 +4782,9 @@ Indicates whether the portal can be accessed publicly or not.
 > curl example
 
 ```go
-curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"add" : [{"address":"siasky.net:443","public":true}]}' "localhost:4280/pubaccess/portals"
+curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"add" : [{"address":"portal.scpri.me:443","public":true}]}' "localhost:4280/pubaccess/portals"
 
-curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"remove" : ["siasky.net:443"]}' "localhost:4280/pubaccess/portals"
+curl -A "ScPrime-Agent" --user "":<apipassword> --data '{"remove" : ["portal.scpri.me:443"]}' "localhost:4280/pubaccess/portals"
 ```
 
 updates the list of known Public access portals. This endpoint can be used to both add
@@ -4684,8 +4848,13 @@ curl -A "ScPrime-Agent" "localhost:4280/pubaccess/publink/CABAB_1Dt0FJsxqsu_J4To
 
 downloads a publink using http streaming. This call blocks until the data is
 received. There is a 30s default timeout applied to downloading a publink. If
-the data can not be found within this 30s time constraint, a 404 will be
+the data cannot be found within this 30s time constraint, a 404 will be
 returned. This timeout is configurable through the query string parameters.
+
+In order to make sure skapps function correctly when they rely on relative paths
+within the same pubfile, we need the publink to be followed by a trailing slash.
+If that is not the case the API responds with a redirect to the same publink,
+adding that trailing slash.
 
 ### Path Parameters 
 ### Required
@@ -4705,11 +4874,15 @@ the file as though it is an attachment instead of rendering it.
 **format** | string  
 If 'format' is set, the publink can point to a directory and it will return the
 data inside that directory. Format will decide the format in which it is
-returned. Currently we only support 'concat', which will return the concatenated
-data of all subfiles in that directory.
+returned. Currently, we support the following values: 'concat' will return the
+concatenated data of all subfiles in that directory, 'zip' will return a zip
+archive, 'tar' will return a tar archive of all subfiles in that directory, and
+'targz' will return a gzipped tar archive of all subfiles in that directory. If
+the format is not specified, and the publink points at a directory, we default
+to the zip format and the contents will be downloaded as a zip archive.
 
 **timeout** | int  
-If 'timeout' is set, the download will fail if the Pubfile can not be retrieved 
+If 'timeout' is set, the download will fail if the pubfile can't be retrieved 
 before it expires. Note that this timeout does not cover the actual download 
 time, but rather covers the TTFB. Timeout is specified in seconds, a timeout 
 value of 0 will be ignored. If no timeout is given, the default will be used,
@@ -4717,10 +4890,10 @@ which is a 30 second timeout. The maximum allowed timeout is 900s (15 minutes).
 
 ### Response Header
 
-**Pubaccess-File-Metadata** | SkyfileMetadata
+**Pubaccess-File-Metadata** | PubfileMetadata
 
 The header field "Pubaccess-FileMetadata" will be set such that it has an encoded
-json object which matches the modules.SkyfileMetadata struct. If a path was
+json object which matches the modules.PubfileMetadata struct. If a path was
 supplied, this metadata will be relative to the given path.
 
 > Pubaccess-File-Metadata Response Header Example 
@@ -4729,7 +4902,7 @@ supplied, this metadata will be relative to the given path.
 {
 "mode":     640,      // os.FileMode
 "filename": "folder", // string
-"subfiles": [         // []SkyfileSubfileMetadata | null
+"subfiles": [         // []PubfileSubfileMetadata | null
   {
   "mode":         640,                // os.FileMode
   "filename":     "folder/file1.txt", // string
@@ -4780,10 +4953,29 @@ pubfile will be created. Both the new pubfile and the existing siafile are
 required to be maintained on the network in order for the publink to remain
 active. This field is mutually exclusive with uploading streaming.
 
+**defaultpath** string  
+The path to the default file whose content is to be returned when the pubfile is 
+accessed at the root path. The `defaultpath` must point to a file in the root
+directory of the pubfile (except for pubfiles with a single file in them). If
+the `defaultpath` parameter is not provided, it will default to `index.html` 
+for directories that have that file, or it will default to the only file in the 
+directory, if a single file directory is uploaded. This behaviour can be 
+disabled using the `disabledefaultpath` parameter. The two parameters are 
+mutually exclusive and only one can be specified. Neither one is applicable to 
+pubfiles without subfiles.
+
+**disabledefaultpath** bool  
+The `disabledefaultpath` allows to disable the default path behaviour. If this
+parameter is set to `true`, there will be no automatic default to `index.html`,
+nor to the single file in directory upload. This parameter is mutually exclusive
+with `defaultpath` and specifying both will result in an error. Neither one is 
+applicable to pubfiles without subfiles.
+
 **filename** | string  
 The name of the file. This name will be encoded into the pubfile metadata, and
 will be a part of the publink. If the name changes, the publink will change as
-well.
+well. The name must be non-empty, may not include any path traversal strings
+("./", "../"), and may not begin with a forward-slash character.
 
 **dryrun** | bool  
 If dryrun is set to true, the request will return the Publink of the file
@@ -4806,15 +4998,13 @@ this field is not set, the siapath will be interpreted as relative to
 'var/pubaccess'.
 
 
-**UNSTABLE - subject to change in v1.4.9**
-**skykeyname** | string  
+**pubaccesskeyname** | string  
 The name of the pubaccesskey that will be used to encrypt this pubfile. Only the
 name or the ID of the pubaccesskey should be specified.
 
 **OR**
 
-**UNSTABLE - subject to change in v1.4.9**
-**skykeyid** | string  
+**pubaccesskeyid** | string  
 The ID of the pubaccesskey that will be used to encrypt this pubfile. Only the
 name or the ID of the pubaccesskey should be specified.
 
@@ -4871,6 +5061,7 @@ returns statistical information about Pubaccess, e.g. number of files uploaded
 ### JSON Response
 ```json
 {
+  "uptime": 1234, // int
   "uploadstats": {
     "numfiles": 2,         // int
     "totalsize": 44527895  // int
@@ -4884,7 +5075,10 @@ returns statistical information about Pubaccess, e.g. number of files uploaded
 }
 ```
 
-**uploadstats** | object
+**uptime** | int  
+The amount of time in seconds that siad has been running.
+
+**uploadstats** | object  
 Uploadstats is an object with statistics about the data uploaded to Pubaccess.
 
 **numfiles** | int  
@@ -4902,7 +5096,7 @@ Version is the spd version the node is running.
 **gitrevision** | string  
 Gitrevision refers to the commit hash used to build said.
 
-**performancestats** | object - api.SkynetPerforamnceStats  
+**performancestats** | object - api.SkynetPerformanceStats  
 PerformanceStats is an object that contains a breakdown of performance metrics
 for the pubaccess endpoints. Things are broken down into containers based on the
 type of action performed. For example, there is a container for downloads less
@@ -4938,7 +5132,7 @@ may change over time.
 curl -A "ScPrime-Agent"  -u "":<apipassword> --data "pubaccesskey=BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a" "localhost:4280/pubaccess/addpubaccesskey"
 ```
 
-Stores the given pubaccesskey with the renter's pubaccesskey manager.
+Stores the given pubaccesskey with the pubaccesskey manager.
 
 ### Path Parameters
 ### REQUIRED
@@ -4950,6 +5144,46 @@ base-64 encoded pubaccesskey
 standard success or error response. See [standard
 responses](#standard-responses).
 
+## /pubaccess/pubaccesskeys [GET]
+> curl example
+
+```go
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "localhost:4280/pubaccess/pubaccesskeys"
+```
+
+Returns a list of all Skykeys.
+
+### JSON Response
+
+> JSON Response Example
+
+```go
+{
+  "pubaccesskeys": [
+  {
+    "pubaccesskey": "pubaccesskey:AUI0eAOXWXHwW6KOLyI5O1OYduVvHxAA8qUR_fJ8Kluasb-ykPlHBEjDczrL21hmjhH0zAoQ3-Qq?name=testkey1",
+    "name": "testkey1",
+    "id": "ai5z8cf5NWbcvPBaBn0DFQ==",
+    "type": "private-id"
+  },
+  {
+    "pubaccesskey": "pubaccesskey:AUqG0aQmgzCIlse2JxFLBGHCriZNz20IEKQu81XxYsak3rzmuVbZ2P6ZqeJHIlN5bjPqEmC67U8E?name=testpubaccesskey2",
+    "name": "testpubaccesskey2",
+    "id": "bi5z8cf5NWbcvPBaBn0DFQ==",
+    "type": "private-id"
+  },
+  {
+    "pubaccesskey": "pubaccesskey:AShQI8fzxoIMc52ZRkoKjOE50bXnCpiPd4zrBl_E-CkmyLgfinAJSdWkJT2QOR6XCRYYgZb63OHw?name=testpubaccesskey3",
+    "name": "testpubaccesskey3",
+    "id": "ci5z8cf5NWbcvPBaBn0DFQ==",
+    "type": "public-id"
+  }
+}
+```
+
+**pubaccesskeys** | []pubaccesskeys
+Array of pubaccesskeys. See the documentation for /pubaccess/pubaccesskeys for more detailed
+information.
 
 ## /pubaccess/createpubaccesskey [POST]
 > curl example
@@ -4965,12 +5199,22 @@ Returns a new pubaccesskey created and stored under that name.
 **name** | string  
 desired name of the pubaccesskey
 
+**type** | string  
+desired type of the pubaccesskey. The two supported types are "public-id" and
+"private-id". Users should use "private-id" pubaccesskeys unless they have a specific
+reason to use "public-id" pubaccesskeys which reveal pubaccesskey IDs and show which
+pubfiles are encrypted with the same pubaccesskey.
+
+
 ### JSON Response
 > JSON Response Example
 
 ```go
 {
-  "pubaccesskey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
+  "pubaccesskey": "pubaccesskey:AUI0eAOXWXHwW6KOLyI5O1OYduVvHxAA8qUR_fJ8Kluasb-ykPlHBEjDczrL21hmjhH0zAoQ3-Qq?name=testskykey1",
+  "name": "key_to_the_castle",
+  "id": "ai5z8cf5NWbcvPBaBn0DFQ==",
+  "type": "private-id"
 }
 ```
 
@@ -4978,15 +5222,41 @@ desired name of the pubaccesskey
 base-64 encoded pubaccesskey
 
 
+## /pubaccess/deletepubaccesskey [POST]
+> curl example
+
+```go
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:4280/pubaccess/deletepubaccesskey"
+```
+
+Deletes the pubaccesskey with that name or ID.
+
+### Path Parameters
+### REQUIRED
+**name** | string  
+name of the pubaccesskey being deleted
+
+or
+
+**id** | string  
+base-64 encoded ID of the pubaccesskey being deleted
+
+
+### Response
+standard success or error response, a successful response means the pubaccesskey was
+deleted.
+See [standard responses](#standard-responses).
+
+
 ## /pubaccess/pubaccesskey [GET]
 > curl example
 
 ```go
-curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:4280/pubaccess/pubaccesskey"
+curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=cellar_access_key" "localhost:4280/pubaccess/pubaccesskey"
 curl -A "ScPrime-Agent"  -u "":<apipassword> --data "id=gi5z8cf5NWbcvPBaBn0DFQ==" "localhost:4280/pubaccess/pubaccesskey"
 ```
 
-Returns the base-64 encoded pubaccesskey stored under that name, or with that ID.
+Returns the base-64 encoded public access key along with its name and ID.
 
 
 ### Path Parameters
@@ -5004,41 +5274,25 @@ base-64 encoded ID of the pubaccesskey being queried
 
 ```go
 {
-  "pubaccesskey": "BAAAAAAAAABrZXkxAAAAAAAAAAQgAAAAAAAAADiObVg49-0juJ8udAx4qMW-TEHgDxfjA0fjJSNBuJ4a"
+  "pubaccesskey": "pubaccesskey:AShQI8fzxoIMc52ZRkoKjOE50bXnCpiPd4zrBl_E-CkmyLgfinAJSdWkJT2QOR6XCRYYgZb63OHw?name=testkey",
+  "name": "testkey",
+  "id": "gi5z8cf5NWbcvPBaBn0DFQ==",
+  "type": "private-id"
 }
 ```
 
 **pubaccesskey** | string  
 base-64 encoded pubaccesskey
 
-
-## /pubaccess/pubaccesskeyid [GET]
-> curl example
-
-```go
-curl -A "ScPrime-Agent"  -u "":<apipassword> --data "name=key_to_the_castle" "localhost:4280/pubaccess/pubaccesskeyid"
-```
-
-Returns the base-64 encoded ID of the pubaccesskey stored under that name.
-
-### Path Parameters
-### REQUIRED
 **name** | string  
-name of the pubaccesskey being queried
+name of the pubaccesskey
 
-
-### JSON Response
-> JSON Response Example
- 
-```go
-{
-  "pubaccesskeyid": "gi5z8cf5NWbcvPBaBn0DFQ=="
-}
-```
-
-**pubaccesskeyid** | string  
+**id** | string  
 base-64 encoded pubaccesskey ID
 
+**type** | string  
+human-readable pubaccesskey type. See the documentation for /pubaccess/createpubaccesskey for
+type information.
 
 
 # Transaction Pool
@@ -6010,9 +6264,9 @@ ID of the transaction being requested.
 }
 ```
 **transaction**  
-Raw transaction. The rest of the fields in the resposne are determined from this
+Raw transaction. The rest of the fields in the response are determined from this
 raw transaction. It is left undocumented here as the processed transaction (the
-rest of the fields in this object) are usually what is desired.  
+rest of the fields in this object) are usually what is desired.
 
 See types.Transaction in
 https://gitlab.com/scpcorp/ScPrime/blob/master/types/transactions.go  

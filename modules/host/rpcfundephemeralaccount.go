@@ -7,7 +7,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/scpcorp/siamux"
+	"gitlab.com/NebulousLabs/siamux"
 )
 
 // managedRPCFundEphemeralAccount handles the RPC request from the renter to
@@ -59,6 +59,7 @@ func (h *Host) managedRPCFundEphemeralAccount(stream siamux.Stream) error {
 
 	// send the FundAccountResponse
 	err = modules.RPCWrite(stream, modules.FundAccountResponse{
+		Balance:   h.staticAccountManager.callAccountBalance(far.Account),
 		Receipt:   receipt,
 		Signature: signature,
 	})

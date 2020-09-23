@@ -10,11 +10,93 @@ Version History
 ---------------
 
 Latest:
-### v1.4.3.0
 
+### v1.5.0
+**Key Updates**
+- Add `zip` download format and set it as default format.
+- add support for write MDM programs to host
+- Added `defaultpath` - a new optional path parameter when creating Publinks. It
+  determines which is the default file to open in a multi-file pubfile.
+- Add `configModules` to the API so that the spd modules can be return in `/daemon/settings [GET]`
+- Allow the renew window to be larger than the period
+- Convert pubaccessblacklist from merkleroots to hashes of the merkleroots
+- split up the custom http status code returned by the API for unloaded modules into 2 distinct codes.
+- Add `daemon/stack` endpoint to get the current stack trace.
+- Add Pubaccesskey delete methods to API.
+- Add `disabledefaultpath` - a new optional path parameter when creating 
+Publinks. It disables the default path functionality, guaranteeing that the user
+will not be automatically redirected to `/index.html` if it exists in the 
+pubfile.
+- Add 'spc' commands for the FeeManager
+- Add `TypePrivateID` Pubaccesskeys with pubfile encryption support
+- Added available and priority memory output to `spc renter -v`
+
+**Bugs Fixed**
+- Set 'Content-Disposition' header for archives.
+- fixed bug in rotation of fingerprint buckets
+- fix issue where priority tasks could wait for low priority tasks to complete
+- Fix panic in backup code due to not using `newJobGeneric`
+- Public access filenames are now validated when uploading. Previously you could upload files called e.g. "../foo" which would be inaccessible.
+- The Pubaccesskey encryption API docs were updated to fix some discrepancies. In particular, the pubaccesskeyid section was removed.
+- The createpubaccesskey endpoint was fixed as it was not returning the full Pubaccesskey that was created.
+- integrade download cooldown system into download jobs
+- fix bug which could prevent downloads from making progress
+- Fix panic in the wal of the spdir and siafile if a delete update was
+  submitted as the last update in a set of updates.
+
+**Other**
+- Add `EphemeralAccountExpiry` and `MaxEphemeralAccountBalance` to the Host's ExternalSettings
+- Add testing infrastructure to validate the output of spc commands.
+- Add root spc Cobra command test with subtests.
+- Optimise writes when we execute an MDM program on the host to lower overall
+  (upload) bandwidth consumption.
+- Change status returned when module is not loaded from 404 to 490
+- Add `spc renter workers ea` command to spc
+- Add `spc renter workers pt` command to spc
+- Add `spc renter workers rj` command to spc
+- Add `spc renter workers hsj` command to spc
+- Add testing for blacklisting skylinks associated with siafile conversions
+- Rename `Gateway` `blacklist` to `blocklist`
+- Allow host netAddress and announcements with local network IP on dev builds.
+- Add default timeouts to opening a stream on the mux
+- Update to bolt version with upstream fixes. This enables builds with Go 1.14.
+
+### v1.4.4.0
+**Key Updates**
+- Merged Sia 1.4.11
+**Other**
+
+## May 29, 2020:
+### v1.4.3.1
+**Key Updates**
+- Add `FeeManager` to spd to allow for applications to charge a fee
+- Add start time for the API server for spd uptime
+- Add new `/consensus/subscribe/:id` endpoint to allow subscribing to consensus
+  change events
+- Add /pubaccesskeys endpoint and `spc pubaccesskey ls` command
+- Updated pubaccesskey encoding and format
+
+**Bugs Fixed**
+- fix call to expensive operation in tight loop
+- fix an infinite loop which would block uploads from progressing
+
+**Other**
+- Optimize bandwidth consumption for RPC write calls
+- Extend `/daemon/alerts` with `criticalalerts`, `erroralerts` and
+  `warningalerts` fields along with `alerts`.
+- Update pubaccesskey spc functions to accept httpClient and remove global httpClient
+  reference from spc testing
+- Pubaccesskeycmd test broken down to subtests.
+- Create spc testing helpers.
+- Add engineering guidelines to /doc
+- Introduce PaymentProvider interface on the renter.
+- Pubaccess persistence subsystems into shared system.
+- Update Cobra from v0.0.5 to v1.0.0.
+
+### v1.4.3.0
 **Key Updates**
 - Alerts returned by /daemon/alerts route are sorted by severity
-- Add `--fee-included` parameter to `spc wallet send siacoins` that allows
+- Add `--fee-included` parameter to `spc wallet send scprimecoins` that allows
    sending an exact wallet balance with the fees included.
 - Extend `spc hostdb view` to include all the fields returned from the API.
 - `spc renter delete` now accepts a list of files.

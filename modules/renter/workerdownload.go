@@ -104,13 +104,38 @@ func checkDownloadGouging(allowance modules.Allowance, hostSettings modules.Host
 	return nil
 }
 
+// managedDownloadFailed records an error that caused a download to fail,
+// increases the cooldown timer, and then dumps all existing jobs for the
+// worker.
+func (w *worker) managedDownloadFailed(err error) {
+	// No penalties if the whole renter is offline. Still drop chunks though.
+	if !w.renter.g.Online() {
+		w.managedDropDownloadChunks()
+		return
+	}
+	w.downloadMu.Lock()
+	w.downloadConsecutiveFailures++
+	w.downloadRecentFailure = time.Now()
+	w.downloadRecentFailureErr = err
+	w.downloadMu.Unlock()
+	w.managedDropDownloadChunks()
+}
+
+// managedHasDownloadJob will return true if the worker has a download job that
+// it could potentially perform.
+func (w *worker) managedHasDownloadJob() bool {
+	w.downloadMu.Lock()
+	defer w.downloadMu.Unlock()
+	return len(w.downloadChunks) > 0
+}
+
 // managedPerformDownloadChunkJob will perform some download work if any is
 // available, returning false if no work is available.
-func (w *worker) managedPerformDownloadChunkJob() bool {
+func (w *worker) managedPerformDownloadChunkJob() {
 	w.downloadMu.Lock()
 	if len(w.downloadChunks) == 0 {
 		w.downloadMu.Unlock()
-		return false
+		return
 	}
 	udc := w.downloadChunks[0]
 	w.downloadChunks = w.downloadChunks[1:]
@@ -124,7 +149,7 @@ func (w *worker) managedPerformDownloadChunkJob() bool {
 	// from the chunk entirely, or because the worker has been put on standby.
 	udc = w.managedProcessDownloadChunk(udc)
 	if udc == nil {
-		return true
+		return
 	}
 	// Worker is being given a chance to work. After the work is complete,
 	// whether successful or failed, the worker needs to be removed.
@@ -135,8 +160,9 @@ func (w *worker) managedPerformDownloadChunkJob() bool {
 	d, err := w.renter.hostContractor.Downloader(w.staticHostPubKey, w.renter.tg.StopChan())
 	if err != nil {
 		w.renter.log.Debugln("worker failed to create downloader:", err)
+		w.managedDownloadFailed(err)
 		udc.managedUnregisterWorker(w)
-		return true
+		return
 	}
 	defer d.Close()
 
@@ -146,8 +172,9 @@ func (w *worker) managedPerformDownloadChunkJob() bool {
 	err = checkDownloadGouging(allowance, hostSettings)
 	if err != nil {
 		w.renter.log.Debugln("worker downloader is not being used because price gouging was detected:", err)
+		w.managedDownloadFailed(err)
 		udc.managedUnregisterWorker(w)
-		return true
+		return
 	}
 
 	fetchOffset, fetchLength := sectorOffsetAndLength(udc.staticFetchOffset, udc.staticFetchLength, udc.erasureCode)
@@ -155,9 +182,15 @@ func (w *worker) managedPerformDownloadChunkJob() bool {
 	pieceData, err := d.Download(root, uint32(fetchOffset), uint32(fetchLength))
 	if err != nil {
 		w.renter.log.Debugln("worker failed to download sector:", err)
+		w.managedDownloadFailed(err)
 		udc.managedUnregisterWorker(w)
-		return true
+		return
 	}
+	// Reset the consecutive failures for the download cooldown.
+	w.downloadMu.Lock()
+	w.downloadConsecutiveFailures = 0
+	w.downloadMu.Unlock()
+
 	// TODO: Instead of adding the whole sector after the download completes,
 	// have the 'd.Sector' call add to this value ongoing as the sector comes
 	// in. Perhaps even include the data from creating the downloader and other
@@ -174,7 +207,7 @@ func (w *worker) managedPerformDownloadChunkJob() bool {
 	if err != nil {
 		w.renter.log.Debugln("worker failed to decrypt piece:", err)
 		udc.managedUnregisterWorker(w)
-		return true
+		return
 	}
 
 	// Mark the piece as completed. Perform chunk recovery if we newly have
@@ -201,7 +234,7 @@ func (w *worker) managedPerformDownloadChunkJob() bool {
 		if err := w.renter.tg.Add(); err != nil {
 			w.renter.log.Debugln("worker failed to decrypt piece:", err)
 			udc.mu.Unlock()
-			return true
+			return
 		}
 		go func() {
 			defer w.renter.tg.Done()
@@ -209,23 +242,30 @@ func (w *worker) managedPerformDownloadChunkJob() bool {
 		}()
 	}
 	udc.mu.Unlock()
-	return true
 }
 
 // managedKillDownloading will drop all of the download work given to the
 // worker, and set a signal to prevent the worker from accepting more download
 // work.
+func (w *worker) managedKillDownloading() {
+	w.downloadMu.Lock()
+	w.downloadTerminated = true
+	w.downloadMu.Unlock()
+
+	w.managedDropDownloadChunks()
+}
+
+// managedDropDownloadChunks will drop all download chunks in the queue.
 //
 // The chunk cleanup needs to occur after the worker mutex is released so that
 // the worker is not locked while chunk cleanup is happening.
-func (w *worker) managedKillDownloading() {
+func (w *worker) managedDropDownloadChunks() {
 	w.downloadMu.Lock()
 	var removedChunks []*unfinishedDownloadChunk
 	for i := 0; i < len(w.downloadChunks); i++ {
 		removedChunks = append(removedChunks, w.downloadChunks[i])
 	}
 	w.downloadChunks = w.downloadChunks[:0]
-	w.downloadTerminated = true
 	w.downloadMu.Unlock()
 	for i := 0; i < len(removedChunks); i++ {
 		removedChunks[i].managedRemoveWorker()
@@ -238,8 +278,10 @@ func (w *worker) callQueueDownloadChunk(udc *unfinishedDownloadChunk) {
 	// chunk needs to happen under the same lock as fetching the termination
 	// status.
 	w.downloadMu.Lock()
+	onCooldown := w.onDownloadCooldown()
 	terminated := w.downloadTerminated
-	if !terminated {
+	goodWorker := !terminated && !onCooldown
+	if goodWorker {
 		// Accept the chunk and issue a notification to the master thread that
 		// there is a new download.
 		w.downloadChunks = append(w.downloadChunks, udc)
@@ -247,9 +289,9 @@ func (w *worker) callQueueDownloadChunk(udc *unfinishedDownloadChunk) {
 	}
 	w.downloadMu.Unlock()
 
-	// If the worker has terminated, remove it from the udc. This call needs to
+	// If the worker is not usable, remove it from the udc. This call needs to
 	// happen without holding the worker lock.
-	if terminated {
+	if !goodWorker {
 		udc.managedRemoveWorker()
 	}
 }
@@ -289,12 +331,17 @@ func (w *worker) managedProcessDownloadChunk(udc *unfinishedDownloadChunk) *unfi
 	// dropped.
 	udc.mu.Lock()
 	chunkComplete := udc.piecesCompleted >= udc.erasureCode.MinPieces() || udc.download.staticComplete()
-	chunkFailed := udc.piecesCompleted+udc.workersRemaining < udc.erasureCode.MinPieces()
+	chunkFailed := udc.piecesCompleted+udc.workersRemaining < udc.erasureCode.MinPieces() || udc.failed
 	pieceData, workerHasPiece := udc.staticChunkMap[w.staticHostPubKey.String()]
 	pieceCompleted := udc.completedPieces[pieceData.index]
 	if chunkComplete || chunkFailed || onCooldown || !workerHasPiece || pieceCompleted {
 		udc.mu.Unlock()
 		udc.managedRemoveWorker()
+
+		// Extra check - if a worker is unusable, drop all the queued jobs.
+		if onCooldown {
+			w.managedDropDownloadChunks()
+		}
 		return nil
 	}
 	defer udc.mu.Unlock()

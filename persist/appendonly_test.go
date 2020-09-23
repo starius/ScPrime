@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/build"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
@@ -184,7 +184,11 @@ func TestMarshalMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	// Manually create struct of a persist object and set the length. Not using
 	// the New method to avoid overwriting the persist file on disk.
@@ -271,8 +275,8 @@ func TestMarshalMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = aop.updateMetadata(aopm)
-	if !errors.Contains(err, ErrWrongVersion) {
-		t.Fatalf("Expected %v got %v", ErrWrongVersion, err)
+	if !errors.Contains(err, ErrBadVersion) {
+		t.Fatalf("Expected %v got %v", ErrBadVersion, err)
 	}
 
 	// Write an incorrect header and verify that unmarshaling the metadata will
@@ -300,7 +304,7 @@ func TestMarshalMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = aop.updateMetadata(aopm)
-	if !errors.Contains(err, ErrWrongHeader) {
-		t.Fatalf("Expected %v got %v", ErrWrongHeader, err)
+	if !errors.Contains(err, ErrBadHeader) {
+		t.Fatalf("Expected %v got %v", ErrBadHeader, err)
 	}
 }

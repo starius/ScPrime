@@ -6,7 +6,7 @@ GIT_DIRTY=$(shell git diff-index --quiet HEAD -- || echo "modified-")
 ldflags= -X gitlab.com/scpcorp/ScPrime/build.GitRevision=${GIT_DIRTY}${GIT_REVISION} \
 -X "gitlab.com/scpcorp/ScPrime/build.BuildTime=${BUILD_TIME}"
 
-GO111MODULE=on
+racevars= history_size=3 halt_on_error=1 atexit_sleep_ms=2000
 
 # all will build and install release binaries
 all: release
@@ -21,14 +21,15 @@ cpkg = ./modules/renter
 
 # pkgs changes which packages the makefile calls operate on. run changes which
 # tests are run during testing.
-pkgs = ./build \
+pkgs = \
+	./benchmark \
+	./build \
 	./cmd/node-scanner \
 	./cmd/spc \
 	./cmd/spd \
 	./cmd/pubaccess-benchmark \
 	./compatibility \
 	./crypto \
-	./encoding \
 	./modules \
 	./modules/consensus \
 	./modules/explorer \
@@ -81,7 +82,25 @@ pkgs = ./build \
 release-pkgs = ./cmd/spc ./cmd/spd
 
 # lockcheckpkgs are the packages that are checked for locking violations.
-lockcheckpkgs = ./modules/renter/hostdb
+lockcheckpkgs = \
+	./benchmark \
+	./build \
+	./cmd/node-scanner \
+	./cmd/spc \
+	./cmd/spd \
+	./cmd/pubaccess-benchmark \
+	./node \
+	./node/api \
+	./node/api/client \
+	./node/api/server \
+	./modules/host/mdm \
+	./modules/renter/hostdb \
+	./modules/renter/proto \
+	./modules/renter/pubaccessblacklist \
+	./modules/renter/pubaccessportals \
+	./pubaccesskeykey \
+	./types \
+	./types/typesutil 
 
 # run determines which tests run when running any variation of 'make test'.
 run = .
@@ -112,7 +131,7 @@ markdown-spellcheck:
 
 # lint runs golangci-lint (which includes golint, a spellcheck of the codebase,
 # and other linters), the custom analyzers, and also a markdown spellchecker.
-lint: markdown-spellcheck lint-analysis
+lint: markdown-spellcheck lint-analyze
 	golangci-lint run -c .golangci.yml
 
 # lint-ci runs golint.
@@ -124,10 +143,10 @@ ifneq ("$(OS)","Windows_NT")
 	golint -min_confidence=1.0 -set_exit_status $(pkgs)
 endif
 
-# lint-analysis runs the custom analyzers.
-lint-analysis:
-	go run ./analysis/cmd/analyze.go -lockcheck=false -- $(pkgs)
-	go run ./analysis/cmd/analyze.go -lockcheck -- $(lockcheckpkgs)
+# lint-analyze runs the custom analyzers.
+lint-analyze:
+	analyze -lockcheck=false -- $(pkgs)
+	analyze -lockcheck -- $(lockcheckpkgs)
 
 # spellcheck checks for misspelled words in comments or strings.
 spellcheck: markdown-spellcheck
@@ -140,21 +159,21 @@ staticcheck:
 
 # debug builds and installs debug binaries. This will also install the utils.
 debug:
-	GO111MODULE=on go install -tags='debug profile netgo' -ldflags='$(ldflags)' $(pkgs)
+	go install -tags='debug profile netgo' -ldflags='$(ldflags)' $(pkgs)
 debug-race:
-	GO111MODULE=on go install -race -tags='debug profile netgo' -ldflags='$(ldflags)' $(pkgs)
+	GORACE='$(racevars)' go install -race -tags='debug profile netgo' -ldflags='$(ldflags)' $(pkgs)
 
 # dev builds and installs developer binaries. This will also install the utils.
 dev:
-	GO111MODULE=on go install -tags='dev debug profile netgo' -ldflags='$(ldflags)' $(pkgs)
+	go install -tags='dev debug profile netgo' -ldflags='$(ldflags)' $(pkgs)
 dev-race:
-	GO111MODULE=on go install -race -tags='dev debug profile netgo' -ldflags='$(ldflags)' $(pkgs)
+	GORACE='$(racevars)' go install -race -tags='dev debug profile netgo' -ldflags='$(ldflags)' $(pkgs)
 
 # release builds and installs release binaries.
 release:
 	go install -tags='netgo' -ldflags='-s -w $(ldflags)' $(release-pkgs)
 release-race:
-	go install -race -tags='netgo' -ldflags='-s -w $(ldflags)' $(release-pkgs)
+	GORACE='$(racevars)' go install -race -tags='netgo' -ldflags='-s -w $(ldflags)' $(release-pkgs)
 release-util:
 	go install -tags='netgo' -ldflags='-s -w $(ldflags)' $(release-pkgs) $(util-pkgs)
 
@@ -178,20 +197,22 @@ endif
 test:
 	go test -short -tags='debug testing netgo' -timeout=60s $(pkgs) -run=$(run) -count=$(count)
 test-v:
-	go test -race -v -short -tags='debug testing netgo' -timeout=15s $(pkgs) -run=$(run) -count=$(count)
+	GORACE='$(racevars)' go test -race -v -short -tags='debug testing netgo' -timeout=15s $(pkgs) -run=$(run) -count=$(count)
 test-long: clean fmt vet lint-ci
 	@mkdir -p cover
-	go test --coverprofile='./cover/cover.out' -v -race -failfast -tags='testing debug netgo' -timeout=6600s $(pkgs) -run=$(run) -count=$(count)
+	GORACE='$(racevars)' go test -race --coverprofile='./cover/cover.out' -v -failfast -tags='testing debug netgo' -timeout=3600s $(pkgs) -run=$(run) -count=$(count)
 
 test-vlong: clean fmt vet lint-ci
 ifneq ("$(OS)","Windows_NT")
 # Linux
 	@mkdir -p cover
+	GORACE='$(racevars)' go test --coverprofile='./cover/cover.out' -v -race -tags='testing debug vlong netgo' -timeout=20000s $(pkgs) -run=$(run) -count=$(count)
 else
 # Windows
 	MD cover
-endif
+	SET GORACE='$(racevars)'
 	go test --coverprofile='./cover/cover.out' -v -race -tags='testing debug vlong netgo' -timeout=20000s $(pkgs) -run=$(run) -count=$(count)
+endif
 
 test-cpu:
 	go test -v -tags='testing debug netgo' -timeout=500s -cpuprofile cpu.prof $(pkgs) -run=$(run) -count=$(count)

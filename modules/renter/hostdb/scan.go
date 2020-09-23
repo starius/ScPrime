@@ -11,11 +11,14 @@ import (
 	"sort"
 	"time"
 
+	"gitlab.com/NebulousLabs/encoding"
+	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/NebulousLabs/siamux"
+	"gitlab.com/NebulousLabs/siamux/mux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb/hosttree"
 	"gitlab.com/scpcorp/ScPrime/types"
@@ -388,9 +391,9 @@ func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
 	}
 
 	// Update historic interactions of entry if necessary
-	hdb.mu.RLock()
+	hdb.mu.Lock()
 	updateHostHistoricInteractions(&entry, hdb.blockHeight)
-	hdb.mu.RUnlock()
+	hdb.mu.Unlock()
 
 	var settings modules.HostExternalSettings
 	var latency time.Duration
@@ -421,7 +424,7 @@ func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
 		conn, err := dialer.Dial("tcp", string(netAddr))
 		latency = time.Since(start)
 		if err != nil {
-			return err
+			return errors.AddContext(err, "could not connect")
 		}
 		// Create go routine that will close the channel if the hostdb shuts
 		// down or when this method returns as signalled by closing the
@@ -443,19 +446,48 @@ func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
 		tryNewProtoErr := func() error {
 			s, _, err := modules.NewRenterSession(conn, pubKey)
 			if err != nil {
-				return err
+				return errors.AddContext(err, "could not open RHP2 session")
 			}
 			defer s.WriteRequest(modules.RPCLoopExit, nil) // make sure we close cleanly
 			if err := s.WriteRequest(modules.RPCLoopSettings, nil); err != nil {
-				return err
+				return errors.AddContext(err, "could not write the loop settings request in the RHP2 check")
 			}
 			var resp modules.LoopSettingsResponse
 			if err := s.ReadResponse(&resp, maxSettingsLen); err != nil {
-				return err
+				return errors.AddContext(err, "could not read the settings response in the RHP2 check")
 			}
-			return json.Unmarshal(resp.Settings, &settings)
+			err = json.Unmarshal(resp.Settings, &settings)
+			if err != nil {
+				return errors.AddContext(err, "could not unmarshal the settings response")
+			}
+
+			// Need to apply the custom resolver to the siamux address.
+			siamuxAddr := settings.SiaMuxAddress()
+			if hdb.staticDeps.Disrupt("customResolver") {
+				port := modules.NetAddress(siamuxAddr).Port()
+				siamuxAddr = fmt.Sprintf("127.0.0.1:%s", port)
+			}
+
+			// Try opening a connection to the siamux, this is a very lightweight
+			// way of checking that RHP3 is supported.
+			_, err = fetchPriceTable(hdb.staticMux, siamuxAddr, timeout, modules.SiaPKToMuxPK(entry.PublicKey))
+			if err != nil {
+				hdb.staticLog.Debugf("%v siamux ping not successful: %v\n", entry.PublicKey, err)
+				return errors.AddContext(err, "siamux connection not working, fetchPriceTable() failed")
+			}
+			return nil
 		}()
 		if tryNewProtoErr == nil {
+			// If the host's version is lower than v1.4.4.0, which is the version
+			// at which the following fields were added to the host's external
+			// settings, we set these values to their original defaults to
+			// ensure these hosts are not penalized by renters running the
+			// latest software.
+			if build.VersionCmp(settings.Version, "1.4.4.0") < 0 {
+				settings.EphemeralAccountExpiry = modules.CompatV1412DefaultEphemeralAccountExpiry
+				settings.MaxEphemeralAccountBalance = modules.CompatV1412DefaultMaxEphemeralAccountBalance
+			}
+			//Got settings with RHP2, return
 			return nil
 		}
 
@@ -463,7 +495,7 @@ func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
 		// protocol, filling in the missing fields with default values.
 		//
 		// Close current connection
-		conn.Close()
+		_ = conn.Close()
 
 		// Start new connection. We cannot assign this to the first connection
 		// as it creates a Data Race and conflicts with the deferred channel
@@ -472,7 +504,7 @@ func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
 		// Close will segfault.
 		conn2, err := dialer.Dial("tcp", string(netAddr))
 		if err != nil {
-			return err
+			return errors.AddContext(err, "could not connect")
 		}
 		// Create go routine that will close this second channel if the hostdb
 		// shuts down or when this method returns as signalled by closing the
@@ -518,9 +550,6 @@ func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
 			UploadBandwidthPrice:   oldSettings.UploadBandwidthPrice,
 			RevisionNumber:         oldSettings.RevisionNumber,
 			Version:                oldSettings.Version,
-			// New fields are set to zero.
-			BaseRPCPrice:      types.ZeroCurrency,
-			SectorAccessPrice: types.ZeroCurrency,
 		}
 		return nil
 	}()
@@ -712,4 +741,44 @@ func (hdb *HostDB) threadedScan() {
 		case <-time.After(sleepTime):
 		}
 	}
+}
+
+// fetchPriceTable fetches a price table from a host without paying. This means
+// the price table is only useful for scoring the host and can't be used. This
+// uses an ephemeral stream which is a special type of stream that doesn't leak
+// TCP connections. Otherwise we would end up with one TCP connection for every
+// host in the network after scanning the whole network.
+func fetchPriceTable(siamux *siamux.SiaMux, hostAddr string, timeout time.Duration, hpk mux.ED25519PublicKey) (*modules.RPCPriceTable, error) {
+	stream, err := siamux.NewEphemeralStream(modules.HostSiaMuxSubscriberName, hostAddr, timeout, hpk)
+	if err != nil {
+		return nil, errors.AddContext(err, "failed to create ephemeral stream")
+	}
+	defer stream.Close()
+
+	// set a deadline on the stream.
+	err = stream.SetDeadline(time.Now().Add(hostScanDeadline))
+	if err != nil {
+		return nil, errors.AddContext(err, "failed to set stream deadline")
+	}
+
+	// initiate the RPC
+	err = modules.RPCWrite(stream, modules.RPCUpdatePriceTable)
+	if err != nil {
+		return nil, errors.AddContext(err, "failed to write price table RPC specifier")
+	}
+
+	// receive the price table response
+	var update modules.RPCUpdatePriceTableResponse
+	err = modules.RPCRead(stream, &update)
+	if err != nil {
+		return nil, errors.AddContext(err, "failed to read price table response")
+	}
+
+	// unmarshal the price table
+	var pt modules.RPCPriceTable
+	err = json.Unmarshal(update.PriceTableJSON, &pt)
+	if err != nil {
+		return nil, errors.AddContext(err, "failed to unmarshal price table")
+	}
+	return &pt, nil
 }

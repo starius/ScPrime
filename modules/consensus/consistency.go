@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/fastrand"
 	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 

@@ -10,7 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/rand"
+	"math"
 	"net"
 	"path/filepath"
 	"sync/atomic"
@@ -18,7 +18,9 @@ import (
 
 	"github.com/sasha-s/go-deadlock"
 
+	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/NebulousLabs/threadgroup"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/config"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -327,7 +329,7 @@ func newPool(dependencies dependencies, cs modules.ConsensusSet, tpool modules.T
 		},
 
 		persistDir: persistDir,
-		stratumID:  rand.Uint64(),
+		stratumID:  fastrand.Uint64n(math.MaxUint64/2 + 1),
 		clients:    make(map[string]*Client),
 	}
 	var err error

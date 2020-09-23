@@ -21,12 +21,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	connmonitor "gitlab.com/NebulousLabs/monitor"
-	"gitlab.com/scpcorp/siamux"
+	"gitlab.com/NebulousLabs/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
@@ -242,14 +242,16 @@ func (h *Host) initNetworking(address string) (err error) {
 	go h.threadedListen(threadedListenerClosedChan)
 
 	// Create a listener for the SiaMux.
-	err = h.staticMux.NewListener(modules.HostSiaMuxSubscriberName, h.threadedHandleStream)
-	if err != nil {
-		return errors.AddContext(err, "Failed to subscribe to the SiaMux")
+	if !h.dependencies.Disrupt("DisableHostSiamux") {
+		err = h.staticMux.NewListener(modules.HostSiaMuxSubscriberName, h.threadedHandleStream)
+		if err != nil {
+			return errors.AddContext(err, "Failed to subscribe to the SiaMux")
+		}
+		// Close the listener when h.tg.OnStop is called.
+		h.tg.OnStop(func() {
+			h.staticMux.CloseListener(modules.HostSiaMuxSubscriberName)
+		})
 	}
-	// Close the listener when h.tg.OnStop is called.
-	h.tg.OnStop(func() {
-		h.staticMux.CloseListener(modules.HostSiaMuxSubscriberName)
-	})
 
 	return nil
 }
@@ -342,32 +344,22 @@ func (h *Host) threadedHandleConn(conn net.Conn) {
 	}
 }
 
-// staticReadPriceTableID receives a stream and reads the price table's UID from
-// it, if it's a known UID we return the price table
-func (h *Host) staticReadPriceTableID(stream siamux.Stream) (*modules.RPCPriceTable, error) {
-	// read the price table uid
-	var uid modules.UniqueID
-	err := modules.RPCRead(stream, &uid)
-	if err != nil {
-		return nil, errors.AddContext(err, "Failed to read price table UID")
-	}
-	// check if we know the uid, if we do return it
-	var found bool
-	pt, found := h.staticPriceTables.managedGet(uid)
-	if !found {
-		return nil, ErrPriceTableNotFound
-	}
-	// make sure the table isn't expired.
-	if pt.Expiry < time.Now().Unix() {
-		return nil, ErrPriceTableExpired
-	}
-	return pt, nil
-}
-
 // threadedHandleStream handles incoming SiaMux streams.
 func (h *Host) threadedHandleStream(stream siamux.Stream) {
 	// close the stream when the method terminates
-	defer stream.Close()
+	defer func() {
+		if h.dependencies.Disrupt("DisableStreamClose") {
+			return
+		}
+		err := stream.Close()
+		if err != nil {
+			h.log.Println("ERROR: failed to close stream:", err)
+		}
+		// Update used bandwidth.
+		l := stream.Limit()
+		atomic.AddUint64(&h.atomicStreamUpload, l.Uploaded())
+		atomic.AddUint64(&h.atomicStreamDownload, l.Downloaded())
+	}()
 
 	err := h.tg.Add()
 	if err != nil {
@@ -396,12 +388,16 @@ func (h *Host) threadedHandleStream(stream siamux.Stream) {
 	}
 
 	switch rpcID {
+	case modules.RPCAccountBalance:
+		err = h.managedRPCAccountBalance(stream)
 	case modules.RPCExecuteProgram:
 		err = h.managedRPCExecuteProgram(stream)
 	case modules.RPCUpdatePriceTable:
 		err = h.managedRPCUpdatePriceTable(stream)
 	case modules.RPCFundAccount:
 		err = h.managedRPCFundEphemeralAccount(stream)
+	case modules.RPCLatestRevision:
+		err = h.managedRPCLatestRevision(stream)
 	default:
 		h.log.Debugf("WARN: incoming stream %v requested unknown RPC \"%v\"", stream.RemoteAddr().String(), rpcID)
 		err = errors.New(fmt.Sprintf("Unrecognized RPC id %v", rpcID))
@@ -413,36 +409,6 @@ func (h *Host) threadedHandleStream(stream siamux.Stream) {
 		atomic.AddUint64(&h.atomicErroredCalls, 1)
 		h.managedLogError(err)
 	}
-}
-
-// staticGetPriceTable receives a stream and reads the price table's UID from
-// it, if it's a known UID we return the price table.
-//
-// NOTE: the price table UID is sent on every RPC call, this to ensure both
-// renter and host use the same pricing. If we were to keep the price table
-// related to the incoming stream (and thus its mux) as state, we would
-// introduce race conditions where host and renter use different price tables
-// within the context of a single RPC request. Having the renter specify it on
-// every request avoids the possiblity of these race conditions.
-func (h *Host) staticGetPriceTable(stream siamux.Stream) (*modules.RPCPriceTable, error) {
-	// read the price table uid
-	var uid modules.UniqueID
-	err := modules.RPCRead(stream, &uid)
-	if err != nil {
-		return nil, errors.AddContext(err, "Failed to read price table UID")
-	}
-
-	// check if we know the uid, if we do return it
-	pt, exists := h.staticPriceTables.managedGet(uid)
-	if !exists {
-		return nil, errors.New("Price table not found, it might be expired")
-	}
-
-	// check if it's still valid or if it has expired
-	if pt.Expiry < time.Now().Unix() {
-		return nil, errors.New("Price table expired")
-	}
-	return pt, nil
 }
 
 // threadedListen listens for incoming RPCs and spawns an appropriate handler for each.

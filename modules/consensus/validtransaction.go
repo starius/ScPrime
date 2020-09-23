@@ -4,11 +4,11 @@ import (
 	"errors"
 	"math/big"
 
+	"gitlab.com/NebulousLabs/encoding"
 	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
@@ -234,13 +234,8 @@ func validFileContractRevisions(tx *bolt.Tx, t types.Transaction) error {
 
 		// Check that the payout of the revision matches the payout of the
 		// original, and that the payouts match each other.
-		var validPayout, missedPayout, oldPayout types.Currency
-		for _, output := range fcr.NewValidProofOutputs {
-			validPayout = validPayout.Add(output.Value)
-		}
-		for _, output := range fcr.NewMissedProofOutputs {
-			missedPayout = missedPayout.Add(output.Value)
-		}
+		validPayout, missedPayout := fcr.TotalPayout()
+		var oldPayout types.Currency
 		for _, output := range fc.ValidProofOutputs {
 			oldPayout = oldPayout.Add(output.Value)
 		}
@@ -346,11 +341,13 @@ func (cs *ConsensusSet) tryTransactionSet(txns []types.Transaction) (modules.Con
 		return modules.ConsensusChange{}, err
 	}
 	cc := modules.ConsensusChange{
-		SiacoinOutputDiffs:        diffHolder.SiacoinOutputDiffs,
-		FileContractDiffs:         diffHolder.FileContractDiffs,
-		SiafundOutputDiffs:        diffHolder.SiafundOutputDiffs,
-		DelayedSiacoinOutputDiffs: diffHolder.DelayedSiacoinOutputDiffs,
-		SiafundPoolDiffs:          diffHolder.SiafundPoolDiffs,
+		ConsensusChangeDiffs: modules.ConsensusChangeDiffs{
+			SiacoinOutputDiffs:        diffHolder.SiacoinOutputDiffs,
+			FileContractDiffs:         diffHolder.FileContractDiffs,
+			SiafundOutputDiffs:        diffHolder.SiafundOutputDiffs,
+			DelayedSiacoinOutputDiffs: diffHolder.DelayedSiacoinOutputDiffs,
+			SiafundPoolDiffs:          diffHolder.SiafundPoolDiffs,
+		},
 	}
 	return cc, nil
 }

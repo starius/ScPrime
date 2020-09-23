@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/NebulousLabs/threadgroup"
 
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -111,6 +112,16 @@ func (srv *Server) Serve() error {
 // authentication sends passwords in plaintext and should therefore only be
 // used if the APIaddr is localhost.
 func NewServer(dir string, APIaddr string, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, mp modules.Pool, sm modules.StratumMiner, i modules.Index) (*Server, error) {
+	return NewCustomServer(dir, APIaddr, requiredUserAgent, requiredPassword, cs, e, fm, g, h, m, r, tp, w, mp, sm, i, &modules.ProductionDependencies{})
+}
+
+// NewCustomServer creates a new API server from the provided modules. The API
+// will require authentication using HTTP basic auth if the supplied password is
+// not the empty string. Usernames are ignored for authentication. This type of
+// authentication sends passwords in plaintext and should therefore only be used
+// if the APIaddr is localhost. It is custom because it allows injecting custom
+// API dependencies.
+func NewCustomServer(dir string, APIaddr string, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, mp modules.Pool, sm modules.StratumMiner, i modules.Index, apiDeps modules.Dependencies) (*Server, error) {
 	listener, err := net.Listen("tcp", APIaddr)
 	if err != nil {
 		return nil, err
@@ -122,7 +133,7 @@ func NewServer(dir string, APIaddr string, requiredUserAgent string, requiredPas
 		return nil, errors.AddContext(err, "failed to load spd config")
 	}
 
-	api := New(cfg, requiredUserAgent, requiredPassword, cs, e, fm, g, h, m, r, tp, w, mp, sm, i)
+	api := NewCustom(cfg, requiredUserAgent, requiredPassword, cs, e, fm, g, h, m, r, tp, w, mp, sm, i, apiDeps)
 	srv := &Server{
 		api: api,
 		apiServer: &http.Server{
@@ -155,7 +166,7 @@ type serverTester struct {
 // assembleServerTesterWithDeps creates a bunch of modules with injected
 // dependencies and assembles them into a server tester, without creating any
 // directories or mining any blocks.
-func assembleServerTesterWithDeps(key crypto.CipherKey, testdir string, gDeps, cDeps, tDeps, wDeps, hDeps, rDeps, hdbDeps, hcDeps, csDeps modules.Dependencies) (*serverTester, error) {
+func assembleServerTesterWithDeps(key crypto.CipherKey, testdir string, gDeps, cDeps, tDeps, wDeps, hDeps, rDeps, hdbDeps, hcDeps, csDeps, apiDeps modules.Dependencies) (*serverTester, error) {
 	// assembleServerTester should not get called during short tests, as it
 	// takes a long time to run.
 	if testing.Short() {
@@ -209,7 +220,7 @@ func assembleServerTesterWithDeps(key crypto.CipherKey, testdir string, gDeps, c
 		return nil, err
 	}
 	renterPersistDir := filepath.Join(testdir, modules.RenterDir)
-	hdb, errChan := hostdb.NewCustomHostDB(g, cs, tp, renterPersistDir, hdbDeps)
+	hdb, errChan := hostdb.NewCustomHostDB(g, cs, tp, mux, renterPersistDir, hdbDeps)
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
@@ -217,7 +228,8 @@ func assembleServerTesterWithDeps(key crypto.CipherKey, testdir string, gDeps, c
 	if err != nil {
 		return nil, err
 	}
-	contractSet, err := proto.NewContractSet(filepath.Join(renterPersistDir, "contracts"), csDeps)
+	renterRateLimit := ratelimit.NewRateLimit(0, 0, 0)
+	contractSet, err := proto.NewContractSet(filepath.Join(renterPersistDir, "contracts"), renterRateLimit, csDeps)
 	if err != nil {
 		return nil, err
 	}
@@ -225,11 +237,11 @@ func assembleServerTesterWithDeps(key crypto.CipherKey, testdir string, gDeps, c
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
-	r, errChan := renter.NewCustomRenter(g, cs, tp, hdb, w, hc, mux, renterPersistDir, rDeps)
+	r, errChan := renter.NewCustomRenter(g, cs, tp, hdb, w, hc, mux, renterPersistDir, renterRateLimit, rDeps)
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
-	srv, err := NewServer(testdir, "localhost:0", "ScPrime-Agent", "", cs, nil, nil, g, h, m, r, tp, w, nil, nil, nil)
+	srv, err := NewCustomServer(testdir, "localhost:0", "ScPrime-Agent", "", cs, nil, nil, g, h, m, r, tp, w, nil, nil, nil, apiDeps)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +275,7 @@ func assembleServerTesterWithDeps(key crypto.CipherKey, testdir string, gDeps, c
 // assembleServerTester creates a bunch of modules and assembles them into a
 // server tester, without creating any directories or mining any blocks.
 func assembleServerTester(key crypto.CipherKey, testdir string) (*serverTester, error) {
-	return assembleServerTesterWithDeps(key, testdir, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies)
+	return assembleServerTesterWithDeps(key, testdir, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies)
 }
 
 // assembleAuthenticatedServerTester creates a bunch of modules and assembles
@@ -322,7 +334,8 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 	if err != nil {
 		return nil, err
 	}
-	r, errChan := renter.New(g, cs, w, tp, mux, filepath.Join(testdir, modules.RenterDir))
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	r, errChan := renter.New(g, cs, w, tp, mux, rl, filepath.Join(testdir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
@@ -440,7 +453,7 @@ func blankServerTester(name string) (*serverTester, error) {
 // createServerTesterWithDeps creates a server tester object with injected
 // dependencies that is ready for testing, including money in the wallet and all
 // modules initialized.
-func createServerTesterWithDeps(name string, gDeps, cDeps, tDeps, wDeps, hDeps, rDeps, hdbDeps, hcDeps, csDeps modules.Dependencies) (*serverTester, error) {
+func createServerTesterWithDeps(name string, gDeps, cDeps, tDeps, wDeps, hDeps, rDeps, hdbDeps, hcDeps, csDeps, apiDeps modules.Dependencies) (*serverTester, error) {
 	// createServerTester is expensive, and therefore should not be called
 	// during short tests.
 	if testing.Short() {
@@ -451,7 +464,7 @@ func createServerTesterWithDeps(name string, gDeps, cDeps, tDeps, wDeps, hDeps, 
 	testdir := build.TempDir("api", name)
 
 	key := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
-	st, err := assembleServerTesterWithDeps(key, testdir, gDeps, cDeps, tDeps, wDeps, hDeps, rDeps, hdbDeps, hcDeps, csDeps)
+	st, err := assembleServerTesterWithDeps(key, testdir, gDeps, cDeps, tDeps, wDeps, hDeps, rDeps, hdbDeps, hcDeps, csDeps, apiDeps)
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +483,7 @@ func createServerTesterWithDeps(name string, gDeps, cDeps, tDeps, wDeps, hDeps, 
 // createServerTester creates a server tester object that is ready for testing,
 // including money in the wallet and all modules initialized.
 func createServerTester(name string) (*serverTester, error) {
-	return createServerTesterWithDeps(name, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies)
+	return createServerTesterWithDeps(name, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies, modules.ProdDependencies)
 }
 
 // createAuthenticatedServerTester creates an authenticated server tester
@@ -606,7 +619,13 @@ func (st *serverTester) announceHost() error {
 	if err != nil {
 		return err
 	}
-	for i := 0; i < 50 && len(hosts.Hosts) <= initialHosts; i++ {
+	for i := 0; i < 100 && len(hosts.Hosts) <= initialHosts; i++ {
+		if i%24 == 0 {
+			_, err := st.miner.AddBlock()
+			if err != nil {
+				return err
+			}
+		}
 		time.Sleep(100 * time.Millisecond)
 		err = st.getAPI("/hostdb/active", &hosts)
 		if err != nil {

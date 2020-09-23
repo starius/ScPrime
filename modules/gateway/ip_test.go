@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"gitlab.com/scpcorp/ScPrime/encoding"
+	"gitlab.com/NebulousLabs/encoding"
+
 	"gitlab.com/scpcorp/ScPrime/modules"
 )
 

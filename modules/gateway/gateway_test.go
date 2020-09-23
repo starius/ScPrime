@@ -10,8 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/NebulousLabs/threadgroup"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
 )
 
@@ -72,10 +75,10 @@ func TestExportedMethodsErrAfterClose(t *testing.T) {
 	if err := g.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if err := g.Close(); err != siasync.ErrStopped {
+	if err := g.Close(); err != threadgroup.ErrStopped {
 		t.Fatalf("expected %q, got %q", siasync.ErrStopped, err)
 	}
-	if err := g.Connect("localhost:1234"); err != siasync.ErrStopped {
+	if err := g.Connect("localhost:1234"); err != threadgroup.ErrStopped {
 		t.Fatalf("expected %q, got %q", siasync.ErrStopped, err)
 	}
 }
@@ -158,7 +161,7 @@ func TestNew(t *testing.T) {
 	// create corrupted nodes.json
 	dir := build.TempDir("gateway", t.Name()+"2")
 	os.MkdirAll(dir, 0700)
-	err := ioutil.WriteFile(filepath.Join(dir, "nodes.json"), []byte{1, 2, 3}, 0660)
+	err := ioutil.WriteFile(filepath.Join(dir, "nodes.json"), []byte{1, 2, 3}, persist.DefaultDiskPermissionsTest)
 	if err != nil {
 		t.Fatal("couldn't create corrupted file:", err)
 	}
@@ -245,11 +248,11 @@ func TestManualConnectDisconnect(t *testing.T) {
 	if err := connectToNode(g1, g2, false); err != nil {
 		t.Fatal("failed to connect:", err)
 	}
-	// g2 manually disconnects from g1 and therefore blacklists it
+	// g2 manually disconnects from g1 and therefore blocklists it
 	if err := disconnectFromNode(g2, g1, true); err != nil {
 		t.Fatal("failed to disconnect:", err)
 	}
-	// Neither g1 nor g2 can connect after g1 being blacklisted
+	// Neither g1 nor g2 can connect after g1 being blocklisted
 	if err := connectToNode(g1, g2, false); err == nil {
 		t.Fatal("shouldn't be able to connect")
 	}
@@ -260,7 +263,7 @@ func TestManualConnectDisconnect(t *testing.T) {
 		t.Fatal("shouldn't be able to connect")
 	}
 
-	// g2 manually connects and therefore removes g1 from the blacklist again
+	// g2 manually connects and therefore removes g1 from the blocklist again
 	if err := connectToNode(g2, g1, true); err != nil {
 		t.Fatal("failed to connect:", err)
 	}
@@ -282,7 +285,7 @@ func TestManualConnectDisconnect(t *testing.T) {
 	}
 }
 
-// TestManualConnectDisconnectPersist checks if the blacklist is persistet on
+// TestManualConnectDisconnectPersist checks if the blocklist is persistet on
 // disk
 func TestManualConnectDisconnectPersist(t *testing.T) {
 	if testing.Short() {
@@ -298,12 +301,12 @@ func TestManualConnectDisconnectPersist(t *testing.T) {
 		t.Fatal("failed to connect:", err)
 	}
 
-	// g2 manually disconnects from g1 and therefore blacklists it
+	// g2 manually disconnects from g1 and therefore blocklists it
 	if err := disconnectFromNode(g2, g1, true); err != nil {
 		t.Fatal("failed to disconnect:", err)
 	}
 
-	// Neither g1 nor g2 can connect after g1 being blacklisted
+	// Neither g1 nor g2 can connect after g1 being blocklisted
 	if err := connectToNode(g1, g2, false); err == nil {
 		t.Fatal("shouldn't be able to connect")
 	}
@@ -322,7 +325,7 @@ func TestManualConnectDisconnectPersist(t *testing.T) {
 	}
 	defer g2.Close()
 
-	// Neither g1 nor g2 can connect after g1 being blacklisted
+	// Neither g1 nor g2 can connect after g1 being blocklisted
 	if err := connectToNode(g1, g2, false); err == nil {
 		t.Fatal("shouldn't be able to connect")
 	}

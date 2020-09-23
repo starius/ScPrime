@@ -9,19 +9,40 @@ import (
 )
 
 type (
-	// DependencyLowFundsFormationFail will cause contract formation to fail due to
-	// low funds in the allowance.
+	// DependencyDisableWorker will disable the worker's work loop, the health
+	// loop, the repair loop and the snapshot loop.
+	DependencyDisableWorker struct {
+		modules.ProductionDependencies
+	}
+	// DependencyDisableHostSiamux will disable siamux in the host.
+	DependencyDisableHostSiamux struct {
+		modules.ProductionDependencies
+	}
+	// DependencyStorageObligationNotFound will cause the host to return that it
+	// wasn't able to find a storage obligation in managedPayByContract.
+	DependencyStorageObligationNotFound struct {
+		modules.ProductionDependencies
+	}
+
+	// DependencyPreventEARefill prevents EAs from being refilled automatically.
+	DependencyPreventEARefill struct {
+		modules.ProductionDependencies
+	}
+
+	// DependencyLowFundsFormationFail will cause contract formation to fail due
+	// to low funds in the allowance.
 	DependencyLowFundsFormationFail struct {
 		modules.ProductionDependencies
 	}
-	// DependencyLowFundsRenewalFail will cause contract renewal to fail due to low
-	// funds in the allowance.
+
+	// DependencyLowFundsRenewalFail will cause contract renewal to fail due to
+	// low funds in the allowance.
 	DependencyLowFundsRenewalFail struct {
 		modules.ProductionDependencies
 	}
 
-	// DependencyLowFundsRefreshFail will cause contract renewal to fail due to low
-	// funds in the allowance.
+	// DependencyLowFundsRefreshFail will cause contract renewal to fail due to
+	// low funds in the allowance.
 	DependencyLowFundsRefreshFail struct {
 		modules.ProductionDependencies
 	}
@@ -32,14 +53,25 @@ type (
 		modules.ProductionDependencies
 	}
 
-	// DependencyDisableContractRecovery prevents recoverable contracts from being
-	// recovered in threadedContractMaintenance.
+	// DependencyDisableCriticalOnMaxBalance prevents a build.Critical to be
+	// thrown when we encounter a `MaxBalanceExceeded` error on the host
+	DependencyDisableCriticalOnMaxBalance struct {
+		modules.ProductionDependencies
+	}
+
+	// DependencyDisableStreamClose prevents the stream from being closed.
+	DependencyDisableStreamClose struct {
+		modules.ProductionDependencies
+	}
+
+	// DependencyDisableContractRecovery prevents recoverable contracts from
+	// being recovered in threadedContractMaintenance.
 	DependencyDisableContractRecovery struct {
 		modules.ProductionDependencies
 	}
 
-	// DependencyDisableRecoveryStatusReset prevents the fields scanInProgress and
-	// atomicRecoveryScanHeight from being reset after the scan is done.
+	// DependencyDisableRecoveryStatusReset prevents the fields scanInProgress
+	// and atomicRecoveryScanHeight from being reset after the scan is done.
 	DependencyDisableRecoveryStatusReset struct {
 		modules.ProductionDependencies
 	}
@@ -55,6 +87,22 @@ type (
 		modules.ProductionDependencies
 	}
 
+	// DependencyTimeoutOnHostGET times out when the client performs the HTTP
+	// call to GET /host.
+	DependencyTimeoutOnHostGET struct {
+		modules.ProductionDependencies
+	}
+
+	// DependencyInterruptCountOccurrences is a generic dependency that
+	// interrupts the flow of the program if the argument passed to Disrupt
+	// equals str and it keeps track of how many times this happened.
+	DependencyInterruptCountOccurrences struct {
+		occurrences uint64 // indicates how many times this interrupt occurred
+		modules.ProductionDependencies
+		mu  sync.Mutex
+		str string
+	}
+
 	// DependencyInterruptOnceOnKeyword is a generic dependency that interrupts
 	// the flow of the program if the argument passed to Disrupt equals str and
 	// if f was set to true by calling Fail.
@@ -65,9 +113,10 @@ type (
 		str string
 	}
 
-	// DependencyInterruptAfterNCalls is a generic dependency that behaves the same
-	// way as DependencyInterruptOnceOnKeyword, expect that after calling "Fail",
-	// "Disrupt" needs to be called n times for the actual disrupt to happen.
+	// DependencyInterruptAfterNCalls is a generic dependency that behaves the
+	// same way as DependencyInterruptOnceOnKeyword, expect that after calling
+	// "Fail", "Disrupt" needs to be called n times for the actual disrupt to
+	// happen.
 	DependencyInterruptAfterNCalls struct {
 		DependencyInterruptOnceOnKeyword
 		n    int
@@ -93,6 +142,13 @@ type (
 		modules.ProductionDependencies
 	}
 
+	// DependencyNoSnapshotSyncInterruptAccountSaveOnShutdown will interrupt the
+	// account save when the renter shuts down and also disable the snapshot
+	// syncing thread.
+	DependencyNoSnapshotSyncInterruptAccountSaveOnShutdown struct {
+		modules.ProductionDependencies
+	}
+
 	// DependencyBlockResumeJobDownloadUntilTimeout blocks in
 	// managedResumeJobDownloadByRoot until the timeout for the download project
 	// is reached.
@@ -107,14 +163,26 @@ type (
 		modules.ProductionDependencies
 	}
 
-	// DependencyDefaultRenewSettings causes the contractor to use default settings
-	// when renewing a contract.
+	// DependencyDefaultRenewSettings causes the contractor to use default
+	// settings when renewing a contract.
 	DependencyDefaultRenewSettings struct {
 		modules.ProductionDependencies
 		enabled bool
 		mu      sync.Mutex
 	}
+
+	// DependencyResolveSkylinkToFixture will disable downloading skylinks and
+	// will replace it with fetching from a set of predefined fixtures.
+	DependencyResolveSkylinkToFixture struct {
+		modules.ProductionDependencies
+	}
 )
+
+// NewDependencyCorruptMDMOutput returns a dependency that can be used to
+// manually corrupt the MDM output returned by hosts.
+func NewDependencyCorruptMDMOutput() *DependencyInterruptOnceOnKeyword {
+	return newDependencyInterruptOnceOnKeyword("CorruptMDMOutput")
+}
 
 // NewDependencyBlockResumeJobDownloadUntilTimeout blocks in
 // managedResumeJobDownloadByRoot until the timeout for the download project is
@@ -123,6 +191,12 @@ func NewDependencyBlockResumeJobDownloadUntilTimeout() modules.Dependencies {
 	return &DependencyBlockResumeJobDownloadUntilTimeout{
 		c: make(chan struct{}),
 	}
+}
+
+// NewDependencyContractRenewalFail creates a new dependency that simulates
+// getting an error while renewing a contract.
+func NewDependencyContractRenewalFail() *DependencyWithDisableAndEnable {
+	return newDependencywithDisableAndEnable("ContractRenewFail")
 }
 
 // NewDependencyCustomResolver creates a dependency from a given lookupIP
@@ -137,6 +211,13 @@ func NewDependencyCustomResolver(lookupIP func(string) ([]net.IP, error)) module
 // numChunks uploaded chunks.
 func NewDependencyDisruptUploadStream(numChunks int) *DependencyInterruptAfterNCalls {
 	return newDependencyInterruptAfterNCalls("DisruptUploadStream", numChunks)
+}
+
+// NewDependencyDisableCommitPaymentIntent creates a new dependency that
+// prevents the contractor for committing a payment intent, this essentially
+// ensures the renter's revision is not in sync with the host's revision.
+func NewDependencyDisableCommitPaymentIntent() *DependencyInterruptCountOccurrences {
+	return newDependencyInterruptCountOccurrences("DisableCommitPaymentIntent")
 }
 
 // NewDependencyInterruptContractSaveToDiskAfterDeletion creates a new
@@ -158,6 +239,13 @@ func NewDependencyInterruptDownloadBeforeSendingRevision() *DependencyInterruptO
 // signed revision from the host.
 func NewDependencyInterruptDownloadAfterSendingRevision() *DependencyInterruptOnceOnKeyword {
 	return newDependencyInterruptOnceOnKeyword("InterruptDownloadAfterSendingRevision")
+}
+
+// NewDependencyInterruptNewStreamTimeout a dependency that interrupts
+// interaction with a stream by timing out on trying to create a new stream with
+// the host.
+func NewDependencyInterruptNewStreamTimeout() *DependencyWithDisableAndEnable {
+	return newDependencywithDisableAndEnable("InterruptNewStreamTimeout")
 }
 
 // NewDependencyInterruptUploadBeforeSendingRevision creates a new dependency
@@ -193,6 +281,49 @@ func newDependencyInterruptAfterNCalls(str string, n int) *DependencyInterruptAf
 	}
 }
 
+// newDependencyInterruptCountOccurrences creates a new
+// DependencyInterruptCountOccurrences from a given disrupt
+func newDependencyInterruptCountOccurrences(str string) *DependencyInterruptCountOccurrences {
+	return &DependencyInterruptCountOccurrences{
+		str: str,
+	}
+}
+
+// Disrupt returns true if the correct string is provided.
+func (d *DependencyDisableWorker) Disrupt(s string) bool {
+	if s == "DisableWorkerLoop" {
+		return true
+	}
+	if s == "DisableRepairAndHealthLoops" {
+		return true
+	}
+	if s == "DisableSnapshotSync" {
+		return true
+	}
+	return false
+}
+
+// Disrupt returns true if the correct string is provided.
+func (d *DependencyNoSnapshotSyncInterruptAccountSaveOnShutdown) Disrupt(s string) bool {
+	if s == "InterruptAccountSaveOnShutdown" {
+		return true
+	}
+	if s == "DisableSnapshotSync" {
+		return true
+	}
+	return false
+}
+
+// Disrupt returns true if the correct string is provided.
+func (d *DependencyStorageObligationNotFound) Disrupt(s string) bool {
+	return s == "StorageObligationNotFound"
+}
+
+// Disrupt returns true if the correct string is provided.
+func (d *DependencyPreventEARefill) Disrupt(s string) bool {
+	return s == "DisableFunding"
+}
+
 // Disrupt returns true if the correct string is provided.
 func (d *DependencyBlockResumeJobDownloadUntilTimeout) Disrupt(s string) bool {
 	if s == "BlockUntilTimeout" {
@@ -206,8 +337,23 @@ func (d *DependencyBlockResumeJobDownloadUntilTimeout) Disrupt(s string) bool {
 }
 
 // Disrupt returns true if the correct string is provided.
+func (d *DependencyDisableCriticalOnMaxBalance) Disrupt(s string) bool {
+	return s == "DisableCriticalOnMaxBalance"
+}
+
+// Disrupt returns true if the correct string is provided.
 func (d *DependencyDisableAsyncStartup) Disrupt(s string) bool {
 	return s == "BlockAsyncStartup"
+}
+
+// Disrupt returns true if the correct string is provided.
+func (d *DependencyDisableHostSiamux) Disrupt(s string) bool {
+	return s == "DisableHostSiamux"
+}
+
+// Disrupt returns true if the correct string is provided.
+func (d *DependencyDisableStreamClose) Disrupt(s string) bool {
+	return s == "DisableStreamClose"
 }
 
 // Disrupt returns true if the correct string is provided.
@@ -240,9 +386,34 @@ func (d *DependencyInterruptAccountSaveOnShutdown) Disrupt(s string) bool {
 	return s == "InterruptAccountSaveOnShutdown"
 }
 
-// Disrupt causes contract renewal to not clear the contents of a contract.
+// Disrupt returns true if the correct string is provided.
 func (d *DependencyDisableRotateFingerprintBuckets) Disrupt(s string) bool {
 	return s == "DisableRotateFingerprintBuckets"
+}
+
+// Disrupt returns true if the correct string is provided.
+func (d *DependencyTimeoutOnHostGET) Disrupt(s string) bool {
+	return s == "TimeoutOnHostGET"
+}
+
+// Disrupt returns true if the correct string is provided. It keeps track of how
+// many times this occurred.
+func (d *DependencyInterruptCountOccurrences) Disrupt(s string) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if s == d.str {
+		d.occurrences++
+		return true
+	}
+	return false
+}
+
+// Occurrences returns the amount of time this dependency was successfully
+// disrupted.
+func (d *DependencyInterruptCountOccurrences) Occurrences() uint64 {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.occurrences
 }
 
 // Disrupt returns true if the correct string is provided and if the flag was
@@ -390,5 +561,48 @@ func (d *DependencyDefaultRenewSettings) Enable() {
 func (d *DependencyDefaultRenewSettings) Disable() {
 	d.mu.Lock()
 	d.enabled = false
+	d.mu.Unlock()
+}
+
+// Disrupt causes publink data to be loaded from fixtures instead of downloaded.
+func (d *DependencyResolveSkylinkToFixture) Disrupt(s string) bool {
+	return s == "resolveSkylinkToFixture"
+}
+
+// DependencyWithDisableAndEnable adds the ability to disable the dependency
+type DependencyWithDisableAndEnable struct {
+	disabled bool
+	modules.ProductionDependencies
+	mu  sync.Mutex
+	str string
+}
+
+// newDependencywithDisableAndEnable creates a new
+// DependencyWithDisableAndEnable from a given disrupt key.
+func newDependencywithDisableAndEnable(str string) *DependencyWithDisableAndEnable {
+	return &DependencyWithDisableAndEnable{
+		str: str,
+	}
+}
+
+// Disrupt returns true if the correct string is provided and the dependency has
+// not been disabled.
+func (d *DependencyWithDisableAndEnable) Disrupt(s string) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return !d.disabled && s == d.str
+}
+
+// Disable sets the flag to true to make sure that the dependency will fail.
+func (d *DependencyWithDisableAndEnable) Disable() {
+	d.mu.Lock()
+	d.disabled = true
+	d.mu.Unlock()
+}
+
+// Enable sets the flag to false to make sure that the dependency won't fail.
+func (d *DependencyWithDisableAndEnable) Enable() {
+	d.mu.Lock()
+	d.disabled = false
 	d.mu.Unlock()
 }

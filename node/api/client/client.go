@@ -60,7 +60,7 @@ func (uc *UnsafeClient) Get(resource string, obj interface{}) error {
 }
 
 // New creates a new Client using the provided address. The password will be set
-// using build.APIPasssword and the user agent will be set to "Sia-Agent". Both
+// using build.APIPasssword and the user agent will be set to "ScPrime-Agent". Both
 // can be changed manually by the caller after the client is returned.
 func New(opts Options) *Client {
 	return &Client{
@@ -69,7 +69,7 @@ func New(opts Options) *Client {
 }
 
 // DefaultOptions returns the default options for a client. This includes
-// setting the default spd user agent to "Sia-Agent" and setting the password
+// setting the default spd user agent to "ScPrime-Agent" and setting the password
 // using the build.APIPassword() function.
 func DefaultOptions() (Options, error) {
 	pw, err := build.APIPassword()
@@ -152,9 +152,9 @@ func (c *Client) getReaderResponse(resource string) (http.Header, io.ReadCloser,
 		return nil, nil, errors.AddContext(err, "GET request failed")
 	}
 
-	// Add ErrAPICallNotRecognized if StatusCode is StatusNotFound to allow for
+	// Add ErrAPICallNotRecognized if StatusCode is StatusModuleNotLoaded to allow for
 	// handling of modules that are not loaded
-	if res.StatusCode == http.StatusNotFound {
+	if res.StatusCode == api.StatusModuleNotLoaded || res.StatusCode == api.StatusModuleDisabled {
 		err = errors.Compose(readAPIError(res.Body), api.ErrAPICallNotRecognized)
 		return nil, nil, errors.AddContext(err, "unable to perform GET on "+resource)
 	}
@@ -190,9 +190,9 @@ func (c *Client) getRawPartialResponse(resource string, from, to uint64) ([]byte
 	}
 	defer drainAndClose(res.Body)
 
-	// Add ErrAPICallNotRecognized if StatusCode is StatusNotFound to allow for
+	// Add ErrAPICallNotRecognized if StatusCode is StatusModuleNotLoaded to allow for
 	// handling of modules that are not loaded
-	if res.StatusCode == http.StatusNotFound {
+	if res.StatusCode == api.StatusModuleNotLoaded || res.StatusCode == api.StatusModuleDisabled {
 		err = errors.Compose(readAPIError(res.Body), api.ErrAPICallNotRecognized)
 		return nil, errors.AddContext(err, "unable to perform GET on "+resource)
 	}
@@ -277,9 +277,9 @@ func (c *Client) postRawResponseWithHeaders(resource string, body io.Reader, hea
 	}
 	defer drainAndClose(res.Body)
 
-	// Add ErrAPICallNotRecognized if StatusCode is StatusNotFound to allow for
+	// Add ErrAPICallNotRecognized if StatusCode is StatusModuleNotLoaded to allow for
 	// handling of modules that are not loaded
-	if res.StatusCode == http.StatusNotFound {
+	if res.StatusCode == api.StatusModuleNotLoaded || res.StatusCode == api.StatusModuleDisabled {
 		err = errors.Compose(readAPIError(res.Body), api.ErrAPICallNotRecognized)
 		return http.Header{}, nil, errors.AddContext(err, "unable to perform POST on "+resource)
 	}

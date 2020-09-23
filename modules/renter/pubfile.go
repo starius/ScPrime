@@ -35,13 +35,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"time"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/fixtures"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
+	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
@@ -59,6 +62,9 @@ const (
 	// SkyfileVersion establishes the current version for creating pubfiles.
 	// The pubfile versions are different from the siafile versions.
 	SkyfileVersion = 1
+
+	// layoutKeyDataSize is the size of the key-data field in a skyfileLayout.
+	layoutKeyDataSize = 64
 )
 
 var (
@@ -73,9 +79,6 @@ var (
 	// Siafile that was uploaded with redundancy that is not currently supported
 	// by Pubaccess
 	ErrRedundancyNotSupported = errors.New("publinks currently only support 1-of-N redundancy, other redundancies will be supported in a later version")
-
-	// ErrSkylinkBlacklisted is the error returned when a publink is blacklisted
-	ErrSkylinkBlacklisted = errors.New("publink is blacklisted")
 
 	// ExtendedSuffix is the suffix that is added to a pubfile siapath if it is
 	// a large file upload
@@ -93,7 +96,7 @@ type skyfileLayout struct {
 	fanoutDataPieces   uint8
 	fanoutParityPieces uint8
 	cipherType         crypto.CipherType
-	keyData            [64]byte // keyData is incompatible with ciphers that need keys larger than 64 bytes
+	keyData            [layoutKeyDataSize]byte // keyData is incompatible with ciphers that need keys larger than 64 bytes
 }
 
 // encode will return a []byte that has compactly encoded all of the layout
@@ -171,7 +174,7 @@ func skyfileBuildBaseSector(layoutBytes, fanoutBytes, metadataBytes, fileBytes [
 
 // skyfileEstablishDefaults will set any zero values in the lup to be equal to
 // the desired defaults.
-func skyfileEstablishDefaults(lup *modules.SkyfileUploadParameters) error {
+func skyfileEstablishDefaults(lup *modules.PubfileUploadParameters) error {
 	if lup.BaseChunkRedundancy == 0 {
 		lup.BaseChunkRedundancy = SkyfileDefaultBaseChunkRedundancy
 	}
@@ -180,7 +183,7 @@ func skyfileEstablishDefaults(lup *modules.SkyfileUploadParameters) error {
 
 // skyfileMetadataBytes will return the marshalled/encoded bytes for the
 // pubfile metadata.
-func skyfileMetadataBytes(lm modules.SkyfileMetadata) ([]byte, error) {
+func skyfileMetadataBytes(lm modules.PubfileMetadata) ([]byte, error) {
 	// Compose the metadata into the leading chunk.
 	metadataBytes, err := json.Marshal(lm)
 	if err != nil {
@@ -192,7 +195,7 @@ func skyfileMetadataBytes(lm modules.SkyfileMetadata) ([]byte, error) {
 // fileUploadParamsFromLUP will derive the FileUploadParams to use when
 // uploading the base chunk siafile of a pubfile using the pubfile's upload
 // parameters.
-func fileUploadParamsFromLUP(lup modules.SkyfileUploadParameters) (modules.FileUploadParams, error) {
+func fileUploadParamsFromLUP(lup modules.PubfileUploadParameters) (modules.FileUploadParams, error) {
 	// Create parameters to upload the file with 1-of-N erasure coding and no
 	// encryption. This should cause all of the pieces to have the same Merkle
 	// root, which is critical to making the file discoverable to viewnodes and
@@ -235,7 +238,7 @@ func streamerFromSlice(b []byte) modules.Streamer {
 // siafile data. The SiaPath provided in 'lup' indicates where the new base
 // sector pubfile will be placed, and the siaPath provided as its own input is
 // the siaPath of the file that is being used to create the pubfile.
-func (r *Renter) CreatePublinkFromSiafile(lup modules.SkyfileUploadParameters, siaPath modules.SiaPath) (modules.Publink, error) {
+func (r *Renter) CreatePublinkFromSiafile(lup modules.PubfileUploadParameters, siaPath modules.SiaPath) (modules.Publink, error) {
 	// Set reasonable default values for any lup fields that are blank.
 	err := skyfileEstablishDefaults(&lup)
 	if err != nil {
@@ -248,7 +251,14 @@ func (r *Renter) CreatePublinkFromSiafile(lup modules.SkyfileUploadParameters, s
 		return modules.Publink{}, errors.AddContext(err, "unable to open siafile")
 	}
 	defer fileNode.Close()
-	return r.managedCreatePublinkFromFileNode(lup, nil, fileNode, siaPath.Name())
+
+	// Override the metadata with the info from the fileNode.
+	lup.FileMetadata = modules.PubfileMetadata{
+		Filename: siaPath.Name(),
+		Mode:     fileNode.Mode(),
+		Length:   fileNode.Size(),
+	}
+	return r.managedCreatePublinkFromFileNode(lup, fileNode)
 }
 
 // managedCreatePublinkFromFileNode creates a publink from a file node.
@@ -256,7 +266,28 @@ func (r *Renter) CreatePublinkFromSiafile(lup modules.SkyfileUploadParameters, s
 // The name needs to be passed in explicitly because a file node does not track
 // its own name, which allows the file to be renamed concurrently without
 // causing any race conditions.
-func (r *Renter) managedCreatePublinkFromFileNode(lup modules.SkyfileUploadParameters, metadataBytes []byte, fileNode *filesystem.FileNode, filename string) (modules.Publink, error) {
+func (r *Renter) managedCreatePublinkFromFileNode(lup modules.PubfileUploadParameters, fileNode *filesystem.FileNode) (modules.Publink, error) {
+	// First check if any of the publinks associated with the siafile are
+	// blacklisted
+	skylinkstrs := fileNode.Metadata().Publinks
+	for _, skylinkstr := range skylinkstrs {
+		var publink modules.Publink
+		err := publink.LoadString(skylinkstr)
+		if err != nil {
+			// If there is an error just continue as we shouldn't prevent the
+			// conversion due to bad old publink
+			//
+			// Log the error for debugging purposes
+			r.log.Printf("WARN: previous publink for siafile %v could not be loaded from string; potentially corrupt publink: %v", fileNode.SiaFilePath(), skylinkstr)
+			continue
+		}
+		// Check if publink is blacklisted
+		if r.staticSkynetBlacklist.IsBlacklisted(publink) {
+			// Publink is blacklisted, return error and try and delete file
+			return modules.Publink{}, errors.Compose(ErrPublinkBlacklisted, r.DeleteFile(lup.SiaPath))
+		}
+	}
+
 	// Check that the encryption key and erasure code is compatible with the
 	// pubfile format. This is intentionally done before any heavy computation
 	// to catch early errors.
@@ -276,17 +307,10 @@ func (r *Renter) managedCreatePublinkFromFileNode(lup modules.SkyfileUploadParam
 		return modules.Publink{}, ErrRedundancyNotSupported
 	}
 
-	// Create the metadata for this siafile.
-	if metadataBytes == nil {
-		fm := modules.SkyfileMetadata{
-			Filename: filename,
-			Mode:     fileNode.Mode(),
-		}
-		var err error
-		metadataBytes, err = skyfileMetadataBytes(fm)
-		if err != nil {
-			return modules.Publink{}, errors.AddContext(err, "error retrieving pubfile metadata bytes")
-		}
+	// Marshal the metadata.
+	metadataBytes, err := skyfileMetadataBytes(lup.FileMetadata)
+	if err != nil {
+		return modules.Publink{}, errors.AddContext(err, "error retrieving pubfile metadata bytes")
 	}
 
 	// Create the fanout for the siafile.
@@ -335,9 +359,9 @@ func (r *Renter) managedCreatePublinkFromFileNode(lup modules.SkyfileUploadParam
 		return publink, nil
 	}
 
-	// Check if publink is blacklisted
+	// Check if the new publink is blacklisted
 	if r.staticSkynetBlacklist.IsBlacklisted(publink) {
-		// Publink is blacklisted, return error and try and delete file
+		// publink is blacklisted, return error and try and delete file
 		return modules.Publink{}, errors.Compose(ErrPublinkBlacklisted, r.DeleteFile(lup.SiaPath))
 	}
 
@@ -362,7 +386,7 @@ func (r *Renter) managedCreatePublinkFromFileNode(lup modules.SkyfileUploadParam
 // upload.
 func (r *Renter) managedCreateFileNodeFromReader(up modules.FileUploadParams, reader io.Reader) (*filesystem.FileNode, error) {
 	// Check the upload params first.
-	fileNode, err := r.managedInitUploadStream(up, false)
+	fileNode, err := r.managedInitUploadStream(up)
 	if err != nil {
 		return nil, err
 	}
@@ -473,14 +497,14 @@ func (r *Renter) UpdateSkynetPortals(additions []modules.SkynetPortal, removals 
 // where the fileReader contains all of the data for the file, including the
 // data that uploadSkyfileReadLeadingChunk had to read to figure out whether
 // the file was too large to fit into the leading chunk.
-func uploadSkyfileReadLeadingChunk(lup modules.SkyfileUploadParameters, headerSize uint64) ([]byte, io.Reader, bool, error) {
+func uploadSkyfileReadLeadingChunk(r io.Reader, headerSize uint64) ([]byte, io.Reader, bool, error) {
 	// Check for underflow.
 	if headerSize+1 > modules.SectorSize {
 		return nil, nil, false, ErrMetadataTooBig
 	}
 	// Read data from the reader to fill out the remainder of the first sector.
 	fileBytes := make([]byte, modules.SectorSize-headerSize, modules.SectorSize-headerSize+1) // +1 capacity for the peek byte
-	size, err := io.ReadFull(lup.Reader, fileBytes)
+	size, err := io.ReadFull(r, fileBytes)
 	if err == io.EOF || err == io.ErrUnexpectedEOF {
 		err = nil
 	}
@@ -494,7 +518,7 @@ func uploadSkyfileReadLeadingChunk(lup modules.SkyfileUploadParameters, headerSi
 	// the reader, a small file will be signaled and the data that has been read
 	// will be returned.
 	peek := make([]byte, 1)
-	n, peekErr := io.ReadFull(lup.Reader, peek)
+	n, peekErr := io.ReadFull(r, peek)
 	if peekErr == io.EOF || peekErr == io.ErrUnexpectedEOF {
 		peekErr = nil
 	}
@@ -511,7 +535,7 @@ func uploadSkyfileReadLeadingChunk(lup modules.SkyfileUploadParameters, headerSi
 	// read plus the reader that we read from, effectively creating a new reader
 	// that is identical to the one that was passed in if no data had been read.
 	prependData := append(fileBytes, peek...)
-	fullReader := io.MultiReader(bytes.NewReader(prependData), lup.Reader)
+	fullReader := io.MultiReader(bytes.NewReader(prependData), r)
 	return nil, fullReader, true, nil
 }
 
@@ -519,7 +543,7 @@ func uploadSkyfileReadLeadingChunk(lup modules.SkyfileUploadParameters, headerSi
 // data to a large siafile and upload it to the ScPrime network using
 // 'callUploadStreamFromReader'. The final publink is created by calling
 // 'CreatePublinkFromSiafile' on the resulting siafile.
-func (r *Renter) managedUploadSkyfileLargeFile(lup modules.SkyfileUploadParameters, metadataBytes []byte, fileReader io.Reader) (modules.Publink, error) {
+func (r *Renter) managedUploadSkyfileLargeFile(lup modules.PubfileUploadParameters, fileReader io.Reader) (modules.Publink, error) {
 	// Create the erasure coder to use when uploading the file. When going
 	// through the 'managedUploadSkyfile' command, a 1-of-N scheme is always
 	// used, where the redundancy of the data as a whole matches the proposed
@@ -554,7 +578,7 @@ func (r *Renter) managedUploadSkyfileLargeFile(lup modules.SkyfileUploadParamete
 		if err != nil {
 			return modules.Publink{}, errors.AddContext(err, "unable to get pubaccesskey cipherkey")
 		}
-		fup.CipherType = lup.FileSpecificSkykey.CipherType
+		fup.CipherType = lup.FileSpecificSkykey.CipherType()
 	}
 
 	var fileNode *filesystem.FileNode
@@ -568,7 +592,7 @@ func (r *Renter) managedUploadSkyfileLargeFile(lup modules.SkyfileUploadParamete
 		}
 	} else {
 		// Upload the file using a streamer.
-		fileNode, err = r.callUploadStreamFromReader(fup, fileReader, false)
+		fileNode, err = r.callUploadStreamFromReader(fup, fileReader)
 		if err != nil {
 			return modules.Publink{}, errors.AddContext(err, "unable to upload large pubfile")
 		}
@@ -588,15 +612,18 @@ func (r *Renter) managedUploadSkyfileLargeFile(lup modules.SkyfileUploadParamete
 		}
 	}()
 
+	// Now that we know the filesize, extend the metadata.
+	lup.FileMetadata.Length = fileNode.Size()
+
 	// Convert the new siafile we just uploaded into a pubfile using the
 	// convert function.
-	return r.managedCreatePublinkFromFileNode(lup, metadataBytes, fileNode, siaPath.Name())
+	return r.managedCreatePublinkFromFileNode(lup, fileNode)
 }
 
 // managedUploadBaseSector will take the raw baseSector bytes and upload them,
 // returning the resulting merkle root, and the fileNode of the siafile that is
 // tracking the base sector.
-func (r *Renter) managedUploadBaseSector(lup modules.SkyfileUploadParameters, baseSector []byte, publink modules.Publink) error {
+func (r *Renter) managedUploadBaseSector(lup modules.PubfileUploadParameters, baseSector []byte, publink modules.Publink) error {
 	fileUploadParams, err := fileUploadParamsFromLUP(lup)
 	if err != nil {
 		return errors.AddContext(err, "failed to create siafile upload parameters")
@@ -606,7 +633,7 @@ func (r *Renter) managedUploadBaseSector(lup modules.SkyfileUploadParameters, ba
 	// Perform the actual upload. This will require turning the base sector into
 	// a reader.
 	baseSectorReader := bytes.NewReader(baseSector)
-	fileNode, err := r.callUploadStreamFromReader(fileUploadParams, baseSectorReader, false)
+	fileNode, err := r.callUploadStreamFromReader(fileUploadParams, baseSectorReader)
 	if err != nil {
 		return errors.AddContext(err, "failed to stream upload small pubfile")
 	}
@@ -620,7 +647,14 @@ func (r *Renter) managedUploadBaseSector(lup modules.SkyfileUploadParameters, ba
 // managedUploadSkyfileSmallFile uploads a file that fits entirely in the
 // leading chunk of a pubfile to the ScPrime network and returns the publink that
 // can be used to access the file.
-func (r *Renter) managedUploadSkyfileSmallFile(lup modules.SkyfileUploadParameters, metadataBytes []byte, fileBytes []byte) (modules.Publink, error) {
+func (r *Renter) managedUploadSkyfileSmallFile(lup modules.PubfileUploadParameters, fileBytes []byte) (modules.Publink, error) {
+	// Complete the metadata by setting the length and marshal it.
+	lup.FileMetadata.Length = uint64(len(fileBytes))
+	metadataBytes, err := skyfileMetadataBytes(lup.FileMetadata)
+	if err != nil {
+		return modules.Publink{}, errors.AddContext(err, "unable to retrieve pubfile metadata bytes")
+	}
+
 	ll := skyfileLayout{
 		version:      SkyfileVersion,
 		filesize:     uint64(len(fileBytes)),
@@ -663,7 +697,7 @@ func (r *Renter) managedUploadSkyfileSmallFile(lup modules.SkyfileUploadParamete
 
 // parseSkyfileMetadata will pull the metadata (including layout and fanout) out
 // of a pubfile.
-func parseSkyfileMetadata(baseSector []byte) (sl skyfileLayout, fanoutBytes []byte, sm modules.SkyfileMetadata, baseSectorPayload []byte, err error) {
+func parseSkyfileMetadata(baseSector []byte) (sl skyfileLayout, fanoutBytes []byte, sm modules.PubfileMetadata, baseSectorPayload []byte, err error) {
 	// Sanity check - baseSector should not be more than modules.SectorSize.
 	// Note that the base sector may be smaller in the event of a packed
 	// pubfile.
@@ -678,13 +712,13 @@ func parseSkyfileMetadata(baseSector []byte) (sl skyfileLayout, fanoutBytes []by
 
 	// Check the version.
 	if sl.version != 1 {
-		return skyfileLayout{}, nil, modules.SkyfileMetadata{}, nil, errors.New("unsupported pubfile version")
+		return skyfileLayout{}, nil, modules.PubfileMetadata{}, nil, errors.New("unsupported pubfile version")
 	}
 
 	// Currently there is no support for pubfiles with fanout + metadata that
 	// exceeds the base sector.
 	if offset+sl.fanoutSize+sl.metadataSize > uint64(len(baseSector)) || sl.fanoutSize > modules.SectorSize || sl.metadataSize > modules.SectorSize {
-		return skyfileLayout{}, nil, modules.SkyfileMetadata{}, nil, errors.New("this version of spd does not support pubfiles with large fanouts and metadata")
+		return skyfileLayout{}, nil, modules.PubfileMetadata{}, nil, errors.New("this version of spd does not support pubfiles with large fanouts and metadata")
 	}
 
 	// Parse the fanout.
@@ -698,7 +732,7 @@ func parseSkyfileMetadata(baseSector []byte) (sl skyfileLayout, fanoutBytes []by
 	metadataSize := sl.metadataSize
 	err = json.Unmarshal(baseSector[offset:offset+metadataSize], &sm)
 	if err != nil {
-		return skyfileLayout{}, nil, modules.SkyfileMetadata{}, nil, errors.AddContext(err, "unable to parse SkyfileMetadata from pubfile base sector")
+		return skyfileLayout{}, nil, modules.PubfileMetadata{}, nil, errors.AddContext(err, "unable to parse PubfileMetadata from pubfile base sector")
 	}
 	offset += metadataSize
 
@@ -712,40 +746,58 @@ func parseSkyfileMetadata(baseSector []byte) (sl skyfileLayout, fanoutBytes []by
 
 // DownloadPublink will take a link and turn it into the metadata and data of a
 // download.
-func (r *Renter) DownloadPublink(link modules.Publink, timeout time.Duration) (modules.SkyfileMetadata, modules.Streamer, error) {
+func (r *Renter) DownloadPublink(link modules.Publink, timeout time.Duration) (modules.PubfileMetadata, modules.Streamer, error) {
+	if r.deps.Disrupt("resolveSkylinkToFixture") {
+		sf, err := fixtures.LoadPublinkFixture(link)
+		if err != nil {
+			return modules.PubfileMetadata{}, nil, errors.AddContext(err, "failed to fetch fixture")
+		}
+		return sf.Metadata, streamerFromSlice(sf.Content), nil
+	}
+
 	// Check if link is blacklisted
 	if r.staticSkynetBlacklist.IsBlacklisted(link) {
-		return modules.SkyfileMetadata{}, nil, ErrPublinkBlacklisted
+		return modules.PubfileMetadata{}, nil, ErrPublinkBlacklisted
+	}
+
+	// Check if this publink is already in the stream buffer set. If so, we can
+	// skip the lookup procedure and use any data that other threads have
+	// cached.
+	id := link.DataSourceID()
+	streamer, exists := r.staticStreamBufferSet.callNewStreamFromID(id, 0)
+	if exists {
+		return streamer.Metadata(), streamer, nil
 	}
 
 	// Pull the offset and fetchSize out of the publink.
 	offset, fetchSize, err := link.OffsetAndFetchSize()
 	if err != nil {
-		return modules.SkyfileMetadata{}, nil, errors.AddContext(err, "unable to parse publink")
+		return modules.PubfileMetadata{}, nil, errors.AddContext(err, "unable to parse publink")
 	}
 
 	// Fetch the leading chunk.
 	baseSector, err := r.DownloadByRoot(link.MerkleRoot(), offset, fetchSize, timeout)
 	if err != nil {
-		return modules.SkyfileMetadata{}, nil, errors.AddContext(err, "unable to fetch base sector of publink")
+		return modules.PubfileMetadata{}, nil, errors.AddContext(err, "unable to fetch base sector of publink")
 	}
 	if len(baseSector) < SkyfileLayoutSize {
-		return modules.SkyfileMetadata{}, nil, errors.New("download did not fetch enough data, layout cannot be decoded")
+		return modules.PubfileMetadata{}, nil, errors.New("download did not fetch enough data, layout cannot be decoded")
 	}
 
 	// Check if the base sector is encrypted, and attempt to decrypt it.
 	// This will fail if we don't have the decryption key.
+	var fileSpecificSkykey pubaccesskey.Pubaccesskey
 	if isEncryptedBaseSector(baseSector) {
-		err = r.decryptBaseSector(baseSector)
+		fileSpecificSkykey, err = r.decryptBaseSector(baseSector)
 		if err != nil {
-			return modules.SkyfileMetadata{}, nil, errors.AddContext(err, "Unable to decrypt pubfile base sector")
+			return modules.PubfileMetadata{}, nil, errors.AddContext(err, "Unable to decrypt pubfile base sector")
 		}
 	}
 
 	// Parse out the metadata of the pubfile.
 	layout, fanoutBytes, metadata, baseSectorPayload, err := parseSkyfileMetadata(baseSector)
 	if err != nil {
-		return modules.SkyfileMetadata{}, nil, errors.AddContext(err, "error parsing pubfile metadata")
+		return modules.PubfileMetadata{}, nil, errors.AddContext(err, "error parsing pubfile metadata")
 	}
 
 	// If there is no fanout, all of the data will be contained in the base
@@ -756,16 +808,16 @@ func (r *Renter) DownloadPublink(link modules.Publink, timeout time.Duration) (m
 	}
 
 	// There is a fanout, create a fanout streamer and return that.
-	fs, err := r.newFanoutStreamer(link, layout, fanoutBytes, timeout)
+	fs, err := r.newFanoutStreamer(link, layout, metadata, fanoutBytes, timeout, fileSpecificSkykey)
 	if err != nil {
-		return modules.SkyfileMetadata{}, nil, errors.AddContext(err, "unable to create fanout fetcher")
+		return modules.PubfileMetadata{}, nil, errors.AddContext(err, "unable to create fanout fetcher")
 	}
 	return metadata, fs, nil
 }
 
 // PinPublink wil fetch the file associated with the Publink, and then pin all
 // necessary content to maintain that Publink.
-func (r *Renter) PinPublink(publink modules.Publink, lup modules.SkyfileUploadParameters, timeout time.Duration) error {
+func (r *Renter) PinPublink(publink modules.Publink, lup modules.PubfileUploadParameters, timeout time.Duration) error {
 	// Check if link is blacklisted
 	if r.staticSkynetBlacklist.IsBlacklisted(publink) {
 		return ErrPublinkBlacklisted
@@ -784,16 +836,17 @@ func (r *Renter) PinPublink(publink modules.Publink, lup modules.SkyfileUploadPa
 	}
 
 	// Check if the base sector is encrypted, and attempt to decrypt it.
+	var fileSpecificSkykey pubaccesskey.Pubaccesskey
 	encrypted := isEncryptedBaseSector(baseSector)
 	if encrypted {
-		err = r.decryptBaseSector(baseSector)
+		fileSpecificSkykey, err = r.decryptBaseSector(baseSector)
 		if err != nil {
 			return errors.AddContext(err, "Unable to decrypt pubfile base sector")
 		}
 	}
 
 	// Parse out the metadata of the pubfile.
-	layout, fanoutBytes, _, _, err := parseSkyfileMetadata(baseSector)
+	layout, fanoutBytes, metadata, _, err := parseSkyfileMetadata(baseSector)
 	if err != nil {
 		return errors.AddContext(err, "error parsing pubfile metadata")
 	}
@@ -808,10 +861,6 @@ func (r *Renter) PinPublink(publink modules.Publink, lup modules.SkyfileUploadPa
 
 	// Re-encrypt the baseSector for upload and add the fanout key to the fup.
 	if encrypted {
-		fileSpecificSkykey, err := r.deriveFileSpecificKey(&layout)
-		if err != nil {
-			return errors.AddContext(err, "Unable to derive file-specific Pubaccesskey")
-		}
 		err = encryptBaseSectorWithSkykey(baseSector, layout, fileSpecificSkykey)
 		if err != nil {
 			return errors.AddContext(err, "Error re-encrypting base sector")
@@ -826,7 +875,7 @@ func (r *Renter) PinPublink(publink modules.Publink, lup modules.SkyfileUploadPa
 		if err != nil {
 			return errors.AddContext(err, "Error getting fanout CipherKey")
 		}
-		fup.CipherType = fanoutSkykey.CipherType
+		fup.CipherType = fanoutSkykey.CipherType()
 
 		// These fields aren't used yet, but we'll set them anyway to mimic behavior in
 		// upload/download code for consistency.
@@ -857,13 +906,13 @@ func (r *Renter) PinPublink(publink modules.Publink, lup modules.SkyfileUploadPa
 	}
 
 	// Create the fanout streamer that will download the file.
-	streamer, err := r.newFanoutStreamer(publink, layout, fanoutBytes, timeout)
+	streamer, err := r.newFanoutStreamer(publink, layout, metadata, fanoutBytes, timeout, fileSpecificSkykey)
 	if err != nil {
 		return errors.AddContext(err, "Failed to create fanout streamer for large pubfile pin")
 	}
 
 	// Upload directly from the fanout download streamer.
-	fileNode, err := r.callUploadStreamFromReader(fup, streamer, false)
+	fileNode, err := r.callUploadStreamFromReader(fup, streamer)
 	if err != nil {
 		return errors.AddContext(err, "unable to upload large pubfile")
 	}
@@ -878,7 +927,7 @@ func (r *Renter) PinPublink(publink modules.Publink, lup modules.SkyfileUploadPa
 // returning a publink which can be used by any viewnode to recover the full
 // original file and metadata. The publink will be unique to the combination of
 // both the file data and metadata.
-func (r *Renter) UploadSkyfile(lup modules.SkyfileUploadParameters) (modules.Publink, error) {
+func (r *Renter) UploadSkyfile(lup modules.PubfileUploadParameters) (modules.Publink, error) {
 	// Set reasonable default values for any lup fields that are blank.
 	err := skyfileEstablishDefaults(&lup)
 	if err != nil {
@@ -897,7 +946,7 @@ func (r *Renter) UploadSkyfile(lup modules.SkyfileUploadParameters) (modules.Pub
 			return modules.Publink{}, errors.AddContext(err, "UploadSkyfile unable to generate subkey")
 		}
 	} else if encryptionEnabled(lup) {
-		key, err := r.SkykeyByID(lup.SkykeyID)
+		key, err := r.SkykeyByID(lup.PubaccesskeyID)
 		if err != nil {
 			return modules.Publink{}, errors.AddContext(err, "UploadSkyfile unable to get pubaccesskey")
 		}
@@ -915,8 +964,12 @@ func (r *Renter) UploadSkyfile(lup modules.SkyfileUploadParameters) (modules.Pub
 		return modules.Publink{}, errors.New("need to provide a stream of upload data")
 	}
 
-	// Grab the metadata bytes.
-	metadataBytes, err := skyfileMetadataBytes(lup.FileMetadata)
+	// Create a dummy metadata and marshal it for computing the size of the
+	// header. By using the maximum length, we make sure that we reserve enough
+	// space.
+	dummyMD := lup.FileMetadata
+	dummyMD.Length = math.MaxUint64
+	dummyMDBytes, err := skyfileMetadataBytes(dummyMD)
 	if err != nil {
 		return modules.Publink{}, errors.AddContext(err, "unable to retrieve pubfile metadata bytes")
 	}
@@ -927,16 +980,16 @@ func (r *Renter) UploadSkyfile(lup modules.SkyfileUploadParameters) (modules.Pub
 	// the leading chunk, a separate method will be called to upload the file
 	// separately using upload streaming, and then the siafile conversion
 	// function will be used to generate the final publink.
-	headerSize := uint64(SkyfileLayoutSize + len(metadataBytes))
-	fileBytes, fileReader, largeFile, err := uploadSkyfileReadLeadingChunk(lup, headerSize)
+	headerSize := uint64(SkyfileLayoutSize + len(dummyMDBytes))
+	fileBytes, fileReader, largeFile, err := uploadSkyfileReadLeadingChunk(lup.Reader, headerSize)
 	if err != nil {
 		return modules.Publink{}, errors.AddContext(err, "unable to retrieve leading chunk file bytes")
 	}
 	var publink modules.Publink
 	if largeFile {
-		publink, err = r.managedUploadSkyfileLargeFile(lup, metadataBytes, fileReader)
+		publink, err = r.managedUploadSkyfileLargeFile(lup, fileReader)
 	} else {
-		publink, err = r.managedUploadSkyfileSmallFile(lup, metadataBytes, fileBytes)
+		publink, err = r.managedUploadSkyfileSmallFile(lup, fileBytes)
 	}
 	if err != nil {
 		return modules.Publink{}, errors.AddContext(err, "unable to upload pubfile")

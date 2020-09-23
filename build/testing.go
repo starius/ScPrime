@@ -3,12 +3,13 @@ package build
 import (
 	"archive/tar"
 	"compress/gzip"
-	"errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 var (
@@ -21,29 +22,31 @@ var (
 // testing directory.
 func TempDir(dirs ...string) string {
 	path := filepath.Join(SiaTestingDir, filepath.Join(dirs...))
-	os.RemoveAll(path) // remove old test data
+	// remove old test data
+	_ = os.RemoveAll(path) // ignore error instead of panicking in production
 	return path
 }
 
 // CopyFile copies a file from a source to a destination.
-func CopyFile(source, dest string) error {
+func CopyFile(source, dest string) (err error) {
 	sf, err := os.Open(source)
 	if err != nil {
-		return err
+		return
 	}
-	defer sf.Close()
+	defer func() {
+		err = errors.Compose(err, sf.Close())
+	}()
 
 	df, err := os.Create(dest)
 	if err != nil {
-		return err
+		return
 	}
-	defer df.Close()
+	defer func() {
+		err = errors.Compose(err, df.Close())
+	}()
 
 	_, err = io.Copy(df, sf)
-	if err != nil {
-		return err
-	}
-	return nil
+	return
 }
 
 // CopyDir copies a directory and all of its contents to the destination
@@ -86,13 +89,15 @@ func CopyDir(source, dest string) error {
 
 // ExtractTarGz extracts the specified .tar.gz file to dir, overwriting
 // existing files in the event of a name conflict.
-func ExtractTarGz(filename, dir string) error {
+func ExtractTarGz(filename, dir string) (err error) {
 	// Open the zipped archive.
 	file, err := os.Open(filename)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		err = errors.AddContext(errors.Compose(err, file.Close()), "Error extracting archive")
+	}()
 	z, err := gzip.NewReader(file)
 	if err != nil {
 		return err
@@ -128,8 +133,10 @@ func ExtractTarGz(filename, dir string) error {
 			if err != nil {
 				return err
 			}
-			_, err = io.Copy(tf, t)
-			tf.Close()
+			defer func() {
+				err = errors.Compose(err, tf.Close())
+			}()
+			_, err = io.Copy(tf, t) //nolint:gosec
 			if err != nil {
 				return err
 			}

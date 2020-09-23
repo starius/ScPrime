@@ -352,7 +352,7 @@ func RenewContractsByRenewWindow(renter *TestNode, tg *TestGroup) error {
 		return errors.New("No Active Contracts")
 	}
 
-	targetHeight := rc.ActiveContracts[0].EndHeight - rg.Settings.Allowance.RenewWindow/2
+	targetHeight := rc.ActiveContracts[0].EndHeight - rg.Settings.Allowance.RenewWindow + 1
 
 	m := tg.Miners()[0]
 	currentHeight, err := m.BlockHeight()

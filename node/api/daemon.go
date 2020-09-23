@@ -2,6 +2,7 @@ package api
 
 //TODO: Enable upgrading
 import (
+	"runtime"
 
 	//"archive/zip"
 	//"bytes"
@@ -137,6 +138,18 @@ type (
 		// ScPrimecoinPrecision is the number of base units in a scprimecoin that is used
 		// by clients (1 SCP = 10^27 H).
 		ScPrimecoinPrecision types.Currency `json:"scprimecoinprecision"`
+	}
+
+	// DaemonStackGet contains information about the daemon's stack.
+	DaemonStackGet struct {
+		Stack []byte `json:"stack"`
+	}
+
+	// DaemonSettingsGet contains information about global daemon settings.
+	DaemonSettingsGet struct {
+		MaxDownloadSpeed int64         `json:"maxdownloadspeed"`
+		MaxUploadSpeed   int64         `json:"maxuploadspeed"`
+		Modules          configModules `json:"modules"`
 	}
 
 	// DaemonVersion holds the version information for spd
@@ -432,6 +445,22 @@ func (api *API) daemonConstantsHandler(w http.ResponseWriter, _ *http.Request, _
 	WriteJSON(w, sc)
 }
 
+// daemonStackHandlerGET handles the API call that requests the daemon's stack trace.
+func (api *API) daemonStackHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	// Get the stack traces of all running goroutines.
+	stack := make([]byte, modules.StackSize)
+	n := runtime.Stack(stack, true)
+	if n == 0 {
+		WriteError(w, Error{"no stack trace pulled"}, http.StatusInternalServerError)
+		return
+	}
+
+	// Return the n bytes of the stack that were used.
+	WriteJSON(w, DaemonStackGet{
+		Stack: stack[:n],
+	})
+}
+
 // daemonVersionHandler handles the API call that requests the daemon's version.
 func (api *API) daemonVersionHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	version := build.Version
@@ -446,29 +475,23 @@ func (api *API) daemonStopHandler(w http.ResponseWriter, _ *http.Request, _ http
 	// can't write after we stop the server, so lie a bit.
 	WriteSuccess(w)
 
-	// need to flush the response before shutting down the server
-	f, ok := w.(http.Flusher)
-	if !ok {
-		panic("Server does not support flushing")
-	}
-	f.Flush()
-
-	if err := api.Shutdown(); err != nil {
-		build.Critical(err)
-	}
-}
-
-// DaemonSettingsGet contains information about global daemon settings.
-type DaemonSettingsGet struct {
-	MaxDownloadSpeed int64 `json:"maxdownloadspeed"`
-	MaxUploadSpeed   int64 `json:"maxuploadspeed"`
+	// Shutdown in a separate goroutine to prevent a deadlock.
+	go func() {
+		if err := api.Shutdown(); err != nil {
+			build.Critical(err)
+		}
+	}()
 }
 
 // daemonSettingsHandlerGET handles the API call asking for the daemon's
 // settings.
-func (api *API) daemonSettingsHandlerGET(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (api *API) daemonSettingsHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	gmds, gmus, _ := modules.GlobalRateLimits.Limits()
-	WriteJSON(w, DaemonSettingsGet{gmds, gmus})
+	WriteJSON(w, DaemonSettingsGet{
+		MaxDownloadSpeed: gmds,
+		MaxUploadSpeed:   gmus,
+		Modules:          api.staticConfigModules,
+	})
 }
 
 // daemonSettingsHandlerPOST handles the API call changing daemon specific

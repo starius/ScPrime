@@ -2,28 +2,38 @@ package renter
 
 import (
 	"encoding/json"
-	"io"
-	"strings"
+	"fmt"
 	"sync/atomic"
 	"time"
 	"unsafe"
+
+	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
-// updateTimeInterval defines the amount of time after which we'll update the
-// host's prices. This is a temporary variable and will be replaced when we add
-// a duration to the host's price table. For now it's just half of the
-// rpcPriceGuaranteePeriod set on the host
-//
-// TODO: Need to switch to setting the price table update based on the host
-// timeout instead.
-var updateTimeInterval = build.Select(build.Var{
-	Standard: 5 * time.Minute,
-	Dev:      3 * time.Minute,
-	Testing:  7 * time.Second,
-}).(time.Duration)
+const (
+	// updatePriceTableGougingPercentageThreshold is the percentage threshold,
+	// in relation to the allowance, at which we consider the cost of updating
+	// the price table to be too expensive. E.g. the cost of updating the price
+	// table over the total allowance period should never exceed 1% of the total
+	// allowance.
+	updatePriceTableGougingPercentageThreshold = .01
+)
+
+var (
+	// errPriceTableGouging is returned when price gouging is detected
+	errPriceTableGouging = errors.New("price table rejected due to price gouging")
+
+	// minAcceptedPriceTableValidity is the minimum price table validity
+	// the renter will accept.
+	minAcceptedPriceTableValidity = build.Select(build.Var{
+		Standard: 5 * time.Minute,
+		Dev:      1 * time.Minute,
+		Testing:  10 * time.Second,
+	}).(time.Duration)
+)
 
 type (
 	// workerPriceTable contains a price table and some information related to
@@ -32,29 +42,35 @@ type (
 		// The actual price table.
 		staticPriceTable modules.RPCPriceTable
 
+		// The time at which the price table expires.
+		staticExpiryTime time.Time
+
 		// The next time that the worker should try to update the price table.
 		staticUpdateTime time.Time
-
-		// The number of consecutive failures that the worker has experienced in
-		// trying to fetch the price table. This number is used to inform
-		// staticUpdateTime, a larger number of consecutive failures will result in
-		// greater backoff on fetching the price table.
-		staticConsecutiveFailures uint64
 
 		// staticRecentErr specifies the most recent error that the worker's
 		// price table update has failed with.
 		staticRecentErr error
+
+		// staticRecentErrTime specifies the time at which the most recent
+		// occurred
+		staticRecentErrTime time.Time
 	}
 )
 
-// staticNeedsPriceTableUpdate is a helper function that determines whether the
-// price table should be updated.
-func (w *worker) staticNeedsPriceTableUpdate() bool {
-	// Check the version.
+// managedNeedsToUpdatePriceTable returns true if the renter needs to update its
+// host prices.
+func (w *worker) managedNeedsToUpdatePriceTable() bool {
+	// No need to update the prices if the worker's host does not support RHP3.
 	if build.VersionCmp(w.staticCache().staticHostVersion, minAsyncVersion) < 0 {
 		return false
 	}
-	return time.Now().After(w.staticPriceTable().staticUpdateTime)
+	// No need to update the price table if the worker's RHP3 is on cooldown.
+	if w.managedOnMaintenanceCooldown() {
+		return false
+	}
+
+	return w.staticPriceTable().staticNeedsToUpdate()
 }
 
 // newPriceTable will initialize a price table for the worker.
@@ -85,7 +101,13 @@ func (w *worker) staticSetPriceTable(pt *workerPriceTable) {
 // before the current time, and the price table expiry defaults to the zero
 // time.
 func (wpt *workerPriceTable) staticValid() bool {
-	return wpt.staticPriceTable.Expiry > time.Now().Unix()
+	return time.Now().Before(wpt.staticExpiryTime)
+}
+
+// staticNeedsToUpdate returns whether or not the price table needs to be
+// updated.
+func (wpt *workerPriceTable) staticNeedsToUpdate() bool {
+	return time.Now().After(wpt.staticUpdateTime)
 }
 
 // managedUpdatePriceTable performs the UpdatePriceTableRPC on the host.
@@ -125,22 +147,40 @@ func (w *worker) staticUpdatePriceTable() {
 	var err error
 	currentPT := w.staticPriceTable()
 	defer func() {
-		if err != nil {
-			// Because of race conditions, can't modify the existing price
-			// table, need to make a new one.
-			pt := &workerPriceTable{
-				staticPriceTable:          currentPT.staticPriceTable,
-				staticUpdateTime:          cooldownUntil(currentPT.staticConsecutiveFailures),
-				staticConsecutiveFailures: currentPT.staticConsecutiveFailures + 1,
-				staticRecentErr:           err,
-			}
-			w.staticSetPriceTable(pt)
+		// Track the result of the pricetable update, in case of failure this
+		// will increment the cooldown, in case of success this will try and
+		// reset the cooldown, depending on whether the other maintenance tasks
+		// were completed successfully.
+		cd := w.managedTrackPriceTableUpdateErr(err)
+
+		// If there was no error, return.
+		if err == nil {
+			return
+		}
+
+		// Because of race conditions, can't modify the existing price
+		// table, need to make a new one.
+		pt := &workerPriceTable{
+			staticPriceTable:    currentPT.staticPriceTable,
+			staticExpiryTime:    currentPT.staticExpiryTime,
+			staticUpdateTime:    cd,
+			staticRecentErr:     err,
+			staticRecentErrTime: time.Now(),
+		}
+		w.staticSetPriceTable(pt)
+
+		// If the error could be caused by a revision number mismatch,
+		// signal it by setting the flag.
+		if errCausedByRevisionMismatch(err) {
+			w.staticSetSuspectRevisionMismatch()
+			w.staticWake()
 		}
 	}()
 
 	// Get a stream.
 	stream, err := w.staticNewStream()
 	if err != nil {
+		err = errors.AddContext(err, "unable to create new stream")
 		return
 	}
 	defer func() {
@@ -156,6 +196,7 @@ func (w *worker) staticUpdatePriceTable() {
 	// write the specifier
 	err = modules.RPCWrite(stream, modules.RPCUpdatePriceTable)
 	if err != nil {
+		err = errors.AddContext(err, "unable to write price table specifier")
 		return
 	}
 
@@ -163,6 +204,7 @@ func (w *worker) staticUpdatePriceTable() {
 	var uptr modules.RPCUpdatePriceTableResponse
 	err = modules.RPCRead(stream, &uptr)
 	if err != nil {
+		err = errors.AddContext(err, "unable to read price table response")
 		return
 	}
 
@@ -170,43 +212,85 @@ func (w *worker) staticUpdatePriceTable() {
 	var pt modules.RPCPriceTable
 	err = json.Unmarshal(uptr.PriceTableJSON, &pt)
 	if err != nil {
+		err = errors.AddContext(err, "unable to unmarshal price table")
 		return
 	}
 
-	// TODO: Check for gouging before paying. The cost of the price table RPC
-	// should be very little more (less than 2x) than the cost of the bandwidth.
-	//
-	// Also check that the host didn't suddenly bump some other price to
-	// unreasonable levels. If the host did, the renter will reject the price
-	// table and effectively disable the worker.
+	// check for gouging before paying
+	err = checkUpdatePriceTableGouging(pt, w.staticCache().staticRenterAllowance)
+	if err != nil {
+		err = errors.Compose(err, errors.AddContext(errPriceTableGouging, fmt.Sprintf("host %v", w.staticHostPubKeyStr)))
+		w.renter.log.Println("ERROR: ", err)
+		return
+	}
 
 	// provide payment
 	err = w.renter.hostContractor.ProvidePayment(stream, w.staticHostPubKey, modules.RPCUpdatePriceTable, pt.UpdatePriceTableCost, w.staticAccount.staticID, w.staticCache().staticBlockHeight)
 	if err != nil {
+		err = errors.AddContext(err, "unable to provide payment")
 		return
 	}
 
 	// The price table will not become valid until the host has received and
-	// confirmed our payment. The only way for us to know that the payment has
-	// been confirmed is to do a read, and we expect that the host has closed
-	// the stream.
-	//
-	// TODO: Since this part is necessary for synchrony reasons, we should make
-	// it an explicit part of the protocol and have the host send an actual
-	// response.
-	expectedReadErr := modules.RPCRead(stream, struct{}{})
-	if expectedReadErr == nil || !strings.Contains(expectedReadErr.Error(), io.ErrClosedPipe.Error()) {
-		w.renter.log.Println("ERROR: expected io.ErrClosedPipe, instead received err:", expectedReadErr)
+	// confirmed our payment. The host will signal this by sending an empty
+	// response object we need to read.
+	var tracked modules.RPCTrackedPriceTableResponse
+	err = modules.RPCRead(stream, &tracked)
+	if err != nil {
+		err = errors.AddContext(err, "unable to read tracked response")
+		return
 	}
+
+	// Calculate the expiry time and set the update time to be half of the
+	// expiry window to ensure we update the PT before it expires
+	now := time.Now()
+	expiryTime := now.Add(pt.Validity)
+	expiryHalfTimeInS := (expiryTime.Unix() - now.Unix()) / 2
+	expiryHalfTime := time.Duration(expiryHalfTimeInS) * time.Second
+	newUpdateTime := time.Now().Add(expiryHalfTime)
 
 	// Update the price table. We preserve the recent error even though there
 	// has not been an error for debugging purposes, if there has been an error
 	// previously the devs like to be able to see what it was.
 	wpt := &workerPriceTable{
-		staticPriceTable:          pt,
-		staticUpdateTime:          time.Now().Add(updateTimeInterval),
-		staticConsecutiveFailures: 0,
-		staticRecentErr:           currentPT.staticRecentErr,
+		staticPriceTable:    pt,
+		staticExpiryTime:    expiryTime,
+		staticUpdateTime:    newUpdateTime,
+		staticRecentErr:     currentPT.staticRecentErr,
+		staticRecentErrTime: currentPT.staticRecentErrTime,
 	}
 	w.staticSetPriceTable(wpt)
+}
+
+// checkUpdatePriceTableGouging verifies the cost of updating the price table is
+// reasonable, if deemed unreasonable we will reject it and this worker will be
+// put into cooldown.
+func checkUpdatePriceTableGouging(pt modules.RPCPriceTable, allowance modules.Allowance) error {
+	// If there is no allowance, price gouging checks have to be disabled,
+	// because there is no baseline for understanding what might count as price
+	// gouging.
+	if allowance.Funds.IsZero() {
+		return nil
+	}
+
+	// Verify the validity is reasonable
+	if pt.Validity < minAcceptedPriceTableValidity {
+		return fmt.Errorf("update price table validity %v is considered too low, the minimum accepted validity is %v", pt.Validity, minAcceptedPriceTableValidity)
+	}
+
+	// In order to decide whether or not the update price table cost is too
+	// expensive, we first have to calculate how many times we'll need to update
+	// the price table over the entire allowance period
+	durationInS := int64(pt.Validity.Seconds())
+	periodInS := int64(allowance.Period) * 10 * 60 // period times 10m blocks
+	numUpdates := periodInS / durationInS
+
+	// The cost of updating is considered too expensive if the total cost is
+	// above a certain % of the allowance.
+	totalUpdateCost := pt.UpdatePriceTableCost.Mul64(uint64(numUpdates))
+	if totalUpdateCost.Cmp(allowance.Funds.MulFloat(updatePriceTableGougingPercentageThreshold)) > 0 {
+		return fmt.Errorf("update price table cost %v is considered too high, the total cost over the entire duration of the allowance periods exceeds %v%% of the allowance - price gouging protection enabled", pt.UpdatePriceTableCost, updatePriceTableGougingPercentageThreshold)
+	}
+
+	return nil
 }

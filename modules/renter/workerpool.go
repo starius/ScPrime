@@ -39,16 +39,17 @@ func (wp *workerPool) callStatus() modules.WorkerPoolStatus {
 
 	// Fetch the list of workers from the worker pool.
 
-	var totalDownloadCoolDown, totalUploadCoolDown int
+	var totalDownloadCoolDown, totalMaintenanceCoolDown, totalUploadCoolDown int
 	var statuss []modules.WorkerStatus // Plural of status is statuss, deal with it.
 	workers := wp.callWorkers()
 	for _, w := range workers {
 		// Get the status of the worker.
-		w.mu.Lock()
-		status := w.status()
-		w.mu.Unlock()
+		status := w.callStatus()
 		if status.DownloadOnCoolDown {
 			totalDownloadCoolDown++
+		}
+		if status.MaintenanceOnCooldown {
+			totalMaintenanceCoolDown++
 		}
 		if status.UploadOnCoolDown {
 			totalUploadCoolDown++
@@ -56,10 +57,11 @@ func (wp *workerPool) callStatus() modules.WorkerPoolStatus {
 		statuss = append(statuss, status)
 	}
 	return modules.WorkerPoolStatus{
-		NumWorkers:            len(wp.workers),
-		TotalDownloadCoolDown: totalDownloadCoolDown,
-		TotalUploadCoolDown:   totalUploadCoolDown,
-		Workers:               statuss,
+		NumWorkers:               len(wp.workers),
+		TotalDownloadCoolDown:    totalDownloadCoolDown,
+		TotalMaintenanceCoolDown: totalMaintenanceCoolDown,
+		TotalUploadCoolDown:      totalUploadCoolDown,
+		Workers:                  statuss,
 	}
 }
 
@@ -70,6 +72,10 @@ func (wp *workerPool) callUpdate() {
 	contractSlice := wp.renter.hostContractor.Contracts()
 	contractMap := make(map[string]modules.RenterContract, len(contractSlice))
 	for _, contract := range contractSlice {
+		if contract.Utility.BadContract {
+			// Do not create workers for bad contracts.
+			continue
+		}
 		contractMap[contract.HostPublicKey.String()] = contract
 	}
 
@@ -93,16 +99,10 @@ func (wp *workerPool) callUpdate() {
 		wp.workers[id] = w
 
 		// Start the work loop in a separate goroutine
-		go func() {
-			// We have to call tg.Add inside of the goroutine because we are
-			// holding the workerpool's mutex lock and it's not permitted to
-			// call tg.Add while holding a lock.
-			if err := wp.renter.tg.Add(); err != nil {
-				return
-			}
-			defer wp.renter.tg.Done()
-			w.threadedWorkLoop()
-		}()
+		err = wp.renter.tg.Launch(w.threadedWorkLoop)
+		if err != nil {
+			return
+		}
 	}
 
 	// Remove a worker for any worker that is not in the set of new contracts.
@@ -117,7 +117,9 @@ func (wp *workerPool) callUpdate() {
 		_, exists := contractMap[id]
 		if !exists {
 			delete(wp.workers, id)
-			close(worker.killChan)
+			// Kill the worker in a goroutine. This avoids locking issues, as
+			// wp.mu is currently locked.
+			go worker.managedKill()
 		}
 	}
 }
@@ -167,7 +169,9 @@ func (r *Renter) newWorkerPool() *workerPool {
 	wp.renter.tg.OnStop(func() error {
 		wp.mu.RLock()
 		for _, w := range wp.workers {
-			close(w.killChan)
+			// Kill the worker in a goroutine. This avoids locking issues, as
+			// wp.mu is currently read locked.
+			go w.managedKill()
 		}
 		wp.mu.RUnlock()
 		return nil

@@ -1,7 +1,124 @@
-## May 2020:
-### v1.4.3
+
+### v1.4.4
+
+**Key Updates**
+- Add `FeeManager` to siad to allow for applications to charge a fee
+- Add start time for the API server for siad uptime
+- Add new `/consensus/subscribe/:id` endpoint to allow subscribing to consensus
+  change events
+- Add /pubaccesskeys endpoint and `spc pubaccesskey ls` command
+- Updated pubaccesskey encoding and format
 
 **Bugs Fixed**
+- fixed issue where workers would freeze for a bit after a new block appeared
+- fix call to expensive operation in tight loop
+- fix an infinite loop which would block uploads from progressing
+
+**Other**
+- Add Pubaccesskey Name and ID to pubaccesskey GET responses
+- Optimize bandwidth consumption for RPC write calls
+- Extend `/daemon/alerts` with `criticalalerts`, `erroralerts` and
+  `warningalerts` fields along with `alerts`.
+- Update pubaccesskey spc functions to accept httpClient and remove global httpClient
+  reference from spc testing
+- Skykeycmd test broken down to subtests.
+- Create spc testing helpers.
+- Add engineering guidelines to /doc
+- Introduce PaymentProvider interface on the renter.
+- Pubaccess persistence subsystems into shared system.
+- Update Cobra from v0.0.5 to v1.0.0.
+- persist/log.go has been extracted and is now a simple wrapper around the new
+log repo.
+
+### v1.4.3.0
+**Key Updates**
+- Enable FundEphemeralAccountRPC on the host
+- Enable UpdatePriceTableRPC on the host
+- Add `startheight` and `endheight` flags for `spc wallet transactions`
+  pagination
+- Add progress bars to Pubaccess uploads. Those can be disabled by passing the
+  `--silent` flag.
+- Add the Execute Program RPC to the host
+- Added Pubaccesskey API endpoints and spc commands.
+- Add /pubaccess/portals API endpoints.
+- Add MinBaseRPCPrice and MinSectorAccessPrice to `spc host -v`
+- Add `basePriceAdjustment` to the host score to check for `BaseRPCPrice` and
+  `SectorAccessPrice` price violations.
+- Add support for unpinning directories from Pubaccess.
+- Add support for unpinning multiple files in a single command.
+- Change payment processing to always use ephemeral accounts, even for contract
+  payments
+- Increase renew alert severity in 2nd half of renew window
+- Prioritize remote repairs
+- Add SIAD_DATA_DIR environment variable which tells `siad` where to store the
+  siad-specific data. This complements the SIA_DATA_DIR variable which tells
+  `siad` where to store general Sia data, such as the API password,
+  configuration, etc.
+- Update the `spc renter` summaries to use the `root` flags for the API calls
+- Add `root` flag to `renter/rename` so that all file in the filesystem can be
+  renamed
+- Allow for `wallet/verifypassword` endpoint to accept the primary seed as well
+  as a password
+- Add `/renter/workers` API endpoint to get the current status of the workers.
+  This pulls it out of the log files as well. 
+- Add `spc renter workers` command to spc
+- Add valid and missed proof outputs to StorageObligation for `/host/contracts` 
+- Split up contract files into a .header and .roots file. Causes contract
+  insertion to be ACID and fixes a rare panic when loading the contractset.
+- Add `--dry-run` parameter to Pubaccess upload
+- Set ratio for `MinBaseRPCPrice` and `MinSectorAccessPrice` with
+  `MinDownloadBandwidthPrice`
+
+**Bugs Fixed**
+- Fix decode bug for the rpcResponse object
+- Fix bug in rotation of fingerprint buckets
+- fix hostdb log being incorrectly named
+- Refactor the environment variables into the `build` package to address bug
+  where `spc` and `siad` could be using different API Passwords.
+- Fix bug in converting siafile to pubfile and enable testing.
+- Fixed bug in bubble code that would overwrite the `siadir` metadata with old
+  metadata
+- Fixed the output of `spc pubaccess ls` not counting subdirectories.
+- Fix a bug in `parsePercentages` and added randomized testing
+- Fixed bug where backups where not being repaired
+- The `AggregateNumSubDirs` count was fixed as it was always 0. This is a piece
+  of metadata keeping track of the number of all subdirs of a directory, counted
+  recursively.
+- Address missed locations of API error returns for handling of Modules not
+  running
+- add missing local ranges to IsLocal function
+- workers now more consistently use the most recent contract
+- improved performance logging in repair.log, especially in debug mode
+- general upload performance improvements (minor)
+- Fixed bug in `spc renter -v` where the health summary wasn't considering
+  `OnDisk` when deciding if the file was recoverable
+- Fix panic condition in Renter's `uploadheap` due to change in chunk's stuck
+  status
+- renewed contracts must be marked as not good for upload and not good for renew
+
+**Other**
+- Add 'AccountFunding' to the Host's financial metrics
+- Support multiple changelog items in one changelog file.
+- Add updating changelog tail to changelog generator.
+- Generate 2 patch level and 1 minor level upcoming changelog directories.
+- Fixed checking number of contracts in testContractInterrupted test.
+- Move generate-changelog.sh script to changelog directory.
+- Generate changelog from any file extension (.md is not needed)
+- Fix permission issues for Windows runner, do not perform linting during
+  Windows tests.
+- Move filenames to ignore in changelog generator to `.changelogignore` file
+- Created `Merge Request.md` to document the merge request standards and
+  process.
+- Remove backslash check in SiaPath validation, add `\` to list of accepted
+  characters
+- `spc pubaccess upload` with the `--dry-run` flag will now print more clear
+  messages to emphasize that no files are actually uploaded.
+- Move `scanCheckInterval` to be a build variable for the `hostdb`
+- Pubaccess portals and blacklist persistence errors have been made more clear and
+  now include the persist file locations.
+- add some performance stats for upload and download speeds to /pubaccess/stats
+- set the password and user agent automatically in client.New
+- Publish test logs also for regular pipelines (not only for nightly pipelines).
 - Don't delete hosts the renter has a contract with from hostdb
 - Initiate a hostdb rescan on startup if a host the renter has a contract with
   isn't in the host tree
@@ -9,7 +126,7 @@
 - Remove `build.Critical` and update to a metadata update
 
 **Other**
- - Add PaymentProcessor interface (host-side)
+- Add PaymentProcessor interface (host-side)
 - Move golangci-lint to `make lint` and remove `make lint-all`.
 - Add whitespace lint to catch extraneous whitespace and newlines.
 - Expand `SiaPath` unit testing to address more edge cases.
@@ -45,15 +162,6 @@
 - Add version information to the stats endpoint
 - Extract environment variables to constants and add to API docs.
 
-## Mar 17, 2020:
-### v1.4.4
-**Key Updates**
-- Add a delay when modifying large contracts on hosts to prevent hosts from
-  becoming unresponsive due to massive disk i/o.
-- Add `--root` parameter to `spc renter delete` that allows passing absolute
-  instead of relative file paths.
-- Add ability to blacklist publinks by merkleroot.
-- Uploading resumes more quickly after restart.
 - Add `HEAD` request for publink
 - Add ability to pack many files into the same or adjacent sectors while
   producing unique publinks for each file.
@@ -109,9 +217,6 @@
   on Pubaccess uploads
 - Create generator for Changelog to improve changelog update process
 
-## Feb 2020:
-### v1.4.3
-**Key Updates**
 - Introduced Pubaccess with initial feature set for portals, web portals, pubfiles,
   publinks, uploads, downloads, and pinning
 - Add `data-pieces` and `parity-pieces` flags to `spc renter upload`
@@ -138,7 +243,6 @@
 - Upgrade host metadata to v1.4.3
 - Removed stubs from testing
 
-## Jan 2020:
 ### v1.4.2.1
 **Key Updates**
 - Wallet can generate an address before it finishes scanning the blockchain

@@ -92,7 +92,8 @@ func (tn *TestNode) DownloadInfo(lf *LocalFile, rf *RemoteFile) (*api.DownloadIn
 		return nil, err
 	}
 	var di *api.DownloadInfo
-	for _, d := range rdq.Downloads {
+	for i := range rdq.Downloads {
+		d := rdq.Downloads[i]
 		if rf.siaPath == d.SiaPath && lf.path == d.Destination {
 			di = &d
 			break
@@ -558,7 +559,7 @@ func (tn *TestNode) WaitForUploadHealth(rf *RemoteFile) error {
 		return ErrFileNotTracked
 	}
 	// Wait until the file is viewed as healthy by the renter
-	err := Retry(1000, 100*time.Millisecond, func() error {
+	err := Retry(900, 150*time.Millisecond, func() error {
 		file, err := tn.File(rf)
 		if err != nil {
 			return ErrFileNotTracked
@@ -579,7 +580,7 @@ func (tn *TestNode) WaitForUploadHealth(rf *RemoteFile) error {
 				goodHosts++
 			}
 		}
-		return errors.Compose(err, fmt.Errorf("%v good contracts", goodHosts))
+		return errors.Compose(err, fmt.Errorf("%v available hosts", goodHosts))
 	}
 	return nil
 }

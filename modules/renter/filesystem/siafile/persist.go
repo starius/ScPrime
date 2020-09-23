@@ -9,11 +9,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/scpcorp/writeaheadlog"
 
 	"gitlab.com/scpcorp/ScPrime/build"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
 )
@@ -435,16 +435,16 @@ func (sf *SiaFile) applyUpdates(updates ...writeaheadlog.Update) (err error) {
 	// the file while holding a open file handle.
 	for i := len(updates) - 1; i >= 0; i-- {
 		u := updates[i]
-		switch u.Name {
-		case updateDeleteName:
-			if err := readAndApplyDeleteUpdate(sf.deps, u); err != nil {
-				return err
-			}
-			updates = updates[i+1:]
-			break
-		default:
+		if u.Name != updateDeleteName {
 			continue
 		}
+		// Read and apply the delete update.
+		if err := readAndApplyDeleteUpdate(sf.deps, u); err != nil {
+			return err
+		}
+		// Truncate the updates and break out of the for loop.
+		updates = updates[i+1:]
+		break
 	}
 	if len(updates) == 0 {
 		return nil
@@ -550,13 +550,15 @@ func (sf *SiaFile) iterateChunks(iterFunc func(chunk *chunk) (bool, error)) ([]w
 
 // iterateChunksReadonly iterates over all the chunks on disk and calls iterFunc
 // on each one without modifying them.
-func (sf *SiaFile) iterateChunksReadonly(iterFunc func(chunk chunk) error) error {
+func (sf *SiaFile) iterateChunksReadonly(iterFunc func(chunk chunk) error) (err error) {
 	// Open the file.
 	f, err := os.Open(sf.siaFilePath)
 	if err != nil {
 		return errors.AddContext(err, "failed to open file")
 	}
-	defer f.Close()
+	defer func() {
+		err = errors.AddContext(errors.Compose(err, f.Close()), "Error iterating over chunks")
+	}()
 	// Seek to the first chunk.
 	_, err = f.Seek(sf.staticMetadata.ChunkOffset, io.SeekStart)
 	if err != nil {
@@ -636,7 +638,7 @@ func (sf *SiaFile) createAndApplyTransaction(updates ...writeaheadlog.Update) (e
 // createAndApplyTransaction is a generic version of the
 // createAndApplyTransaction method of the SiaFile. This will result in 2 fsyncs
 // independent of the number of updates.
-func createAndApplyTransaction(wal *writeaheadlog.WAL, updates ...writeaheadlog.Update) error {
+func createAndApplyTransaction(wal *writeaheadlog.WAL, updates ...writeaheadlog.Update) (err error) {
 	if len(updates) == 0 {
 		return nil
 	}
@@ -649,6 +651,13 @@ func createAndApplyTransaction(wal *writeaheadlog.WAL, updates ...writeaheadlog.
 	if err := <-txn.SignalSetupComplete(); err != nil {
 		return errors.AddContext(err, "failed to signal setup completion")
 	}
+	// Starting at this point the changes to be made are written to the WAL.
+	// This means we need to panic in case applying the updates fails.
+	defer func() {
+		if err != nil {
+			panic(err)
+		}
+	}()
 	// Apply the updates.
 	if err := ApplyUpdates(updates...); err != nil {
 		return errors.AddContext(err, "failed to apply updates")

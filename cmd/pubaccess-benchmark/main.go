@@ -257,7 +257,7 @@ func downloadFileSet(dir modules.SiaPath, fileSize int, threads uint64) error {
 }
 
 // getMissingFiles will fetch a map of all the files that are missing or don't
-// have skylinks
+// have publinks
 func getMissingFiles(dir modules.SiaPath, expectedFileSize uint64, expectedFetchSize uint64) (map[int]struct{}, error) {
 	// Determine whether the dirs already exist and have files in them for
 	// downloading.
@@ -326,12 +326,12 @@ func uploadFileSet(dir modules.SiaPath, fileSize uint64, expectedFetchSize uint6
 		}
 		buf := bytes.NewReader(fastrand.Bytes(int(fileSize)))
 		// Fill out the upload parameters.
-		sup := modules.SkyfileUploadParameters{
+		sup := modules.PubfileUploadParameters{
 			SiaPath: sp,
 			Root:    true,
 			Force:   true, // This will overwrite other files in the dir.
 
-			FileMetadata: modules.SkyfileMetadata{
+			FileMetadata: modules.PubfileMetadata{
 				Filename: strconv.Itoa(i) + ".rand",
 				Mode:     modules.DefaultFilePerm,
 			},

@@ -48,6 +48,45 @@ func randomSectorMap(roots []crypto.Hash) map[crypto.Hash][]byte {
 	return rootMap
 }
 
+// TestTranslateOffsetToRoot tests the sectors translateOffset method.
+func TestTranslateOffsetToRoot(t *testing.T) {
+	// Initialize the sectors.
+	numSectorRoots := 2
+	sectorRoots := randomSectorRoots(numSectorRoots)
+	s := newSectors(sectorRoots)
+
+	// Helper method for assertion.
+	assert := func(offset, expectedRelOffset uint64, expectedSecIdx uint64) {
+		relOff, secIdx, err := s.translateOffset(offset)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if secIdx != expectedSecIdx {
+			t.Errorf("secIdx doesn't match expected secIdx")
+			return
+		}
+		if relOff != expectedRelOffset {
+			t.Errorf("relOff was %v but should be %v", relOff, expectedRelOffset)
+			return
+		}
+	}
+
+	// Test valid cases.
+	assert(0, 0, 0)
+	assert(1, 1, 0)
+	assert(modules.SectorSize-1, modules.SectorSize-1, 0)
+	assert(modules.SectorSize, 0, 1)
+	assert(modules.SectorSize+1, 1, 1)
+	assert(2*modules.SectorSize-1, modules.SectorSize-1, 1)
+
+	// Test out-of-bounds
+	_, _, err := s.translateOffset(2 * modules.SectorSize)
+	if err == nil {
+		t.Fatal("expected err but got nil")
+	}
+}
+
 // TestAppendSector tests appending a single sector to the program cache.
 func TestAppendSector(t *testing.T) {
 	// Initialize the sectors.

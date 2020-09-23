@@ -168,7 +168,7 @@ func TestHostAndRentVanilla(t *testing.T) {
 	// the contract.
 	pd := modules.ProdDependencies
 	csDeps := &dependencies.DependencyRenewWithoutClear{}
-	st, err := createServerTesterWithDeps(t.Name(), pd, pd, pd, pd, pd, pd, pd, pd, csDeps)
+	st, err := createServerTesterWithDeps(t.Name(), pd, pd, pd, pd, pd, pd, pd, pd, csDeps, pd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -325,7 +325,7 @@ func TestHostAndRentVanilla(t *testing.T) {
 	if len(queue.Downloads) != 1 {
 		t.Fatalf("expected renter to have 1 download in the queue; got %v", len(queue.Downloads))
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(3 * time.Second)
 	// Try downloading the second file.
 	downpath2 := filepath.Join(st.dir, "testdown2.dat")
 	err = st.stdGetAPI("/renter/download/test2?disablelocalfetch=true&destination=" + downpath2)
@@ -389,9 +389,9 @@ func TestHostAndRentVanilla(t *testing.T) {
 	if cts.Contracts[0].PotentialDownloadRevenue.IsZero() || cts.Contracts[0].PotentialUploadRevenue.IsZero() || cts.Contracts[0].PotentialStorageRevenue.IsZero() {
 		t.Error("Potential revenue value is zero for used obligation.")
 	}
-	// Potential account funding should still be zero
-	if !cts.Contracts[0].PotentialAccountFunding.IsZero() {
-		t.Error("Potential account funding is not zero for used obligation, even though it was not used to fund an ephemeral account with.")
+	// There should be potential account funding in this contract
+	if cts.Contracts[0].PotentialAccountFunding.IsZero() {
+		t.Error("Potential account funding is zero, even though it should have been used to fund an ephemeral account with.")
 	}
 
 	// Mine blocks until the host should have submitted a storage proof.
@@ -1133,7 +1133,7 @@ func TestRenterRenew(t *testing.T) {
 		t.Fatal("contract was not renewed:", rc.Contracts[0])
 	}
 	if rc.ExpiredContracts[0].Size != 0 {
-		t.Fatalf("contract size after renewal should be 0 but was %v", rc.Contracts[0].Size)
+		t.Fatalf("contract size after renewal should be 0 but was %v", rc.ExpiredContracts[0].Size)
 	}
 
 	// Try downloading the file.
@@ -1703,10 +1703,10 @@ func TestUploadedBytesReporting(t *testing.T) {
 			return err
 		}
 		if rf.File.UploadProgress < 100 {
-			return fmt.Errorf("Expected UploadProgress to be 100 but was %v", rf.File.UploadProgress)
+			return fmt.Errorf("expected UploadProgress to be 100 but was %v", rf.File.UploadProgress)
 		}
 		if rf.File.Redundancy != 2 {
-			return fmt.Errorf("Expected Redundancy to be 2 but was %v", rf.File.Redundancy)
+			return fmt.Errorf("expected Redundancy to be 2 but was %v", rf.File.Redundancy)
 		}
 		return nil
 	})

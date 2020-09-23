@@ -19,10 +19,10 @@ var (
 	// DefaultAllowance is the set of default allowance settings that will be
 	// used when allowances are not set or not fully set
 	DefaultAllowance = Allowance{
-		Funds:       types.ScPrimecoinPrecision.Mul64(100),      // 100 SCP
-		Hosts:       uint64(PriceEstimationScope),               // 50
-		Period:      types.BlockHeight(types.BlocksPerMonth),    // 1 Month
-		RenewWindow: types.BlockHeight(2 * types.BlocksPerWeek), // 2 Weeks
+		Funds:       types.ScPrimecoinPrecision.Mul64(100),       // 100 SCP
+		Hosts:       uint64(PriceEstimationScope),                // 50
+		Period:      2 * types.BlockHeight(types.BlocksPerMonth), // 1 Month
+		RenewWindow: types.BlockHeight(3 * types.BlocksPerWeek),  // 3 Weeks
 
 		ExpectedStorage:    1e12,                                         // 1 TB
 		ExpectedUpload:     uint64(300e9) / uint64(types.BlocksPerMonth), // 300 GB per month
@@ -50,6 +50,12 @@ var (
 	// create a key for encrypting backups.
 	BackupKeySpecifier = types.NewSpecifier("backupkey")
 )
+
+// DataSourceID is an identifier to uniquely identify a data source, such as for
+// loading a file. Adding data sources that have the same ID should return the
+// exact same data when queried. This is typically used inside of the renter to
+// build stream buffers.
+type DataSourceID crypto.Hash
 
 // FilterMode is the helper type for the enum constants for the HostDB filter
 // mode
@@ -519,6 +525,18 @@ type HostScoreBreakdown struct {
 	VersionAdjustment          float64 `json:"versionadjustment"`
 }
 
+// MemoryStatus contains information about the status of the memory manager
+type MemoryStatus struct {
+	Available uint64 `json:"available"`
+	Base      uint64 `json:"base"`
+	Requested uint64 `json:"requested"`
+
+	PriorityAvailable uint64 `json:"priorityavailable"`
+	PriorityBase      uint64 `json:"prioritybase"`
+	PriorityRequested uint64 `json:"priorityrequested"`
+	PriorityReserve   uint64 `json:"priorityreserve"`
+}
+
 // MountInfo contains information about a mounted FUSE filesystem.
 type MountInfo struct {
 	MountPoint string  `json:"mountpoint"`
@@ -732,10 +750,11 @@ type (
 	// WorkerPoolStatus contains information about the status of the workerPool
 	// and the workers
 	WorkerPoolStatus struct {
-		NumWorkers            int            `json:"numworkers"`
-		TotalDownloadCoolDown int            `json:"totaldownloadcooldown"`
-		TotalUploadCoolDown   int            `json:"totaluploadcooldown"`
-		Workers               []WorkerStatus `json:"workers"`
+		NumWorkers               int            `json:"numworkers"`
+		TotalDownloadCoolDown    int            `json:"totaldownloadcooldown"`
+		TotalMaintenanceCoolDown int            `json:"totalmaintenancecooldown"`
+		TotalUploadCoolDown      int            `json:"totaluploadcooldown"`
+		Workers                  []WorkerStatus `json:"workers"`
 	}
 
 	// WorkerStatus contains information about the status of a worker
@@ -746,9 +765,11 @@ type (
 		HostPubKey      types.SiaPublicKey   `json:"hostpubkey"`
 
 		// Download status information
-		DownloadOnCoolDown bool `json:"downloadoncooldown"`
-		DownloadQueueSize  int  `json:"downloadqueuesize"`
-		DownloadTerminated bool `json:"downloadterminated"`
+		DownloadCoolDownError string        `json:"downloadcooldownerror"`
+		DownloadCoolDownTime  time.Duration `json:"downloadcooldowntime"`
+		DownloadOnCoolDown    bool          `json:"downloadoncooldown"`
+		DownloadQueueSize     int           `json:"downloadqueuesize"`
+		DownloadTerminated    bool          `json:"downloadterminated"`
 
 		// Upload status information
 		UploadCoolDownError string        `json:"uploadcooldownerror"`
@@ -757,13 +778,77 @@ type (
 		UploadQueueSize     int           `json:"uploadqueuesize"`
 		UploadTerminated    bool          `json:"uploadterminated"`
 
+		// Maintenance Cooldown information
+		MaintenanceOnCooldown    bool          `json:"maintenanceoncooldown"`
+		MaintenanceCoolDownError string        `json:"maintenancecooldownerror"`
+		MaintenanceCoolDownTime  time.Duration `json:"maintenancecooldowntime"`
+
 		// Ephemeral Account information
-		AvailableBalance types.Currency `json:"availablebalance"`
-		BalanceTarget    types.Currency `json:"balancetarget"`
+		AccountBalanceTarget types.Currency      `json:"accountbalancetarget"`
+		AccountStatus        WorkerAccountStatus `json:"accountstatus"`
+
+		// PriceTable information
+		PriceTableStatus WorkerPriceTableStatus `json:"pricetablestatus"`
 
 		// Job Queues
 		BackupJobQueueSize       int `json:"backupjobqueuesize"`
 		DownloadRootJobQueueSize int `json:"downloadrootjobqueuesize"`
+
+		// Read Jobs Information
+		ReadJobsStatus WorkerReadJobsStatus `json:"readjobsstatus"`
+
+		// HasSector Job Information
+		HasSectorJobsStatus WorkerHasSectorJobsStatus `json:"hassectorjobsstatus"`
+	}
+
+	// WorkerAccountStatus contains detailed information about the account
+	WorkerAccountStatus struct {
+		AvailableBalance types.Currency `json:"availablebalance"`
+		NegativeBalance  types.Currency `json:"negativebalance"`
+
+		Funded bool `json:"funded"`
+
+		RecentErr     string    `json:"recenterr"`
+		RecentErrTime time.Time `json:"recenterrtime"`
+	}
+
+	// WorkerPriceTableStatus contains detailed information about the price
+	// table
+	WorkerPriceTableStatus struct {
+		ExpiryTime time.Time `json:"expirytime"`
+		UpdateTime time.Time `json:"updatetime"`
+
+		Active bool `json:"active"`
+
+		RecentErr     string    `json:"recenterr"`
+		RecentErrTime time.Time `json:"recenterrtime"`
+	}
+
+	// WorkerReadJobsStatus contains detailed information about the read jobs
+	WorkerReadJobsStatus struct {
+		AvgJobTime64k uint64 `json:"avgjobtime64k"` // in ms
+		AvgJobTime1m  uint64 `json:"avgjobtime1m"`  // in ms
+		AvgJobTime4m  uint64 `json:"avgjobtime4m"`  // in ms
+
+		ConsecutiveFailures uint64 `json:"consecutivefailures"`
+
+		JobQueueSize uint64 `json:"jobqueuesize"`
+
+		RecentErr     string    `json:"recenterr"`
+		RecentErrTime time.Time `json:"recenterrtime"`
+	}
+
+	// WorkerHasSectorJobsStatus contains detailed information about the has
+	// sector jobs
+	WorkerHasSectorJobsStatus struct {
+		AvgJobTime uint64 `json:"avgjobtime"` // in ms
+
+		ConsecutiveFailures uint64 `json:"consecutivefailures"`
+
+		JobQueueSize uint64 `json:"jobqueuesize"`
+
+		RecentErr     string    `json:"recenterr"`
+		RecentErrTime time.Time `json:"recenterrtime"`
 	}
 )
 
@@ -821,6 +906,9 @@ type Renter interface {
 	// CurrentPeriod returns the height at which the current allowance period
 	// began.
 	CurrentPeriod() types.BlockHeight
+
+	// MemoryStatus returns the current status of the memory manager
+	MemoryStatus() (MemoryStatus, error)
 
 	// Mount mounts a FUSE filesystem at mountPoint, making the contents of sp
 	// available via the local filesystem.
@@ -972,7 +1060,15 @@ type Renter interface {
 	AddSkykey(pubaccesskey.Pubaccesskey) error
 
 	// CreateSkykey creates a new Pubaccesskey with the given name and ciphertype.
-	CreateSkykey(string, crypto.CipherType) (pubaccesskey.Pubaccesskey, error)
+	CreateSkykey(string, pubaccesskey.PubaccesskeyType) (pubaccesskey.Pubaccesskey, error)
+
+	// DeleteSkykeyByID deletes the Pubaccesskey with the given name from the renter's
+	// pubaccesskey manager if it exists.
+	DeleteSkykeyByID(pubaccesskey.PubaccesskeyID) error
+
+	// DeleteSkykeyByName deletes the Pubaccesskey with the given name from the renter's
+	// pubaccesskey manager if it exists.
+	DeleteSkykeyByName(string) error
 
 	// SkykeyByName gets the Pubaccesskey with the given name from the renter's pubaccesskey
 	// manager if it exists.
@@ -980,20 +1076,23 @@ type Renter interface {
 
 	// SkykeyByID gets the Pubaccesskey with the given ID from the renter's pubaccesskey
 	// manager if it exists.
-	SkykeyByID(pubaccesskey.SkykeyID) (pubaccesskey.Pubaccesskey, error)
+	SkykeyByID(pubaccesskey.PubaccesskeyID) (pubaccesskey.Pubaccesskey, error)
 
-	// SkykeyIDByName gets the SkykeyID of the key with the given name if it
+	// SkykeyIDByName gets the PubaccesskeyID of the key with the given name if it
 	// exists.
-	SkykeyIDByName(string) (pubaccesskey.SkykeyID, error)
+	SkykeyIDByName(string) (pubaccesskey.PubaccesskeyID, error)
+
+	// Skykeys returns a slice containing each Pubaccesskey being stored by the renter.
+	Skykeys() ([]pubaccesskey.Pubaccesskey, error)
 
 	// CreatePublinkFromSiafile will create a publink from a siafile. This will
 	// result in some uploading - the base sector pubfile needs to be uploaded
 	// separately, and if there is a fanout expansion that needs to be uploaded
 	// separately as well.
-	CreatePublinkFromSiafile(SkyfileUploadParameters, SiaPath) (Publink, error)
+	CreatePublinkFromSiafile(PubfileUploadParameters, SiaPath) (Publink, error)
 
 	// DownloadPublink will fetch a file from the ScPrime network using the publink.
-	DownloadPublink(Publink, time.Duration) (SkyfileMetadata, Streamer, error)
+	DownloadPublink(Publink, time.Duration) (PubfileMetadata, Streamer, error)
 
 	// UploadSkyfile will upload data to the ScPrime network from a reader and
 	// create a pubfile, returning the publink that can be used to access the
@@ -1003,7 +1102,7 @@ type Renter interface {
 	// pubfile contains more than just the file data, it also contains metadata
 	// about the file and other information which is useful in fetching the
 	// file.
-	UploadSkyfile(SkyfileUploadParameters) (Publink, error)
+	UploadSkyfile(PubfileUploadParameters) (Publink, error)
 
 	// Blacklist returns the merkleroots that are blacklisted
 	Blacklist() ([]crypto.Hash, error)
@@ -1013,7 +1112,7 @@ type Renter interface {
 
 	// PinPublink re-uploads the data stored at the file under that publink with
 	// the given parameters.
-	PinPublink(Publink, SkyfileUploadParameters, time.Duration) error
+	PinPublink(Publink, PubfileUploadParameters, time.Duration) error
 
 	// Portals returns the list of known pubaccess portals.
 	Portals() ([]SkynetPortal, error)

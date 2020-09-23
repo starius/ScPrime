@@ -10,10 +10,10 @@ import (
 	"strings"
 	"unsafe"
 
-	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
-
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
+
+	"gitlab.com/scpcorp/ScPrime/crypto"
 )
 
 // MarshalSia implements the encoding.SiaMarshaler interface.
@@ -616,7 +616,7 @@ func (s Specifier) MarshalJSON() ([]byte, error) {
 
 // String returns the specifier as a string, trimming any trailing zeros.
 func (s Specifier) String() string {
-	return string(bytes.TrimRight(s[:], string(0)))
+	return string(bytes.TrimRight(s[:], RuneToString(0)))
 }
 
 // UnmarshalJSON decodes the json string of the specifier.

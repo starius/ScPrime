@@ -94,7 +94,7 @@ func NewNode(nodeParams node.NodeParams) (*TestNode, error) {
 	// Create clean node
 	tn, err := NewCleanNode(nodeParams)
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Could not create new clean node")
 	}
 	// Fund the node
 	for i := types.BlockHeight(0); i <= types.MaturityDelay+types.TaxHardforkHeight; i++ {
@@ -145,9 +145,12 @@ func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error)
 	if asyncSync {
 		var errChan <-chan error
 		s, errChan = server.NewAsync(":0", userAgent, password, nodeParams, time.Now())
-		err = modules.PeekErr(errChan)
+		err = errors.AddContext(modules.PeekErr(errChan), "Can not create NewAsync server")
 	} else {
 		s, err = server.New(":0", userAgent, password, nodeParams, time.Now())
+		if err != nil {
+			err = errors.AddContext(err, "Can not create new server")
+		}
 	}
 	if err != nil {
 		return nil, err

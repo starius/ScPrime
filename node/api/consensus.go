@@ -3,10 +3,13 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+
+	"gitlab.com/NebulousLabs/encoding"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -41,74 +44,13 @@ type ConsensusGET struct {
 	RootTarget types.Target `json:"roottarget"`
 	RootDepth  types.Target `json:"rootdepth"`
 
-	SiacoinPrecision types.Currency `json:"siacoinprecision"`
+	SiacoinPrecision     types.Currency `json:"siacoinprecision"`
+	ScPrimecoinPrecision types.Currency `json:"scprimecoinprecision"`
 }
 
 // ConsensusHeadersGET contains information from a blocks header.
 type ConsensusHeadersGET struct {
 	BlockID types.BlockID `json:"blockid"`
-}
-
-// ConsensusFileContract contains information about a file contract
-type ConsensusFileContract struct {
-	FileSize           uint64                         `json:"filesize"`
-	FileMerkleRoot     crypto.Hash                    `json:"filemerkleroot"`
-	WindowStart        types.BlockHeight              `json:"windowstart"`
-	WindowEnd          types.BlockHeight              `json:"windowend"`
-	Payout             types.Currency                 `json:"payout"`
-	ValidProofOutputs  map[string]types.SiacoinOutput `json:"validproofoutputs"`
-	MissedProofOutputs map[string]types.SiacoinOutput `json:"missedproofoutputs"`
-	UnlockHash         types.UnlockHash               `json:"unlockhash"`
-	RevisionNumber     uint64                         `json:"revisionnumber"`
-}
-
-// ConsensusFileContractRevision contains information about a file contract revision
-type ConsensusFileContractRevision struct {
-	ParentID          types.FileContractID   `json:"parentid"`
-	UnlockConditions  types.UnlockConditions `json:"unlockconditions"`
-	NewRevisionNumber uint64                 `json:"newrevisionnumber"`
-
-	NewFileSize           uint64                         `json:"newfilesize"`
-	NewFileMerkleRoot     crypto.Hash                    `json:"newfilemerkleroot"`
-	NewWindowStart        types.BlockHeight              `json:"newwindowstart"`
-	NewWindowEnd          types.BlockHeight              `json:"newwindowend"`
-	NewValidProofOutputs  map[string]types.SiacoinOutput `json:"newvalidproofoutputs"`
-	NewMissedProofOutputs map[string]types.SiacoinOutput `json:"newmissedproofoutputs"`
-	NewUnlockHash         types.UnlockHash               `json:"newunlockhash"`
-}
-
-// ConsensusTransaction contains information about a transaction
-type ConsensusTransaction struct {
-	SiacoinInputs         map[string]types.SiacoinInput            `json:"siacoininputs"`
-	SiacoinOutputs        map[string]types.SiacoinOutput           `json:"siacoinoutputs"`
-	FileContracts         map[string]ConsensusFileContract         `json:"filecontracts"`
-	FileContractRevisions map[string]ConsensusFileContractRevision `json:"filecontractrevisions"`
-	StorageProofs         map[string]types.StorageProof            `json:"storageproofs"`
-	SiafundInputs         map[string]types.SiafundInput            `json:"siafundinputs"`
-	SiafundOutputs        map[string]types.SiafundOutput           `json:"siafundoutputs"`
-	MinerFees             map[string]types.Currency                `json:"minerfees"`
-	ArbitraryData         [][]byte                                 `json:"arbitrarydata"`
-	TransactionSignatures map[string]types.TransactionSignature    `json:"transactionsignatures"`
-}
-
-// ConsensusBlock is the object returned by a GET request to
-// /consensus/block.
-type ConsensusBlock struct {
-	BlockID           types.BlockID     `json:"id"`
-	BlockHeight       types.BlockHeight `json:"blockheight"`
-	BlockHeader       types.BlockHeader `json:"blockheader"`
-	Target            types.Target      `json:"target"`
-	Difficulty        types.Currency    `json:"difficulty"`
-	TotalCoins        types.Currency    `json:"totalcoins"`
-	EstimatedHashrate types.Currency    `json:"estimatedhashrate"`
-
-	MinerPayouts map[string]types.SiacoinOutput  `json:"minerpayouts"`
-	Transactions map[string]ConsensusTransaction `json:"transactions"`
-}
-
-// Scods is a list of Siacoin output diffs
-type Scods struct {
-	Scods []modules.SiacoinOutputDiff `json:"scods"`
 }
 
 // ConsensusBlocksGet contains all fields of a types.Block and additional
@@ -256,7 +198,7 @@ func consensusBlocksGetFromBlock(b types.Block, h types.BlockHeight, d types.Cur
 }
 
 // consensusHandler handles the API calls to /consensus.
-func (api *API) consensusHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (api *API) consensusHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	height := api.cs.Height()
 	b, found := api.cs.BlockAtHeight(height)
 	if !found {
@@ -291,13 +233,14 @@ func (api *API) consensusHandler(w http.ResponseWriter, req *http.Request, _ htt
 		RootTarget: types.RootTarget,
 		RootDepth:  types.RootDepth,
 
-		SiacoinPrecision: types.SiacoinPrecision,
+		SiacoinPrecision:     types.SiacoinPrecision,
+		ScPrimecoinPrecision: types.ScPrimecoinPrecision,
 	})
 }
 
 // consensusBlocksIDHandler handles the API calls to /consensus/blocks
 // endpoint.
-func (api *API) consensusBlocksHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func (api *API) consensusBlocksHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	// Get query params and check them.
 	id, height := req.FormValue("id"), req.FormValue("height")
 	if id != "" && height != "" {
@@ -328,7 +271,7 @@ func (api *API) consensusBlocksHandler(w http.ResponseWriter, req *http.Request,
 			WriteError(w, Error{"failed to parse block height"}, http.StatusBadRequest)
 			return
 		}
-		b, exists = api.cs.BlockAtHeight(types.BlockHeight(h))
+		b, exists = api.cs.BlockAtHeight(h)
 	}
 	// Check if block was found
 	if !exists {
@@ -358,6 +301,105 @@ func (api *API) consensusValidateTransactionsetHandler(w http.ResponseWriter, re
 		return
 	}
 	WriteSuccess(w)
+}
+
+// consensusSubscribeHandler handles the API calls to the /consensus/subscribe
+// endpoint.
+func (api *API) consensusSubscribeHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	var ccid modules.ConsensusChangeID
+	if err := (*crypto.Hash)(&ccid).LoadString(ps.ByName("id")); err != nil {
+		WriteError(w, Error{"could not decode ID: " + err.Error()}, http.StatusBadRequest)
+		return
+	}
+
+	// create subscriber and start processing changes in a goroutine
+	errCh := make(chan error, 1)
+	ccs := newConsensusChangeStreamer(w)
+	go func() {
+		errCh <- api.cs.ConsensusSetSubscribe(ccs, ccid, req.Context().Done())
+		api.cs.Unsubscribe(ccs)
+	}()
+	err := <-errCh
+	if err != nil {
+		// TODO: we can't call WriteError here; the client is expecting binary.
+		return
+	}
+}
+
+type consensusChangeStreamer struct {
+	e *encoding.Encoder
+}
+
+func (ccs consensusChangeStreamer) ProcessConsensusChange(cc modules.ConsensusChange) {
+	ccs.e.Encode(cc)
+}
+
+func newConsensusChangeStreamer(w io.Writer) consensusChangeStreamer {
+	return consensusChangeStreamer{
+		e: encoding.NewEncoder(w),
+	}
+}
+
+// ConsensusFileContract contains information about a file contract
+type ConsensusFileContract struct {
+	FileSize           uint64                         `json:"filesize"`
+	FileMerkleRoot     crypto.Hash                    `json:"filemerkleroot"`
+	WindowStart        types.BlockHeight              `json:"windowstart"`
+	WindowEnd          types.BlockHeight              `json:"windowend"`
+	Payout             types.Currency                 `json:"payout"`
+	ValidProofOutputs  map[string]types.SiacoinOutput `json:"validproofoutputs"`
+	MissedProofOutputs map[string]types.SiacoinOutput `json:"missedproofoutputs"`
+	UnlockHash         types.UnlockHash               `json:"unlockhash"`
+	RevisionNumber     uint64                         `json:"revisionnumber"`
+}
+
+// ConsensusFileContractRevision contains information about a file contract revision
+type ConsensusFileContractRevision struct {
+	ParentID          types.FileContractID   `json:"parentid"`
+	UnlockConditions  types.UnlockConditions `json:"unlockconditions"`
+	NewRevisionNumber uint64                 `json:"newrevisionnumber"`
+
+	NewFileSize           uint64                         `json:"newfilesize"`
+	NewFileMerkleRoot     crypto.Hash                    `json:"newfilemerkleroot"`
+	NewWindowStart        types.BlockHeight              `json:"newwindowstart"`
+	NewWindowEnd          types.BlockHeight              `json:"newwindowend"`
+	NewValidProofOutputs  map[string]types.SiacoinOutput `json:"newvalidproofoutputs"`
+	NewMissedProofOutputs map[string]types.SiacoinOutput `json:"newmissedproofoutputs"`
+	NewUnlockHash         types.UnlockHash               `json:"newunlockhash"`
+}
+
+// ConsensusTransaction contains information about a transaction
+type ConsensusTransaction struct {
+	SiacoinInputs         map[string]types.SiacoinInput            `json:"siacoininputs"`
+	SiacoinOutputs        map[string]types.SiacoinOutput           `json:"siacoinoutputs"`
+	FileContracts         map[string]ConsensusFileContract         `json:"filecontracts"`
+	FileContractRevisions map[string]ConsensusFileContractRevision `json:"filecontractrevisions"`
+	StorageProofs         map[string]types.StorageProof            `json:"storageproofs"`
+	SiafundInputs         map[string]types.SiafundInput            `json:"siafundinputs"`
+	SiafundOutputs        map[string]types.SiafundOutput           `json:"siafundoutputs"`
+	MinerFees             map[string]types.Currency                `json:"minerfees"`
+	ArbitraryData         [][]byte                                 `json:"arbitrarydata"`
+	TransactionSignatures map[string]types.TransactionSignature    `json:"transactionsignatures"`
+}
+
+// ConsensusBlock is the object returned by a GET request to
+// /consensus/block.
+type ConsensusBlock struct {
+	BlockID           types.BlockID     `json:"id"`
+	BlockHeight       types.BlockHeight `json:"blockheight"`
+	BlockHeader       types.BlockHeader `json:"blockheader"`
+	Target            types.Target      `json:"target"`
+	Difficulty        types.Currency    `json:"difficulty"`
+	TotalCoins        types.Currency    `json:"totalcoins"`
+	EstimatedHashrate types.Currency    `json:"estimatedhashrate"`
+
+	MinerPayouts map[string]types.SiacoinOutput  `json:"minerpayouts"`
+	Transactions map[string]ConsensusTransaction `json:"transactions"`
+}
+
+// Scods is a list of Siacoin output diffs
+type Scods struct {
+	Scods []modules.SiacoinOutputDiff `json:"scods"`
 }
 
 // consensusBlocksHandler handles API calls to /consensus/blocks/:height.

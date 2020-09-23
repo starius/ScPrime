@@ -10,8 +10,10 @@ import (
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
+	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
 
 	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/NebulousLabs/ratelimit"
 )
 
 // testingFileParams generates the ErasureCoder and a random name for a testing
@@ -102,7 +104,8 @@ func TestRenterSaveLoad(t *testing.T) {
 
 	// load should now load the files into memory.
 	var errChan <-chan error
-	rt.renter, errChan = New(rt.gateway, rt.cs, rt.wallet, rt.tpool, rt.mux, filepath.Join(rt.dir, modules.RenterDir))
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	rt.renter, errChan = New(rt.gateway, rt.cs, rt.wallet, rt.tpool, rt.mux, rl, filepath.Join(rt.dir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +134,10 @@ func TestRenterPaths(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	rt, err := newRenterTester(t.Name())
+
+	// Start renter with background loops disabled to avoid NDFs related to this
+	// test creating siafiles directly vs through the staticFileSystem.
+	rt, err := newRenterTesterWithDependency(t.Name(), &dependencies.DependencyDisableRepairAndHealthLoops{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +189,8 @@ func TestRenterPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	var errChan <-chan error
-	rt.renter, errChan = New(rt.gateway, rt.cs, rt.wallet, rt.tpool, rt.mux, filepath.Join(rt.dir, modules.RenterDir))
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	rt.renter, errChan = New(rt.gateway, rt.cs, rt.wallet, rt.tpool, rt.mux, rl, filepath.Join(rt.dir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}

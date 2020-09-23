@@ -7,18 +7,19 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/threadgroup"
 	bolt "go.etcd.io/bbolt"
 )
 
 const (
 	// minNumOutbound is the minimum number of outbound peers required before ibd
 	// is confident we are synced.
-	minNumOutbound = 1
+	minNumOutbound = 4
 )
 
 var (
@@ -49,9 +50,9 @@ var (
 	// other. Those nodes will likely have to wait minIBDWaitTime on every startup
 	// before IBD is done.
 	minIBDWaitTime = build.Select(build.Var{
-		Standard: 5 * time.Minute,
-		Dev:      1 * time.Second,
-		Testing:  1 * time.Second,
+		Standard: 30 * time.Minute,
+		Dev:      30 * time.Second,
+		Testing:  10 * time.Second,
 	}).(time.Duration)
 
 	// relayHeaderTimeout is the timeout for the RelayHeader RPC.
@@ -622,7 +623,9 @@ func (cs *ConsensusSet) managedInitialBlockchainDownload() error {
 			break
 		} else {
 			// Sleep so we don't hammer the network with SendBlock requests.
-			time.Sleep(ibdLoopDelay)
+			if !cs.tg.Sleep(ibdLoopDelay) {
+				return threadgroup.ErrStopped
+			}
 		}
 	}
 

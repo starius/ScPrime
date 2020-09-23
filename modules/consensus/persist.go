@@ -62,7 +62,7 @@ func (cs *ConsensusSet) loadDB() error {
 			panic(err)
 		}
 		if genesisID != cs.blockRoot.Block.ID() {
-			return errors.New("Blockchain has wrong genesis block, exiting.")
+			return errors.New("blockchain has wrong genesis block")
 		}
 		return nil
 	})
@@ -83,13 +83,18 @@ func (cs *ConsensusSet) initPersist() error {
 		return err
 	}
 	// Set up closing the logger.
-	cs.tg.AfterStop(func() {
+	err = cs.tg.AfterStop(func() error {
 		err := cs.log.Close()
 		if err != nil {
 			// State of the logger is unknown, a println will suffice.
 			fmt.Println("Error shutting down consensus set logger:", err)
+			return err
 		}
+		return nil
 	})
+	if err != nil {
+		return err
+	}
 
 	// Try to load an existing database from disk - a new one will be created
 	// if one does not exist.
@@ -98,11 +103,16 @@ func (cs *ConsensusSet) initPersist() error {
 		return err
 	}
 	// Set up the closing of the database.
-	cs.tg.AfterStop(func() {
+	err = cs.tg.AfterStop(func() error {
 		err := cs.db.Close()
 		if err != nil {
 			cs.log.Println("ERROR: Unable to close consensus set database at shutdown:", err)
+			return err
 		}
+		return nil
 	})
+	if err != nil {
+		return err
+	}
 	return nil
 }

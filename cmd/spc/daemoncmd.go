@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -42,6 +43,13 @@ or
 Bits per second: Bps, Kbps, Mbps, Gbps, Tbps
 Set them to 0 for no limit.`,
 		Run: wrap(globalratelimitcmd),
+	}
+
+	stackCmd = &cobra.Command{
+		Use:   "stack",
+		Short: "Get current stack trace for the daemon",
+		Long:  "Get current stack trace for the daemon",
+		Run:   wrap(stackcmd),
 	}
 
 	updateCmd = &cobra.Command{
@@ -140,6 +148,36 @@ func stopcmd() {
 		die("Could not stop daemon:", err)
 	}
 	fmt.Println("ScPrime daemon stopped.")
+}
+
+// stackcmd is the handler for the command `spc stack` and writes the current
+// stack trace to an output file.
+func stackcmd() {
+	// Get the stack trace
+	dsg, err := httpClient.DaemonStackGet()
+	if err != nil {
+		die("Could not get the stack:", err)
+	}
+	fmt.Println(dsg.Stack)
+	// Create output file
+	f, err := os.Create(daemonStackOutputFile)
+	if err != nil {
+		die("Unable to create output file:", err)
+	}
+	defer func() {
+		err := f.Close()
+		if err != nil {
+			die("Unable to close output file:", err)
+		}
+	}()
+
+	// Write stack trace to output file
+	_, err = f.Write(dsg.Stack)
+	if err != nil {
+		die("Unable to write to output file:", err)
+	}
+
+	fmt.Println("Current stack trace written to:", daemonStackOutputFile)
 }
 
 // updatecmd is the handler for the command `spc update`.

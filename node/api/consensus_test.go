@@ -2,8 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"testing"
 
+	"gitlab.com/NebulousLabs/encoding"
+
+	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
@@ -36,7 +41,7 @@ func TestIntegrationConsensusGET(t *testing.T) {
 	}
 
 	if cg.BlockFrequency != types.BlockFrequency {
-		t.Error("BlocFrequency constant mismatch")
+		t.Error("BlockFrequency constant mismatch")
 	}
 	if cg.SiafundCount.Cmp(types.SiafundCount(cg.Height)) != 0 {
 		t.Error("SiafundCount constant mismatch")
@@ -91,5 +96,57 @@ func TestConsensusValidateTransactionSet(t *testing.T) {
 	defer resp.Body.Close()
 	if !non2xx(resp.StatusCode) {
 		t.Fatal("expected validation error")
+	}
+}
+
+// TestIntegrationConsensusSubscribe probes the /consensus/subscribe endpoint.
+func TestIntegrationConsensusSubscribe(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+	st, err := createServerTester(t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.server.panicClose()
+
+	ccid := modules.ConsensusChangeBeginning
+	resp, err := HttpGET("http://" + st.server.listener.Addr().String() + "/consensus/subscribe/" + ccid.String())
+	if err != nil {
+		t.Fatal("unable to make an http request", err)
+	}
+	defer resp.Body.Close()
+	if non2xx(resp.StatusCode) {
+		t.Fatal(decodeError(resp))
+	}
+	dec := encoding.NewDecoder(resp.Body, 1e6)
+	var cc modules.ConsensusChange
+	var ids []modules.ConsensusChangeID
+	for {
+		if err := dec.Decode(&cc); errors.Is(err, io.EOF) {
+			break
+		} else if err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, cc.ID)
+	}
+
+	// try subscribing from height 3
+	resp, err = HttpGET("http://" + st.server.listener.Addr().String() + "/consensus/subscribe/" + ids[2].String())
+	if err != nil {
+		t.Fatal("unable to make an http request", err)
+	}
+	defer resp.Body.Close()
+	if non2xx(resp.StatusCode) {
+		t.Fatal(decodeError(resp))
+	}
+	dec = encoding.NewDecoder(resp.Body, 1e6)
+	for {
+		if err := dec.Decode(&cc); errors.Is(err, io.EOF) {
+			break
+		} else if err != nil {
+			t.Fatal(err)
+		}
 	}
 }

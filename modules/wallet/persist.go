@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 	bolt "go.etcd.io/bbolt"
@@ -197,10 +197,9 @@ func (w *Wallet) CreateBackup(backupFilepath string) error {
 	defer w.mu.Unlock()
 	f, err := os.Create(backupFilepath)
 	if err != nil {
-		return err
+		return errors.AddContext(err, "Failed to create backup file "+backupFilepath)
 	}
-	defer f.Close()
-	return w.createBackup(f)
+	return errors.Compose(w.createBackup(f), f.Close())
 }
 
 // compat112Persist is the structure of the wallet.json file used in v1.1.2

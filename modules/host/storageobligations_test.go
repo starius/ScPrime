@@ -2,10 +2,11 @@ package host
 
 import (
 	"fmt"
-	"math/rand"
+	"reflect"
 	"testing"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
@@ -107,6 +108,7 @@ func TestStorageObligationSnapshot(t *testing.T) {
 	}
 	sectorRoot, sectorData := randSector()
 	so.SectorRoots = []crypto.Hash{sectorRoot}
+	proofDeadline := so.proofDeadline()
 	validPayouts, missedPayouts := so.payouts()
 	so.RevisionTransactionSet = []types.Transaction{{
 		FileContractRevisions: []types.FileContractRevision{{
@@ -117,7 +119,7 @@ func TestStorageObligationSnapshot(t *testing.T) {
 			NewFileSize:           uint64(len(sectorData)),
 			NewFileMerkleRoot:     sectorRoot,
 			NewWindowStart:        so.expiration(),
-			NewWindowEnd:          so.proofDeadline(),
+			NewWindowEnd:          proofDeadline,
 			NewValidProofOutputs:  validPayouts,
 			NewMissedProofOutputs: missedPayouts,
 			NewUnlockHash:         types.UnlockConditions{}.UnlockHash(),
@@ -143,6 +145,9 @@ func TestStorageObligationSnapshot(t *testing.T) {
 	if snapshot.MerkleRoot() != sectorRoot {
 		t.Fatalf("Unexpected merkle root, expected %v but received %v", sectorRoot, snapshot.MerkleRoot())
 	}
+	if uint64(snapshot.ProofDeadline()) != uint64(proofDeadline) {
+		t.Fatalf("Unexpected proof deadline, expected %v but received %v", proofDeadline, snapshot.ProofDeadline())
+	}
 	if len(snapshot.SectorRoots()) != 1 {
 		t.Fatal("Unexpected number of sector roots")
 	}
@@ -152,7 +157,9 @@ func TestStorageObligationSnapshot(t *testing.T) {
 	if !snapshot.UnallocatedCollateral().Equals(fcr.MissedHostPayout()) {
 		t.Fatalf("Unexpected unallocated collateral, expected %v but was %v", fcr.MissedHostPayout().HumanString(), snapshot.UnallocatedCollateral().HumanString())
 	}
-
+	if !reflect.DeepEqual(snapshot.RecentRevision(), fcr) {
+		t.Fatal("Revisions don't match")
+	}
 	// Update the SO with new data
 	sectorRoot2, sectorData := randSector()
 	ht.host.managedLockStorageObligation(so.id())
@@ -198,7 +205,7 @@ func TestAccountFundingTracking(t *testing.T) {
 	// expectDelta is a helper that asserts the deltas, with regards to the
 	// account funding fields, in the host's financial metrics before and after
 	// executing the given function f.
-	expectDelta := func(pafDelta, afDelta int64, action string, f func() error) error {
+	expectDelta := func(pafDelta, afDelta int, action string, f func() error) error {
 		bkp := ht.host.FinancialMetrics()
 		if err := f(); err != nil {
 			return err
@@ -252,7 +259,7 @@ func TestAccountFundingTracking(t *testing.T) {
 	defer ht.host.managedUnlockStorageObligation(so.id())
 
 	// add the storage obligation (expect PAF to increase - AF remain same)
-	rd1 := rand.Int63n(10) + 1
+	rd1 := fastrand.Intn(10) + 1
 	so.PotentialAccountFunding = so.PotentialAccountFunding.Add64(uint64(rd1))
 	if err = expectDelta(rd1, 0, "add SO", func() error {
 		return ht.host.managedAddStorageObligation(so, false)
@@ -261,9 +268,9 @@ func TestAccountFundingTracking(t *testing.T) {
 	}
 
 	// modify the storage obligation (expect PAF to increase - AF remain same)
-	rd2 := rand.Int63n(10) + 1
+	rd2 := fastrand.Intn(10) + 1
 	so.PotentialAccountFunding = so.PotentialAccountFunding.Add64(uint64(rd2))
-	if err = expectDelta(int64(rd2), 0, "modify SO", func() error {
+	if err = expectDelta(rd2, 0, "modify SO", func() error {
 		return ht.host.managedModifyStorageObligation(so, []crypto.Hash{}, make(map[crypto.Hash][]byte, 0))
 	}); err != nil {
 		t.Fatal(err)
@@ -340,5 +347,164 @@ func TestManagedModifyUnlockedStorageObligation(t *testing.T) {
 	// Modify the obligation. This should fail again.
 	if err := ht.host.managedModifyStorageObligation(so, []crypto.Hash{}, nil); err == nil {
 		t.Fatal("shouldn't be able to modify unlocked so")
+	}
+}
+
+// TestManagedBuildStorageProof is a unit test for the host's
+// managedBuildStorageProof method.
+func TestManagedBuildStorageProof(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+	ht, err := newHostTester(t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		err := ht.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	// Create a storage obligation without data.
+	so, err := ht.newTesterStorageObligation()
+	if err != nil {
+		t.Fatal(err)
+	}
+	proofDeadline := so.proofDeadline()
+	validPayouts, missedPayouts := so.payouts()
+	so.RevisionTransactionSet = []types.Transaction{{
+		FileContractRevisions: []types.FileContractRevision{{
+			ParentID:          so.id(),
+			UnlockConditions:  types.UnlockConditions{},
+			NewRevisionNumber: 1,
+
+			NewFileSize:           0,
+			NewFileMerkleRoot:     crypto.Hash{},
+			NewWindowStart:        so.expiration(),
+			NewWindowEnd:          proofDeadline,
+			NewValidProofOutputs:  validPayouts,
+			NewMissedProofOutputs: missedPayouts,
+			NewUnlockHash:         types.UnlockConditions{}.UnlockHash(),
+		}},
+	}}
+
+	// Insert the SO
+	ht.host.managedLockStorageObligation(so.id())
+	err = ht.host.managedAddStorageObligation(so, false)
+	ht.host.managedUnlockStorageObligation(so.id())
+
+	// Build a proof for the SO.
+	sp, err := ht.host.managedBuildStorageProof(so, 0)
+	if err != nil {
+		t.Fatal("failed to build proof", err)
+	}
+
+	// Check the proof.
+	if len(sp.HashSet) != 0 {
+		t.Fatal("sp should have empty hashset")
+	}
+	var blank [crypto.SegmentSize]byte
+	if sp.Segment != blank {
+		t.Fatal("sp should have no segment")
+	}
+	if sp.ParentID != so.id() {
+		t.Fatal("parentID wasn't set correctly")
+	}
+
+	// Update the so to have a sector.
+	sectorRoot, sectorData := randSector()
+	so.SectorRoots = []crypto.Hash{sectorRoot}
+
+	sectorsGained := map[crypto.Hash][]byte{
+		sectorRoot: sectorData,
+	}
+	ht.host.managedLockStorageObligation(so.id())
+	err = ht.host.managedModifyStorageObligation(so, nil, sectorsGained)
+	ht.host.managedUnlockStorageObligation(so.id())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Build another proof.
+	segmentIndex := fastrand.Uint64n(modules.SectorSize / crypto.SegmentSize)
+	sp, err = ht.host.managedBuildStorageProof(so, segmentIndex)
+	if err != nil {
+		t.Fatal("failed to build proof", err)
+	}
+
+	// Verify the proof.
+	verified := crypto.VerifySegment(
+		sp.Segment[:crypto.SegmentSize],
+		sp.HashSet,
+		crypto.CalculateLeaves(uint64(len(sectorData))),
+		segmentIndex,
+		sectorRoot,
+	)
+	if !verified {
+		t.Fatal("failed to verify proof")
+	}
+}
+
+// TestStorageObligationRequiresProof tests the requiresProof method of the
+// storageObligation type.
+func TestStorageObligationRequiresProof(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	ht, err := newHostTester(t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		err := ht.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	// Create a storage obligation without data.
+	so, err := ht.newTesterStorageObligation()
+	if err != nil {
+		t.Fatal(err)
+	}
+	proofDeadline := so.proofDeadline()
+	validPayouts, missedPayouts := so.payouts()
+	so.RevisionTransactionSet = []types.Transaction{{
+		FileContractRevisions: []types.FileContractRevision{{
+			ParentID:          so.id(),
+			UnlockConditions:  types.UnlockConditions{},
+			NewRevisionNumber: 1,
+
+			NewFileSize:           0,
+			NewFileMerkleRoot:     crypto.Hash{},
+			NewWindowStart:        so.expiration(),
+			NewWindowEnd:          proofDeadline,
+			NewValidProofOutputs:  validPayouts,
+			NewMissedProofOutputs: missedPayouts,
+			NewUnlockHash:         types.UnlockConditions{}.UnlockHash(),
+		}},
+	}}
+
+	// Obligation should require a proof even though it has never been revised.
+	if !so.requiresProof() {
+		t.Fatal("obligation should require proof")
+	}
+
+	// Increment the revision number. Obligation should now require a proof
+	so.RevisionTransactionSet[0].FileContractRevisions[0].NewRevisionNumber++
+	if !so.requiresProof() {
+		t.Fatal("obligation should require a proof")
+	}
+
+	//  Make the outputs match. It should no longer require a proof.
+	rev := so.RevisionTransactionSet[0].FileContractRevisions[0]
+	so.RevisionTransactionSet[0].FileContractRevisions[0].NewValidProofOutputs = rev.NewMissedProofOutputs
+	if so.requiresProof() {
+		t.Fatal("obligation shouldn't require proof")
 	}
 }

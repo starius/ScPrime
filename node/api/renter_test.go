@@ -213,7 +213,11 @@ func runDownloadTest(t *testing.T, filesize, offset, length int64, useHttpResp b
 		if err != nil {
 			return err
 		}
-		defer df.Close()
+		defer func() {
+			if err := df.Close(); err != nil {
+				t.Fatal(err)
+			}
+		}()
 
 		_, err = io.Copy(&downbytes, df)
 		if err != nil {
@@ -319,7 +323,7 @@ func TestValidDownloads(t *testing.T) {
 func runDownloadParamTest(t *testing.T, length, offset, filesize int) error {
 	ulSiaPath := "test.dat"
 
-	st, _ := setupTestDownload(t, int(filesize), ulSiaPath, true)
+	st, _ := setupTestDownload(t, filesize, ulSiaPath, true)
 	defer st.server.Close()
 
 	// Download the original file from offset 40 and length 10.
@@ -870,6 +874,7 @@ func TestRenterHandlerRename(t *testing.T) {
 		t.SkipNow()
 	}
 	t.Parallel()
+
 	st, err := createServerTester(t.Name())
 	if err != nil {
 		t.Fatal(err)
@@ -939,8 +944,8 @@ func TestRenterHandlerRename(t *testing.T) {
 	// Try renaming to an empty string.
 	renameValues.Set("newsiapath", "")
 	err = st.stdPostAPI("/renter/rename/test1", renameValues)
-	if err == nil || !strings.Contains(err.Error(), modules.ErrEmptySiaPath.Error()) {
-		t.Fatalf("expected error to contain %v; got %v", modules.ErrEmptySiaPath, err)
+	if err == nil || !strings.Contains(err.Error(), modules.ErrEmptyPath.Error()) {
+		t.Fatalf("expected error to contain %v; got %v", modules.ErrEmptyPath, err)
 	}
 
 	// Rename the file.
@@ -1620,7 +1625,7 @@ func TestHealthLoop(t *testing.T) {
 			return err
 		}
 		if rd.Directories[0].Health != 0 {
-			return fmt.Errorf("Directory health should be 0 but was %v", rd.Directories[0].Health)
+			return fmt.Errorf("directory health should be 0 but was %v", rd.Directories[0].Health)
 		}
 		return nil
 	})
@@ -1636,7 +1641,7 @@ func TestHealthLoop(t *testing.T) {
 		var rf RenterFiles
 		st1.getAPI("/renter/files", &rf)
 		if len(rf.Files) >= 1 && rf.Files[0].Redundancy == 2 {
-			return fmt.Errorf("Expect 1 file with a redundancy of less than 2, got %v files and redundancy of %v", len(rf.Files), rf.Files[0].Redundancy)
+			return fmt.Errorf("expected 1 file with a redundancy of less than 2, got %v files and redundancy of %v", len(rf.Files), rf.Files[0].Redundancy)
 		}
 		return nil
 	})
@@ -1649,7 +1654,7 @@ func TestHealthLoop(t *testing.T) {
 		var rd RenterDirectory
 		st1.getAPI("/renter/dir/", &rd)
 		if rd.Directories[0].MaxHealth == 0 {
-			return fmt.Errorf("Directory max health should have dropped below 0 but was %v", rd.Directories[0].MaxHealth)
+			return fmt.Errorf("directory max health should have dropped below 0 but was %v", rd.Directories[0].MaxHealth)
 		}
 		return nil
 	})

@@ -20,6 +20,8 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/renter"
 	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
 	"gitlab.com/scpcorp/ScPrime/modules/wallet"
+
+	"gitlab.com/NebulousLabs/ratelimit"
 )
 
 // TestHostDBHostsActiveHandler checks the behavior of the call to
@@ -194,7 +196,7 @@ func TestHostDBHostsHandler(t *testing.T) {
 		t.Error("Zero value AgeAdjustment in host score breakdown")
 	}
 	if hh.ScoreBreakdown.BasePriceAdjustment == 0 {
-		t.Error("Zero value in host score breakdown")
+		t.Error("Zero value BasePriceAdjustment in host score breakdown")
 	}
 	if hh.ScoreBreakdown.BurnAdjustment == 0 {
 		t.Error("Zero value BurnAdjustment in host score breakdown")
@@ -203,7 +205,7 @@ func TestHostDBHostsHandler(t *testing.T) {
 		t.Error("Zero value CollateralAdjustment in host score breakdown")
 	}
 	if hh.ScoreBreakdown.DurationAdjustment == 0 {
-		t.Error("Zero value in host score breakdown")
+		t.Error("Zero value DurationAdjustment in host score breakdown")
 	}
 	if hh.ScoreBreakdown.PriceAdjustment == 0 {
 		t.Error("Zero value PriceAdjustment in host score breakdown")
@@ -311,7 +313,8 @@ func assembleHostPort(key crypto.CipherKey, hostHostname string, testdir string)
 	if err != nil {
 		return nil, err
 	}
-	r, errChan := renter.New(g, cs, w, tp, mux, filepath.Join(testdir, modules.RenterDir))
+	rl := ratelimit.NewRateLimit(0, 0, 0)
+	r, errChan := renter.New(g, cs, w, tp, mux, rl, filepath.Join(testdir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
@@ -730,7 +733,7 @@ func TestHostDBAndRenterUploadDynamicIPs(t *testing.T) {
 
 	// Upload a file to the host.
 	allowanceValues := url.Values{}
-	testFunds := "100000000000000000000000000000" // 100k SC
+	testFunds := "100000000000000000000000000000" // 100 SCP
 	testPeriod := "10"
 	testPeriodInt := 10
 	allowanceValues.Set("funds", testFunds)

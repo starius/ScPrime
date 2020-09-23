@@ -283,6 +283,48 @@ provider from the same IP address subnet.`,
 		Long:  "View the status of the Renter's workers",
 		Run:   wrap(renterworkerscmd),
 	}
+
+	renterWorkersAccountsCmd = &cobra.Command{
+		Use:   "ea",
+		Short: "View the workers' ephemeral account",
+		Long:  "View detailed information of the workers' ephemeral account",
+		Run:   wrap(renterworkerseacmd),
+	}
+
+	renterWorkersDownloadsCmd = &cobra.Command{
+		Use:   "dj",
+		Short: "View the workers' download jobs",
+		Long:  "View detailed information of the workers' download jobs",
+		Run:   wrap(renterworkersdownloadscmd),
+	}
+
+	renterWorkersHasSectorJobSCmd = &cobra.Command{
+		Use:   "hsj",
+		Short: "View the workers' has sector jobs",
+		Long:  "View detailed information of the workers' has sector jobs",
+		Run:   wrap(renterworkershsjcmd),
+	}
+
+	renterWorkersPriceTableCmd = &cobra.Command{
+		Use:   "pt",
+		Short: "View the workers's price table",
+		Long:  "View detailed information of the workers' price table",
+		Run:   wrap(renterworkersptcmd),
+	}
+
+	renterWorkersReadJobsCmd = &cobra.Command{
+		Use:   "rj",
+		Short: "View the workers' read jobs",
+		Long:  "View detailed information of the workers' read jobs",
+		Run:   wrap(renterworkersrjcmd),
+	}
+
+	renterWorkersUploadsCmd = &cobra.Command{
+		Use:   "uj",
+		Short: "View the workers' upload jobs",
+		Long:  "View detailed information of the workers' upload jobs",
+		Run:   wrap(renterworkersuploadscmd),
+	}
 )
 
 // abs returns the absolute representation of a path.
@@ -343,6 +385,21 @@ func rentercmd() {
 		return
 	}
 
+	// Print out the memory information for the renter
+	ms := rg.MemoryStatus
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	fmt.Fprintf(w, "\nMemory Status\n")
+	fmt.Fprintf(w, "  Available Memory\t%v\n", sizeString(ms.Available))
+	fmt.Fprintf(w, "  Starting Memory\t%v\n", sizeString(ms.Base))
+	fmt.Fprintf(w, "  Requested Memory\t%v\n", sizeString(ms.Requested))
+	fmt.Fprintf(w, "\n  Available Priority Memory\t%v\n", sizeString(ms.PriorityAvailable))
+	fmt.Fprintf(w, "  Starting Priority Memory\t%v\n", sizeString(ms.PriorityBase))
+	fmt.Fprintf(w, "  Requested Priority Memory\t%v\n", sizeString(ms.PriorityRequested))
+	err = w.Flush()
+	if err != nil {
+		die(err)
+	}
+
 	// Print out ratelimit info about the renter
 	fmt.Println()
 	rateLimitSummary(rg.Settings.MaxDownloadSpeed, rg.Settings.MaxUploadSpeed)
@@ -356,29 +413,31 @@ func rentercmd() {
 // renterFileHealthSummary prints out a summary of the status of all the files
 // in the renter to track the progress of the files
 func renterFileHealthSummary(dirs []directoryInfo) {
-	percentages, err := filePercentageBreakdown(dirs)
+	percentages, numStuck, err := fileHealthBreakdown(dirs)
 	if err != nil {
 		die(err)
 	}
 
 	percentages = parsePercentages(percentages)
 
-	fmt.Printf(`File Health Summary:
-  %% At 100%%:            %v%%
-  %% Between 75%% - 100%%: %v%%
-  %% Between 50%% - 75%%:  %v%%
-  %% Between 25%% - 50%%:  %v%%
-  %% Between 0%% - 25%%:   %v%%
-  %% Unrecoverable:      %v%%
-`, percentages[0], percentages[1], percentages[2], percentages[3], percentages[4], percentages[5])
+	fmt.Println("File Health Summary")
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	fmt.Fprintf(w, "  %% At 100%%\t%v%%\n", percentages[0])
+	fmt.Fprintf(w, "  %% Between 75%% - 100%%\t%v%%\n", percentages[1])
+	fmt.Fprintf(w, "  %% Between 50%% - 75%%\t%v%%\n", percentages[2])
+	fmt.Fprintf(w, "  %% Between 25%% - 50%%\t%v%%\n", percentages[3])
+	fmt.Fprintf(w, "  %% Between 0%% - 25%%\t%v%%\n", percentages[4])
+	fmt.Fprintf(w, "  %% Unrecoverable\t%v%%\n", percentages[5])
+	fmt.Fprintf(w, "  Number of Stuck Files\t%v\n", numStuck)
+	w.Flush()
 }
 
-// filePercentageBreakdown returns a percentage breakdown of the renter's files'
-// healths
-func filePercentageBreakdown(dirs []directoryInfo) ([]float64, error) {
+// fileHealthBreakdown returns a percentage breakdown of the renter's files'
+// healths and the number of stuck files
+func fileHealthBreakdown(dirs []directoryInfo) ([]float64, int, error) {
 	// Check for nil input
 	if len(dirs) == 0 {
-		return nil, errors.New("No Directories Found")
+		return nil, 0, errors.New("No Directories Found")
 	}
 
 	// Note: we are manually counting the number of files here since the
@@ -386,9 +445,13 @@ func filePercentageBreakdown(dirs []directoryInfo) ([]float64, error) {
 	// health loop. This is OK since we have to iterate over all the files
 	// anyways.
 	var total, fullHealth, greater75, greater50, greater25, greater0, unrecoverable float64
+	var numStuck int
 	for _, dir := range dirs {
 		for _, file := range dir.files {
 			total++
+			if file.Stuck {
+				numStuck++
+			}
 			switch {
 			case file.MaxHealthPercent == 100:
 				fullHealth++
@@ -408,7 +471,7 @@ func filePercentageBreakdown(dirs []directoryInfo) ([]float64, error) {
 
 	// Check for no files uploaded
 	if total == 0 {
-		return nil, errors.New("No Files Uploaded")
+		return nil, 0, errors.New("No Files Uploaded")
 	}
 
 	fullHealth = 100 * fullHealth / total
@@ -418,7 +481,7 @@ func filePercentageBreakdown(dirs []directoryInfo) ([]float64, error) {
 	greater0 = 100 * greater0 / total
 	unrecoverable = 100 * unrecoverable / total
 
-	return []float64{fullHealth, greater75, greater50, greater25, greater0, unrecoverable}, nil
+	return []float64{fullHealth, greater75, greater50, greater25, greater0, unrecoverable}, numStuck, nil
 }
 
 // renterFilesAndContractSummary prints out a summary of what the renter is
@@ -2022,7 +2085,7 @@ func downloadprogress(tfs []trackedFile) []api.DownloadInfo {
 				progressStr += fmt.Sprint(progressLine)
 			}
 		}
-		print(progressStr)
+		fmt.Print(progressStr)
 		progressStr = clearStr
 	}
 	// This code is unreachable, but the compiler requires this to be here.
@@ -2559,7 +2622,7 @@ func renterratelimitcmd(downloadSpeedStr, uploadSpeedStr string) {
 	fmt.Println("Set renter maxdownloadspeed to ", downloadSpeedInt, " and maxuploadspeed to ", uploadSpeedInt)
 }
 
-// renterworkerscmd is the handler for the comand `spc renter workers`.
+// renterworkerscmd is the handler for the command `spc renter workers`.
 // It lists the Renter's workers.
 func renterworkerscmd() {
 	rw, err := httpClient.RenterWorkersGet()
@@ -2567,13 +2630,19 @@ func renterworkerscmd() {
 		die("Could not get contracts:", err)
 	}
 
-	// Print Worker Pool Summary
-	fmt.Printf(`Worker Pool Summary
-  Total Workers:                %v
-  Workers On Download Cooldown: %v
-  Workers On Upload Cooldown:   %v
+	// Sort workers by public key.
+	sort.Slice(rw.Workers, func(i, j int) bool {
+		return rw.Workers[i].HostPubKey.String() < rw.Workers[j].HostPubKey.String()
+	})
 
-`, rw.NumWorkers, rw.TotalDownloadCoolDown, rw.TotalUploadCoolDown)
+	// Print Worker Pool Summary
+	fmt.Println("Worker Pool Summary")
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	fmt.Fprintf(w, "  Total Workers:\t%v\n", rw.NumWorkers)
+	fmt.Fprintf(w, "  Workers On Download Cooldown:\t%v\n", rw.TotalDownloadCoolDown)
+	fmt.Fprintf(w, "  Workers On Upload Cooldown:\t%v\n", rw.TotalUploadCoolDown)
+	fmt.Fprintf(w, "  Workers On Maintenance Cooldown:\t%v\n", rw.TotalMaintenanceCoolDown)
+	w.Flush()
 
 	// Split Workers into GoodForUpload and !GoodForUpload
 	var goodForUpload, notGoodForUpload []modules.WorkerStatus
@@ -2602,16 +2671,314 @@ func renterworkerscmd() {
 	}
 }
 
+// renterworkerseacmd is the handler for the command `siac renter workers ea`.
+// It lists the status of the account of every worker.
+func renterworkerseacmd() {
+	rw, err := httpClient.RenterWorkersGet()
+	if err != nil {
+		die("Could not get worker statuses:", err)
+	}
+
+	// collect some overal account stats
+	var nfw uint64
+	for _, worker := range rw.Workers {
+		if !worker.AccountStatus.Funded {
+			nfw++
+		}
+	}
+	fmt.Println("Worker Accounts Summary")
+
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	defer func() {
+		err := w.Flush()
+		if err != nil {
+			die("Could not flush tabwriter:", err)
+		}
+	}()
+
+	// print summary
+	fmt.Fprintf(w, "Total Workers: \t%v\n", rw.NumWorkers)
+	fmt.Fprintf(w, "Non Funded Workers: \t%v\n", nfw)
+
+	// print header
+	hostInfo := "Host PubKey"
+	accountInfo := "\tFunded\tAvailBal\tNegBal\tBalTarget"
+	errorInfo := "\tErrorAt\tError"
+	header := hostInfo + accountInfo + errorInfo
+	fmt.Fprintln(w, "\nWorker Accounts Detail  \n\n"+header)
+
+	// print rows
+	for _, worker := range rw.Workers {
+		as := worker.AccountStatus
+
+		// Host Info
+		fmt.Fprintf(w, "%v", worker.HostPubKey.String())
+
+		// Account Info
+		fmt.Fprintf(w, "\t%t\t%s\t%s\t%s",
+			as.Funded,
+			as.AvailableBalance.HumanString(),
+			as.NegativeBalance.HumanString(),
+			worker.AccountBalanceTarget.HumanString())
+
+		// Error Info
+		fmt.Fprintf(w, "\t%v\t%v\n",
+			sanitizeTime(as.RecentErrTime, as.RecentErr != ""),
+			sanitizeErr(as.RecentErr))
+	}
+}
+
+// renterworkersdownloadscmd is the handler for the command `siac renter workers
+// dj`.  It lists the status of the download jobs of every worker.
+func renterworkersdownloadscmd() {
+	rw, err := httpClient.RenterWorkersGet()
+	if err != nil {
+		die("Could not get worker statuses:", err)
+	}
+
+	// Sort workers by public key.
+	sort.Slice(rw.Workers, func(i, j int) bool {
+		return rw.Workers[i].HostPubKey.String() < rw.Workers[j].HostPubKey.String()
+	})
+
+	// Create tab writer
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	defer func() {
+		err := w.Flush()
+		if err != nil {
+			die("Could not flush tabwriter:", err)
+		}
+	}()
+	// Write Download Info
+	writeWorkerDownloadUploadInfo(true, w, rw)
+}
+
+// writeWorkerDownloadUploadInfo is a helper function for writing the download
+// or upload information to the tabwriter.
+func writeWorkerDownloadUploadInfo(download bool, w *tabwriter.Writer, rw modules.WorkerPoolStatus) {
+	// print summary
+	fmt.Fprintf(w, "Worker Pool Summary \n")
+	fmt.Fprintf(w, "  Total Workers: \t%v\n", rw.NumWorkers)
+	if download {
+		fmt.Fprintf(w, "  Workers On Download Cooldown:\t%v\n", rw.TotalDownloadCoolDown)
+	} else {
+		fmt.Fprintf(w, "  Workers On Upload Cooldown:\t%v\n", rw.TotalUploadCoolDown)
+	}
+
+	// print header
+	hostInfo := "Host PubKey"
+	info := "\tOn Cooldown\tCooldown Time\tLast Error\tQueue\tTerminated"
+	header := hostInfo + info
+	if download {
+		fmt.Fprintln(w, "\nWorker Downloads Detail  \n\n"+header)
+	} else {
+		fmt.Fprintln(w, "\nWorker Uploads Detail  \n\n"+header)
+	}
+
+	// print rows
+	for _, worker := range rw.Workers {
+		// Host Info
+		fmt.Fprintf(w, "%v", worker.HostPubKey.String())
+
+		// Download Info
+		if download {
+			fmt.Fprintf(w, "\t%v\t%v\t%v\t%v\t%v\n",
+				worker.DownloadOnCoolDown,
+				absDuration(worker.DownloadCoolDownTime),
+				worker.DownloadCoolDownError,
+				worker.DownloadQueueSize,
+				worker.DownloadTerminated)
+			continue
+		}
+		// Upload Info
+		fmt.Fprintf(w, "\t%v\t%v\t%v\t%v\t%v\n",
+			worker.UploadOnCoolDown,
+			absDuration(worker.UploadCoolDownTime),
+			worker.UploadCoolDownError,
+			worker.UploadQueueSize,
+			worker.UploadTerminated)
+	}
+}
+
+// renterworkersptcmd is the handler for the command `siac renter workers pt`.
+// It lists the status of the price table of every worker.
+func renterworkersptcmd() {
+	rw, err := httpClient.RenterWorkersGet()
+	if err != nil {
+		die("Could not get worker statuses:", err)
+	}
+
+	// collect some overal account stats
+	var workersWithoutPTs uint64
+	for _, worker := range rw.Workers {
+		if !worker.PriceTableStatus.Active {
+			workersWithoutPTs++
+		}
+	}
+	fmt.Println("Worker Price Tables Summary")
+
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	defer func() {
+		err := w.Flush()
+		if err != nil {
+			die("Could not flush tabwriter:", err)
+		}
+	}()
+
+	// print summary
+	fmt.Fprintf(w, "Total Workers: \t%v\n", rw.NumWorkers)
+	fmt.Fprintf(w, "Workers Without Price Table: \t%v\n", workersWithoutPTs)
+
+	// print header
+	hostInfo := "Host PubKey"
+	priceTableInfo := "\tActive\tExpiry\tUpdate"
+	queueInfo := "\tOnCoolDown\tCoolDownUntil\tConsecFail\tErrorAt\tError"
+	header := hostInfo + priceTableInfo + queueInfo
+	fmt.Fprintln(w, "\nWorker Price Tables Detail  \n\n"+header)
+
+	// print rows
+	for _, worker := range rw.Workers {
+		pts := worker.PriceTableStatus
+
+		// Host Info
+		fmt.Fprintf(w, "%v", worker.HostPubKey.String())
+
+		// Price Table Info
+		fmt.Fprintf(w, "\t%t\t%s\t%s",
+			pts.Active,
+			sanitizeTime(pts.ExpiryTime, pts.Active),
+			sanitizeTime(pts.UpdateTime, pts.Active))
+
+		// Error Info
+		fmt.Fprintf(w, "\t%v\t%v\n",
+			sanitizeTime(pts.RecentErrTime, pts.RecentErr != ""),
+			sanitizeErr(pts.RecentErr))
+	}
+}
+
+// renterworkersrjcmd is the handler for the command `siac renter workers rj`.
+// It lists the status of the read job queue for every worker.
+func renterworkersrjcmd() {
+	rw, err := httpClient.RenterWorkersGet()
+	if err != nil {
+		die("Could not get worker statuses:", err)
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	defer func() {
+		err := w.Flush()
+		if err != nil {
+			die("Could not flush tabwriter:", err)
+		}
+	}()
+
+	// print header
+	hostInfo := "Host PubKey"
+	queueInfo := "\tJobs\tAvgJobTime64k (ms)\tAvgJobTime1m (ms)\tAvgJobTime4m (ms)\tConsecFail\tErrorAt\tError"
+	header := hostInfo + queueInfo
+	fmt.Fprintln(w, "\nWorker Read Jobs  \n\n"+header)
+
+	// print rows
+	for _, worker := range rw.Workers {
+		rjs := worker.ReadJobsStatus
+
+		// Host Info
+		fmt.Fprintf(w, "%v", worker.HostPubKey.String())
+
+		// ReadJobs Info
+		fmt.Fprintf(w, "\t%v\t%v\t%v\t%v\t%v\t%v\t%v\n",
+			rjs.JobQueueSize,
+			rjs.AvgJobTime64k,
+			rjs.AvgJobTime1m,
+			rjs.AvgJobTime4m,
+			rjs.ConsecutiveFailures,
+			sanitizeTime(rjs.RecentErrTime, rjs.RecentErr != ""),
+			sanitizeErr(rjs.RecentErr))
+	}
+}
+
+// renterworkershsjcmd is the handler for the command `siac renter workers hs`.
+// It lists the status of the has sector job queue for every worker.
+func renterworkershsjcmd() {
+	rw, err := httpClient.RenterWorkersGet()
+	if err != nil {
+		die("Could not get worker statuses:", err)
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	defer func() {
+		err := w.Flush()
+		if err != nil {
+			die("Could not flush tabwriter:", err)
+		}
+	}()
+
+	// print header
+	hostInfo := "Host PubKey"
+	queueInfo := "\tJobs\tAvgJobTime (ms)\tConsecFail\tErrorAt\tError"
+	header := hostInfo + queueInfo
+	fmt.Fprintln(w, "\nWorker Has Sector Jobs  \n\n"+header)
+
+	// print rows
+	for _, worker := range rw.Workers {
+		hsjs := worker.HasSectorJobsStatus
+
+		// Host Info
+		fmt.Fprintf(w, "%v", worker.HostPubKey.String())
+
+		// HasSector Jobs Info
+		fmt.Fprintf(w, "\t%v\t%v\t%v\t%v\t%v\n",
+			hsjs.JobQueueSize,
+			hsjs.AvgJobTime,
+			hsjs.ConsecutiveFailures,
+			sanitizeTime(hsjs.RecentErrTime, hsjs.RecentErr != ""),
+			sanitizeErr(hsjs.RecentErr))
+	}
+}
+
+// renterworkersuploadscmd is the handler for the command `siac renter workers
+// uj`.  It lists the status of the upload jobs of every worker.
+func renterworkersuploadscmd() {
+	rw, err := httpClient.RenterWorkersGet()
+	if err != nil {
+		die("Could not get worker statuses:", err)
+	}
+
+	// Sort workers by public key.
+	sort.Slice(rw.Workers, func(i, j int) bool {
+		return rw.Workers[i].HostPubKey.String() < rw.Workers[j].HostPubKey.String()
+	})
+
+	// Create tab writer
+	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	defer func() {
+		err := w.Flush()
+		if err != nil {
+			die("Could not flush tabwriter:", err)
+		}
+	}()
+	// Write Upload Info
+	writeWorkerDownloadUploadInfo(false, w, rw)
+}
+
 // writeWorkers is a helper function to display workers
 func writeWorkers(workers []modules.WorkerStatus) {
 	fmt.Println("  Number of Workers:", len(workers))
 	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
+	contractHeader := "Worker Contract\t \t \t "
 	contractInfo := "Contract ID\tHost PubKey\tGood For Renew\tGood For Upload"
-	downloadInfo := "\tDownload On Cooldown\tDownload Queue\tDownload Terminated"
-	uploadInfo := "\tUpload Error\tUpload Cooldown Time\tUpload On Cooldown\tUpload Queue\tUpload Terminated"
-	eaInfo := "\tAvailable Balance\tBalance Targe\tFund Account Queue"
-	jobInfo := "\tBackup Queue\tDownload By Root Queue"
-	fmt.Fprintln(w, "  \n"+contractInfo+downloadInfo+uploadInfo+eaInfo+jobInfo)
+	downloadHeader := "\tWorker Downloads\t "
+	downloadInfo := "\tOn Cooldown\tQueue"
+	uploadHeader := "\tWorker Uploads\t "
+	uploadInfo := "\tOn Cooldown\tQueue"
+	maintenanceHeader := "\tWorker Maintenance\t \t "
+	maintenanceInfo := "\tOn Cooldown\tCooldown Time\tLast Error"
+	eaHeader := "\tWorker Account"
+	eaInfo := "\tAvailable Balance"
+	jobHeader := "\tWorker Jobs\t \t "
+	jobInfo := "\tBackups\tDownload By Root\tHas Sector"
+	fmt.Fprintln(w, "\n  "+contractHeader+downloadHeader+uploadHeader+maintenanceHeader+eaHeader+jobHeader)
+	fmt.Fprintln(w, "  "+contractInfo+downloadInfo+uploadInfo+maintenanceInfo+eaInfo+jobInfo)
 	for _, worker := range workers {
 		// Contract Info
 		fmt.Fprintf(w, "  %v\t%v\t%v\t%v",
@@ -2621,30 +2988,62 @@ func writeWorkers(workers []modules.WorkerStatus) {
 			worker.ContractUtility.GoodForUpload)
 
 		// Download Info
-		fmt.Fprintf(w, "\t%v\t%v\t%v",
+		fmt.Fprintf(w, "\t%v\t%v",
 			worker.DownloadOnCoolDown,
-			worker.DownloadQueueSize,
-			worker.DownloadTerminated)
+			worker.DownloadQueueSize)
 
 		// Upload Info
-		fmt.Fprintf(w, "\t%v\t%v\t%v\t%v\t%v",
-			worker.UploadCoolDownError,
-			worker.UploadCoolDownTime,
+		fmt.Fprintf(w, "\t%v\t%v",
 			worker.UploadOnCoolDown,
-			worker.UploadQueueSize,
-			worker.UploadTerminated)
+			worker.UploadQueueSize)
+
+		// Maintenance Info
+		fmt.Fprintf(w, "\t%t\t%v\t%v",
+			worker.MaintenanceOnCooldown,
+			worker.MaintenanceCoolDownTime,
+			worker.MaintenanceCoolDownError)
 
 		// EA Info
-		fmt.Fprintf(w, "\t%v\t%v",
-			worker.AvailableBalance,
-			worker.BalanceTarget)
+		fmt.Fprintf(w, "\t%v",
+			worker.AccountStatus.AvailableBalance)
 
 		// Job Info
-		fmt.Fprintf(w, "\t%v\t%v\n",
+		fmt.Fprintf(w, "\t%v\t%v\t%v\n",
 			worker.BackupJobQueueSize,
-			worker.DownloadRootJobQueueSize)
+			worker.DownloadRootJobQueueSize,
+			worker.HasSectorJobsStatus.JobQueueSize)
 	}
 	w.Flush()
+}
+
+// absDuration is a small helper function that sanitizes the output for the
+// given time duration. If the duration is less than 0 it will return 0,
+// otherwise it will return the duration rounded to the nearest second.
+func absDuration(t time.Duration) time.Duration {
+	if t <= 0 {
+		return 0
+	}
+	return t.Round(time.Second)
+}
+
+// sanitizeTime is a small helper function that sanitizes the output for the
+// given time. If the given 'cond' value is false, it will print "-", if it is
+// true it will print the time in a predefined format.
+func sanitizeTime(t time.Time, cond bool) string {
+	if !cond {
+		return "-"
+	}
+	return fmt.Sprintf("%v", t.Format(time.RFC3339))
+}
+
+// sanitizeErr is a small helper function that sanitizes the output for the
+// given error string. It will print "-", if the error string is the equivalent
+// of a nil error.
+func sanitizeErr(errStr string) string {
+	if errStr == "" {
+		return "-"
+	}
+	return errStr
 }
 
 // enableiprestriction is the handler for the command `renter enableiprestriction`

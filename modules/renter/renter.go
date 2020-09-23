@@ -32,9 +32,10 @@ import (
 	"sync"
 
 	"gitlab.com/NebulousLabs/errors"
+	"gitlab.com/NebulousLabs/ratelimit"
+	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/NebulousLabs/threadgroup"
 
-	"gitlab.com/scpcorp/siamux"
 	"gitlab.com/scpcorp/writeaheadlog"
 
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -85,6 +86,10 @@ type hostContractor interface {
 
 	// ContractByPublicKey returns the contract associated with the host key.
 	ContractByPublicKey(types.SiaPublicKey) (modules.RenterContract, bool)
+
+	// ContractPublicKey returns the public key capable of verifying the renter's
+	// signature on a contract.
+	ContractPublicKey(pk types.SiaPublicKey) (crypto.PublicKey, bool)
 
 	// ChurnStatus returns contract churn stats for the current period.
 	ChurnStatus() modules.ContractorChurnStatus
@@ -140,14 +145,6 @@ type hostContractor interface {
 
 	// RefreshedContract checks if the contract was previously refreshed
 	RefreshedContract(fcid types.FileContractID) bool
-
-	// RateLimits Gets the bandwidth limits for connections created by the
-	// contractor and its submodules.
-	RateLimits() (readBPS int64, writeBPS int64, packetSize uint64)
-
-	// SetRateLimits sets the bandwidth limits for connections created by the
-	// contractor and its submodules.
-	SetRateLimits(int64, int64, uint64)
 
 	// Synced returns a channel that is closed when the contractor is fully
 	// synced with the peer-to-peer network.
@@ -205,6 +202,14 @@ type Renter struct {
 	bubbleUpdates   map[string]bubbleStatus
 	bubbleUpdatesMu sync.Mutex
 
+	// Stateful variables related to projects the worker can launch. Typically
+	// projects manage all of their own state, but for example they may track
+	// metrics across running the project multiple times.
+	staticProjectDownloadByRootManager *projectDownloadByRootManager
+
+	// The renter's bandwidth ratelimit.
+	rl *ratelimit.RateLimit
+
 	// Utilities.
 	cs                    modules.ConsensusSet
 	deps                  modules.Dependencies
@@ -237,6 +242,15 @@ func (r *Renter) Close() error {
 		return errors.Compose(r.tg.Stop(), r.hostDB.Close(), r.hostContractor.Close(), r.staticSkynetBlacklist.Close(), r.staticSkynetPortals.Close())
 	}
 	return nil
+}
+
+// MemoryStatus returns the current status of the memory manager
+func (r *Renter) MemoryStatus() (modules.MemoryStatus, error) {
+	if err := r.tg.Add(); err != nil {
+		return modules.MemoryStatus{}, err
+	}
+	defer r.tg.Done()
+	return r.memoryManager.callStatus(), nil
 }
 
 // PriceEstimation estimates the cost in siacoins of performing various storage
@@ -429,13 +443,6 @@ func (r *Renter) PriceEstimation(allowance modules.Allowance) (modules.RenterPri
 	return est, allowance, nil
 }
 
-// managedRPCClient returns an RPC client for the host with given key
-func (r *Renter) managedRPCClient(host types.SiaPublicKey) (RPCClient, error) {
-	id := r.mu.Lock()
-	defer r.mu.Unlock(id)
-	return &MockRPCClient{}, nil
-}
-
 // managedContractUtilityMaps returns a set of maps that contain contract
 // information. Information about which contracts are offline, goodForRenew are
 // available, as well as a full list of contracts keyed by their public key.
@@ -527,10 +534,10 @@ func (r *Renter) setBandwidthLimits(downloadSpeed int64, uploadSpeed int64) erro
 
 	// Check for sentinel "no limits" value.
 	if downloadSpeed == 0 && uploadSpeed == 0 {
-		r.hostContractor.SetRateLimits(0, 0, 0)
+		r.rl.SetLimits(0, 0, 0)
 	} else {
 		// Set the rate limits according to the provided values.
-		r.hostContractor.SetRateLimits(downloadSpeed, uploadSpeed, 4*4096)
+		r.rl.SetLimits(downloadSpeed, uploadSpeed, 4*4096)
 	}
 	return nil
 }
@@ -755,7 +762,7 @@ func (r *Renter) Settings() (modules.RenterSettings, error) {
 		return modules.RenterSettings{}, err
 	}
 	defer r.tg.Done()
-	download, upload, _ := r.hostContractor.RateLimits()
+	download, upload, _ := r.rl.Limits()
 	iprestriction, err := r.hostDB.IPRestriction()
 	if err != nil {
 		return modules.RenterSettings{}, errors.AddContext(err, "error getting IPViolationsCheck:")
@@ -813,6 +820,26 @@ func (r *Renter) AddSkykey(sk pubaccesskey.Pubaccesskey) error {
 	return r.staticSkykeyManager.AddKey(sk)
 }
 
+// DeleteSkykeyByID deletes the Pubaccesskey with the given ID from the renter's pubaccesskey
+// manager if it exists.
+func (r *Renter) DeleteSkykeyByID(id pubaccesskey.PubaccesskeyID) error {
+	if err := r.tg.Add(); err != nil {
+		return err
+	}
+	defer r.tg.Done()
+	return r.staticSkykeyManager.DeleteKeyByID(id)
+}
+
+// DeleteSkykeyByName deletes the Pubaccesskey with the given name from the renter's pubaccesskey
+// manager if it exists.
+func (r *Renter) DeleteSkykeyByName(name string) error {
+	if err := r.tg.Add(); err != nil {
+		return err
+	}
+	defer r.tg.Done()
+	return r.staticSkykeyManager.DeleteKeyByName(name)
+}
+
 // SkykeyByName gets the Pubaccesskey with the given name from the renter's pubaccesskey
 // manager if it exists.
 func (r *Renter) SkykeyByName(name string) (pubaccesskey.Pubaccesskey, error) {
@@ -824,17 +851,17 @@ func (r *Renter) SkykeyByName(name string) (pubaccesskey.Pubaccesskey, error) {
 }
 
 // CreateSkykey creates a new Pubaccesskey with the given name and ciphertype.
-func (r *Renter) CreateSkykey(name string, ct crypto.CipherType) (pubaccesskey.Pubaccesskey, error) {
+func (r *Renter) CreateSkykey(name string, skType pubaccesskey.PubaccesskeyType) (pubaccesskey.Pubaccesskey, error) {
 	if err := r.tg.Add(); err != nil {
 		return pubaccesskey.Pubaccesskey{}, err
 	}
 	defer r.tg.Done()
-	return r.staticSkykeyManager.CreateKey(name, ct)
+	return r.staticSkykeyManager.CreateKey(name, skType)
 }
 
 // SkykeyByID gets the Pubaccesskey with the given ID from the renter's pubaccesskey
 // manager if it exists.
-func (r *Renter) SkykeyByID(id pubaccesskey.SkykeyID) (pubaccesskey.Pubaccesskey, error) {
+func (r *Renter) SkykeyByID(id pubaccesskey.PubaccesskeyID) (pubaccesskey.Pubaccesskey, error) {
 	if err := r.tg.Add(); err != nil {
 		return pubaccesskey.Pubaccesskey{}, err
 	}
@@ -842,21 +869,31 @@ func (r *Renter) SkykeyByID(id pubaccesskey.SkykeyID) (pubaccesskey.Pubaccesskey
 	return r.staticSkykeyManager.KeyByID(id)
 }
 
-// SkykeyIDByName gets the SkykeyID of the key with the given name if it
+// SkykeyIDByName gets the PubaccesskeyID of the key with the given name if it
 // exists.
-func (r *Renter) SkykeyIDByName(name string) (pubaccesskey.SkykeyID, error) {
+func (r *Renter) SkykeyIDByName(name string) (pubaccesskey.PubaccesskeyID, error) {
 	if err := r.tg.Add(); err != nil {
-		return pubaccesskey.SkykeyID{}, err
+		return pubaccesskey.PubaccesskeyID{}, err
 	}
 	defer r.tg.Done()
 	return r.staticSkykeyManager.IDByName(name)
+}
+
+// Skykeys returns a slice containing each Pubaccesskey being stored by the renter.
+func (r *Renter) Skykeys() ([]pubaccesskey.Pubaccesskey, error) {
+	if err := r.tg.Add(); err != nil {
+		return nil, err
+	}
+	defer r.tg.Done()
+
+	return r.staticSkykeyManager.Skykeys(), nil
 }
 
 // Enforce that Renter satisfies the modules.Renter interface.
 var _ modules.Renter = (*Renter)(nil)
 
 // renterBlockingStartup handles the blocking portion of NewCustomRenter.
-func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, hdb modules.HostDB, w modules.Wallet, hc hostContractor, mux *siamux.SiaMux, persistDir string, deps modules.Dependencies) (*Renter, error) {
+func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, hdb modules.HostDB, w modules.Wallet, hc hostContractor, mux *siamux.SiaMux, persistDir string, rl *ratelimit.RateLimit, deps modules.Dependencies) (*Renter, error) {
 	if g == nil {
 		return nil, errNilGateway
 	}
@@ -904,23 +941,26 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 		bubbleUpdates:   make(map[string]bubbleStatus),
 		downloadHistory: make(map[modules.DownloadID]*download),
 
-		cs:                    cs,
-		deps:                  deps,
-		g:                     g,
-		w:                     w,
-		hostDB:                hdb,
-		hostContractor:        hc,
-		persistDir:            persistDir,
-		staticAlerter:         modules.NewAlerter("renter"),
-		staticStreamBufferSet: newStreamBufferSet(),
-		staticMux:             mux,
-		mu:                    siasync.New(modules.SafeMutexDelay, 1),
-		tpool:                 tpool,
+		staticProjectDownloadByRootManager: new(projectDownloadByRootManager),
+
+		cs:             cs,
+		deps:           deps,
+		g:              g,
+		w:              w,
+		hostDB:         hdb,
+		hostContractor: hc,
+		persistDir:     persistDir,
+		rl:             rl,
+		staticAlerter:  modules.NewAlerter("renter"),
+		staticMux:      mux,
+		mu:             siasync.New(modules.SafeMutexDelay, 1),
+		tpool:          tpool,
 	}
+	r.staticStreamBufferSet = newStreamBufferSet(&r.tg)
 	close(r.uploadHeap.pauseChan)
 
-	// Initialize the loggers so that they are available for the rest of the the
-	// components start up.
+	// Initialize the loggers so that they are available for the components as
+	// the components start up.
 	var err error
 	r.log, err = persist.NewFileLogger(filepath.Join(r.persistDir, logFile))
 	if err != nil {
@@ -942,7 +982,7 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	if err != nil {
 		return nil, errors.AddContext(err, "unable to create account manager")
 	}
-	r.memoryManager = newMemoryManager(defaultMemory, r.tg.StopChan())
+	r.memoryManager = newMemoryManager(memoryDefault, memoryPriorityDefault, r.tg.StopChan())
 	r.staticFuseManager = newFuseManager(r)
 	r.stuckStack = callNewStuckStack()
 
@@ -1023,16 +1063,18 @@ func renterAsyncStartup(r *Renter, cs modules.ConsensusSet) error {
 		go r.threadedStuckFileLoop()
 	}
 	// Spin up the snapshot synchronization thread.
-	go r.threadedSynchronizeSnapshots()
+	if !r.deps.Disrupt("DisableSnapshotSync") {
+		go r.threadedSynchronizeSnapshots()
+	}
 	return nil
 }
 
 // NewCustomRenter initializes a renter and returns it.
-func NewCustomRenter(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, hdb modules.HostDB, w modules.Wallet, hc hostContractor, mux *siamux.SiaMux, persistDir string, deps modules.Dependencies) (*Renter, <-chan error) {
+func NewCustomRenter(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, hdb modules.HostDB, w modules.Wallet, hc hostContractor, mux *siamux.SiaMux, persistDir string, rl *ratelimit.RateLimit, deps modules.Dependencies) (*Renter, <-chan error) {
 	errChan := make(chan error, 1)
 
 	// Blocking startup.
-	r, err := renterBlockingStartup(g, cs, tpool, hdb, w, hc, mux, persistDir, deps)
+	r, err := renterBlockingStartup(g, cs, tpool, hdb, w, hc, mux, persistDir, rl, deps)
 	if err != nil {
 		errChan <- err
 		return nil, errChan
@@ -1055,19 +1097,19 @@ func NewCustomRenter(g modules.Gateway, cs modules.ConsensusSet, tpool modules.T
 }
 
 // New returns an initialized renter.
-func New(g modules.Gateway, cs modules.ConsensusSet, wallet modules.Wallet, tpool modules.TransactionPool, mux *siamux.SiaMux, persistDir string) (*Renter, <-chan error) {
+func New(g modules.Gateway, cs modules.ConsensusSet, wallet modules.Wallet, tpool modules.TransactionPool, mux *siamux.SiaMux, rl *ratelimit.RateLimit, persistDir string) (*Renter, <-chan error) {
 	errChan := make(chan error, 1)
-	hdb, errChanHDB := hostdb.New(g, cs, tpool, persistDir)
+	hdb, errChanHDB := hostdb.New(g, cs, tpool, mux, persistDir)
 	if err := modules.PeekErr(errChanHDB); err != nil {
 		errChan <- err
 		return nil, errChan
 	}
-	hc, errChanContractor := contractor.New(cs, wallet, tpool, hdb, persistDir)
+	hc, errChanContractor := contractor.New(cs, wallet, tpool, hdb, rl, persistDir)
 	if err := modules.PeekErr(errChanContractor); err != nil {
 		errChan <- err
 		return nil, errChan
 	}
-	renter, errChanRenter := NewCustomRenter(g, cs, tpool, hdb, wallet, hc, mux, persistDir, modules.ProdDependencies)
+	renter, errChanRenter := NewCustomRenter(g, cs, tpool, hdb, wallet, hc, mux, persistDir, rl, modules.ProdDependencies)
 	if err := modules.PeekErr(errChanRenter); err != nil {
 		errChan <- err
 		return nil, errChan

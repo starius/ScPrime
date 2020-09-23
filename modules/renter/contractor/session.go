@@ -185,7 +185,7 @@ func (hs *hostSession) Replace(data []byte, sectorIndex uint64, trim bool) (cryp
 
 	_, sectorRoot, err := hs.session.Replace(data, sectorIndex, trim)
 	if err != nil {
-		return crypto.Hash{}, err
+		return crypto.Hash{}, errors.AddContext(err, "unable to perform replace operation in session")
 	}
 	return sectorRoot, nil
 }
@@ -246,7 +246,7 @@ func (c *Contractor) Session(pk types.SiaPublicKey, cancel <-chan struct{}) (_ S
 	}
 
 	// Create the session.
-	s, err := c.staticContracts.NewSession(host, id, height, c.hdb, cancel)
+	s, err := c.staticContracts.NewSession(host, id, height, c.hdb, c.log.Logger, cancel)
 	if modules.IsContractNotRecognizedErr(err) {
 		err = errors.Compose(err, c.MarkContractBad(id))
 	}

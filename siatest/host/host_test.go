@@ -2,10 +2,13 @@ package host
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/host"
 	"gitlab.com/scpcorp/ScPrime/modules/host/contractmanager"
@@ -14,6 +17,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/node/api/client"
 	"gitlab.com/scpcorp/ScPrime/siatest"
 	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // TestHostGetPubKey confirms that the pubkey is returned through the API
@@ -330,6 +334,10 @@ func TestHostContracts(t *testing.T) {
 		t.Fatal("contract should have 0 datasize")
 	}
 
+	if hc.Contracts[0].RevisionNumber != 1 {
+		t.Fatal("contract should have 1 revision")
+	}
+
 	prevValidPayout := hc.Contracts[0].ValidProofOutputs[1].Value
 	prevMissPayout := hc.Contracts[0].MissedProofOutputs[1].Value
 	_, _, err = renterNode.UploadNewFileBlocking(4096, 1, 1, true)
@@ -346,15 +354,22 @@ func TestHostContracts(t *testing.T) {
 		t.Fatal("contract should have 1 sector uploaded")
 	}
 
-	if hc.Contracts[0].RevisionNumber != 2 {
-		t.Fatal("contract should have 1 revision from upload")
+	// to avoid an NDF we do not compare the RevisionNumber to an exact number
+	// because that is not deterministic due to the new RHP3 protocol, which
+	// uses the contract to fund EAs do balance checks and so forth
+	if hc.Contracts[0].RevisionNumber == 1 {
+		t.Fatal("contract should have received more revisions from the upload", hc.Contracts[0].RevisionNumber)
 	}
 
-	if hc.Contracts[0].PotentialUploadRevenue.Cmp64(0) != 1 {
+	if hc.Contracts[0].PotentialAccountFunding.IsZero() {
+		t.Fatal("contract should have account funding")
+	}
+
+	if hc.Contracts[0].PotentialUploadRevenue.IsZero() {
 		t.Fatal("contract should have upload revenue")
 	}
 
-	if hc.Contracts[0].PotentialStorageRevenue.Cmp64(0) != 1 {
+	if hc.Contracts[0].PotentialStorageRevenue.IsZero() {
 		t.Fatal("contract should have storage revenue")
 	}
 
@@ -362,8 +377,70 @@ func TestHostContracts(t *testing.T) {
 		t.Fatal("valid payout should be greater than old valid payout")
 	}
 
-	if hc.Contracts[0].MissedProofOutputs[1].Value.Cmp(prevMissPayout) != -1 {
-		t.Fatal("missed payout should be less than old missed payout")
+	if cmp := hc.Contracts[0].MissedProofOutputs[1].Value.Cmp(prevMissPayout); cmp != 1 {
+		t.Fatal("missed payout should be more than old missed payout", cmp)
+	}
+}
+
+// TestHostExternalSettingsEphemeralAccountFields confirms the host's external
+// settings contain both ephemeral account fields and they are initialized to
+// their defaults. It will also check if both fields can be updated and whether
+// or not those updates take effect properly.
+func TestHostExternalSettingsEphemeralAccountFields(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	// Create Host
+	testDir := hostTestDir(t.Name())
+	hostParams := node.Host(testDir)
+	host, err := siatest.NewCleanNode(hostParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := host.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	hg, err := host.HostGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// verify settings exist and are set to their defaults
+	if hg.ExternalSettings.EphemeralAccountExpiry != modules.DefaultEphemeralAccountExpiry {
+		t.Fatalf("Expected EphemeralAccountExpiry to be set, and to equal the default, instead it was %v", hg.ExternalSettings.EphemeralAccountExpiry)
+	}
+	if !hg.ExternalSettings.MaxEphemeralAccountBalance.Equals(modules.DefaultMaxEphemeralAccountBalance) {
+		t.Fatalf("Expected MaxEphemeralAccountBalance to be set, and to equal the default, instead it was %v", hg.ExternalSettings.MaxEphemeralAccountBalance)
+	}
+
+	// modify them
+	updatedExpiry := int64(modules.DefaultEphemeralAccountExpiry.Seconds()) + 1
+	err = host.HostModifySettingPost(client.HostParamEphemeralAccountExpiry, updatedExpiry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	updatedMaxBalance := modules.DefaultMaxEphemeralAccountBalance.Mul64(2)
+	err = host.HostModifySettingPost(client.HostParamMaxEphemeralAccountBalance, updatedMaxBalance)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// verify settings were updated
+	hg, err = host.HostGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedExpiry := time.Duration(updatedExpiry) * time.Second
+	if hg.ExternalSettings.EphemeralAccountExpiry != expectedExpiry {
+		t.Fatalf("Expected EphemeralAccountExpiry to be set, and to equal the updated value, instead it was %v", hg.ExternalSettings.EphemeralAccountExpiry)
+	}
+	if !hg.ExternalSettings.MaxEphemeralAccountBalance.Equals(updatedMaxBalance) {
+		t.Fatalf("Expected MaxEphemeralAccountBalance to be set, and to equal the updated value, instead it was %v", hg.ExternalSettings.MaxEphemeralAccountBalance)
 	}
 }
 
@@ -414,5 +491,143 @@ func TestHostValidPrices(t *testing.T) {
 	err = host.HostModifySettingPost(client.HostParamMinDownloadBandwidthPrice, downloadPrice)
 	if err == nil || !strings.Contains(err.Error(), api.ErrInvalidRPCDownloadRatio.Error()) {
 		t.Fatalf("Expected Error %v but got %v", api.ErrInvalidRPCDownloadRatio, err)
+	}
+}
+
+// TestStorageProofEmptyContract tests that both empty contracts as well as
+// not-empty contracts will result in storage proofs.
+func TestStorageProofEmptyContract(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	// Create a testgroup.
+	groupParams := siatest.GroupParams{
+		Hosts:  2,
+		Miners: 1,
+	}
+	groupDir := hostTestDir(t.Name())
+
+	tg, err := siatest.NewGroupFromTemplate(groupDir, groupParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := tg.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	// Prevent contract renewals to make sure the revision number stays at 1.
+	rt := node.RenterTemplate
+	rt.ContractorDeps = &dependencies.DependencyDisableRenewal{}
+	_, err = tg.AddNodeN(rt, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Fetch the renters.
+	renters := tg.Renters()
+	renterUpload, renterDownload := renters[0], renters[1]
+
+	// Upload a file to pubaccess from one renter.
+	publink, _, _, err := renterUpload.UploadNewSkyfileBlocking("test", 100, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Download a file from the second renter. This should cause the second
+	// renter to spend money on its contracts without increasing their size.
+	err = build.Retry(100, 100*time.Millisecond, func() error {
+		_, _, err = renterDownload.SkynetPublinkGet(publink)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Get the storage obligations from the hosts.
+	hosts := tg.Hosts()
+	host1, host2 := hosts[0], hosts[1]
+	cig1, err := host1.HostContractInfoGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cig2, err := host2.HostContractInfoGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// There should be 2 contracts per host.
+	contracts := append(cig1.Contracts, cig2.Contracts...)
+	if len(contracts) != len(hosts)*len(renters) {
+		t.Fatalf("expected %v contracts but got %v", len(hosts)*len(renters), len(contracts))
+	}
+
+	// Mine until the proof deadline that is furthest in the future.
+	var proofDeadline types.BlockHeight
+	for _, so := range contracts {
+		if so.ProofDeadLine > proofDeadline {
+			proofDeadline = so.ProofDeadLine
+		}
+	}
+	bh, err := renterDownload.BlockHeight()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for ; bh <= proofDeadline; bh++ {
+		err = tg.Miners()[0].MineBlock()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Check that the right number of storage obligations were provided.
+	retries := 0
+	err = build.Retry(1000, 100*time.Millisecond, func() error {
+		if retries%10 == 0 {
+			err = tg.Miners()[0].MineBlock()
+			if err != nil {
+				t.Error(err)
+				return nil
+			}
+		}
+		retries++
+
+		cig1, err = host1.HostContractInfoGet()
+		if err != nil {
+			return err
+		}
+		cig2, err = host2.HostContractInfoGet()
+		if err != nil {
+			return err
+		}
+		proofs := 0
+		emptyContracts := 0
+		for _, contract := range append(cig1.Contracts, cig2.Contracts...) {
+			if contract.ProofConfirmed {
+				proofs++
+				if contract.DataSize == 0 {
+					emptyContracts++
+				}
+			}
+		}
+
+		expectedProofs := len(contracts)
+		expectedEmptyContracts := 2
+		if proofs < expectedProofs {
+			return fmt.Errorf("expected at least %v submitted proofs but got %v", expectedProofs, proofs)
+		}
+		if emptyContracts < expectedEmptyContracts {
+			return fmt.Errorf("expected at least %v submitted empty proofs but got %v", expectedEmptyContracts, emptyContracts)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }

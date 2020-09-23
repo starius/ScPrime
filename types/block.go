@@ -6,8 +6,8 @@ package types
 import (
 	"bytes"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 )
 
 const (

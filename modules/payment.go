@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/scpcorp/siamux"
+	"gitlab.com/NebulousLabs/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -53,8 +53,7 @@ var (
 	ErrWithdrawalInvalidSignature = errors.New("ephemeral account withdrawal message signature is invalid")
 )
 
-// PaymentProcessor is the interface implemented when receiving payment for an
-// RPC.
+// PaymentProcessor is the interface implemented to handle RPC payments.
 type PaymentProcessor interface {
 	// ProcessPayment takes a stream and handles the payment request objects
 	// sent by the caller. Returns an object that implements the PaymentDetails
@@ -67,7 +66,7 @@ type PaymentProvider interface {
 	// ProvidePayment takes a stream and various payment details and handles the
 	// payment by sending and processing payment request and response objects.
 	// Returns an error in case of failure.
-	ProvidePayment(stream siamux.Stream, host types.SiaPublicKey, rpc types.Specifier, amount types.Currency, refundAccount AccountID, blockHeight types.BlockHeight) error
+	ProvidePayment(stream io.ReadWriter, host types.SiaPublicKey, rpc types.Specifier, amount types.Currency, refundAccount AccountID, blockHeight types.BlockHeight) error
 }
 
 // PaymentDetails is an interface that defines method that give more information
@@ -75,7 +74,6 @@ type PaymentProvider interface {
 type PaymentDetails interface {
 	AccountID() AccountID
 	Amount() types.Currency
-	AddedCollateral() types.Currency
 }
 
 // Payment identifiers
@@ -109,12 +107,6 @@ type (
 		Priority  int64
 	}
 
-	// PayByEphemeralAccountResponse is the object sent in response to the
-	// PayByEphemeralAccountRequest
-	PayByEphemeralAccountResponse struct {
-		Balance types.Currency // balance of the account before withdrawal
-	}
-
 	// PayByContractRequest holds all payment details to pay from a file
 	// contract.
 	PayByContractRequest struct {
@@ -129,7 +121,6 @@ type (
 	// PayByContractResponse is the object sent in response to the
 	// PayByContractRequest
 	PayByContractResponse struct {
-		Balance   types.Currency // balance of the refund account before withdrawal
 		Signature crypto.Signature
 	}
 
@@ -258,7 +249,7 @@ func (wm *WithdrawalMessage) ValidateExpiry(blockHeight, expiry types.BlockHeigh
 func (wm *WithdrawalMessage) ValidateSignature(hash crypto.Hash, sig crypto.Signature) error {
 	err := crypto.VerifyHash(hash, wm.Account.PK(), sig)
 	if err != nil {
-		return errors.Extend(err, ErrWithdrawalInvalidSignature)
+		return errors.Compose(err, ErrWithdrawalInvalidSignature)
 	}
 	return nil
 }

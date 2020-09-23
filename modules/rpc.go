@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"time"
+
+	"gitlab.com/NebulousLabs/encoding"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
@@ -17,17 +19,30 @@ type RPCPriceTable struct {
 	// UID is a specifier that uniquely identifies this price table
 	UID UniqueID `json:"uid"`
 
-	// Expiry is a unix timestamp that specifies the time until which the
-	// MDMCostTable is valid.
-	Expiry int64 `json:"expiry"`
+	// Validity is a duration that specifies how long the host guarantees these
+	// prices for and are thus considered valid.
+	Validity time.Duration `json:"validity"`
+
+	// HostBlockHeight is the block height of the host. This allows the renter
+	// to create valid withdrawal messages in case it is not synced yet.
+	HostBlockHeight types.BlockHeight `json:"hostblockheight"`
 
 	// UpdatePriceTableCost refers to the cost of fetching a new price table
 	// from the host.
 	UpdatePriceTableCost types.Currency `json:"updatepricetablecost"`
 
+	// AccountBalanceCost refers to the cost of fetching the balance of an
+	// ephemeral account.
+	AccountBalanceCost types.Currency `json:"accountbalancecost"`
+
 	// FundAccountCost refers to the cost of funding an ephemeral account on the
 	// host.
 	FundAccountCost types.Currency `json:"fundaccountcost"`
+
+	// LatestRevisionCost refers to the cost of asking the host for the latest
+	// revision of a contract.
+	// TODO: should this be free?
+	LatestRevisionCost types.Currency `json:"latestrevisioncost"`
 
 	// MDM related costs
 	//
@@ -60,13 +75,26 @@ type RPCPriceTable struct {
 	ReadBaseCost   types.Currency `json:"readbasecost"`
 	ReadLengthCost types.Currency `json:"readlengthcost"`
 
+	// Cost values specific to the Revision command.
+	RevisionBaseCost types.Currency `json:"revisionbasecost"`
+
+	// SwapSectorCost is the cost of swapping 2 full sectors by root.
+	SwapSectorCost types.Currency `json:"swapsectorcost"`
+
 	// Cost values specific to the Write instruction.
-	WriteBaseCost   types.Currency `json:"writebasecost"`
-	WriteLengthCost types.Currency `json:"writelengthcost"`
-	WriteStoreCost  types.Currency `json:"writestorecost"`
+	WriteBaseCost   types.Currency `json:"writebasecost"`   // per write
+	WriteLengthCost types.Currency `json:"writelengthcost"` // per byte written
+	WriteStoreCost  types.Currency `json:"writestorecost"`  // per byte / block of additional storage
+
+	// TxnFee estimations.
+	TxnFeeMinRecommended types.Currency `json:"txnfeeminrecommended"`
+	TxnFeeMaxRecommended types.Currency `json:"txnfeemaxrecommended"`
 }
 
 var (
+	// RPCAccountBalance specifier
+	RPCAccountBalance = types.NewSpecifier("AccountBalance")
+
 	// RPCUpdatePriceTable specifier
 	RPCUpdatePriceTable = types.NewSpecifier("UpdatePriceTable")
 
@@ -75,9 +103,24 @@ var (
 
 	// RPCFundAccount specifier
 	RPCFundAccount = types.NewSpecifier("FundAccount")
+
+	// RPCLatestRevision specifier
+	RPCLatestRevision = types.NewSpecifier("LatestRevision")
 )
 
 type (
+	// AccountBalanceRequest specifies the account for which to retrieve the
+	// balance.
+	AccountBalanceRequest struct {
+		Account AccountID
+	}
+
+	// AccountBalanceResponse contains the balance of the previously specified
+	// account.
+	AccountBalanceResponse struct {
+		Balance types.Currency
+	}
+
 	// FundAccountRequest specifies the ephemeral account id that gets funded.
 	FundAccountRequest struct {
 		Account AccountID
@@ -86,6 +129,7 @@ type (
 	// FundAccountResponse contains the signature. This signature is a
 	// signed receipt, and can be used as proof of funding.
 	FundAccountResponse struct {
+		Balance   types.Currency
 		Receipt   Receipt
 		Signature crypto.Signature
 	}
@@ -102,7 +146,8 @@ type (
 		ProgramDataLength uint64
 	}
 
-	// RPCExecuteProgramResponse todo missing docstring
+	// RPCExecuteProgramResponse is the response sent by the host for each
+	// executed MDMProgram instruction.
 	RPCExecuteProgramResponse struct {
 		AdditionalCollateral types.Currency
 		OutputLength         uint64
@@ -111,13 +156,46 @@ type (
 		Proof                []crypto.Hash
 		Error                error
 		TotalCost            types.Currency
-		PotentialRefund      types.Currency
+		StorageCost          types.Currency
+	}
+
+	// RPCExecuteProgramRevisionSigningRequest is the request sent by the renter
+	// for updating a contract when executing a write MDM program.
+	RPCExecuteProgramRevisionSigningRequest struct {
+		Signature            []byte
+		NewRevisionNumber    uint64
+		NewValidProofValues  []types.Currency
+		NewMissedProofValues []types.Currency
+	}
+
+	// RPCExecuteProgramRevisionSigningResponse is the response from the host,
+	// containing the host signature for the new revision.
+	RPCExecuteProgramRevisionSigningResponse struct {
+		Signature []byte
+	}
+
+	// RPCLatestRevisionRequest contains the id of the contract for which to
+	// retrieve the latest revision.
+	RPCLatestRevisionRequest struct {
+		FileContractID types.FileContractID
+	}
+
+	// RPCLatestRevisionResponse contains the latest file contract revision
+	// signed by both host and renter.
+	// TODO: might need to update this to match MDMInstructionRevisionResponse?
+	RPCLatestRevisionResponse struct {
+		Revision types.FileContractRevision
 	}
 
 	// RPCUpdatePriceTableResponse contains a JSON encoded RPC price table
 	RPCUpdatePriceTableResponse struct {
 		PriceTableJSON []byte
 	}
+
+	// RPCTrackedPriceTableResponse is an empty response sent by the host to
+	// signal it has received payment for the price table and has tracked it,
+	// thus considering it valid.
+	RPCTrackedPriceTableResponse struct{}
 
 	// rpcResponse is a helper type for encoding and decoding RPC response
 	// messages.
@@ -141,7 +219,7 @@ func (epr RPCExecuteProgramResponse) MarshalSia(w io.Writer) error {
 	_ = ec.Encode(epr.Proof)
 	_ = ec.Encode(errStr)
 	_ = ec.Encode(epr.TotalCost)
-	_ = ec.Encode(epr.PotentialRefund)
+	_ = ec.Encode(epr.StorageCost)
 	return ec.Err()
 }
 
@@ -156,7 +234,7 @@ func (epr *RPCExecuteProgramResponse) UnmarshalSia(r io.Reader) error {
 	_ = dc.Decode(&epr.Proof)
 	_ = dc.Decode(&errStr)
 	_ = dc.Decode(&epr.TotalCost)
-	_ = dc.Decode(&epr.PotentialRefund)
+	_ = dc.Decode(&epr.StorageCost)
 	if errStr != "" {
 		epr.Error = errors.New(errStr)
 	}

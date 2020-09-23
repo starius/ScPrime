@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/scpcorp/ScPrime/build"
-	"gitlab.com/scpcorp/ScPrime/encoding"
-	"gitlab.com/scpcorp/ScPrime/types"
-
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
+
+	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 var (
@@ -440,6 +440,46 @@ func parsePercentages(values []float64) []float64 {
 	}
 
 	return values
+}
+
+// sizeString converts the uint64 size to a string with appropriate units and
+// truncates to 4 significant digits.
+func sizeString(size uint64) string {
+	sizes := []struct {
+		unit   string
+		factor float64
+	}{
+		{"EB", 1e18},
+		{"PB", 1e15},
+		{"TB", 1e12},
+		{"GB", 1e9},
+		{"MB", 1e6},
+		{"KB", 1e3},
+		{"B", 1e0},
+	}
+
+	// Convert size to a float
+	for i, s := range sizes {
+		// Check to see if we are at the right order of magnitude.
+		res := float64(size) / s.factor
+		if res < 1 {
+			continue
+		}
+		// Create the string
+		str := fmt.Sprintf("%.4g %s", res, s.unit)
+		// Check for rounding to three 0s
+		if !strings.Contains(str, "000") {
+			return str
+		}
+		// If we are at the max unit then there is no trimming to do
+		if i == 0 {
+			build.Critical("input uint64 overflows uint64, shouldn't be possible")
+			return str
+		}
+		// Trim the trailing three 0s and round to the next unit size
+		return fmt.Sprintf("%s %s", string(str[0]), sizes[i-1].unit)
+	}
+	return "0 B"
 }
 
 // parseBoolean returns true if supplied string is either yes, enabled or true

@@ -22,14 +22,13 @@ import (
 // purpose is to serialize modifications to individual contracts, as well as
 // to provide operations on the set as a whole.
 type ContractSet struct {
-	contracts map[types.FileContractID]*SafeContract
-	pubKeys   map[string]types.FileContractID
-	deps      modules.Dependencies
-	dir       string
-	mu        sync.Mutex
-	rl        *ratelimit.RateLimit
-	globalRL  *ratelimit.RateLimit
-	wal       *writeaheadlog.WAL
+	contracts  map[types.FileContractID]*SafeContract
+	pubKeys    map[string]types.FileContractID
+	staticDeps modules.Dependencies
+	staticDir  string
+	mu         sync.Mutex
+	staticRL   *ratelimit.RateLimit
+	staticWal  *writeaheadlog.WAL
 }
 
 // Acquire looks up the contract for the specified host key and locks it before
@@ -71,9 +70,9 @@ func (cs *ContractSet) Delete(c *SafeContract) {
 	cs.mu.Unlock()
 	c.revisionMu.Unlock()
 	// delete contract file
-	headerPath := filepath.Join(cs.dir, c.header.ID().String()+contractHeaderExtension)
-	rootsPath := filepath.Join(cs.dir, c.header.ID().String()+contractRootsExtension)
-	err := errors.Compose(c.headerFile.Close(), c.merkleRoots.rootsFile.Close(), os.Remove(headerPath), os.Remove(rootsPath))
+	headerPath := filepath.Join(cs.staticDir, c.header.ID().String()+contractHeaderExtension)
+	rootsPath := filepath.Join(cs.staticDir, c.header.ID().String()+contractRootsExtension)
+	err := errors.Compose(c.staticHeaderFile.Close(), c.merkleRoots.rootsFile.Close(), os.Remove(headerPath), os.Remove(rootsPath))
 	if err != nil {
 		build.Critical("Failed to delete SafeContract from disk:", err)
 	}
@@ -128,18 +127,6 @@ func (cs *ContractSet) Return(c *SafeContract) {
 	c.revisionMu.Unlock()
 }
 
-// RateLimits sets the bandwidth limits for connections created by the
-// contractSet.
-func (cs *ContractSet) RateLimits() (readBPS int64, writeBPS int64, packetSize uint64) {
-	return cs.rl.Limits()
-}
-
-// SetRateLimits sets the bandwidth limits for connections created by the
-// contractSet.
-func (cs *ContractSet) SetRateLimits(readBPS int64, writeBPS int64, packetSize uint64) {
-	cs.rl.SetLimits(readBPS, writeBPS, packetSize)
-}
-
 // View returns a copy of the contract with the specified host key. The
 // contracts is not locked. Certain fields, including the MerkleRoots, are set
 // to nil for safety reasons. If the contract is not present in the set, View
@@ -152,6 +139,18 @@ func (cs *ContractSet) View(id types.FileContractID) (modules.RenterContract, bo
 		return modules.RenterContract{}, false
 	}
 	return safeContract.Metadata(), true
+}
+
+// PublicKey returns the public key capable of verifying the renter's signature
+// on a contract.
+func (cs *ContractSet) PublicKey(id types.FileContractID) (crypto.PublicKey, bool) {
+	cs.mu.Lock()
+	safeContract, ok := cs.contracts[id]
+	cs.mu.Unlock()
+	if !ok {
+		return crypto.PublicKey{}, false
+	}
+	return safeContract.PublicKey(), true
 }
 
 // ViewAll returns the metadata of each contract in the set. The contracts are
@@ -168,16 +167,19 @@ func (cs *ContractSet) ViewAll() []modules.RenterContract {
 
 // Close closes all contracts in a contract set, this means rendering it unusable for I/O
 func (cs *ContractSet) Close() error {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
 	for _, c := range cs.contracts {
-		c.headerFile.Close()
+		c.staticHeaderFile.Close()
+		c.merkleRoots.rootsFile.Close()
 	}
-	_, err := cs.wal.CloseIncomplete()
+	_, err := cs.staticWal.CloseIncomplete()
 	return err
 }
 
 // NewContractSet returns a ContractSet storing its contracts in the specified
 // dir.
-func NewContractSet(dir string, deps modules.Dependencies) (*ContractSet, error) {
+func NewContractSet(dir string, rl *ratelimit.RateLimit, deps modules.Dependencies) (*ContractSet, error) {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
 	}
@@ -210,12 +212,13 @@ func NewContractSet(dir string, deps modules.Dependencies) (*ContractSet, error)
 		contracts: make(map[types.FileContractID]*SafeContract),
 		pubKeys:   make(map[string]types.FileContractID),
 
-		deps: deps,
-		dir:  dir,
-		wal:  wal,
+		staticDeps: deps,
+		staticDir:  dir,
+		staticRL:   rl,
+		staticWal:  wal,
 	}
 	// Set the initial rate limit to 'unlimited' bandwidth with 4kib packets.
-	cs.rl = ratelimit.NewRateLimit(0, 0, 0)
+	cs.staticRL = ratelimit.NewRateLimit(0, 0, 0)
 
 	// Before loading the contract files apply the updates which were meant to
 	// create new contracts and filter them out.
@@ -297,7 +300,7 @@ func (cs *ContractSet) managedV146SplitContractHeaderAndRoots(dir string) error 
 		if filepath.Ext(filename) != v146ContractExtension {
 			continue
 		}
-		path := filepath.Join(cs.dir, filename)
+		path := filepath.Join(cs.staticDir, filename)
 		f, err := os.Open(path)
 		if err != nil {
 			return err

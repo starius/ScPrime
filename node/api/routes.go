@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -8,6 +9,16 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"gitlab.com/scpcorp/ScPrime/build"
+)
+
+var (
+	// httpServerTimeout defines the maximum amount of time before an HTTP call
+	// will timeout and an error will be returned.
+	httpServerTimeout = build.Select(build.Var{
+		Standard: 24 * time.Hour,
+		Dev:      1 * time.Hour,
+		Testing:  1 * time.Minute,
+	}).(time.Duration)
 )
 
 // buildHttpRoutes sets up and returns an * httprouter.Router.
@@ -18,23 +29,25 @@ func (api *API) buildHTTPRoutes() {
 	requiredPassword := api.requiredPassword
 	requiredUserAgent := api.requiredUserAgent
 
-	router.NotFound = http.HandlerFunc(UnrecognizedCallHandler)
+	router.NotFound = http.HandlerFunc(api.UnrecognizedCallHandler)
 	router.RedirectTrailingSlash = false
 
 	// Daemon API Calls
 	router.GET("/daemon/alerts", api.daemonAlertsHandlerGET)
 	router.GET("/daemon/constants", api.daemonConstantsHandler)
-	router.GET("/daemon/version", api.daemonVersionHandler)
-	router.GET("/daemon/update", api.daemonUpdateHandlerGET)
-	router.POST("/daemon/update", api.daemonUpdateHandlerPOST)
-	router.GET("/daemon/stop", RequirePassword(api.daemonStopHandler, requiredPassword))
 	router.GET("/daemon/settings", api.daemonSettingsHandlerGET)
 	router.POST("/daemon/settings", api.daemonSettingsHandlerPOST)
+	router.GET("/daemon/stack", api.daemonStackHandlerGET)
+	router.GET("/daemon/stop", RequirePassword(api.daemonStopHandler, requiredPassword))
+	router.GET("/daemon/update", api.daemonUpdateHandlerGET)
+	router.POST("/daemon/update", api.daemonUpdateHandlerPOST)
+	router.GET("/daemon/version", api.daemonVersionHandler)
 
 	// Consensus API Calls
 	if api.cs != nil {
 		router.GET("/consensus", api.consensusHandler)
 		router.GET("/consensus/blocks", api.consensusBlocksHandler)
+		router.GET("/consensus/subscribe/:id", api.consensusSubscribeHandler)
 		router.POST("/consensus/validate/transactionset", api.consensusValidateTransactionsetHandler)
 		router.GET("/consensus/blocks/:height", api.consensusBlocksHandlerSanasol)
 	}
@@ -62,8 +75,12 @@ func (api *API) buildHTTPRoutes() {
 		router.GET("/gateway/bandwidth", api.gatewayBandwidthHandlerGET)
 		router.POST("/gateway/connect/:netaddress", RequirePassword(api.gatewayConnectHandler, requiredPassword))
 		router.POST("/gateway/disconnect/:netaddress", RequirePassword(api.gatewayDisconnectHandler, requiredPassword))
-		router.GET("/gateway/blacklist", api.gatewayBlacklistHandlerGET)
-		router.POST("/gateway/blacklist", RequirePassword(api.gatewayBlacklistHandlerPOST, requiredPassword))
+		router.GET("/gateway/blocklist", api.gatewayBlocklistHandlerGET)
+		router.POST("/gateway/blocklist", RequirePassword(api.gatewayBlocklistHandlerPOST, requiredPassword))
+
+		// Deprecated fields
+		router.GET("/gateway/blacklist", api.gatewayBlocklistHandlerGET)
+		router.POST("/gateway/blacklist", RequirePassword(api.gatewayBlocklistHandlerPOST, requiredPassword))
 	}
 
 	// Host API Calls
@@ -157,6 +174,8 @@ func (api *API) buildHTTPRoutes() {
 		router.GET("/pubaccess/pubaccesskey", RequirePassword(api.skykeyHandlerGET, requiredPassword))
 		router.POST("/pubaccess/createpubaccesskey", RequirePassword(api.skykeyCreateKeyHandlerPOST, requiredPassword))
 		router.POST("/pubaccess/addpubaccesskey", RequirePassword(api.skykeyAddKeyHandlerPOST, requiredPassword))
+		router.POST("/pubaccess/deletepubaccesskey", RequirePassword(api.skykeyDeleteHandlerPOST, requiredPassword))
+		router.GET("/pubaccess/pubaccesskeys", RequirePassword(api.skykeysHandlerGET, requiredPassword))
 
 		// Directory endpoints
 		router.POST("/renter/dir/*siapath", RequirePassword(api.renterDirHandlerPOST, requiredPassword))
@@ -227,40 +246,9 @@ func (api *API) buildHTTPRoutes() {
 
 	// Apply UserAgent middleware and return the Router
 	api.routerMu.Lock()
-	api.router = cleanCloseHandler(RequireUserAgent(router, requiredUserAgent))
+	api.router = http.TimeoutHandler(RequireUserAgent(router, requiredUserAgent), httpServerTimeout, fmt.Sprintf("HTTP call exceeded the timeout of %v", httpServerTimeout))
 	api.routerMu.Unlock()
 	return
-}
-
-// cleanCloseHandler wraps the entire API, ensuring that underlying conns are
-// not leaked if the remote end closes the connection before the underlying
-// handler finishes.
-func cleanCloseHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Close this file handle either when the function completes or when the
-		// connection is done.
-		done := make(chan struct{})
-		go func(w http.ResponseWriter, r *http.Request) {
-			defer close(done)
-			next.ServeHTTP(w, r)
-		}(w, r)
-		select {
-		case <-done:
-		}
-
-		// Sanity check - thread should not take more than an hour to return. This
-		// must be done in a goroutine, otherwise the server will not close the
-		// underlying socket for this API call.
-		timer := time.NewTimer(time.Minute * 60)
-		go func() {
-			select {
-			case <-done:
-				timer.Stop()
-			case <-timer.C:
-				build.Severe("api call is taking more than 60 minutes to return:", r.URL.Path)
-			}
-		}()
-	})
 }
 
 // RequireUserAgent is middleware that requires all requests to set a

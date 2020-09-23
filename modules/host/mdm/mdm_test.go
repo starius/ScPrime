@@ -1,6 +1,10 @@
 package mdm
 
 import (
+	"bytes"
+	"context"
+	"fmt"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -27,8 +31,12 @@ type (
 	// TestStorageObligation is a dummy storage obligation for testing which
 	// satisfies the StorageObligation interface.
 	TestStorageObligation struct {
+		host        *TestHost
 		sectorMap   map[crypto.Hash][]byte
 		sectorRoots []crypto.Hash
+
+		// contract related fields.
+		sk crypto.SecretKey
 	}
 )
 
@@ -43,14 +51,19 @@ func newCustomTestHost(generateSectors bool) *TestHost {
 	}
 }
 
-func newTestStorageObligation(locked bool) *TestStorageObligation {
+func (h *TestHost) newTestStorageObligation(locked bool) *TestStorageObligation {
+	sk, _ := crypto.GenerateKeyPair()
 	return &TestStorageObligation{
+		host:      h,
 		sectorMap: make(map[crypto.Hash][]byte),
+		sk:        sk,
 	}
 }
 
-// BlockHeight returns an incremented blockheight every time it's called.
+// BlockHeight returns an incremented blockheight.
 func (h *TestHost) BlockHeight() types.BlockHeight {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	h.blockHeight++
 	return h.blockHeight
 }
@@ -58,7 +71,9 @@ func (h *TestHost) BlockHeight() types.BlockHeight {
 // HasSector indicates whether the host stores a sector with a given root or
 // not.
 func (h *TestHost) HasSector(sectorRoot crypto.Hash) bool {
+	h.mu.Lock()
 	_, exists := h.sectors[sectorRoot]
+	h.mu.Unlock()
 	return exists
 }
 
@@ -78,6 +93,23 @@ func (h *TestHost) ReadSector(sectorRoot crypto.Hash) ([]byte, error) {
 	return data, nil
 }
 
+// AddRandomSector adds a random sector to the obligation and corresponding
+// host.
+func (so *TestStorageObligation) AddRandomSector() {
+	data := fastrand.Bytes(int(modules.SectorSize))
+	root := crypto.MerkleRoot(data)
+	so.host.sectors[root] = data
+	so.sectorRoots = append(so.sectorRoots, root)
+}
+
+// AddRandomSectors adds n random sectors to the obligation and corresponding
+// host.
+func (so *TestStorageObligation) AddRandomSectors(n int) {
+	for i := 0; i < n; i++ {
+		so.AddRandomSector()
+	}
+}
+
 // ContractSize implements the StorageObligation interface.
 func (so *TestStorageObligation) ContractSize() uint64 {
 	return uint64(len(so.sectorRoots)) * modules.SectorSize
@@ -89,6 +121,37 @@ func (so *TestStorageObligation) MerkleRoot() crypto.Hash {
 		return crypto.Hash{}
 	}
 	return cachedMerkleRoot(so.sectorRoots)
+}
+
+// RecentRevision implements the StorageObligation interface.
+func (so *TestStorageObligation) RecentRevision() types.FileContractRevision {
+	return types.FileContractRevision{
+		NewFileMerkleRoot: so.MerkleRoot(),
+		NewFileSize:       so.ContractSize(),
+	}
+}
+
+// RevisionTxn returns the revision transaction for the obligation including a
+// renter sig.
+func (so *TestStorageObligation) RevisionTxn() types.Transaction {
+	revTxn := types.Transaction{
+		FileContractRevisions: []types.FileContractRevision{
+			so.RecentRevision(),
+		},
+		TransactionSignatures: []types.TransactionSignature{
+			{
+				ParentID:       crypto.Hash(types.FileContractID{}),
+				PublicKeyIndex: 0,
+				CoveredFields: types.CoveredFields{
+					FileContractRevisions: []uint64{0},
+				},
+			},
+		},
+	}
+	hash := revTxn.SigHash(0, so.host.BlockHeight())
+	sig := crypto.SignHash(hash, so.sk)
+	revTxn.TransactionSignatures[0].Signature = sig[:]
+	return revTxn
 }
 
 // SectorRoots implements the StorageObligation interface.
@@ -118,9 +181,13 @@ func (so *TestStorageObligation) Update(sectorRoots []crypto.Hash, sectorsRemove
 // for every operation/rpc.
 func newTestPriceTable() *modules.RPCPriceTable {
 	return &modules.RPCPriceTable{
-		Expiry:               time.Now().Add(time.Minute).Unix(),
+		Validity: time.Minute,
+
+		AccountBalanceCost:   types.NewCurrency64(1),
+		FundAccountCost:      types.NewCurrency64(1),
 		UpdatePriceTableCost: types.NewCurrency64(1),
 		InitBaseCost:         types.NewCurrency64(1),
+		LatestRevisionCost:   types.NewCurrency64(1),
 		MemoryTimeCost:       types.NewCurrency64(1),
 		CollateralCost:       types.NewCurrency64(1),
 
@@ -130,6 +197,7 @@ func newTestPriceTable() *modules.RPCPriceTable {
 		HasSectorBaseCost:   types.NewCurrency64(1),
 		ReadBaseCost:        types.NewCurrency64(1),
 		ReadLengthCost:      types.NewCurrency64(1),
+		SwapSectorCost:      types.NewCurrency64(1),
 		WriteBaseCost:       types.NewCurrency64(1),
 		WriteLengthCost:     types.NewCurrency64(1),
 		WriteStoreCost:      types.NewCurrency64(1),
@@ -150,4 +218,77 @@ func TestNew(t *testing.T) {
 	if mdm.host != host {
 		t.Fatal("host wasn't set correctly")
 	}
+}
+
+// ExecuteProgramWithBuilder is a convenience wrapper around mdm.ExecuteProgram.
+// It runs the program constructed by tb with the storage obligation so. It will
+// also return the outputs as a slice for convenience.
+func (mdm *MDM) ExecuteProgramWithBuilder(tb *testProgramBuilder, so *TestStorageObligation, duration types.BlockHeight, finalized bool) ([]Output, error) {
+	// Execute the program.
+	finalize, budget, outputs, err := mdm.ExecuteProgramWithBuilderManualFinalize(tb, so, duration, finalized)
+	if err != nil {
+		return nil, err
+	}
+	// Finalize the program if finalized is true.
+	if finalize == nil && finalized {
+		return nil, errors.New("finalize method was 'nil' but finalized was 'true'")
+	} else if finalized {
+		if err = finalize(so); err != nil {
+			return nil, err
+		}
+	}
+	// Budget should be drained now.
+	if !budget.Remaining().IsZero() {
+		return nil, fmt.Errorf("remaining budget should be empty but was %v", budget.Remaining())
+	}
+	return outputs, nil
+}
+
+// ExecuteProgramWithBuilderManualFinalize is a convenience wrapper around
+// mdm.ExecuteProgram. It runs the program constructed by tb with the storage
+// obligation so. It will also return the outputs as a slice for convenience.
+// Finalization needs to be done manually after running the program.
+func (mdm *MDM) ExecuteProgramWithBuilderManualFinalize(tb *testProgramBuilder, so *TestStorageObligation, duration types.BlockHeight, finalized bool) (FnFinalize, *modules.RPCBudget, []Output, error) {
+	ctx := context.Background()
+	program, programData := tb.Program()
+	values := tb.Cost()
+	_, _, collateral := values.Cost()
+	budget := values.Budget(finalized)
+	finalize, outputChan, err := mdm.ExecuteProgram(ctx, tb.staticPT, program, budget, collateral, so, duration, uint64(len(programData)), bytes.NewReader(programData))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	// Collect outputs
+	var outputs []Output
+	for output := range outputChan {
+		outputs = append(outputs, output)
+	}
+	// Assert outputs
+	err = values.AssertOutputs(outputs)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return finalize, budget, outputs, nil
+}
+
+// assert asserts an output against the provided values. Costs should be
+// asserted using the TestValues type or they will be asserted implicitly when
+// using ExecuteProgramWithBuilder.
+func (o Output) assert(newSize uint64, newMerkleRoot crypto.Hash, proof []crypto.Hash, output []byte) error {
+	if o.Error != nil {
+		return fmt.Errorf("output contained error: %v", o.Error)
+	}
+	if o.NewSize != newSize {
+		return fmt.Errorf("expected newSize %v but got %v", newSize, o.NewSize)
+	}
+	if o.NewMerkleRoot != newMerkleRoot {
+		return fmt.Errorf("expected newMerkleRoot %v but got %v", newMerkleRoot, o.NewMerkleRoot)
+	}
+	if !bytes.Equal(o.Output, output) {
+		return fmt.Errorf("expected output %v\n but got %v", output, o.Output)
+	}
+	if len(o.Proof)+len(proof) != 0 && !reflect.DeepEqual(o.Proof, proof) {
+		return fmt.Errorf("expected proof %v but got %v", proof, o.Proof)
+	}
+	return nil
 }

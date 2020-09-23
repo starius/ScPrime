@@ -64,18 +64,17 @@ package host
 // TODO: update_test.go has commented out tests.
 
 import (
-	"container/heap"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 	connmonitor "gitlab.com/NebulousLabs/monitor"
-	"gitlab.com/scpcorp/siamux"
+	"gitlab.com/NebulousLabs/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -115,7 +114,7 @@ var (
 	rpcPriceGuaranteePeriod = build.Select(build.Var{
 		Standard: 10 * time.Minute,
 		Dev:      5 * time.Minute,
-		Testing:  15 * time.Second,
+		Testing:  1 * time.Minute,
 	}).(time.Duration)
 
 	// pruneExpiredRPCPriceTableFrequency is the frequency at which the host
@@ -198,6 +197,10 @@ type Host struct {
 	// of such conditions are congestion, load, liquidity, etc.
 	staticPriceTables *hostPrices
 
+	// Fields related to RHP3 bandwidhth.
+	atomicStreamUpload   uint64
+	atomicStreamDownload uint64
+
 	// Misc state.
 	db            *persist.BoltDatabase
 	listener      net.Listener
@@ -216,7 +219,7 @@ type Host struct {
 // 'guaranteed' map.
 type hostPrices struct {
 	current       modules.RPCPriceTable
-	guaranteed    map[modules.UniqueID]*modules.RPCPriceTable
+	guaranteed    map[modules.UniqueID]*hostRPCPriceTable
 	staticMinHeap priceTableHeap
 	mu            sync.RWMutex
 }
@@ -229,7 +232,7 @@ func (hp *hostPrices) managedCurrent() modules.RPCPriceTable {
 }
 
 // managedGet returns the price table with given uid
-func (hp *hostPrices) managedGet(uid modules.UniqueID) (pt *modules.RPCPriceTable, found bool) {
+func (hp *hostPrices) managedGet(uid modules.UniqueID) (pt *hostRPCPriceTable, found bool) {
 	hp.mu.RLock()
 	defer hp.mu.RUnlock()
 	pt, found = hp.guaranteed[uid]
@@ -247,7 +250,7 @@ func (hp *hostPrices) managedSetCurrent(pt modules.RPCPriceTable) {
 // managedTrack adds the given price table to the 'guaranteed' map, that holds
 // all of the price tables the host has recently guaranteed to renters. It will
 // also add it to the heap which facilates efficient pruning of that map.
-func (hp *hostPrices) managedTrack(pt *modules.RPCPriceTable) {
+func (hp *hostPrices) managedTrack(pt *hostRPCPriceTable) {
 	hp.mu.Lock()
 	hp.guaranteed[pt.UID] = pt
 	hp.mu.Unlock()
@@ -282,61 +285,6 @@ func (hp *hostPrices) managedPruneExpired() {
 type lockedObligation struct {
 	mu siasync.TryMutex
 	n  uint
-}
-
-// priceTableHeap is a helper type that contains a min heap of rpc price tables,
-// sorted on their expiry. The heap is guarded by its own mutex and allows for
-// peeking at the min expiry.
-type priceTableHeap struct {
-	heap rpcPriceTableHeap
-	mu   sync.Mutex
-}
-
-// PopExpired returns the UIDs for all rpc price tables that have expired
-func (pth *priceTableHeap) PopExpired() (expired []modules.UniqueID) {
-	pth.mu.Lock()
-	defer pth.mu.Unlock()
-
-	now := time.Now().Unix()
-	for {
-		if pth.heap.Len() == 0 {
-			return
-		}
-
-		pt := heap.Pop(&pth.heap)
-		if now < pt.(*modules.RPCPriceTable).Expiry {
-			heap.Push(&pth.heap, pt)
-			break
-		}
-		expired = append(expired, pt.(*modules.RPCPriceTable).UID)
-	}
-	return
-}
-
-// Push will add a price table to the heap.
-func (pth *priceTableHeap) Push(pt *modules.RPCPriceTable) {
-	pth.mu.Lock()
-	defer pth.mu.Unlock()
-	heap.Push(&pth.heap, pt)
-}
-
-// rpcPriceTableHeap is a min heap of rpc price tables
-type rpcPriceTableHeap []*modules.RPCPriceTable
-
-// Implementation of heap.Interface for rpcPriceTableHeap.
-func (pth rpcPriceTableHeap) Len() int           { return len(pth) }
-func (pth rpcPriceTableHeap) Less(i, j int) bool { return pth[i].Expiry < pth[j].Expiry }
-func (pth rpcPriceTableHeap) Swap(i, j int)      { pth[i], pth[j] = pth[j], pth[i] }
-func (pth *rpcPriceTableHeap) Push(x interface{}) {
-	pt := x.(*modules.RPCPriceTable)
-	*pth = append(*pth, pt)
-}
-func (pth *rpcPriceTableHeap) Pop() interface{} {
-	old := *pth
-	n := len(old)
-	pt := old[n-1]
-	*pth = old[0 : n-1]
-	return pt
 }
 
 // checkUnlockHash will check that the host has an unlock hash. If the host
@@ -383,28 +331,43 @@ func (h *Host) managedInternalSettings() modules.HostInternalSettings {
 // managedUpdatePriceTable will recalculate the RPC costs and update the host's
 // price table accordingly.
 func (h *Host) managedUpdatePriceTable() {
-	// create a new RPC price table and set the expiry
-	es := h.managedExternalSettings()
+	// create a new RPC price table
+	hes := h.managedExternalSettings()
 	priceTable := modules.RPCPriceTable{
-		Expiry: time.Now().Add(rpcPriceGuaranteePeriod).Unix(),
-
 		// TODO: hardcoded cost should be updated to use a better value.
+		AccountBalanceCost:   types.NewCurrency64(1),
 		FundAccountCost:      types.NewCurrency64(1),
 		UpdatePriceTableCost: types.NewCurrency64(1),
 
 		// TODO: hardcoded MDM costs should be updated to use better values.
-		HasSectorBaseCost: types.NewCurrency64(1),
-		InitBaseCost:      types.NewCurrency64(1),
-		MemoryTimeCost:    types.NewCurrency64(1),
-		ReadBaseCost:      types.NewCurrency64(1),
-		ReadLengthCost:    types.NewCurrency64(1),
+		HasSectorBaseCost:   types.NewCurrency64(1),
+		MemoryTimeCost:      types.NewCurrency64(1),
+		DropSectorsBaseCost: types.NewCurrency64(1),
+		DropSectorsUnitCost: types.NewCurrency64(1),
+		SwapSectorCost:      types.NewCurrency64(1),
+
+		// Read related costs.
+		ReadBaseCost:   hes.SectorAccessPrice,
+		ReadLengthCost: types.NewCurrency64(1),
+
+		// Write related costs.
+		WriteBaseCost:   types.NewCurrency64(1),
+		WriteLengthCost: types.NewCurrency64(1),
+		WriteStoreCost:  hes.StoragePrice,
+
+		// Init costs.
+		InitBaseCost: hes.BaseRPCPrice,
+
+		// LatestRevisionCost is set to a reasonable base + the estimated
+		// bandwidth cost of downloading a filecontract. This isn't perfect but
+		// at least scales a bit as the host updates their download bandwidth
+		// prices.
+		LatestRevisionCost: modules.DefaultBaseRPCPrice.Add(hes.DownloadBandwidthPrice.Mul64(modules.EstimatedFileContractTransactionSetSize)),
 
 		// Bandwidth related fields.
-		DownloadBandwidthCost: es.DownloadBandwidthPrice,
-		UploadBandwidthCost:   es.UploadBandwidthPrice,
+		DownloadBandwidthCost: hes.DownloadBandwidthPrice,
+		UploadBandwidthCost:   hes.UploadBandwidthPrice,
 	}
-	fastrand.Read(priceTable.UID[:])
-
 	// update the pricetable
 	h.staticPriceTables.managedSetCurrent(priceTable)
 }
@@ -465,9 +428,9 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 		dependencies:             dependencies,
 		lockedStorageObligations: make(map[types.FileContractID]*lockedObligation),
 		staticPriceTables: &hostPrices{
-			guaranteed: make(map[modules.UniqueID]*modules.RPCPriceTable),
+			guaranteed: make(map[modules.UniqueID]*hostRPCPriceTable),
 			staticMinHeap: priceTableHeap{
-				heap: make([]*modules.RPCPriceTable, 0),
+				heap: make([]*hostRPCPriceTable, 0),
 			},
 		},
 		persistDir: persistDir,
@@ -487,14 +450,14 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Create the perist directory if it does not yet exist.
 	err = dependencies.MkdirAll(h.persistDir, 0700)
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Could not create directory "+h.persistDir)
 	}
 
 	tokenStorageDir := filepath.Join(h.persistDir, tokenStorDir)
 	if _, err := os.Stat(tokenStorageDir); os.IsNotExist(err) {
 		// Create the token storage directory if it does not yet exist.
 		if err := os.Mkdir(tokenStorageDir, 0755); err != nil {
-			return nil, err
+			return nil, errors.AddContext(err, "Could not create token storage directory")
 		}
 	}
 	// Initialize token storage.
@@ -502,7 +465,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
 	h.tokenStor, err = newTokenStorage(tokenStorageDir)
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Could not initialize token storage")
 	}
 	h.tg.AfterStop(func() {
 		err = h.tokenStor.close()
@@ -515,7 +478,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// logger.
 	h.log, err = dependencies.NewLogger(filepath.Join(h.persistDir, logFile))
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Error creating logger")
 	}
 
 	h.tg.AfterStop(func() {
@@ -532,12 +495,13 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	h.StorageManager, err = contractmanager.NewCustomContractManager(smDeps, filepath.Join(persistDir, "contractmanager"))
 	if err != nil {
 		h.log.Println("Could not open the storage manager:", err)
-		return nil, err
+		return nil, errors.AddContext(err, "Could not open the contract manager")
 	}
 	h.tg.AfterStop(func() {
 		err = h.StorageManager.Close()
 		if err != nil {
 			h.log.Println("Could not close storage manager:", err)
+			err = errors.AddContext(err, "Could not close the storage manager")
 		}
 	})
 
@@ -545,7 +509,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// before shutting down.
 	err = h.load()
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Error loading persistence")
 	}
 	h.tg.AfterStop(func() {
 		err = h.saveSync()
@@ -557,7 +521,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Add the account manager subsystem
 	h.staticAccountManager, err = h.newAccountManager()
 	if err != nil {
-		return nil, err
+		return nil, errors.AddContext(err, "Could not create account manager")
 	}
 
 	// Subscribe to the consensus set.
@@ -569,7 +533,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Ensure the host is consistent by pruning any stale storage obligations.
 	if err := h.PruneStaleStorageObligations(); err != nil {
 		h.log.Println("Could not prune stale storage obligations:", err)
-		return nil, err
+		return nil, errors.AddContext(err, "Error pruning stale contracts")
 	}
 
 	// Create bandwidth monitor
@@ -634,7 +598,19 @@ func (h *Host) BandwidthCounters() (uint64, uint64, time.Time, error) {
 		return 0, 0, time.Time{}, err
 	}
 	defer h.tg.Done()
+
+	// Get the bandwidth usage for RHP1 & RHP2 connections.
 	readBytes, writeBytes := h.staticMonitor.Counts()
+
+	// Get the bandwidth usage for RHP3 connections. Unfortunately we can't just
+	// wrap the siamux streams since that wouldn't give us the raw data sent over
+	// the TCP connection. Since we want this to be as accurate as possible, we
+	// use the `Limit` method on the streams before closing them to get the
+	// accurate amount of data sent and received. This includes overhead such as
+	// frame headers and encryption.
+	readBytes += atomic.LoadUint64(&h.atomicStreamDownload)
+	writeBytes += atomic.LoadUint64(&h.atomicStreamUpload)
+
 	startTime := h.staticMonitor.StartTime()
 	return writeBytes, readBytes, startTime, nil
 }
@@ -684,7 +660,12 @@ func (h *Host) SetInternalSettings(settings modules.HostInternalSettings) error 
 		return err
 	}
 	defer h.tg.Done()
+
 	h.mu.Lock()
+	// By updating the internal settings the user might influence the host's
+	// price table, we defer a call to update the price table to ensure it
+	// reflects the updated settings.
+	defer h.managedUpdatePriceTable()
 	defer h.mu.Unlock()
 
 	// The host should not be accepting file contracts if it does not have an
@@ -745,7 +726,8 @@ func (h *Host) BlockHeight() types.BlockHeight {
 // cannot be set by the user (host is configured through InternalSettings), and
 // are the values that get displayed to other hosts on the network.
 func (h *Host) managedExternalSettings() modules.HostExternalSettings {
+	_, maxFee := h.tpool.FeeEstimation()
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	return h.externalSettings()
+	return h.externalSettings(maxFee)
 }

@@ -1,6 +1,7 @@
 package host
 
 import (
+	"context"
 	"math"
 	"math/bits"
 	"sync"
@@ -65,7 +66,7 @@ var (
 	blockedWithdrawalTimeout = build.Select(build.Var{
 		Standard: 15 * time.Minute,
 		Dev:      5 * time.Minute,
-		Testing:  2 * time.Second,
+		Testing:  5 * time.Second,
 	}).(time.Duration)
 )
 
@@ -293,6 +294,13 @@ func newFingerprintMap() *fingerprintMap {
 
 // callDeposit calls managedDeposit with refund set to 'false'.
 func (am *accountManager) callDeposit(id modules.AccountID, amount types.Currency, syncChan chan struct{}) error {
+	// disrupt if the 'lowerDeposit' dependency is set, this dependency will
+	// alter the deposit amount without the renter being aware of it, used to
+	// test the balance sync after unclean shutdown
+	if am.h.dependencies.Disrupt("lowerDeposit") {
+		amount = amount.Sub(types.SiacoinPrecision.Div64(10))
+	}
+
 	return am.managedDeposit(id, amount, false, syncChan)
 }
 
@@ -439,7 +447,7 @@ func (am *accountManager) callConsensusChanged(cc modules.ConsensusChange, oldHe
 	if errRotate == nil {
 		am.fingerprints.rotate()
 	} else if errRotate != errRotationDisabled {
-		am.h.log.Critical("ERROR: Could not rotate fingerprints on disk, withdrawals have been deactived", errRotate)
+		am.h.log.Critical("ERROR: Could not rotate fingerprints on disk, withdrawals have been deactivated", errRotate)
 	}
 
 	// Disable withdrawals on failed rotation
@@ -839,7 +847,7 @@ func (am *accountManager) unblockWithdrawals(allowance types.Currency, bh types.
 func (am *accountManager) threadedPruneExpiredAccounts() {
 	for {
 		his := am.h.managedInternalSettings()
-		accountExpiryTimeout := int64(his.EphemeralAccountExpiry)
+		accountExpiryTimeout := int64(his.EphemeralAccountExpiry.Seconds())
 
 		func() {
 			// A timeout of zero means the host never wants to expire accounts.
@@ -900,10 +908,13 @@ func (am *accountManager) staticWaitForDepositResult(pr *persistResult) error {
 // staticWaitForWithdrawalResult will block until it receives a message on the
 // given result channel, or until it either times out or receives a stop signal.
 func (am *accountManager) staticWaitForWithdrawalResult(commitResultChan chan error) error {
+	ctx, cancel := context.WithTimeout(context.Background(), blockedWithdrawalTimeout)
+	defer cancel()
+
 	select {
 	case err := <-commitResultChan:
 		return err
-	case <-time.After(blockedWithdrawalTimeout):
+	case <-ctx.Done():
 		return ErrBalanceInsufficient
 	case <-am.h.tg.StopChan():
 		return ErrWithdrawalCancelled
@@ -1068,7 +1079,7 @@ func (a *account) depositExceedsMaxBalance(deposit, maxBalance types.Currency) b
 // withdrawalExceedsBalance returns true if withdrawal is larger than the
 // account balance.
 func (a *account) withdrawalExceedsBalance(withdrawal types.Currency) bool {
-	return a.balance.Cmp(withdrawal) < 0
+	return withdrawal.Cmp(a.balance) > 0
 }
 
 // sendResult will send the given result to the result channels that are waiting

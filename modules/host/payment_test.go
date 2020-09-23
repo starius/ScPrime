@@ -3,22 +3,19 @@ package host
 import (
 	"fmt"
 	"net"
-	"runtime"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 
-	"gitlab.com/scpcorp/siamux"
-	"gitlab.com/scpcorp/siamux/mux"
+	"gitlab.com/NebulousLabs/siamux"
+	"gitlab.com/NebulousLabs/siamux/mux"
 
-	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
@@ -27,8 +24,8 @@ var (
 	invalidSpecifier = types.NewSpecifier("Invalid")
 )
 
-// TestVerifyPaymentRevision is a unit test covering verifyPaymentRevision
-func TestVerifyPaymentRevision(t *testing.T) {
+// TestVerifyEAFundRevision is a unit test covering verifyEAFundRevision
+func TestVerifyEAFundRevision(t *testing.T) {
 	t.Parallel()
 
 	// create a current revision and a payment revision
@@ -46,13 +43,13 @@ func TestVerifyPaymentRevision(t *testing.T) {
 		},
 		NewWindowStart: types.BlockHeight(revisionSubmissionBuffer) + 1,
 	}
-	payment, err := curr.PaymentRevision(amount)
+	payment, err := curr.EAFundRevision(amount)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// verify a properly created payment revision is accepted
-	err = verifyPaymentRevision(curr, payment, height, amount)
+	err = verifyEAFundRevision(curr, payment, height, amount)
 	if err != nil {
 		t.Fatal("Unexpected error when verifying revision, ", err)
 	}
@@ -71,7 +68,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	badOutputs := []types.SiacoinOutput{payment.NewMissedProofOutputs[0]}
 	badPayment := deepCopy(payment)
 	badPayment.NewMissedProofOutputs = badOutputs
-	err = verifyPaymentRevision(curr, badPayment, height, amount)
+	err = verifyEAFundRevision(curr, badPayment, height, amount)
 	if err != ErrBadContractOutputCounts {
 		t.Fatalf("Expected ErrBadContractOutputCounts but received '%v'", err)
 	}
@@ -79,7 +76,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect ErrLateRevision
 	badCurr := deepCopy(curr)
 	badCurr.NewWindowStart = curr.NewWindowStart - 1
-	err = verifyPaymentRevision(badCurr, payment, height, amount)
+	err = verifyEAFundRevision(badCurr, payment, height, amount)
 	if err != ErrLateRevision {
 		t.Fatalf("Expected ErrLateRevision but received '%v'", err)
 	}
@@ -88,7 +85,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	hash := crypto.HashBytes([]byte("random"))
 	badCurr = deepCopy(curr)
 	badCurr.NewValidProofOutputs[1].UnlockHash = types.UnlockHash(hash)
-	err = verifyPaymentRevision(badCurr, payment, height, amount)
+	err = verifyEAFundRevision(badCurr, payment, height, amount)
 	if err == nil || !strings.Contains(err.Error(), "host payout address changed") {
 		t.Fatalf("Expected host payout error but received '%v'", err)
 	}
@@ -96,7 +93,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect host payout address changed
 	badCurr = deepCopy(curr)
 	badCurr.NewMissedProofOutputs[1].UnlockHash = types.UnlockHash(hash)
-	err = verifyPaymentRevision(badCurr, payment, height, amount)
+	err = verifyEAFundRevision(badCurr, payment, height, amount)
 	if err == nil || !strings.Contains(err.Error(), "host payout address changed") {
 		t.Fatalf("Expected host payout error but received '%v'", err)
 	}
@@ -104,7 +101,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect missed void output
 	badCurr = deepCopy(curr)
 	badCurr.NewMissedProofOutputs = append([]types.SiacoinOutput{}, curr.NewMissedProofOutputs[:2]...)
-	err = verifyPaymentRevision(badCurr, payment, height, amount)
+	err = verifyEAFundRevision(badCurr, payment, height, amount)
 	if !errors.Contains(err, types.ErrMissingVoidOutput) {
 		t.Fatalf("Expected '%v' but received '%v'", types.ErrMissingVoidOutput, err)
 	}
@@ -112,7 +109,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect lost collateral address changed
 	badPayment = deepCopy(payment)
 	badPayment.NewMissedProofOutputs[2].UnlockHash = types.UnlockHash(hash)
-	err = verifyPaymentRevision(curr, badPayment, height, amount)
+	err = verifyEAFundRevision(curr, badPayment, height, amount)
 	if err == nil || !strings.Contains(err.Error(), "lost collateral address was changed") {
 		t.Fatalf("Expected lost collaterall error but received '%v'", err)
 	}
@@ -120,13 +117,13 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect renter increased its proof output
 	badPayment = deepCopy(payment)
 	badPayment.SetValidRenterPayout(curr.ValidRenterPayout().Add64(1))
-	err = verifyPaymentRevision(curr, badPayment, height, amount)
+	err = verifyEAFundRevision(curr, badPayment, height, amount)
 	if !errors.Contains(err, ErrHighRenterValidOutput) {
 		t.Fatalf("Expected '%v' but received '%v'", string(ErrHighRenterValidOutput), err)
 	}
 
 	// expect an error saying not enough money was transferred
-	err = verifyPaymentRevision(curr, payment, height, amount.Add64(1))
+	err = verifyEAFundRevision(curr, payment, height, amount.Add64(1))
 	if !errors.Contains(err, ErrHighRenterValidOutput) {
 		t.Fatalf("Expected '%v' but received '%v'", string(ErrHighRenterValidOutput), err)
 	}
@@ -138,7 +135,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect ErrLowHostValidOutput
 	badPayment = deepCopy(payment)
 	badPayment.SetValidHostPayout(curr.ValidHostPayout().Sub64(1))
-	err = verifyPaymentRevision(curr, badPayment, height, amount)
+	err = verifyEAFundRevision(curr, badPayment, height, amount)
 	if !errors.Contains(err, ErrLowHostValidOutput) {
 		t.Fatalf("Expected '%v' but received '%v'", string(ErrLowHostValidOutput), err)
 	}
@@ -146,7 +143,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect ErrLowHostValidOutput
 	badCurr = deepCopy(curr)
 	badCurr.SetValidHostPayout(curr.ValidHostPayout().Sub64(1))
-	err = verifyPaymentRevision(badCurr, payment, height, amount)
+	err = verifyEAFundRevision(badCurr, payment, height, amount)
 	if !errors.Contains(err, ErrLowHostValidOutput) {
 		t.Fatalf("Expected '%v' but received '%v'", string(ErrLowHostValidOutput), err)
 	}
@@ -154,7 +151,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect ErrHighRenterMissedOutput
 	badPayment = deepCopy(payment)
 	badPayment.SetMissedRenterPayout(payment.MissedRenterOutput().Value.Sub64(1))
-	err = verifyPaymentRevision(curr, badPayment, height, amount)
+	err = verifyEAFundRevision(curr, badPayment, height, amount)
 	if err == nil || !strings.Contains(err.Error(), string(ErrHighRenterMissedOutput)) {
 		t.Fatalf("Expected '%v' but received '%v'", string(ErrHighRenterMissedOutput), err)
 	}
@@ -164,15 +161,17 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	currOut := curr.MissedHostOutput()
 	currOut.Value = currOut.Value.Add64(1)
 	badCurr.NewMissedProofOutputs[1] = currOut
-	err = verifyPaymentRevision(badCurr, payment, height, amount)
+	err = verifyEAFundRevision(badCurr, payment, height, amount)
 	if !errors.Contains(err, ErrLowHostMissedOutput) {
 		t.Fatalf("Expected '%v' but received '%v'", string(ErrLowHostMissedOutput), err)
 	}
 
 	// expect ErrBadRevisionNumber
+	badOutputs = []types.SiacoinOutput{payment.NewMissedProofOutputs[0]}
 	badPayment = deepCopy(payment)
-	badPayment.NewRevisionNumber -= 1
-	err = verifyPaymentRevision(curr, badPayment, height, amount)
+	badPayment.NewMissedProofOutputs = badOutputs
+	badPayment.NewRevisionNumber--
+	err = verifyEAFundRevision(curr, badPayment, height, amount)
 	if err != ErrBadRevisionNumber {
 		t.Fatalf("Expected ErrBadRevisionNumber but received '%v'", err)
 	}
@@ -180,7 +179,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect ErrBadParentID
 	badPayment = deepCopy(payment)
 	badPayment.ParentID = types.FileContractID(hash)
-	err = verifyPaymentRevision(curr, badPayment, height, amount)
+	err = verifyEAFundRevision(curr, badPayment, height, amount)
 	if err != ErrBadParentID {
 		t.Fatalf("Expected ErrBadParentID but received '%v'", err)
 	}
@@ -188,7 +187,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect ErrBadUnlockConditions
 	badPayment = deepCopy(payment)
 	badPayment.UnlockConditions.Timelock = payment.UnlockConditions.Timelock + 1
-	err = verifyPaymentRevision(curr, badPayment, height, amount)
+	err = verifyEAFundRevision(curr, badPayment, height, amount)
 	if err != ErrBadUnlockConditions {
 		t.Fatalf("Expected ErrBadUnlockConditions but received '%v'", err)
 	}
@@ -196,7 +195,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect ErrBadFileSize
 	badPayment = deepCopy(payment)
 	badPayment.NewFileSize = payment.NewFileSize + 1
-	err = verifyPaymentRevision(curr, badPayment, height, amount)
+	err = verifyEAFundRevision(curr, badPayment, height, amount)
 	if err != ErrBadFileSize {
 		t.Fatalf("Expected ErrBadFileSize but received '%v'", err)
 	}
@@ -204,7 +203,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect ErrBadFileMerkleRoot
 	badPayment = deepCopy(payment)
 	badPayment.NewFileMerkleRoot = hash
-	err = verifyPaymentRevision(curr, badPayment, height, amount)
+	err = verifyEAFundRevision(curr, badPayment, height, amount)
 	if err != ErrBadFileMerkleRoot {
 		t.Fatalf("Expected ErrBadFileMerkleRoot but received '%v'", err)
 	}
@@ -212,7 +211,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect ErrBadWindowStart
 	badPayment = deepCopy(payment)
 	badPayment.NewWindowStart = curr.NewWindowStart + 1
-	err = verifyPaymentRevision(curr, badPayment, height, amount)
+	err = verifyEAFundRevision(curr, badPayment, height, amount)
 	if err != ErrBadWindowStart {
 		t.Fatalf("Expected ErrBadWindowStart but received '%v'", err)
 	}
@@ -220,7 +219,7 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect ErrBadWindowEnd
 	badPayment = deepCopy(payment)
 	badPayment.NewWindowEnd = curr.NewWindowEnd - 1
-	err = verifyPaymentRevision(curr, badPayment, height, amount)
+	err = verifyEAFundRevision(curr, badPayment, height, amount)
 	if err != ErrBadWindowEnd {
 		t.Fatalf("Expected ErrBadWindowEnd but received '%v'", err)
 	}
@@ -228,318 +227,24 @@ func TestVerifyPaymentRevision(t *testing.T) {
 	// expect ErrBadUnlockHash
 	badPayment = deepCopy(payment)
 	badPayment.NewUnlockHash = types.UnlockHash(hash)
-	err = verifyPaymentRevision(curr, badPayment, height, amount)
+	err = verifyEAFundRevision(curr, badPayment, height, amount)
 	if err != ErrBadUnlockHash {
 		t.Fatalf("Expected ErrBadUnlockHash but received '%v'", err)
 	}
 
 	// expect ErrLowHostMissedOutput
 	badCurr = deepCopy(curr)
-	badCurr.SetMissedHostPayout(payment.MissedHostOutput().Value.Sub64(1))
-	err = verifyPaymentRevision(badCurr, payment, height, amount)
+	badCurr.SetMissedHostPayout(payment.MissedHostPayout().Add64(1))
+	err = verifyEAFundRevision(badCurr, payment, height, amount)
 	if err != ErrLowHostMissedOutput {
 		t.Fatalf("Expected ErrLowHostMissedOutput but received '%v'", err)
 	}
-}
 
-// balanceTracker is a helper struct to track ephemeral account balances and
-// return when they need to be refilled.
-type balanceTracker struct {
-	balances  map[modules.AccountID]int64
-	threshold int64
-	mu        sync.Mutex
-}
-
-// TrackDeposit deposits the given amount into the specified account
-func (bt *balanceTracker) TrackDeposit(id modules.AccountID, deposit int64) {
-	bt.mu.Lock()
-	defer bt.mu.Unlock()
-	bt.balances[id] += deposit
-}
-
-// TrackWithdrawal withdraws the given amount from the account with specified
-// id. Returns whether the account should be refilled or not depending on the
-// balance tracker's threshold.
-func (bt *balanceTracker) TrackWithdrawal(id modules.AccountID, withdrawal int64) (refill bool) {
-	bt.mu.Lock()
-	defer bt.mu.Unlock()
-	bt.balances[id] -= withdrawal
-	if bt.balances[id] < bt.threshold {
-		return true
-	}
-	return
-}
-
-// TestProcessParallelPayments tests the behaviour of the ProcessPayment method
-// when multiple threads use multiple contracts and ephemeral accounts at the
-// same time to perform payments.
-func TestProcessParallelPayments(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	t.Parallel()
-
-	// determine a reasonable timeout
-	var timeout time.Duration
-	if build.VLONG {
-		timeout = time.Minute
-	} else {
-		timeout = 10 * time.Second
-	}
-
-	// setup the host
-	ht, err := newHostTester(t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		err := ht.Close()
-		if err != nil {
-			t.Error(err)
-		}
-	}()
-	am := ht.host.staticAccountManager
-
-	var refillAmount uint64 = 100
-	var maxWithdrawalAmount uint64 = 10
-
-	// setup a balance tracker
-	bt := &balanceTracker{
-		balances:  make(map[modules.AccountID]int64),
-		threshold: int64(maxWithdrawalAmount),
-	}
-
-	// create an arbitrary amount of renters that have a contract with the host
-	pairs := make([]*renterHostPair, 16)
-	for i := range pairs {
-		pair, err := newRenterHostPairCustomHostTester(ht)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer func(pair *renterHostPair) {
-			err := pair.staticRenterMux.Close()
-			if err != nil {
-				t.Error(err)
-			}
-		}(pair)
-		pairs[i] = pair
-
-		if err := callDeposit(am, pair.staticAccountID, types.NewCurrency64(refillAmount)); err != nil {
-			t.Log("failed deposit", err)
-			t.Fatal(err)
-		}
-		bt.TrackDeposit(pair.staticAccountID, int64(refillAmount))
-	}
-
-	// setup a lock guarding the filecontracts seeing as we are concurrently
-	// accessing them and generating revisions for them
-	fcLocks := make(map[types.FileContractID]*sync.Mutex)
-	for _, pair := range pairs {
-		fcLocks[pair.staticFCID] = new(sync.Mutex)
-	}
-
-	var fcPayments uint64
-	var eaPayments uint64
-	var fcFailures uint64
-	var eaFailures uint64
-
-	// start the timer
-	finished := make(chan struct{})
-	time.AfterFunc(timeout, func() {
-		close(finished)
-	})
-
-	// spin up a large amount of threads that use the renter-host pairs in
-	// parallel
-	totalThreads := 10 * runtime.NumCPU()
-	var wg sync.WaitGroup
-	for thread := 0; thread < totalThreads; thread++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			// create two streams
-			rs, hs, err := NewTestStreams()
-			if err != nil {
-				t.Error(err)
-				return
-			}
-			defer rs.Close()
-			defer hs.Close()
-
-		LOOP:
-			for {
-				select {
-				case <-finished:
-					break LOOP
-				default:
-				}
-
-				// pick a random pair and generate a random withdrawal amount
-				rp := pairs[fastrand.Intn(len(pairs))]
-				rw := fastrand.Uint64n(maxWithdrawalAmount) + 1
-				ra := types.NewCurrency64(rw)
-
-				// pay by contract 5% of time
-				var payByFC bool
-				if fastrand.Intn(100) < 5 {
-					payByFC = true
-				}
-
-				// run payment flow
-				var failed bool
-				var pd modules.PaymentDetails
-				var err error
-				if payByFC {
-					fcLocks[rp.staticFCID].Lock()
-					if pd, failed, err = runPayByContractFlow(rp, rs, hs, ra); failed {
-						atomic.AddUint64(&fcFailures, 1)
-					}
-					atomic.AddUint64(&fcPayments, 1)
-					fcLocks[rp.staticFCID].Unlock()
-				} else {
-					refill := bt.TrackWithdrawal(rp.staticAccountID, int64(rw))
-					if refill {
-						wg.Add(1)
-						go func(id modules.AccountID) {
-							defer wg.Done()
-							time.Sleep(100 * time.Millisecond) // make it slow
-							if err := callDeposit(am, id, types.NewCurrency64(refillAmount)); err != nil {
-								t.Error(err)
-							}
-							bt.TrackDeposit(id, int64(refillAmount))
-						}(rp.staticAccountID)
-					}
-					if pd, failed, err = runPayByEphemeralAccountFlow(rp, rs, hs, ra); failed {
-						atomic.AddUint64(&eaFailures, 1)
-					}
-					atomic.AddUint64(&eaPayments, 1)
-				}
-
-				// compare amount paid to what we expect
-				if !failed && err == nil && !pd.Amount().Equals(ra) {
-					err = fmt.Errorf("Unexpected amount paid, expected %v actual %v", ra, pd.Amount())
-				}
-
-				if err != nil {
-					t.Error(err)
-					break LOOP
-				}
-			}
-		}()
-	}
-	<-finished
-	wg.Wait()
-
-	t.Logf("\n\nIn %.f seconds, on %d cores, the following payments completed successfully\nPayByContract: %d (%v expected failures)\nPayByEphemeralAccount: %d (%v expected failures)\n\n", timeout.Seconds(), runtime.NumCPU(), atomic.LoadUint64(&fcPayments), atomic.LoadUint64(&fcFailures), atomic.LoadUint64(&eaPayments), atomic.LoadUint64(&eaFailures))
-}
-
-// runPayByContractFlow is a helper function that runs the 'PayByContract' flow
-// and returns the result of running it.
-func runPayByContractFlow(pair *renterHostPair, rStream, hStream siamux.Stream, amount types.Currency) (payment modules.PaymentDetails, fail bool, err error) {
-	if fastrand.Intn(100) < 5 { // fail 5% of time
-		fail = true
-	}
-
-	defer func() {
-		if fail && err == nil {
-			err = errors.AddContext(err, "Expected failure but error was nil")
-			return
-		}
-		if fail && err != nil && strings.Contains(err.Error(), "Invalid payment revision") {
-			err = nil
-		}
-	}()
-
-	err = run(
-		func() error {
-			// prepare an updated revision that pays the host
-			rev, sig, err := pair.managedPaymentRevision(amount)
-			if err != nil {
-				return err
-			}
-			// corrupt the revision if we're expected to fail
-			if fail {
-				rev.SetValidRenterPayout(rev.ValidRenterPayout().Add64(1))
-			}
-			// send PaymentRequest & PayByContractRequest
-			pRequest := modules.PaymentRequest{Type: modules.PayByContract}
-			pbcRequest := newPayByContractRequest(rev, sig, pair.staticAccountID)
-			err = modules.RPCWriteAll(rStream, pRequest, pbcRequest)
-			if err != nil {
-				return err
-			}
-			// receive PayByContractResponse
-			var payByResponse modules.PayByContractResponse
-			err = modules.RPCRead(rStream, &payByResponse)
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-		func() error {
-			// process payment request
-			var pErr error
-			payment, pErr = pair.staticHT.host.ProcessPayment(hStream)
-			if pErr != nil {
-				modules.RPCWriteError(hStream, pErr)
-			}
-			return nil
-		},
-	)
-	return
-}
-
-// runPayByContractFlow is a helper function that runs the
-// 'PayByEphemeralAccount' flow and returns the result of running it.
-func runPayByEphemeralAccountFlow(pair *renterHostPair, rStream, hStream siamux.Stream, amount types.Currency) (payment modules.PaymentDetails, fail bool, err error) {
-	if fastrand.Intn(100) < 5 { // fail 5% of time
-		fail = true
-	}
-
-	defer func() {
-		if fail && err == nil {
-			err = errors.AddContext(err, "Expected failure but error was nil")
-			return
-		}
-		// The error here needs to be checked by its string representation
-		// because modules.RPCRead wraps it.
-		if fail && err != nil && strings.Contains(err.Error(), modules.ErrWithdrawalInvalidSignature.Error()) {
-			err = nil
-		}
-	}()
-
-	err = run(
-		func() error {
-			// create the request
-			pbeaRequest := newPayByEphemeralAccountRequest(pair.staticAccountID, pair.staticHT.host.blockHeight+6, amount, pair.staticAccountKey)
-
-			if fail {
-				// this induces failure because the nonce will be different and
-				// this the signature will be invalid
-				pbeaRequest.Signature = newPayByEphemeralAccountRequest(pair.staticAccountID, pair.staticHT.host.blockHeight+6, amount, pair.staticAccountKey).Signature
-			}
-
-			// send PaymentRequest & PayByEphemeralAccountRequest
-			pRequest := modules.PaymentRequest{Type: modules.PayByEphemeralAccount}
-			err := modules.RPCWriteAll(rStream, pRequest, pbeaRequest)
-			if err != nil {
-				return err
-			}
-
-			// receive PayByEphemeralAccountResponse
-			var payByResponse modules.PayByEphemeralAccountResponse
-			return modules.RPCRead(rStream, &payByResponse)
-		},
-		func() error {
-			// process payment request
-			payment, err = pair.staticHT.host.ProcessPayment(hStream)
-			if err != nil {
-				modules.RPCWriteError(hStream, err)
-			}
-			return nil
-		},
-	)
-	return
+	// NOTE: we don't trigger the last check in verifyEAFundRevision which makes
+	// sure that the payouts between the revisions match. This is due to the
+	// fact that the existing checks around the outputs are so tight, that they
+	// will trigger before the payout check does. This essentially makes the
+	// payout check redundant, but it's skill kept to be 100% sure.
 }
 
 // TestProcessPayment verifies the host's ProcessPayment method. It covers both
@@ -578,7 +283,7 @@ func testPayByContract(t *testing.T, pair *renterHostPair) {
 	amountStr := amount.HumanString()
 
 	// prepare an updated revision that pays the host
-	rev, sig, err := pair.managedPaymentRevision(amount)
+	rev, sig, err := pair.managedEAFundRevision(amount)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -638,11 +343,6 @@ func testPayByContract(t *testing.T, pair *renterHostPair) {
 		t.Fatal("could not verify host's signature")
 	}
 
-	// Verify the amount in the response.
-	if !payByResponse.Balance.Equals(types.ZeroCurrency) {
-		t.Fatal("account should have been empty before")
-	}
-
 	// verify the host updated the storage obligation
 	updated, err := host.managedGetStorageObligation(pair.staticFCID)
 	if err != nil {
@@ -662,9 +362,6 @@ func testPayByContract(t *testing.T, pair *renterHostPair) {
 	if !payment.Amount().Equals(amount) {
 		t.Fatalf("Unexpected amount paid, expected %v actual %v", amountStr, payment.Amount().HumanString())
 	}
-	if !payment.AddedCollateral().IsZero() {
-		t.Fatalf("Unexpected collateral added, expected 0H actual %v", payment.AddedCollateral())
-	}
 
 	// prepare a set of payouts that do not deduct payment from the renter
 	validPayouts, missedPayouts := updated.payouts()
@@ -673,7 +370,7 @@ func testPayByContract(t *testing.T, pair *renterHostPair) {
 	missedPayouts[1].Value = missedPayouts[1].Value.Add(amount)
 
 	// overwrite the correct payouts with the faulty payouts
-	rev, err = recent.PaymentRevision(amount)
+	rev, err = recent.EAFundRevision(amount)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -696,17 +393,13 @@ func testPayByContract(t *testing.T, pair *renterHostPair) {
 
 	// Run the code again. This time since we funded the account, the
 	// payByResponse would report the funded amount instead of 0.
-	rev, sig, err = pair.managedPaymentRevision(amount)
+	rev, sig, err = pair.managedEAFundRevision(amount)
 	if err != nil {
 		t.Fatal(err)
 	}
 	err = run(renterFunc, hostFunc)
 	if err != nil {
 		t.Fatal(err)
-	}
-	// Verify the amount in the response.
-	if !payByResponse.Balance.Equals(refund) {
-		t.Fatalf("amount should have been %v but was %v", amount.HumanString(), payByResponse.Balance.HumanString())
 	}
 
 	//  Run the code again. This time it should fail due to no refund account
@@ -741,23 +434,12 @@ func testPayByEphemeralAccount(t *testing.T, pair *renterHostPair) {
 	defer hStream.Close()
 
 	var payment modules.PaymentDetails
-	var payByResponse modules.PayByEphemeralAccountResponse
 
 	renterFunc := func() error {
 		// send PaymentRequest & PayByEphemeralAccountRequest
 		pRequest := modules.PaymentRequest{Type: modules.PayByEphemeralAccount}
 		pbcRequest := newPayByEphemeralAccountRequest(accountID, host.blockHeight+6, amount, sk)
-		err := modules.RPCWriteAll(rStream, pRequest, pbcRequest)
-		if err != nil {
-			return err
-		}
-
-		// receive PayByEphemeralAccountResponse
-		err = modules.RPCRead(rStream, &payByResponse)
-		if err != nil {
-			return err
-		}
-		return nil
+		return modules.RPCWriteAll(rStream, pRequest, pbcRequest)
 	}
 	hostFunc := func() error {
 		// process payment request
@@ -779,23 +461,10 @@ func testPayByEphemeralAccount(t *testing.T, pair *renterHostPair) {
 		t.Fatalf("Unexpected account id, expected %s but received %s", accountID, payment.AccountID())
 	}
 
-	// verify the response contains the amount that got withdrawn
-	if !payByResponse.Balance.Equals(deposit) {
-		t.Fatalf("Unexpected payment amount, expected %s, but received %s", deposit.HumanString(), payByResponse.Balance.HumanString())
-	}
-
 	// verify the payment got withdrawn from the ephemeral account
 	balance := getAccountBalance(host.staticAccountManager, accountID)
 	if !balance.Equals(deposit.Sub(amount)) {
 		t.Fatalf("Unexpected account balance, expected %v but received %s", deposit.Sub(amount), balance.HumanString())
-	}
-
-	// try and perform the same request again, which should fail because the
-	// account balance is insufficient verify err is not nil and contains a
-	// mention of insufficient balance
-	err = run(renterFunc, hostFunc)
-	if err == nil || !strings.Contains(err.Error(), "balance was insufficient") {
-		t.Fatalf("Expected error to mention account balance was insuficient, instead error was: '%v'", err)
 	}
 }
 
@@ -1063,4 +732,105 @@ func TestStreams(t *testing.T) {
 	if pr.Type != modules.PayByContract {
 		t.Fatal("Unexpected request received")
 	}
+}
+
+// TestRevisionFromRequest tests revisionFromRequest valid flow and some edge
+// cases.
+func TestRevisionFromRequest(t *testing.T) {
+	recent := types.FileContractRevision{
+		NewValidProofOutputs: []types.SiacoinOutput{
+			{Value: types.SiacoinPrecision},
+			{Value: types.SiacoinPrecision},
+		},
+		NewMissedProofOutputs: []types.SiacoinOutput{
+			{Value: types.SiacoinPrecision},
+			{Value: types.SiacoinPrecision},
+			{Value: types.SiacoinPrecision},
+		},
+	}
+	pbcr := modules.PayByContractRequest{
+		NewValidProofValues: []types.Currency{
+			types.SiacoinPrecision.Mul64(10),
+			types.SiacoinPrecision.Mul64(100),
+		},
+		NewMissedProofValues: []types.Currency{
+			types.SiacoinPrecision.Mul64(1000),
+			types.SiacoinPrecision.Mul64(10000),
+			types.SiacoinPrecision.Mul64(100000),
+		},
+	}
+
+	// valid case
+	rev := revisionFromRequest(recent, pbcr)
+	if !rev.NewValidProofOutputs[0].Value.Equals(types.SiacoinPrecision.Mul64(10)) {
+		t.Fatal("valid output 0 doesn't match")
+	}
+	if !rev.NewValidProofOutputs[1].Value.Equals(types.SiacoinPrecision.Mul64(100)) {
+		t.Fatal("valid output 1 doesn't match")
+	}
+	if !rev.NewMissedProofOutputs[0].Value.Equals(types.SiacoinPrecision.Mul64(1000)) {
+		t.Fatal("missed output 0 doesn't match")
+	}
+	if !rev.NewMissedProofOutputs[1].Value.Equals(types.SiacoinPrecision.Mul64(10000)) {
+		t.Fatal("missed output 1 doesn't match")
+	}
+	if !rev.NewMissedProofOutputs[2].Value.Equals(types.SiacoinPrecision.Mul64(100000)) {
+		t.Fatal("missed output 2 doesn't match")
+	}
+
+	// too few valid outputs
+	pbcr = modules.PayByContractRequest{
+		NewValidProofValues: []types.Currency{
+			types.SiacoinPrecision.Mul64(10),
+		},
+		NewMissedProofValues: []types.Currency{
+			types.SiacoinPrecision.Mul64(1000),
+			types.SiacoinPrecision.Mul64(10000),
+			types.SiacoinPrecision.Mul64(100000),
+		},
+	}
+	_ = revisionFromRequest(recent, pbcr)
+
+	// too many valid outputs
+	pbcr = modules.PayByContractRequest{
+		NewValidProofValues: []types.Currency{
+			types.SiacoinPrecision.Mul64(10),
+			types.SiacoinPrecision.Mul64(10),
+			types.SiacoinPrecision.Mul64(10),
+		},
+		NewMissedProofValues: []types.Currency{
+			types.SiacoinPrecision.Mul64(1000),
+			types.SiacoinPrecision.Mul64(10000),
+			types.SiacoinPrecision.Mul64(100000),
+		},
+	}
+	_ = revisionFromRequest(recent, pbcr)
+
+	// too few missed outputs.
+	pbcr = modules.PayByContractRequest{
+		NewValidProofValues: []types.Currency{
+			types.SiacoinPrecision.Mul64(10),
+			types.SiacoinPrecision.Mul64(100),
+		},
+		NewMissedProofValues: []types.Currency{
+			types.SiacoinPrecision.Mul64(10000),
+			types.SiacoinPrecision.Mul64(100000),
+		},
+	}
+	_ = revisionFromRequest(recent, pbcr)
+
+	// too many missed outputs.
+	pbcr = modules.PayByContractRequest{
+		NewValidProofValues: []types.Currency{
+			types.SiacoinPrecision.Mul64(10),
+			types.SiacoinPrecision.Mul64(100),
+		},
+		NewMissedProofValues: []types.Currency{
+			types.SiacoinPrecision.Mul64(10000),
+			types.SiacoinPrecision.Mul64(100000),
+			types.SiacoinPrecision.Mul64(100000),
+			types.SiacoinPrecision.Mul64(100000),
+		},
+	}
+	_ = revisionFromRequest(recent, pbcr)
 }

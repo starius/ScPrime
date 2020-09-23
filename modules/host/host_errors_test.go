@@ -1,6 +1,7 @@
 package host
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -41,7 +42,7 @@ func TestHostFailedMkdirAll(t *testing.T) {
 		t.Fatal(err)
 	}
 	ht.host, err = NewCustomHost(&dependencyErrMkdirAll{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
-	if err != mockErrMkdirAll {
+	if !errors.Contains(err, mockErrMkdirAll) {
 		t.Fatal(err)
 	}
 	// Set ht.host to something non-nil - nil was returned because startup was
@@ -81,8 +82,8 @@ func TestHostFailedNewLogger(t *testing.T) {
 		t.Fatal(err)
 	}
 	ht.host, err = NewCustomHost(&dependencyErrNewLogger{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
-	if err != mockErrNewLogger {
-		t.Fatal(err)
+	if !errors.Contains(err, mockErrNewLogger) {
+		t.Fatal(errors.AddContext(err, fmt.Sprintf("Wrong error received. Got %v instead of %v", err, mockErrNewLogger)))
 	}
 	// Set ht.host to something non-nil - nil was returned because startup was
 	// incomplete. If ht.host is nil at the end of the function, the ht.Close()

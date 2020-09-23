@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
 // upgradeFromV120ToV143 is an upgrade layer that aids the integration of the
@@ -26,8 +27,8 @@ func (h *Host) upgradeFromV120ToV143() error {
 	}
 
 	// Add the ephemeral account defaults
-	p.Settings.EphemeralAccountExpiry = defaultEphemeralAccountExpiry
-	p.Settings.MaxEphemeralAccountBalance = defaultMaxEphemeralAccountBalance
+	p.Settings.EphemeralAccountExpiry = modules.DefaultEphemeralAccountExpiry
+	p.Settings.MaxEphemeralAccountBalance = modules.DefaultMaxEphemeralAccountBalance
 	p.Settings.MaxEphemeralAccountRisk = defaultMaxEphemeralAccountRisk
 
 	// Load it on the host
@@ -44,7 +45,7 @@ func (h *Host) upgradeFromV120ToV143() error {
 	}
 
 	// Save the updated persist so that the upgrade is not triggered again.
-	err = h.saveSync()
+	err = persist.SaveJSON(modules.Hostv143PersistMetadata, h.persistData(), filepath.Join(h.persistDir, settingsFile))
 	if err != nil {
 		return build.ExtendErr("could not save persistence object", err)
 	}

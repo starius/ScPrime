@@ -42,7 +42,6 @@ type (
 		id         types.FileContractID
 		amount     types.Currency
 		hostPubKey types.SiaPublicKey
-		endHeight  types.BlockHeight
 	}
 )
 
@@ -614,12 +613,25 @@ func (c *Contractor) managedRenew(sc *proto.SafeContract, contractFunding types.
 	// wipe the renter seed once we are done using it.
 	defer fastrand.Read(params.RenterSeed[:])
 
-	// execute negotiation protocol
+	// create a transaction builder with the correct amount of funding for the renewal.
 	txnBuilder, err := c.wallet.StartTransaction()
 	if err != nil {
 		return modules.RenterContract{}, err
 	}
-	newContract, formationTxnSet, sweepTxn, sweepParents, err := c.staticContracts.Renew(sc, params, txnBuilder, c.tpool, c.hdb, c.tg.StopChan())
+	err = txnBuilder.FundSiacoins(params.Funding)
+	if err != nil {
+		txnBuilder.Drop() // return unused outputs to wallet
+		return modules.RenterContract{}, err
+	}
+	// Add an output that sends all fund back to the refundAddress.
+	// Note that in order to send this transaction, a miner fee will have to be subtracted.
+	output := types.SiacoinOutput{
+		Value:      params.Funding,
+		UnlockHash: params.RefundAddress,
+	}
+	sweepTxn, sweepParents := txnBuilder.Sweep(output)
+
+	newContract, formationTxnSet, err := c.staticContracts.Renew(sc, params, txnBuilder, c.tpool, c.hdb, c.tg.StopChan())
 	if err != nil {
 		txnBuilder.Drop() // return unused outputs to wallet
 		return modules.RenterContract{}, err
@@ -868,10 +880,16 @@ func (c *Contractor) managedAcquireAndUpdateContractUtility(id types.FileContrac
 	}
 	defer c.staticContracts.Return(safeContract)
 
+	return c.managedUpdateContractUtility(safeContract, utility)
+}
+
+// managedUpdateContractUtility is a helper function that updates the contract
+// with the given utility.
+func (c *Contractor) managedUpdateContractUtility(safeContract *proto.SafeContract, utility modules.ContractUtility) error {
 	// Sanity check to verify that we aren't attempting to set a good utility on
 	// a contract that has been renewed.
 	c.mu.Lock()
-	_, exists := c.renewedTo[id]
+	_, exists := c.renewedTo[safeContract.Metadata().ID]
 	c.mu.Unlock()
 	if exists && (utility.GoodForRenew || utility.GoodForUpload) {
 		c.log.Critical("attempting to update contract utility on a contract that has been renewed")
@@ -1047,7 +1065,6 @@ func (c *Contractor) threadedContractMaintenance() {
 				id:         contract.ID,
 				amount:     renewAmount,
 				hostPubKey: contract.HostPublicKey,
-				endHeight:  contract.EndHeight,
 			})
 			c.log.Debugln("Contract has been added to the renew set for being past the renew height")
 			continue
@@ -1082,7 +1099,6 @@ func (c *Contractor) threadedContractMaintenance() {
 				id:         contract.ID,
 				amount:     contract.TotalCost.Mul64(2),
 				hostPubKey: contract.HostPublicKey,
-				endHeight:  contract.EndHeight,
 			})
 			c.log.Debugln("Contract identified as needing to be added to refresh set", contract.RenterFunds, sectorPrice.Mul64(3), percentRemaining, MinContractFundRenewalThreshold)
 		} else {

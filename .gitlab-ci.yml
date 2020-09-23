@@ -15,7 +15,6 @@ variables:
     ./cmd/spd
     ./compatibility
     ./crypto
-    ./encoding
     ./modules
     ./modules/consensus
     ./modules/explorer
@@ -61,24 +60,53 @@ variables:
 default: &default_params
   ## Run tests with most recent golang version to take advantage of any perf
   ## improvements.
-  image: golang:1.13
+  image: golang:latest
   before_script:
+    - go version
     - mkdir -p .cache/gocache
     - export PATH=$PATH:$CI_PROJECT_DIR/.cache/bin/
     - export GOPATH="$CI_PROJECT_DIR/.cache"
+
+## Default common test params for regular and nightly pipelines
+.default_test_common: &default_test_common_params
+  artifacts:
+    name: "SiaTesting-$CI_JOB_NAME"
+    paths:
+      - $CI_PROJECT_DIR/SiaTesting
+      - $CI_PROJECT_DIR/cover/cover.out
+    when: always
+
+  after_script:
+    - cp -R /tmp/SiaTesting $CI_PROJECT_DIR/SiaTesting
+
+## Default common test params for regular and nightly pipelines
+## for Windows runner.
+.default_test_common_windows: &default_test_common_windows_params
+  artifacts:
+    name: "SiaTesting-$CI_JOB_NAME"
+    paths:
+      - $CI_PROJECT_DIR/SiaTesting
+      - $CI_PROJECT_DIR/cover/cover.out
+    when: always
+
+  after_script:
+    - XCOPY "C:\Windows\Temp\SiaTesting\*" "$CI_PROJECT_DIR\SiaTesting" /S /I /Y > $null
 
 ## Default params for Windows runner
 .default_windows: &default_windows_params
   before_script:
     - $env:USERNAME
-    ## No need to use gitlab cache on dedicated Windows runner, because
-    ## go dependencies are stored pernamently on this machine.
-    ## This also fixes 'Permission denied' issues while using gitlab cache.
-    
+    - New-Item -ItemType Directory -Force .cache\gocache
+    - $env:PATH += ";$CI_PROJECT_DIR\.cache\bin"
+    - $env:PATH
+    - $env:GOPATH = "$CI_PROJECT_DIR\.cache"
+    - $env:GOPATH
+
 ## Define the default test parameters.
 .default_test: &default_test_params
   ## Merge the contents of the 'default_params' alias
   <<: *default_params
+  <<: *default_test_common_params
   stage: test
 
   ## disable default tests for scheduled pipelines (nightlies)
@@ -90,6 +118,7 @@ default: &default_params
 .default_windows_test: &default_test_windows_params
   ## Merge the contents of the 'default_windows_params' alias
   <<: *default_windows_params
+  <<: *default_test_common_windows_params
   stage: test
   tags:
     - nebulous-windows
@@ -101,41 +130,24 @@ default: &default_params
 ## Define the default nightly test parameters.
 .default_nightly_test: &default_nightly_params
   <<: *default_test_params
+  <<: *default_test_common_params
   ## Only run during scheduled pipelines.
   except:
    -  ""
   only:
    - schedules
-
-  artifacts:
-    name: "SiaTesting-$CI_JOB_NAME"
-    paths:
-      - $CI_PROJECT_DIR/SiaTesting
-      - $CI_PROJECT_DIR/cover/cover.out
-    when: always
-
-  after_script:
-    - cp -R /tmp/SiaTesting $CI_PROJECT_DIR/SiaTesting
 
 ## Define the default nightly test parameters
 ## for Windows runner.
 .default_nightly_windows_test: &default_nightly_windows_params
+  ## Merge the contents of aliases
   <<: *default_test_windows_params
+  <<: *default_test_common_windows_params
   ## Only run during scheduled pipelines.
   except:
    -  ""
   only:
    - schedules
-
-  artifacts:
-    name: "SiaTesting-$CI_JOB_NAME"
-    paths:
-      - $CI_PROJECT_DIR/SiaTesting
-      - $CI_PROJECT_DIR/cover/cover.out
-    when: always
-
-  after_script:
-    - XCOPY "C:\Windows\Temp\SiaTesting\*" "$CI_PROJECT_DIR\SiaTesting" /S /I /Y > $null
 
 lint:
   stage: lint
@@ -147,8 +159,7 @@ lint:
   before_script:
     - mkdir -p .cache/gocache      
     - export GOCACHE=$CI_PROJECT_DIR/.cache/gocache
-    ## This is the recommended way to install golang-ci lint.
-    - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.24.0
+    - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s latest
     - apt-get update
     - apt-get -y install python3-pip
     - pip3 install codespell      
@@ -160,8 +171,7 @@ lint:
 
 build:
   stage: lint
-  ## go 1.13 is the minimum accepted version for building ScPrime.
-  image: golang:1.13
+  image: golang:latest
   artifacts:
     name: "Binaries"
     paths:
@@ -184,7 +194,7 @@ package-tests:
     key: package-cache
     paths:
       - .cache
-  script: 
+  script:
     - make test-long run=. pkgs="$package_pkgs"
 siatest-tests:
   <<: *default_test_params

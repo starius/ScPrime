@@ -5,10 +5,10 @@ import (
 	"errors"
 	"sort"
 
+	"gitlab.com/NebulousLabs/encoding"
 	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/encoding"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
@@ -457,6 +457,14 @@ func (tb *transactionBuilder) FundSiafunds(amount types.Currency) error {
 		}
 	}
 	return nil
+}
+
+// Sweep creates a funded txn that sends the inputs of this transactionBuilder
+// to the specified output if submitted to the blockchain.
+func (tb *transactionBuilder) Sweep(output types.SiacoinOutput) (txn types.Transaction, parents []types.Transaction) {
+	builder := tb.Copy()
+	builder.AddSiacoinOutput(output)
+	return builder.View()
 }
 
 // UnconfirmedParents returns the unconfirmed parents of the transaction set

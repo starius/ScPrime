@@ -2,7 +2,6 @@ package siafile
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,12 +9,12 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/writeaheadlog"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
@@ -618,5 +617,5 @@ func (sf *SiaFile) staticMasterKey() crypto.CipherKey {
 
 // uniqueID creates a random unique SiafileUID.
 func uniqueID() SiafileUID {
-	return SiafileUID(hex.EncodeToString(fastrand.Bytes(20)))
+	return SiafileUID(persist.UID())
 }

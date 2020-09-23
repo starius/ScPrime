@@ -3,7 +3,9 @@ package renter
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -67,7 +69,7 @@ func TestBuildUnfinishedChunks(t *testing.T) {
 	// Manually add workers to worker pool
 	rt.renter.staticWorkerPool.mu.Lock()
 	for i := 0; i < int(f.NumChunks()); i++ {
-		rt.renter.staticWorkerPool.workers[string(i)] = &worker{
+		rt.renter.staticWorkerPool.workers[fmt.Sprint(i)] = &worker{
 			killChan: make(chan struct{}),
 		}
 	}
@@ -164,7 +166,7 @@ func TestBuildChunkHeap(t *testing.T) {
 	hosts := make(map[string]struct{})
 	rt.renter.staticWorkerPool.mu.Lock()
 	for i := 0; i < int(f1.NumChunks()); i++ {
-		rt.renter.staticWorkerPool.workers[string(i)] = &worker{
+		rt.renter.staticWorkerPool.workers[fmt.Sprint(i)] = &worker{
 			killChan: make(chan struct{}),
 		}
 	}
@@ -172,7 +174,8 @@ func TestBuildChunkHeap(t *testing.T) {
 
 	// Call managedBuildChunkHeap as repair loop, we should see all the chunks
 	// from the file added
-	rt.renter.managedBuildChunkHeap(modules.RootSiaPath(), hosts, targetUnstuckChunks)
+	offline, goodForRenew, _ := rt.renter.managedContractUtilityMaps()
+	rt.renter.managedBuildChunkHeap(modules.RootSiaPath(), hosts, targetUnstuckChunks, offline, goodForRenew)
 	if rt.renter.uploadHeap.managedLen() != int(f1.NumChunks()) {
 		t.Fatalf("Expected heap length of %v but got %v", f1.NumChunks(), rt.renter.uploadHeap.managedLen())
 	}
@@ -205,7 +208,7 @@ func addChunksOfDifferentHealth(r *Renter, numChunks int, priority, fileRecently
 			},
 			stuck:                  stuck,
 			fileRecentlySuccessful: fileRecentlySuccessful,
-			priority:               priority,
+			staticPriority:         priority,
 			health:                 float64(i),
 			onDisk:                 !remote,
 			availableChan:          make(chan struct{}),
@@ -272,9 +275,9 @@ func TestUploadHeap(t *testing.T) {
 	//  - Last 2 chunks should be unstuck
 	chunk1 := rt.renter.uploadHeap.managedPop()
 	chunk2 := rt.renter.uploadHeap.managedPop()
-	if !chunk1.priority || !chunk2.priority {
+	if !chunk1.staticPriority || !chunk2.staticPriority {
 		t.Fatalf("Expected chunks to be priority, got priority %v and %v",
-			chunk1.priority, chunk2.priority)
+			chunk1.staticPriority, chunk2.staticPriority)
 	}
 	if chunk1.health < chunk2.health {
 		t.Fatalf("expected top chunk to have worst health, chunk1: %v, chunk2: %v",
@@ -388,7 +391,7 @@ func TestAddChunksToHeap(t *testing.T) {
 	hosts := make(map[string]struct{})
 	rt.renter.staticWorkerPool.mu.Lock()
 	for i := 0; i < rsc.MinPieces(); i++ {
-		rt.renter.staticWorkerPool.workers[string(i)] = &worker{
+		rt.renter.staticWorkerPool.workers[fmt.Sprint(i)] = &worker{
 			killChan: make(chan struct{}),
 		}
 	}
@@ -413,6 +416,126 @@ func TestAddChunksToHeap(t *testing.T) {
 		t.Fatal("Expected 3 siaPaths to be returned, got", totalDirs)
 	}
 	if rt.renter.uploadHeap.managedLen() != int(numChunks) {
+		t.Fatalf("Expected uploadHeap to have %v chunks but it has %v chunks", numChunks, rt.renter.uploadHeap.managedLen())
+	}
+}
+
+// TestAddRemoteChunksToHeap probes how the upload heap handles adding chunks
+// when there are remote chunks present
+func TestAddRemoteChunksToHeap(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	// Create Renter with dependencies that prevent the background repair
+	// loop from running as well as ensure that chunks viewed as not
+	// repairable are added to the heap.
+	rt, err := newRenterTesterWithDependency(t.Name(), &dependencies.DependencyAddUnrepairableChunks{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rt.Close()
+
+	// Create a local file for the local file uploads
+	source, err := rt.createZeroByteFileOnDisk()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create common File params
+	_, rsc := testingFileParams()
+	up := modules.FileUploadParams{
+		ErasureCode: rsc,
+	}
+
+	// Create local and remote files in the root directory an a sub directory
+	var numChunks int
+	dirSiaPaths := rt.renter.newUniqueRefreshPaths()
+	names := []string{"remoteFile", "localFile", "sub/remoteFile", "sub/localFile"}
+	for _, name := range names {
+		// Create the SiaPath for the file
+		siaPath, err := modules.NewSiaPath(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Update the upload params
+		up.SiaPath = siaPath
+		if strings.Contains(name, "remoteFile") {
+			up.Source = ""
+		}
+		if strings.Contains(name, "localFile") {
+			up.Source = source
+		}
+		// Create the siafile and open it. Filesize is small as the files need
+		// to each only have one chunk. This is because there are 4 files and
+		// the uploadHeap size for testing is 5. If there are more than 5 chunks
+		// total the test will fail and not hit the intended test case.
+		err = rt.renter.staticFileSystem.NewSiaFile(up.SiaPath, up.Source, up.ErasureCode, crypto.GenerateSiaKey(crypto.RandomCipherType()), 100, persist.DefaultDiskPermissionsTest, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f, err := rt.renter.staticFileSystem.OpenSiaFile(up.SiaPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Track number of chunks
+		numChunks += int(f.NumChunks())
+		// Make sure directories are created
+		dirSiaPath, err := siaPath.Dir()
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = rt.renter.CreateDir(dirSiaPath, modules.DefaultDirPerm)
+		if err != nil && err != filesystem.ErrExists {
+			t.Fatal(err)
+		}
+		dirSiaPaths.callAdd(dirSiaPath)
+	}
+
+	// Call bubbled to ensure directory metadata is updated
+	dirSiaPaths.callRefreshAll()
+
+	// Block until all bubbles are done
+	rt.managedBlockUntilBubblesComplete()
+
+	// Manually add workers to worker pool and create host map
+	hosts := make(map[string]struct{})
+	rt.renter.staticWorkerPool.mu.Lock()
+	for i := 0; i < rsc.MinPieces(); i++ {
+		rt.renter.staticWorkerPool.workers[fmt.Sprint(i)] = &worker{
+			killChan: make(chan struct{}),
+		}
+	}
+	rt.renter.staticWorkerPool.mu.Unlock()
+
+	// Make sure directory Heap is ready
+	err = rt.renter.managedPushUnexploredDirectory(modules.RootSiaPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// call managedAddChunksToHeap
+	_, err = rt.renter.managedAddChunksToHeap(hosts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Since there are fewer chunks than the max size of the heap, the repair
+	// code will add all the chunks to the heap.
+	//
+	// NOTE: through print statements it was validated that the test starts with
+	// trying to add the chunks from the root directory. The local file is
+	// skipped because the directory heap has a remote file in it. The remote
+	// file in the root directory is added and the root directory is added back
+	// to the directory heap, this time it is not seen as remote because the
+	// remote file has already been added.
+	//
+	// The sub directory is then popped, since no more remote files are seen in
+	// the directory heap, both the remote and local chunks are added.
+	//
+	// Then the root directory is popped again and now the local file is added.
+	if rt.renter.uploadHeap.managedLen() != numChunks {
 		t.Fatalf("Expected uploadHeap to have %v chunks but it has %v chunks", numChunks, rt.renter.uploadHeap.managedLen())
 	}
 }
@@ -465,7 +588,7 @@ func TestAddDirectoryBackToHeap(t *testing.T) {
 	// Manually add workers to worker pool
 	rt.renter.staticWorkerPool.mu.Lock()
 	for i := 0; i < int(f.NumChunks()); i++ {
-		rt.renter.staticWorkerPool.workers[string(i)] = &worker{
+		rt.renter.staticWorkerPool.workers[fmt.Sprint(i)] = &worker{
 			killChan: make(chan struct{}),
 		}
 	}
@@ -737,5 +860,59 @@ func TestChunkSwitchStuckStatus(t *testing.T) {
 	chunk = rt.renter.uploadHeap.managedPop()
 	if chunk != nil {
 		t.Fatal("Expected nil chunk")
+	}
+}
+
+// TestRenterAddChunksToHeapPanic tests that the log.Severe is triggered if
+// there is an error getting a directory from the directory heap.
+func TestRenterAddChunksToHeapPanic(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	// Create Renter
+	rt, err := newRenterTester(t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Add maxConsecutiveDirHeapFailures non existent directories to the
+	// directoryHeap
+	for i := 0; i < maxConsecutiveDirHeapFailures; i++ {
+		rt.renter.directoryHeap.managedPush(&directory{
+			staticSiaPath: modules.RandomSiaPath(),
+		})
+	}
+
+	// Recover panic
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic")
+		}
+	}()
+
+	// Call managedAddChunksToHeap
+	rt.renter.managedAddChunksToHeap(nil)
+}
+
+// managedBlockUntilBubblesComplete is a helper that blocks until all pending
+// bubbles are complete
+func (rt *renterTester) managedBlockUntilBubblesComplete() {
+	for {
+		select {
+		case <-rt.renter.tg.StopChan():
+			return
+		default:
+		}
+		// Sleep to start the loop since most of the time bubble is called in a
+		// go routine so we want to give it time to start.
+		time.Sleep(100 * time.Millisecond)
+		rt.renter.bubbleUpdatesMu.Lock()
+		if len(rt.renter.bubbleUpdates) == 0 {
+			rt.renter.bubbleUpdatesMu.Unlock()
+			return
+		}
+		rt.renter.bubbleUpdatesMu.Unlock()
 	}
 }

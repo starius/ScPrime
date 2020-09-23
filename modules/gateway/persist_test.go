@@ -10,6 +10,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
+// TestLoad probes loading a gateway from a persist file
 func TestLoad(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -55,7 +56,10 @@ func TestLoad(t *testing.T) {
 // persistence.
 func TestLoadv033(t *testing.T) {
 	var buf bytes.Buffer
-	log := persist.NewLogger(&buf)
+	log, err := persist.NewLogger(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
 	buf.Reset()
 	g := &Gateway{
 		nodes:      make(map[modules.NetAddress]*node),

@@ -47,11 +47,11 @@ type unfinishedUploadChunk struct {
 	piecesNeeded           int    // number of pieces to achieve a 100% complete upload
 	stuck                  bool   // indicates if the chunk was marked as stuck during last repair
 	stuckRepair            bool   // indicates if the chunk was identified for repair by the stuck loop
-	priority               bool   // indicates if the chunks is supposed to be repaired asap
 
 	// Static cached fields.
-	staticIndex   uint64
-	staticSiaPath string
+	staticIndex    uint64
+	staticSiaPath  string
+	staticPriority bool // indicates if the chunk should get access to priority memory
 
 	// The logical data is the data that is presented to the user when the user
 	// requests the chunk. The physical data is all of the pieces that get
@@ -528,7 +528,7 @@ func (r *Renter) managedFetchLogicalChunkData(uc *unfinishedUploadChunk) error {
 	}
 
 	//  Try to fetch the file from the local path and upload there.
-	err := func() error {
+	err := func() (err error) {
 		osFile, err := os.Open(uc.fileEntry.LocalPath())
 		if os.IsNotExist(err) {
 			// The file doesn't exist on disk anymore, drop the local path.
@@ -542,7 +542,9 @@ func (r *Renter) managedFetchLogicalChunkData(uc *unfinishedUploadChunk) error {
 		if err != nil {
 			return errors.AddContext(err, "unable to open file locally")
 		}
-		defer osFile.Close()
+		defer func() {
+			err = errors.AddContext(errors.Compose(err, osFile.Close()), "Error extracting archive")
+		}()
 		sr := io.NewSectionReader(osFile, uc.offset, int64(uc.length))
 		dataPieces, _, err := readDataPieces(sr, uc.fileEntry.ErasureCode(), uc.fileEntry.PieceSize())
 		if err != nil {

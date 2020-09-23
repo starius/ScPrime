@@ -2,14 +2,26 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 
 	"gitlab.com/NebulousLabs/errors"
+)
+
+const (
+	// StatusModuleNotLoaded is a custom http code to indicate that a module
+	// wasn't yet loaded by the Daemon and can therefore not be reached.
+	StatusModuleNotLoaded = 490
+
+	// StatusModuleDisabled is a custom http code to indicate that a module was
+	// disabled by the Daemon and can therefore not be reached.
+	StatusModuleDisabled = 491
 )
 
 // ErrAPICallNotRecognized is returned by API client calls made to modules that
@@ -92,31 +104,56 @@ func HttpPOSTAuthenticated(url string, data string, password string) (resp *http
 	return http.DefaultClient.Do(req)
 }
 
-// API encapsulates a collection of modules and implements a http.Handler
-// to access their methods.
-type API struct {
-	cs           modules.ConsensusSet
-	explorer     modules.Explorer
-	feemanager   modules.FeeManager
-	gateway      modules.Gateway
-	host         modules.Host
-	miner        modules.Miner
-	renter       modules.Renter
-	tpool        modules.TransactionPool
-	wallet       modules.Wallet
-	pool         modules.Pool
-	stratumminer modules.StratumMiner
-	index        modules.Index
-	downloadMu   sync.Mutex
-	downloads    map[modules.DownloadID]func()
-	router       http.Handler
-	routerMu     sync.RWMutex
+type (
+	// API encapsulates a collection of modules and implements a http.Handler
+	// to access their methods.
+	API struct {
+		cs                  modules.ConsensusSet
+		explorer            modules.Explorer
+		feemanager          modules.FeeManager
+		gateway             modules.Gateway
+		host                modules.Host
+		miner               modules.Miner
+		renter              modules.Renter
+		tpool               modules.TransactionPool
+		wallet              modules.Wallet
+		pool                modules.Pool
+		stratumminer        modules.StratumMiner
+		index               modules.Index
+		staticConfigModules configModules
+		modulesSet          bool
 
-	requiredUserAgent string
-	requiredPassword  string
-	Shutdown          func() error
-	spdConfig         *modules.SpdConfig
-}
+		downloadMu sync.Mutex
+		downloads  map[modules.DownloadID]func()
+		router     http.Handler
+		routerMu   sync.RWMutex
+
+		requiredUserAgent string
+		requiredPassword  string
+		Shutdown          func() error
+		spdConfig         *modules.SpdConfig
+
+		staticStartTime time.Time
+
+		staticDeps modules.Dependencies
+	}
+
+	// configModules contains booleans that indicate if a module was part of the
+	// configuration when the API was created
+	configModules struct {
+		Consensus       bool `json:"consensus"`
+		Explorer        bool `json:"explorer"`
+		FeeManager      bool `json:"feemanager"`
+		Gateway         bool `json:"gateway"`
+		Host            bool `json:"host"`
+		Miner           bool `json:"miner"`
+		Renter          bool `json:"renter"`
+		TransactionPool bool `json:"transactionpool"`
+		Wallet          bool `json:"wallet"`
+		Pool            bool `json:"pool"`
+		Stratumminer    bool `json:"stratumminer"`
+	}
+)
 
 // api.ServeHTTP implements the http.Handler interface.
 func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -127,6 +164,9 @@ func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // SetModules allows for replacing the modules in the API at runtime.
 func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner) {
+	if api.modulesSet {
+		build.Critical("can't call SetModules more than once")
+	}
 	api.cs = cs
 	api.explorer = e
 	api.feemanager = fm
@@ -138,13 +178,41 @@ func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, fm modul
 	api.wallet = w
 	api.stratumminer = sm
 	api.pool = p
+	api.staticConfigModules = configModules{
+		Consensus:       api.cs != nil,
+		Explorer:        api.explorer != nil,
+		FeeManager:      api.feemanager != nil,
+		Gateway:         api.gateway != nil,
+		Host:            api.host != nil,
+		Miner:           api.miner != nil,
+		Renter:          api.renter != nil,
+		TransactionPool: api.tpool != nil,
+		Wallet:          api.wallet != nil,
+		Pool:            api.pool != nil,
+		Stratumminer:    api.stratumminer != nil,
+	}
+	api.modulesSet = true
 	api.buildHTTPRoutes()
+}
+
+// StartTime returns the time at which the API started
+func (api *API) StartTime() time.Time {
+	return api.staticStartTime
 }
 
 // New creates a new ScPrime API from the provided modules.  The API will require
 // authentication using HTTP basic auth for certain endpoints of the supplied
 // password is not the empty string.  Usernames are ignored for authentication.
 func New(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner, index modules.Index) *API {
+	return NewCustom(cfg, requiredUserAgent, requiredPassword, cs, e, fm, g, h, m, r, tp, w, p, sm, index, modules.ProdDependencies)
+}
+
+// NewCustom creates a new Sia API from the provided modules. The API will
+// require authentication using HTTP basic auth for certain endpoints of the
+// supplied password is not the empty string. Usernames are ignored for
+// authentication. It is custom because it allows to inject custom dependencies
+// into the API.
+func NewCustom(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner, index modules.Index, a modules.Dependencies) *API {
 	api := &API{
 		cs:                cs,
 		explorer:          e,
@@ -162,6 +230,8 @@ func New(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword stri
 		requiredUserAgent: requiredUserAgent,
 		requiredPassword:  requiredPassword,
 		spdConfig:         cfg,
+		staticDeps:        a,
+		staticStartTime:   time.Now(),
 	}
 
 	// Register API handlers
@@ -170,9 +240,16 @@ func New(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword stri
 	return api
 }
 
-// UnrecognizedCallHandler handles calls to unknown pages (404).
-func UnrecognizedCallHandler(w http.ResponseWriter, req *http.Request) {
-	WriteError(w, Error{"404 - Refer to API.md"}, http.StatusNotFound)
+// UnrecognizedCallHandler handles calls to disabled/not-loaded modules.
+func (api *API) UnrecognizedCallHandler(w http.ResponseWriter, req *http.Request) {
+	var errStr string
+	if api.modulesSet {
+		errStr = fmt.Sprintf("%d Module disabled - Refer to API.md", StatusModuleDisabled)
+		WriteError(w, Error{errStr}, StatusModuleDisabled)
+	} else {
+		errStr = fmt.Sprintf("%d Module not loaded - Refer to API.md", StatusModuleNotLoaded)
+		WriteError(w, Error{errStr}, StatusModuleNotLoaded)
+	}
 }
 
 // WriteError an error to the API caller.

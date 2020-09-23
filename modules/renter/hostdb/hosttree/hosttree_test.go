@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/NebulousLabs/threadgroup"
+
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
-	siasync "gitlab.com/scpcorp/ScPrime/sync"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // customScoreBreakdown is a helper struct to create scoreBreakdown's for
@@ -173,7 +173,7 @@ func TestHostTreeParallel(t *testing.T) {
 
 	// spin up 100 goroutines all randomly inserting, removing, modifying, and
 	// fetching nodes from the tree.
-	var tg siasync.ThreadGroup
+	var tg threadgroup.ThreadGroup
 	nthreads := 100
 	nelements := 0
 	var mu sync.Mutex

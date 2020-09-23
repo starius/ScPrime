@@ -81,9 +81,9 @@ func (r *Renter) managedLoadSettings() error {
 		err = r.saveSync()
 		r.mu.Unlock(id)
 		if err != nil {
-			return err
+			return errors.AddContext(err, "failed to create default renters persistence files")
 		}
-	} else if err == persist.ErrBadVersion {
+	} else if errors.Contains(err, persist.ErrBadVersion) {
 		// Outdated version, try the 040 to 133 upgrade.
 		err = convertPersistVersionFrom040To133(filepath.Join(r.persistDir, PersistFilename))
 		if err != nil {
@@ -125,14 +125,14 @@ func (r *Renter) managedInitPersist() error {
 	// because the wal needs the directory to be created and the staticDirSet
 	// needs the wal.
 	fsRoot := filepath.Join(r.persistDir, modules.FileSystemRoot)
-	err := os.MkdirAll(fsRoot, 0700)
+	err := os.MkdirAll(fsRoot, modules.DefaultDirPerm)
 	if err != nil {
 		return err
 	}
 
 	// Initialize the writeaheadlog.
 	options := writeaheadlog.Options{
-		StaticLog: r.log,
+		StaticLog: r.log.Logger,
 		Path:      filepath.Join(r.persistDir, walFile),
 	}
 	txns, wal, err := writeaheadlog.NewWithOptions(options)

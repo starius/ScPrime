@@ -14,6 +14,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/NebulousLabs/ratelimit"
 )
 
 // TestSaveLoad tests that the contractor can save and load itself.
@@ -323,7 +324,7 @@ func TestConvertPersist(t *testing.T) {
 	}
 
 	// convert the journal
-	err = convertPersist(dir)
+	err = convertPersist(dir, ratelimit.NewRateLimit(0, 0, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -339,7 +340,7 @@ func TestConvertPersist(t *testing.T) {
 	}
 
 	// load the contracts
-	cs, err := proto.NewContractSet(filepath.Join(dir, "contracts"), modules.ProdDependencies)
+	cs, err := proto.NewContractSet(filepath.Join(dir, "contracts"), ratelimit.NewRateLimit(0, 0, 0), modules.ProdDependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
