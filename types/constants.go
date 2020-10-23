@@ -214,6 +214,8 @@ var (
 	OldSiafundCount = NewCurrency64(10000)
 	// NewSiafundCount is the total number of Siafunds in existence after the SPF hardfork.
 	NewSiafundCount = NewCurrency64(30000)
+	// NewerSiafundCount is the total number of Siafunds in existence after the second SPF hardfork.
+	NewerSiafundCount = NewCurrency64(200000000)
 	// OldSiafundMul is multiplier for percentage of siacoins that is taxed from FileContracts
 	// before the SPF hardfork.
 	OldSiafundMul = int64(39)
@@ -257,10 +259,20 @@ var (
 		Standard: BlockHeight(54550),
 		Testing:  BlockHeight(10000),
 	}).(BlockHeight)
+
+	// SpfSecondHardforkHeight is the height of second SPF hardfork.
+	SpfSecondHardforkHeight = build.Select(build.Var{
+		Dev:      BlockHeight(200),
+		Standard: BlockHeight(109000),
+		Testing:  BlockHeight(20000),
+	}).(BlockHeight)
 )
 
 // SiafundCount returns the total number of Siafunds by height.
 func SiafundCount(height BlockHeight) Currency {
+	if height > SpfSecondHardforkHeight {
+		return NewerSiafundCount
+	}
 	if height > SpfHardforkHeight {
 		return NewSiafundCount
 	}
