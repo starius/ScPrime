@@ -120,6 +120,8 @@ var (
 	ForkedGenesisSiafundAllocation []SiafundOutput
 	// SiafundHardforkAllocation is allocation of new Siafunds at hardfork point.
 	SiafundHardforkAllocation []SiafundOutput
+	// SiafundSecondHardforkAllocation is allocation of new Siafunds at second harfork point.
+	SiafundSecondHardforkAllocation []SiafundOutput
 	// GenesisTimestamp is the timestamp when genesis block was mined
 	GenesisTimestamp Timestamp
 	// InitialCoinbase is the coinbase reward of the Genesis block.
@@ -401,6 +403,12 @@ func init() {
 				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
 			},
 		}
+		SiafundSecondHardforkAllocation = []SiafundOutput{
+			{
+				Value:      NewCurrency64(200000000 - 30000),
+				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+			},
+		}
 	} else if build.Release == "testing" {
 		// 'testing' settings are for automatic testing, and create much faster
 		// environments than a human can interact with.
@@ -478,6 +486,12 @@ func init() {
 		SiafundHardforkAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(20000),
+				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+			},
+		}
+		SiafundSecondHardforkAllocation = []SiafundOutput{
+			{
+				Value:      NewCurrency64(200000000 - 30000),
 				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
 			},
 		}
@@ -621,6 +635,12 @@ func init() {
 		SiafundHardforkAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(20000),
+				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+			},
+		}
+		SiafundSecondHardforkAllocation = []SiafundOutput{
+			{
+				Value:      NewCurrency64(200000000 - 30000),
 				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
 			},
 		}
