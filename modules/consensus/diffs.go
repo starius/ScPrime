@@ -263,13 +263,13 @@ func generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) error {
 		}
 	}
 
-	if pb.Height == types.SpfHardforkHeight {
+	if pb.Height == types.SpfHardforkHeight || pb.Height == types.SpfSecondHardforkHeight {
 		// Perform SPF hardfork changes.
 		// At first, save current siafund pool.
 		currentPool := getSiafundPool(tx)
 		setSiafundHardforkPool(tx, currentPool)
 		// Now apply new outputs.
-		for _, siafundOutput := range types.SiafundHardforkAllocation {
+		for _, siafundOutput := range types.SiafundHardforkAllocation[pb.Height] {
 			sfid := types.SiafundOutputID(siafundOutput.UnlockHash)
 			siafundOutput.ClaimStart = getSiafundPool(tx)
 			sfod := modules.SiafundOutputDiff{

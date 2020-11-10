@@ -118,10 +118,8 @@ var (
 	// ForkedGenesisSiafundAllocation is the set of SiafundOutputs created in the Genesis
 	// block.
 	ForkedGenesisSiafundAllocation []SiafundOutput
-	// SiafundHardforkAllocation is allocation of new Siafunds at hardfork point.
-	SiafundHardforkAllocation []SiafundOutput
-	// SiafundSecondHardforkAllocation is allocation of new Siafunds at second harfork point.
-	SiafundSecondHardforkAllocation []SiafundOutput
+	// SiafundHardforkAllocation is allocation of new Siafunds at various hardforks.
+	SiafundHardforkAllocation map[BlockHeight][]SiafundOutput
 	// GenesisTimestamp is the timestamp when genesis block was mined
 	GenesisTimestamp Timestamp
 	// InitialCoinbase is the coinbase reward of the Genesis block.
@@ -414,16 +412,18 @@ func init() {
 				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 		}
-		SiafundHardforkAllocation = []SiafundOutput{
-			{
-				Value:      NewCurrency64(20000),
-				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+		SiafundHardforkAllocation = map[BlockHeight][]SiafundOutput{
+			SpfHardforkHeight: {
+				{
+					Value:      NewCurrency64(20000),
+					UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+				},
 			},
-		}
-		SiafundSecondHardforkAllocation = []SiafundOutput{
-			{
-				Value:      NewCurrency64(200000000 - 30000),
-				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+			SpfSecondHardforkHeight: {
+				{
+					Value:      NewCurrency64(200000000 - 30000),
+					UnlockHash: UnlockHashFromAddrStr("f3f512b45c24b531e571d59d99b804b19244cecf1da8117217101fa722e40a18917c91ebb080"),
+				},
 			},
 		}
 	} else if build.Release == "testing" {
@@ -500,16 +500,18 @@ func init() {
 				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 		}
-		SiafundHardforkAllocation = []SiafundOutput{
-			{
-				Value:      NewCurrency64(20000),
-				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+		SiafundHardforkAllocation = map[BlockHeight][]SiafundOutput{
+			SpfHardforkHeight: {
+				{
+					Value:      NewCurrency64(20000),
+					UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+				},
 			},
-		}
-		SiafundSecondHardforkAllocation = []SiafundOutput{
-			{
-				Value:      NewCurrency64(200000000 - 30000),
-				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+			SpfSecondHardforkHeight: {
+				{
+					Value:      NewCurrency64(200000000 - 30000),
+					UnlockHash: UnlockHashFromAddrStr("f3f512b45c24b531e571d59d99b804b19244cecf1da8117217101fa722e40a18917c91ebb080"),
+				},
 			},
 		}
 	} else if build.Release == "standard" {
@@ -649,16 +651,18 @@ func init() {
 				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 		}
-		SiafundHardforkAllocation = []SiafundOutput{
-			{
-				Value:      NewCurrency64(20000),
-				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+		SiafundHardforkAllocation = map[BlockHeight][]SiafundOutput{
+			SpfHardforkHeight: {
+				{
+					Value:      NewCurrency64(20000),
+					UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+				},
 			},
-		}
-		SiafundSecondHardforkAllocation = []SiafundOutput{
-			{
-				Value:      NewCurrency64(200000000 - 30000),
-				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+			SpfSecondHardforkHeight: {
+				{
+					Value:      NewCurrency64(200000000 - 30000),
+					UnlockHash: UnlockHashFromAddrStr("f3f512b45c24b531e571d59d99b804b19244cecf1da8117217101fa722e40a18917c91ebb080"),
+				},
 			},
 		}
 
