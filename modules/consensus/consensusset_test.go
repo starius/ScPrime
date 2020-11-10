@@ -183,6 +183,40 @@ func TestNilInputs(t *testing.T) {
 	}
 }
 
+// TestStoreSiafundHardforkPool checks database functions for getting and setting
+// siafund hardfork pool values.
+func TestStoreSiafundHardforkPool(t *testing.T) {
+	testdir := build.TempDir(modules.ConsensusDir, t.Name())
+
+	// Create the gateway + consensus.
+	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, errChan := New(g, false, testdir)
+	if err := <-errChan; err != nil {
+		t.Fatal(err)
+	}
+	val0 := types.NewCurrency64(138320348)
+	val1 := types.NewCurrency64(46586868)
+	err = cs.db.Update(func(tx *bolt.Tx) error {
+		setSiafundHardforkPool(tx, val0, types.SpfHardforkHeight)
+		setSiafundHardforkPool(tx, val1, types.SpfSecondHardforkHeight)
+		pool0 := getSiafundHardforkPool(tx, types.SpfHardforkHeight)
+		if pool0.Cmp(val0) != 0 {
+			t.Errorf("retrieved pool value %v isn't equal to stored %v", pool0, val0)
+		}
+		pool1 := getSiafundHardforkPool(tx, types.SpfSecondHardforkHeight)
+		if pool1.Cmp(val1) != 0 {
+			t.Errorf("retrieved pool value %v isn't equal to stored %v", pool1, val1)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestSiafundClaim calls SiafundClaim() function with different heights and
 // siafund pool values set.
 // Test checks how Siafund Emission Hardfork changes are handled when calculating
