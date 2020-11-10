@@ -276,6 +276,17 @@ var (
 	}).(BlockHeight)
 )
 
+// IsSpfHardfork returns true when one of Spf hardforks happens at given height.
+func IsSpfHardfork(height BlockHeight) bool {
+	if height == SpfHardforkHeight {
+		return true
+	}
+	if height == SpfSecondHardforkHeight {
+		return true
+	}
+	return false
+}
+
 // SiafundCount returns the total number of Siafunds by height.
 func SiafundCount(height BlockHeight) Currency {
 	if height > SpfSecondHardforkHeight {

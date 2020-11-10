@@ -218,7 +218,7 @@ func TestSiafundClaim(t *testing.T) {
 	for _, tc := range tests {
 		err = cs.db.Update(func(tx *bolt.Tx) error {
 			setSiafundPool(tx, tc.currentPool)
-			setSiafundHardforkPool(tx, tc.hardforkPool)
+			setSiafundHardforkPool(tx, tc.hardforkPool, types.SpfHardforkHeight)
 			blockHeight := tx.Bucket(BlockHeight)
 			return blockHeight.Put(BlockHeight, encoding.Marshal(tc.height))
 		})

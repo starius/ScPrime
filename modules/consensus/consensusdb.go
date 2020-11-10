@@ -160,7 +160,7 @@ func siafundClaim(tx *bolt.Tx, sfo types.SiafundOutput) types.Currency {
 	currentSiafundPool := getSiafundPool(tx)
 	hardforkSiafundPool := types.ZeroCurrency
 	if !beforeHardfork {
-		hardforkSiafundPool = getSiafundHardforkPool(tx)
+		hardforkSiafundPool = getSiafundHardforkPool(tx, height)
 	}
 
 	if beforeHardfork {
@@ -506,14 +506,19 @@ func removeSiafundOutput(tx *bolt.Tx, id types.SiafundOutputID) {
 
 // getSiafundHardforkPool returns the value of the siafund pool at the
 // moment of SPF hardfork.
-func getSiafundHardforkPool(tx *bolt.Tx) (pool types.Currency) {
+func getSiafundHardforkPool(tx *bolt.Tx, height types.BlockHeight) (pool types.Currency) {
 	bucket := tx.Bucket(SiafundHardforkPool)
 	if bucket == nil {
 		// Should never happen.
 		_, _ = tx.CreateBucket(SiafundHardforkPool)
 		return types.ZeroCurrency
 	}
-	poolBytes := bucket.Get(SiafundHardforkPool)
+	heightBytes := encoding.EncUint64(uint64(height))
+	poolBytes := bucket.Get(heightBytes)
+	if poolBytes == nil && height == types.SpfHardforkHeight {
+		// Different key was used for the first hardfork before v1.5.0.1
+		poolBytes = bucket.Get(SiafundHardforkPool)
+	}
 	// An error should only be returned if the object stored in the siafund
 	// pool bucket is either unavailable or otherwise malformed. As this is a
 	// developer error, a panic is appropriate.
@@ -524,13 +529,14 @@ func getSiafundHardforkPool(tx *bolt.Tx) (pool types.Currency) {
 	return pool
 }
 
-// setSiafundHardforkPool sets the siafund hardfork pool value.
-func setSiafundHardforkPool(tx *bolt.Tx, c types.Currency) {
+// setSiafundHardforkPool sets the siafund hardfork pool value at block height.
+func setSiafundHardforkPool(tx *bolt.Tx, c types.Currency, height types.BlockHeight) {
 	bucket := tx.Bucket(SiafundHardforkPool)
 	if bucket == nil {
 		bucket, _ = tx.CreateBucket(SiafundHardforkPool)
 	}
-	err := bucket.Put(SiafundHardforkPool, encoding.Marshal(c))
+	heightBytes := encoding.EncUint64(uint64(height))
+	err := bucket.Put(heightBytes, encoding.Marshal(c))
 	if build.DEBUG && err != nil {
 		panic(err)
 	}
