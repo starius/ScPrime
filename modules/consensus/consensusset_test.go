@@ -217,6 +217,46 @@ func TestStoreSiafundHardforkPool(t *testing.T) {
 	}
 }
 
+func testClaim(t *testing.T, claimStart, poolDiffPerBlock types.Currency, firstHf, secondHf hardforkInfo) {
+	prevClaim := types.ZeroCurrency
+	maxPool := poolDiffPerBlock.Mul64(uint64(types.SpfSecondHardforkHeight) + 100500)
+	for currentPool := claimStart.Add(poolDiffPerBlock); currentPool.Cmp(maxPool) < 0; currentPool = currentPool.Add(poolDiffPerBlock) {
+		claim := claimPerFund(claimStart, currentPool, firstHf, secondHf)
+		if claim.Cmp(prevClaim) <= 0 {
+			t.Errorf("claim per fund does not grow monotonically: claim: %v; prev: %v; claimStart: %v", claim, prevClaim, claimStart)
+		}
+		if currentPool.Cmp(firstHf.pool) == 0 {
+			firstHf.isActivated = true
+		}
+		if currentPool.Cmp(secondHf.pool) == 0 {
+			secondHf.isActivated = true
+		}
+		prevClaim = claim
+	}
+}
+
+// TestClaimPerFundMonotonicGrowth checks that total claim of one fund
+// increases monotonically during all periods of blockchain history.
+func TestClaimPerFundMonotonicGrowth(t *testing.T) {
+	poolDiffPerBlock := types.NewCurrency64(200000000)
+	firstHf := hardforkInfo{pool: poolDiffPerBlock.Mul64(uint64(types.SpfHardforkHeight))}
+	secondHf := hardforkInfo{pool: poolDiffPerBlock.Mul64(uint64(types.SpfSecondHardforkHeight))}
+	// Test different claim starts.
+	tests := []types.Currency{
+		types.ZeroCurrency,
+		poolDiffPerBlock,
+		firstHf.pool.Sub(poolDiffPerBlock),
+		firstHf.pool,
+		firstHf.pool.Add(poolDiffPerBlock),
+		secondHf.pool.Sub(poolDiffPerBlock),
+		secondHf.pool,
+		secondHf.pool.Add(poolDiffPerBlock),
+	}
+	for _, claimStart := range tests {
+		testClaim(t, claimStart, poolDiffPerBlock, firstHf, secondHf)
+	}
+}
+
 // TestSiafundClaim calls SiafundClaim() function with different heights and
 // siafund pool values set.
 // Test checks how Siafund Emission Hardfork changes are handled when calculating
@@ -235,24 +275,31 @@ func TestSiafundClaim(t *testing.T) {
 	}
 
 	tests := []struct {
-		currentPool  types.Currency
-		hardforkPool types.Currency
-		height       types.BlockHeight
-		sfo          types.SiafundOutput
-		correctClaim types.Currency
+		currentPool   types.Currency
+		hardforkPool0 types.Currency
+		hardforkPool1 types.Currency
+		height        types.BlockHeight
+		sfo           types.SiafundOutput
+		correctClaim  types.Currency
+		description   string
 	}{
-		// Now is before hardfork.
-		{types.NewCurrency64(1000000), types.ZeroCurrency, types.SpfHardforkHeight, types.SiafundOutput{Value: types.NewCurrency64(156), ClaimStart: types.ZeroCurrency}, types.NewCurrency64(15600)},
-		// SFO with ClaimStart from before hardfork and now is after hardfork.
-		{types.NewCurrency64(50000000), types.NewCurrency64(20000000), types.SpfHardforkHeight + 1, types.SiafundOutput{Value: types.NewCurrency64(1200), ClaimStart: types.NewCurrency64(10000000)}, types.NewCurrency64(2400000)},
-		// New SFO with ClaimStart after hardfork and now is after hardfork.
-		{types.NewCurrency64(80000000), types.NewCurrency64(20000000), types.SpfSecondHardforkHeight, types.SiafundOutput{Value: types.NewCurrency64(20000), ClaimStart: types.NewCurrency64(50000000)}, types.NewCurrency64(20000000)},
+		{types.NewCurrency64(1000000), types.ZeroCurrency, types.ZeroCurrency, types.SpfHardforkHeight, types.SiafundOutput{Value: types.NewCurrency64(156), ClaimStart: types.ZeroCurrency}, types.NewCurrency64(15600), "Test before the first hardfork"},
+		{types.NewCurrency64(50000000), types.NewCurrency64(20000000), types.ZeroCurrency, types.SpfHardforkHeight + 1, types.SiafundOutput{Value: types.NewCurrency64(1200), ClaimStart: types.NewCurrency64(10000000)}, types.NewCurrency64(2400000), "Test SFO with ClaimStart from before the first hardfork and now is after the first hardfork"},
+		{types.NewCurrency64(80000000), types.NewCurrency64(20000000), types.ZeroCurrency, types.SpfSecondHardforkHeight, types.SiafundOutput{Value: types.NewCurrency64(20000), ClaimStart: types.NewCurrency64(50000000)}, types.NewCurrency64(20000000), "Test new SFO with ClaimStart after the first hardfork and now is after the first hardfork"},
+		{types.NewCurrency64(800000000), types.NewCurrency64(200000000), types.NewCurrency64(400000000), types.SpfSecondHardforkHeight + 1, types.SiafundOutput{Value: types.NewCurrency64(100000000), ClaimStart: types.NewCurrency64(600000000)}, types.NewCurrency64(100000000), "Test new SFO with ClaimStart after the second hardfork and now is after the second hardfork"},
+		{types.NewCurrency64(800000000), types.NewCurrency64(100000000), types.NewCurrency64(300000000), types.SpfSecondHardforkHeight * 10000, types.SiafundOutput{Value: types.NewCurrency64(15000), ClaimStart: types.NewCurrency64(200000000)}, types.NewCurrency64(50025000), "Test new SFO with ClaimStart between hardforks and now is after the second hardfork"},
+		{types.NewCurrency64(800000000), types.NewCurrency64(100000000), types.NewCurrency64(300000000), types.SpfSecondHardforkHeight * 10000, types.SiafundOutput{Value: types.NewCurrency64(10000), ClaimStart: types.NewCurrency64(0)}, types.NewCurrency64(166680000), "Test new SFO with ClaimStart before the first hardfork and now is after the second hardfork"},
 	}
 
 	for _, tc := range tests {
 		err = cs.db.Update(func(tx *bolt.Tx) error {
 			setSiafundPool(tx, tc.currentPool)
-			setSiafundHardforkPool(tx, tc.hardforkPool, types.SpfHardforkHeight)
+			if tc.height >= types.SpfHardforkHeight {
+				setSiafundHardforkPool(tx, tc.hardforkPool0, types.SpfHardforkHeight)
+			}
+			if tc.height >= types.SpfSecondHardforkHeight {
+				setSiafundHardforkPool(tx, tc.hardforkPool1, types.SpfSecondHardforkHeight)
+			}
 			blockHeight := tx.Bucket(BlockHeight)
 			return blockHeight.Put(BlockHeight, encoding.Marshal(tc.height))
 		})
@@ -263,7 +310,7 @@ func TestSiafundClaim(t *testing.T) {
 		if !claim.Equals(tc.correctClaim) {
 			cl, _ := claim.Float64()
 			correct, _ := tc.correctClaim.Float64()
-			t.Errorf("claim %v isn't equal to correct %v", cl, correct)
+			t.Errorf("claim %v isn't equal to correct %v; test: %s", cl, correct, tc.description)
 		}
 	}
 
