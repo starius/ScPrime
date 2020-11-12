@@ -183,6 +183,19 @@ func TestNilInputs(t *testing.T) {
 	}
 }
 
+// setSiafundHardforkPoolLegacy sets the siafund hardfork pool value using legacy format.
+// Legacy format is one constant key for hf pool value.
+func setSiafundHardforkPoolLegacy(tx *bolt.Tx, c types.Currency) {
+	bucket := tx.Bucket(SiafundHardforkPool)
+	if bucket == nil {
+		bucket, _ = tx.CreateBucket(SiafundHardforkPool)
+	}
+	err := bucket.Put(SiafundHardforkPool, encoding.Marshal(c))
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+}
+
 // TestStoreSiafundHardforkPool checks database functions for getting and setting
 // siafund hardfork pool values.
 func TestStoreSiafundHardforkPool(t *testing.T) {
@@ -199,6 +212,21 @@ func TestStoreSiafundHardforkPool(t *testing.T) {
 	}
 	val0 := types.NewCurrency64(138320348)
 	val1 := types.NewCurrency64(46586868)
+
+	// Test old format compatibility.
+	err = cs.db.Update(func(tx *bolt.Tx) error {
+		setSiafundHardforkPoolLegacy(tx, val0)
+		pool0 := getSiafundHardforkPool(tx, types.SpfHardforkHeight)
+		if pool0.Cmp(val0) != 0 {
+			t.Errorf("retrieved pool value %v isn't equal to stored %v", pool0, val0)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Test new format (height > hf pool).
 	err = cs.db.Update(func(tx *bolt.Tx) error {
 		setSiafundHardforkPool(tx, val0, types.SpfHardforkHeight)
 		setSiafundHardforkPool(tx, val1, types.SpfSecondHardforkHeight)
