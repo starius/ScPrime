@@ -246,7 +246,7 @@ func TestSiafundClaim(t *testing.T) {
 		// SFO with ClaimStart from before hardfork and now is after hardfork.
 		{types.NewCurrency64(50000000), types.NewCurrency64(20000000), types.SpfHardforkHeight + 1, types.SiafundOutput{Value: types.NewCurrency64(1200), ClaimStart: types.NewCurrency64(10000000)}, types.NewCurrency64(2400000)},
 		// New SFO with ClaimStart after hardfork and now is after hardfork.
-		{types.NewCurrency64(80000000), types.NewCurrency64(20000000), types.SpfHardforkHeight * 100500, types.SiafundOutput{Value: types.NewCurrency64(20000), ClaimStart: types.NewCurrency64(50000000)}, types.NewCurrency64(20000000)},
+		{types.NewCurrency64(80000000), types.NewCurrency64(20000000), types.SpfSecondHardforkHeight, types.SiafundOutput{Value: types.NewCurrency64(20000), ClaimStart: types.NewCurrency64(50000000)}, types.NewCurrency64(20000000)},
 	}
 
 	for _, tc := range tests {
