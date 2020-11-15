@@ -151,35 +151,69 @@ func (cs *ConsensusSet) createConsensusDB(tx *bolt.Tx) error {
 	return nil
 }
 
-// siafundClaim returns claim by SiafundOutput taking hardfork into account.
+func claimPerFundInRange(claimStart, startPool, endPool, siafundCount types.Currency) types.Currency {
+	if claimStart.Cmp(endPool) >= 0 {
+		// The claim starts after upper bound, nothing is earned before it.
+		return types.ZeroCurrency
+	}
+	if claimStart.Cmp(startPool) >= 0 {
+		// The claim starts after startPool point, need to truncate.
+		startPool = claimStart
+	}
+	totalEarned := endPool.Sub(startPool)
+	perFund := totalEarned.Div(siafundCount)
+	return perFund
+}
+
+type hardforkInfo struct {
+	pool        types.Currency
+	isActivated bool
+}
+
+/*
+             1st hf           2nd hf
+  --------------|----------------|--------------------------------
+   10,000 funds    30,0000 funds          200,000,000 funds
+     overall           overall                 overall
+*/
+func claimPerFund(startPool, currentPool types.Currency, firstHf, secondHf hardforkInfo) types.Currency {
+	// Calculate claim before the first hardfork.
+	if !firstHf.isActivated {
+		// The first hardfork isn't yet activated, don't need to continue.
+		return claimPerFundInRange(startPool, startPool, currentPool, types.OldSiafundCount)
+	}
+	totalClaim := types.ZeroCurrency
+	claimBeforeFirstHf := claimPerFundInRange(startPool, startPool, firstHf.pool, types.OldSiafundCount)
+	totalClaim = totalClaim.Add(claimBeforeFirstHf)
+	// Calculate claim between hardforks.
+	if !secondHf.isActivated {
+		// The second hardfork isn't yet activated, don't need to continue.
+		claimAfterFirstHf := claimPerFundInRange(startPool, firstHf.pool, currentPool, types.NewSiafundCount)
+		return totalClaim.Add(claimAfterFirstHf)
+	}
+	claimBetweenHardforks := claimPerFundInRange(startPool, firstHf.pool, secondHf.pool, types.NewSiafundCount)
+	totalClaim = totalClaim.Add(claimBetweenHardforks)
+	// Calculate claim after the second hardfork.
+	claimAfterSecondHf := claimPerFundInRange(startPool, secondHf.pool, currentPool, types.NewerSiafundCount)
+	totalClaim = totalClaim.Add(claimAfterSecondHf)
+	return totalClaim
+}
+
+// siafundClaim returns claim by SiafundOutput taking hardforks into account.
 func siafundClaim(tx *bolt.Tx, sfo types.SiafundOutput) types.Currency {
-	// At first, figure out if we are before or after the hardfork.
 	height := blockHeight(tx)
-	beforeHardfork := height <= types.SpfHardforkHeight
-
-	currentSiafundPool := getSiafundPool(tx)
-	hardforkSiafundPool := types.ZeroCurrency
-	if !beforeHardfork {
-		hardforkSiafundPool = getSiafundHardforkPool(tx)
+	var firstHf, secondHf hardforkInfo
+	if height > types.SpfHardforkHeight {
+		firstHf.isActivated = true
+		firstHf.pool = getSiafundHardforkPool(tx, types.SpfHardforkHeight)
 	}
-
-	if beforeHardfork {
-		// Before the hardfork we use the old formula to calculate siafund claim.
-		return currentSiafundPool.Sub(sfo.ClaimStart).Div(types.OldSiafundCount).Mul(sfo.Value)
+	if height > types.SpfSecondHardforkHeight {
+		secondHf.isActivated = true
+		secondHf.pool = getSiafundHardforkPool(tx, types.SpfSecondHardforkHeight)
 	}
-	if sfo.ClaimStart.Cmp(hardforkSiafundPool) != -1 {
-		// If the last claim was after the hardfork, we use the same old formula but with
-		// new SiafundCount.
-		return currentSiafundPool.Sub(sfo.ClaimStart).Div(types.NewSiafundCount).Mul(sfo.Value)
-	}
-	// If we are here, we are after the hardfork but the last claim was before the hardfork.
-	// Calculate claim before hardfork using old siafund count.
-	firstPoolDiff := hardforkSiafundPool.Sub(sfo.ClaimStart)
-	firstClaim := firstPoolDiff.Div(types.OldSiafundCount).Mul(sfo.Value)
-	// Calculate claim after hardfork using new siafund count.
-	secondPoolDiff := currentSiafundPool.Sub(hardforkSiafundPool)
-	secondClaim := secondPoolDiff.Div(types.NewSiafundCount).Mul(sfo.Value)
-	return firstClaim.Add(secondClaim)
+	currentPool := getSiafundPool(tx)
+	claimPerFund := claimPerFund(sfo.ClaimStart, currentPool, firstHf, secondHf)
+	return claimPerFund.Mul(sfo.Value)
 }
 
 // blockHeight returns the height of the blockchain.
@@ -506,14 +540,19 @@ func removeSiafundOutput(tx *bolt.Tx, id types.SiafundOutputID) {
 
 // getSiafundHardforkPool returns the value of the siafund pool at the
 // moment of SPF hardfork.
-func getSiafundHardforkPool(tx *bolt.Tx) (pool types.Currency) {
+func getSiafundHardforkPool(tx *bolt.Tx, height types.BlockHeight) (pool types.Currency) {
 	bucket := tx.Bucket(SiafundHardforkPool)
 	if bucket == nil {
 		// Should never happen.
 		_, _ = tx.CreateBucket(SiafundHardforkPool)
 		return types.ZeroCurrency
 	}
-	poolBytes := bucket.Get(SiafundHardforkPool)
+	heightBytes := encoding.EncUint64(uint64(height))
+	poolBytes := bucket.Get(heightBytes)
+	if poolBytes == nil && height == types.SpfHardforkHeight {
+		// Different key was used for the first hardfork before v1.5.0.1
+		poolBytes = bucket.Get(SiafundHardforkPool)
+	}
 	// An error should only be returned if the object stored in the siafund
 	// pool bucket is either unavailable or otherwise malformed. As this is a
 	// developer error, a panic is appropriate.
@@ -524,13 +563,14 @@ func getSiafundHardforkPool(tx *bolt.Tx) (pool types.Currency) {
 	return pool
 }
 
-// setSiafundHardforkPool sets the siafund hardfork pool value.
-func setSiafundHardforkPool(tx *bolt.Tx, c types.Currency) {
+// setSiafundHardforkPool sets the siafund hardfork pool value at block height.
+func setSiafundHardforkPool(tx *bolt.Tx, c types.Currency, height types.BlockHeight) {
 	bucket := tx.Bucket(SiafundHardforkPool)
 	if bucket == nil {
 		bucket, _ = tx.CreateBucket(SiafundHardforkPool)
 	}
-	err := bucket.Put(SiafundHardforkPool, encoding.Marshal(c))
+	heightBytes := encoding.EncUint64(uint64(height))
+	err := bucket.Put(heightBytes, encoding.Marshal(c))
 	if build.DEBUG && err != nil {
 		panic(err)
 	}

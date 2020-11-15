@@ -118,8 +118,8 @@ var (
 	// ForkedGenesisSiafundAllocation is the set of SiafundOutputs created in the Genesis
 	// block.
 	ForkedGenesisSiafundAllocation []SiafundOutput
-	// SiafundHardforkAllocation is allocation of new Siafunds at hardfork point.
-	SiafundHardforkAllocation []SiafundOutput
+	// SiafundHardforkAllocation is allocation of new Siafunds at various hardforks.
+	SiafundHardforkAllocation map[BlockHeight][]SiafundOutput
 	// GenesisTimestamp is the timestamp when genesis block was mined
 	GenesisTimestamp Timestamp
 	// InitialCoinbase is the coinbase reward of the Genesis block.
@@ -214,22 +214,32 @@ var (
 	OldSiafundCount = NewCurrency64(10000)
 	// NewSiafundCount is the total number of Siafunds in existence after the SPF hardfork.
 	NewSiafundCount = NewCurrency64(30000)
-	// OldSiafundMul is multiplier for percentage of siacoins that is taxed from FileContracts
-	// before the SPF hardfork.
-	OldSiafundMul = int64(39)
-	// OldSiafundDiv is divider for percentage of siacoins that is taxed from FileContracts
-	// before the SPF hardfork.
-	OldSiafundDiv = int64(1000)
-	// OldSiafundPortion is the percentage of siacoins that is taxed from FileContracts before the SPF hardfork.
-	OldSiafundPortion = big.NewRat(OldSiafundMul, OldSiafundDiv)
-	// NewSiafundMul is multiplier for percentage of siacoins that is taxed from FileContracts
-	// after the SPF hardfork.
-	NewSiafundMul = int64(150)
-	// NewSiafundDiv is divider for percentage of siacoins that is taxed from FileContracts
-	// after the SPF hardfork.
-	NewSiafundDiv = int64(1000)
-	// NewSiafundPortion is the percentage of siacoins that is taxed from FileContracts after the SPF hardfork.
-	NewSiafundPortion = big.NewRat(NewSiafundMul, NewSiafundDiv)
+	// NewerSiafundCount is the total number of Siafunds in existence after the second SPF hardfork.
+	NewerSiafundCount = NewCurrency64(200000000)
+	// FirstSiafundMul is multiplier for percentage of siacoins that is taxed from FileContracts
+	// before the first SPF hardfork.
+	FirstSiafundMul = int64(39)
+	// FirstSiafundDiv is divider for percentage of siacoins that is taxed from FileContracts
+	// before the first SPF hardfork.
+	FirstSiafundDiv = int64(1000)
+	// FirstSiafundPortion is the percentage of siacoins that is taxed from FileContracts before the first SPF hardfork.
+	FirstSiafundPortion = big.NewRat(FirstSiafundMul, FirstSiafundDiv)
+	// SecondSiafundMul is multiplier for percentage of siacoins that is taxed from FileContracts
+	// between the first and the second SPF hardforks.
+	SecondSiafundMul = int64(150)
+	// SecondSiafundDiv is divider for percentage of siacoins that is taxed from FileContracts
+	// between the first and the second SPF hardforks.
+	SecondSiafundDiv = int64(1000)
+	// SecondSiafundPortion is the percentage of siacoins that is taxed from FileContracts between the first and the second SPF hardforks.
+	SecondSiafundPortion = big.NewRat(SecondSiafundMul, SecondSiafundDiv)
+	// ThirdSiafundMul is multiplier for percentage of siacoins that is taxed from FileContracts
+	// after the second SPF hardfork.
+	ThirdSiafundMul = int64(100)
+	// ThirdSiafundDiv is divider for percentage of siacoins that is taxed from FileContracts
+	// after the second SPF hardfork.
+	ThirdSiafundDiv = int64(1000)
+	// ThirdSiafundPortion is the percentage of siacoins that is taxed from FileContracts after the second SPF hardfork.
+	ThirdSiafundPortion = big.NewRat(ThirdSiafundMul, ThirdSiafundDiv)
 	// TargetWindow is the number of blocks to look backwards when determining how much
 	// time has passed vs. how many blocks have been created. It's only used in the old,
 	// broken difficulty adjustment algorithm.
@@ -257,10 +267,31 @@ var (
 		Standard: BlockHeight(54550),
 		Testing:  BlockHeight(10000),
 	}).(BlockHeight)
+
+	// SpfSecondHardforkHeight is the height of second SPF hardfork.
+	SpfSecondHardforkHeight = build.Select(build.Var{
+		Dev:      BlockHeight(200),
+		Standard: BlockHeight(109000),
+		Testing:  BlockHeight(20000),
+	}).(BlockHeight)
 )
+
+// IsSpfHardfork returns true when one of Spf hardforks happens at given height.
+func IsSpfHardfork(height BlockHeight) bool {
+	if height == SpfHardforkHeight {
+		return true
+	}
+	if height == SpfSecondHardforkHeight {
+		return true
+	}
+	return false
+}
 
 // SiafundCount returns the total number of Siafunds by height.
 func SiafundCount(height BlockHeight) Currency {
+	if height > SpfSecondHardforkHeight {
+		return NewerSiafundCount
+	}
 	if height > SpfHardforkHeight {
 		return NewSiafundCount
 	}
@@ -269,26 +300,35 @@ func SiafundCount(height BlockHeight) Currency {
 
 // SiafundPortion returns SPF percentage by height.
 func SiafundPortion(height BlockHeight) *big.Rat {
-	if height > SpfHardforkHeight {
-		return NewSiafundPortion
+	if height > SpfSecondHardforkHeight {
+		return ThirdSiafundPortion
 	}
-	return OldSiafundPortion
+	if height > SpfHardforkHeight {
+		return SecondSiafundPortion
+	}
+	return FirstSiafundPortion
 }
 
 // SiafundMul returns SPF percentage multiplier by height.
 func SiafundMul(height BlockHeight) int64 {
-	if height > SpfHardforkHeight {
-		return NewSiafundMul
+	if height > SpfSecondHardforkHeight {
+		return ThirdSiafundMul
 	}
-	return OldSiafundMul
+	if height > SpfHardforkHeight {
+		return SecondSiafundMul
+	}
+	return FirstSiafundMul
 }
 
 // SiafundDiv returns SPF percentage divider by height.
 func SiafundDiv(height BlockHeight) int64 {
-	if height > SpfHardforkHeight {
-		return NewSiafundDiv
+	if height > SpfSecondHardforkHeight {
+		return ThirdSiafundDiv
 	}
-	return OldSiafundDiv
+	if height > SpfHardforkHeight {
+		return SecondSiafundDiv
+	}
+	return FirstSiafundDiv
 }
 
 // scanAddress scans a types.UnlockHash from a string.
@@ -383,10 +423,18 @@ func init() {
 				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 		}
-		SiafundHardforkAllocation = []SiafundOutput{
-			{
-				Value:      NewCurrency64(20000),
-				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+		SiafundHardforkAllocation = map[BlockHeight][]SiafundOutput{
+			SpfHardforkHeight: {
+				{
+					Value:      NewCurrency64(20000),
+					UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+				},
+			},
+			SpfSecondHardforkHeight: {
+				{
+					Value:      NewCurrency64(200000000 - 30000),
+					UnlockHash: UnlockHashFromAddrStr("f3f512b45c24b531e571d59d99b804b19244cecf1da8117217101fa722e40a18917c91ebb080"),
+				},
 			},
 		}
 	} else if build.Release == "testing" {
@@ -463,10 +511,18 @@ func init() {
 				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 		}
-		SiafundHardforkAllocation = []SiafundOutput{
-			{
-				Value:      NewCurrency64(20000),
-				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+		SiafundHardforkAllocation = map[BlockHeight][]SiafundOutput{
+			SpfHardforkHeight: {
+				{
+					Value:      NewCurrency64(20000),
+					UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+				},
+			},
+			SpfSecondHardforkHeight: {
+				{
+					Value:      NewCurrency64(200000000 - 30000),
+					UnlockHash: UnlockHashFromAddrStr("f3f512b45c24b531e571d59d99b804b19244cecf1da8117217101fa722e40a18917c91ebb080"),
+				},
 			},
 		}
 	} else if build.Release == "standard" {
@@ -606,10 +662,18 @@ func init() {
 				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
 			},
 		}
-		SiafundHardforkAllocation = []SiafundOutput{
-			{
-				Value:      NewCurrency64(20000),
-				UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+		SiafundHardforkAllocation = map[BlockHeight][]SiafundOutput{
+			SpfHardforkHeight: {
+				{
+					Value:      NewCurrency64(20000),
+					UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+				},
+			},
+			SpfSecondHardforkHeight: {
+				{
+					Value:      NewCurrency64(200000000 - 30000),
+					UnlockHash: UnlockHashFromAddrStr("f3f512b45c24b531e571d59d99b804b19244cecf1da8117217101fa722e40a18917c91ebb080"),
+				},
 			},
 		}
 

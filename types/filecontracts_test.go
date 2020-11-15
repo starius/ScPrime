@@ -9,12 +9,18 @@ import (
 	"gitlab.com/scpcorp/ScPrime/crypto"
 )
 
-// TestForkedTax probes the Tax function after SPF hardfork height.
+// TestForkedTax probes the Tax function after various SPF hardforks.
 func TestForkedTax(t *testing.T) {
 	if Tax(SpfHardforkHeight+1, NewCurrency64(125e9)).Cmp(NewCurrency64(1875e7)) != 0 {
 		t.Error("tax is being calculated incorrectly")
 	}
 	if PostTax(SpfHardforkHeight+1, NewCurrency64(125e9)).Cmp(NewCurrency64(10625e7)) != 0 {
+		t.Error("tax is being calculated incorrectly")
+	}
+	if Tax(SpfSecondHardforkHeight+1, NewCurrency64(125e9)).Cmp(NewCurrency64(124e8)) != 0 {
+		t.Error("tax is being calculated incorrectly")
+	}
+	if PostTax(SpfSecondHardforkHeight+1, NewCurrency64(125e9)).Cmp(NewCurrency64(1126e8)) != 0 {
 		t.Error("tax is being calculated incorrectly")
 	}
 }
