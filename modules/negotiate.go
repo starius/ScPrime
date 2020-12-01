@@ -22,7 +22,7 @@ import (
 const (
 	// MinimumSupportedRenterHostProtocolVersion is the minimum version of ScPrime
 	// that supports the currently used version of the renter-host protocol.
-	MinimumSupportedRenterHostProtocolVersion = "1.4.2"
+	MinimumSupportedRenterHostProtocolVersion = "1.5.1"
 
 	// V1420HostOutOfStorageErrString is the string used by hosts since before
 	// version 1.4.2 to indicate that they have run out of storage.
