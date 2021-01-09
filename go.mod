@@ -11,8 +11,8 @@ require (
 	github.com/hanwen/go-fuse/v2 v2.0.3
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/klauspost/cpuid v1.3.1 // indirect
-	github.com/klauspost/reedsolomon v1.9.8
+	github.com/klauspost/cpuid/v2 v2.0.3 // indirect
+	github.com/klauspost/reedsolomon v1.9.10
 	github.com/magiconair/properties v1.8.4 // indirect
 	github.com/mitchellh/mapstructure v1.4.0 // indirect
 	github.com/pelletier/go-toml v1.8.1 // indirect
@@ -20,14 +20,14 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sasha-s/go-deadlock v0.2.0
-	github.com/spf13/afero v1.4.1 // indirect
+	github.com/spf13/afero v1.5.1 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/vbauerster/mpb/v5 v5.3.0
+	github.com/vbauerster/mpb/v5 v5.4.0
 	github.com/xtaci/smux v1.5.15
 	gitlab.com/NebulousLabs/demotemutex v0.0.0-20151003192217-235395f71c40
 	gitlab.com/NebulousLabs/encoding v0.0.0-20200604091946-456c3dc907fe
@@ -43,11 +43,11 @@ require (
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200814111317-c404cb85e61f
 	go.etcd.io/bbolt v1.3.5
-	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392
-	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
-	golang.org/x/sys v0.0.0-20201201145000-ef89a241ccb3 // indirect
-	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 // indirect
-	golang.org/x/text v0.3.4 // indirect
+	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
+	golang.org/x/sys v0.0.0-20210108172913-0df2131ae363 // indirect
+	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf // indirect
+	golang.org/x/text v0.3.5 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
