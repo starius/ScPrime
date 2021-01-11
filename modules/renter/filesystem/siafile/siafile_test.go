@@ -807,14 +807,14 @@ func TestDefragChunk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Compare the files.
-	if err := equalFiles(sf, sf2); err != nil {
-		t.Fatal(err)
-	}
 	if err := ensureMetadataValid(sf.Metadata()); err != nil {
 		t.Fatal(err)
 	}
 	if err := ensureMetadataValid(sf2.Metadata()); err != nil {
+		t.Fatal(err)
+	}
+	// Compare the files.
+	if err := equalFiles(sf, sf2); err != nil {
 		t.Fatal(err)
 	}
 }
