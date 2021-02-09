@@ -423,13 +423,6 @@ type (
 
 		PaymentProcessor
 
-		// PruneStaleStorageObligations will delete storage obligations from the
-		// host that, for whatever reason, did not make it on the block chain.
-		// As these stale storage obligations have an impact on the host
-		// financial metrics, this method updates the host financial metrics to
-		// show the correct values.
-		PruneStaleStorageObligations() error
-
 		// PublicKey returns the public key of the host.
 		PublicKey() types.SiaPublicKey
 

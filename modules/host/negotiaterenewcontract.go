@@ -63,7 +63,12 @@ func (h *Host) managedAddRenewCollateral(so storageObligation, settings modules.
 	if err != nil {
 		return
 	}
-	err = builder.FundSiacoins(hostPortion)
+	uc, err := h.wallet.UnlockConditions(h.unlockHash)
+	if err != nil {
+		builder.Drop()
+		return nil, nil, nil, nil, extendErr("Can not use host unlockhash during contract renewal", ErrorInternal(err.Error()))
+	}
+	err = builder.FundSiacoinsFixedAddress(hostPortion, uc, uc)
 	if err != nil {
 		builder.Drop()
 		return nil, nil, nil, nil, extendErr("could not add collateral: ", ErrorInternal(err.Error()))

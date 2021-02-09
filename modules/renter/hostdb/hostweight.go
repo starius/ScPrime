@@ -383,6 +383,12 @@ func (hdb *HostDB) storageRemainingAdjustments(entry modules.HostDBEntry, allowa
 // TODO move hardcoded version strings to build package or somewhere else
 // so this has not to be altered on every new version
 func versionAdjustments(entry modules.HostDBEntry) float64 {
+	// Since hardfork on block 109000 no older versions than v1.5.1 are acceptable
+	// Heavy penalty for hosts that cannot use the current renter-host protocol.
+	if build.VersionCmp(entry.Version, modules.MinimumSupportedRenterHostProtocolVersion) < 0 {
+		return math.SmallestNonzeroFloat64
+	}
+
 	base := float64(1)
 
 	// This needs to give a very tiny penalty to the current version. The reason
@@ -393,11 +399,11 @@ func versionAdjustments(entry modules.HostDBEntry) float64 {
 		base = base * 0.99999 // Safety value to make sure we update the version penalties every time we update the host.
 	}
 
-	// Since hardfork on block 109000 no older versions than v1.5.1 are acceptable
-	// Heavy penalty for hosts that cannot use the current renter-host protocol.
-	if build.VersionCmp(entry.Version, modules.MinimumSupportedRenterHostProtocolVersion) < 0 {
-		base = math.SmallestNonzeroFloat64
+	// Small penalty for previous version
+	if build.VersionCmp(entry.Version, build.Version) < 0 {
+		base = base * 0.98 // Safety value to make sure we update the version penalties every time we update the host.
 	}
+
 	return base
 }
 

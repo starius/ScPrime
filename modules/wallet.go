@@ -148,6 +148,15 @@ type (
 		// transaction failed.
 		FundSiacoins(amount types.Currency) error
 
+		// FundSiacoins will add a siacoin input of exactly 'amount' to the
+		// transaction. A parent transaction may be needed to achieve an input
+		// with the correct value. The siacoin input will not be signed until
+		// 'Sign' is called on the transaction builder.
+		// Uses the specified addresses `parentUnlockConditions` for the inputs
+		// building transaction and `refundUnlockConditions` for the remaining
+		// unspent amount (change return address).
+		FundSiacoinsFixedAddress(amount types.Currency, parentUnlockConditions, refundUnlockConditions types.UnlockConditions) error
+
 		// FundSiafunds will add a siafund input of exactly 'amount' to the
 		// transaction. A parent transaction may be needed to achieve an input
 		// with the correct value. The siafund input will not be signed until
@@ -519,6 +528,10 @@ type (
 		// WatchAddresses returns the set of addresses that the wallet is
 		// currently watching.
 		WatchAddresses() ([]types.UnlockHash, error)
+
+		// IsWatchedAddress checks if the supplied unlockhash is in the list
+		// of watched addresses. Returns true only if the address is already known
+		IsWatchedAddress(types.UnlockHash) bool
 	}
 
 	// WalletSettings control the behavior of the Wallet.

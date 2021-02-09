@@ -103,7 +103,7 @@ func TestAccountCallWithdraw(t *testing.T) {
 	}
 	t.Parallel()
 
-	ht, err := blankHostTester(t.Name())
+	ht, err := newHostTester(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +187,7 @@ func TestAccountCallWithdrawTimeout(t *testing.T) {
 	}
 	t.Parallel()
 
-	ht, err := blankHostTester(t.Name())
+	ht, err := newHostTester(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,7 +217,7 @@ func TestAccountExpiry(t *testing.T) {
 	}
 	t.Parallel()
 
-	ht, err := blankMockHostTester(&dependencies.HostExpireEphemeralAccounts{}, t.Name())
+	ht, err := newMockHostTester(&dependencies.HostExpireEphemeralAccounts{}, t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,7 +265,7 @@ func TestAccountWithdrawalSpent(t *testing.T) {
 	t.Parallel()
 
 	// Prepare a host
-	ht, err := blankHostTester(t.Name())
+	ht, err := newHostTester(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -752,7 +752,7 @@ func TestAccountWithdrawalMultiple(t *testing.T) {
 	t.Parallel()
 
 	// Prepare a host
-	ht, err := blankHostTester(t.Name())
+	ht, err := newHostTester(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -829,7 +829,7 @@ func TestAccountWithdrawalBlockMultiple(t *testing.T) {
 	t.Parallel()
 
 	// Prepare a host
-	ht, err := blankHostTester(t.Name())
+	ht, err := newHostTester(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -923,8 +923,8 @@ func TestAccountMaxEphemeralAccountRisk(t *testing.T) {
 	// Prepare a host that persists the accounts data to disk with a certain
 	// latency, this will ensure that we can reach the maxephemeralaccountrisk
 	// and the host will effectively block until it drops below the maximum
-	deps := dependencies.NewHostMaxEphemeralAccountRiskReached(200 * time.Millisecond)
-	ht, err := blankMockHostTester(deps, t.Name())
+	deps := dependencies.NewHostMaxEphemeralAccountRiskReached(250 * time.Millisecond)
+	ht, err := newMockHostTester(deps, t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -934,6 +934,7 @@ func TestAccountMaxEphemeralAccountRisk(t *testing.T) {
 			t.Error(err)
 		}
 	}()
+
 	am := ht.host.staticAccountManager
 
 	his := ht.host.InternalSettings()
@@ -1122,7 +1123,7 @@ func TestAccountWithdrawalsInactive(t *testing.T) {
 	t.Parallel()
 
 	// Prepare a host
-	ht, err := blankHostTester(t.Name())
+	ht, err := newHostTester(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1152,7 +1153,7 @@ func TestAccountWithdrawalsInactive(t *testing.T) {
 	}
 
 	// Mock a consensus change that indicates the host is not synced
-	am.callConsensusChanged(modules.ConsensusChange{Synced: false}, 0, 1)
+	am.callConsensusChanged(modules.ConsensusChange{Synced: false, OldHeight: 0, NewHeight: 1})
 
 	// Verify withdrawal is active
 	msg, sig = prepareWithdrawal(accountID, oneCurrency, am.h.blockHeight, sk)
