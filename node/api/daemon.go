@@ -2,8 +2,17 @@ package api
 
 //TODO: Enable upgrading
 import (
+	"archive/zip"
+	"bytes"
+	"io"
+	"io/ioutil"
+	"os"
+	"path"
+	"path/filepath"
 	"runtime"
+	"strings"
 
+	"golang.org/x/crypto/openpgp"
 	//"archive/zip"
 	//"bytes"
 	//"crypto/sha256"
@@ -32,35 +41,31 @@ import (
 const (
 	// The developer key is used to sign updates and other important ScPrime-
 	// related information.
-	developerKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
-
-mQINBF4U62ABEADQip/SzQrFvmL761iKRk6L3N8yHX7y0LUaSxS+jaTlsROtBkEl
-dvfoyt/o3HsAplEwVfOHPCZCmsqOR3HoibTVohHVpMCOWwsr9blSkTzGl1YUgQ73
-qP+A31gt/4Gyiyn+5q/qGBa5e40Oy6bDXFeH/ByH6manf/bffe5kP0H4Qphrg7R1
-aeShajtvIr5ioYbc/NUOWkPfsU1Jtn1dwkMZUXMIAKADhy8A0428kv6E3oTvHVbd
-HzrEGo2T247Qe9bQE6sRkAy7CLYOmx/MexN65zlNoYFJl5LkGyM0pWCsEsqX5I7a
-jYHK8FCAHihFhQ14QH57lvT5yQwgXeu69egrZixOw2EE82NekTqTKf9etU9iUpk8
-DjjT2vChq7qGY6v1JILxU1UsvNgVDnrZDPkLQVlaW6rW27f0cOxcxjcxZNlBpVxe
-RuuL4bImhXR4wO/EZYEaeyd4bOyRTenZlkx/vmAPCyjDchAQZvHlYGalU5VEmZGd
-BTr22AB4+4J6y/MqprZv4U5NkRlEnM3sWgJRLMCwoIKHjJpSFzF+jyveeIlnL4i6
-ezpfCdEEGxrmOPQj2H2m7MmQuOMkdhfFEWNNfhvOb7/7OadpBZ7d+wg9gfDHM62f
-LqYypyWsX+3QGxtnOAvSsF6j5LAm2L7lyQ4p05BUoCvPW/7L+LoAJRdETwARAQAB
-tCBTaWEgU2lnbmluZyBLZXkgPGhlbGxvQHNpYS50ZWNoPokCVAQTAQoAPhYhBB9J
-RQueMeJKhy3DR6qPStVYMJQRBQJeFOtgAhsPBQkDwmcABQsJCAcCBhUKCQgLAgQW
-AgMBAh4BAheAAAoJEKqPStVYMJQRRmYQALL6+MYvzx8cyIm3LwRH2rcK1XC8iLmP
-6kZbFa4UJvjTD8dgJ5oxAKA7sSrMwROAx28ijFgMu4MM0XHvZgZS/pKjFQrYedWd
-nI9rwwXgu8KLxEH4CaeYhaKMaJ5JSpCUdGdnG/bxldAnLGXuPK327DW4dXQOY8Om
-xIkvU/gMnyjWmY5EB9Ytis3+ir6QOgpUsVaqJY/5u7BVLLbNOB/+RfzYkvIdHJj/
-SEx9Qg36O9+igh1MfUUuHS/1logNsY9FoCnYrw/du26sKNh9kcjr2agSjtDJpeF4
-kVSgIW5Toak64NgcLECUi/NE9gU5MydpiaLu7WmOuVIdWhWCU8CISUXRDo+KMyOa
-fqCxaz/GXKn/GCEJq1qY3FNu28awSq2msQ7eE88y/qGVtmgEd9rWWhh7Ze27qx0d
-vFZVTYyT2lARmlL6p7faFqpwxHFEx/ylLqAaEaBgKsZvmjPI11f4PLWkOAnQ8uqd
-1SHWzm1v6frOAOpHBbTKPVTEnWhXDphprW43nTmS4mQP7L+lsJcEtATGHIVXv2Bg
-O5msa2VAPRDmTtiXiQZXEnzxQSBI2/aA5wdYKen0woN9YS0MQsXXy2lcNSxWOXnq
-dU1u9C6NxDnhx0CDVlcKmRzfmW5RtcgLiYXJoR4AgFbhSH2D+13dwrJrzR85ZeZK
-y6/Gelaei3D0
-=XTvn
------END PGP PUBLIC KEY BLOCK-----`
+	developerKey = `-----BEGIN PUBLIC KEY-----
+MIIEIjANBgkqhkiG9w0BAQEFAAOCBA8AMIIECgKCBAEA05U9xFO9EgKEUQ5LzLkD
+//iODWzBY+bKWEMial0hxHnFU/FD0DOqpjvbZV8NgF0rFZu6MznN+UO8+a8EqGiq
+L3XkUmnJu9K2sWOJOv9aYYbFQwxay1gI+jIFsldjTVf7yOz+9IcM48zyX0A952Fx
+y5ugctqr7Sr+2uuLAqXXyWwA8FQ5ZPWOzCySJCbcaKSP4fP+caRKCUeAci9CON6g
+UxIGgO3H5KjBa1nt38XE4Qt7hy7peIRigmfm3FJkSnqWijkYUXrPIwILfqaFMknZ
+40Yc5GEqxOdzSYoptWXfVdnoDvu58qJI5ikAwr/pIjVCSn3sdMudlDiRoiUfHCYn
+T7OEq6wWSL/lmpOKSXavIxUwfs4mpCA/a9E0P1FICLr52DNrzVVveEXmkzUEtqlF
+26FssMzTt6mkmAF8T7HRBtVyuTt+UD2I7oEJ29CPV0U7YE5KVhmQG7ae3i6k2csJ
+mEdDNbb0rOdZrsygyfJNkG/IkD09PTn9KteTDc9ULnEhq2LXtot0y1/zas1z8BsC
+rJbAdGU0o5/SpWPfOrw2O/aa0Ja413cMyGAXUZRiseTncLod9dKn9Y6GVIb3LSj7
+D3FfV2ADG2vdpuBc18JsPDC+oLWjIjpEZKlyr3tqyQsE3lJjWteU2W+Tju4PWM9Q
+GT/e9SY9DcFKTY8AIxrtzyuCGwuW5a3yQ9FP2yEDpF7j2POIU7LIEtnyn9oXP/6d
+3y4X+DJhkDm4cKfV+OsVyCYwK3+IQvr1g1F2N/xsKByZbb4Jgwge5Libtrnc0GH8
+WxdIlbNBHHuU58yI0GjPnFLqRMe0duPzJXWtq18RJFjUHg8muhb14lBuXOqaF0cs
+gn+8izPgbSMhEHPQBhT9Ux+byU3qDjKqim3f5xtZNH6R2eT58N8y5CwXYYodpMVL
+nhcX29QsqqpO1mZQwx6snSJ6QDvmcSrhEgFhWLAbUY6R+I0UWGY23dlI/cNEWOyu
+zRSS/DDK0gV7+pPFT2+HiP6YkZ4qlHqmWIWXBFeXSAEzVNe2AG48BD3sXQGlh7Jd
+x73jHo/17DZUivnQ8MyvOfDY1ThfwSNlCJzfYvQUxpa43JAZzCGxEDw7pJvrHqLD
+cV75Zk12DzRBoC4neDRWd4qfXApx066Ew56xxeCQI5Z5suZ1juaejpr9BDshHyE4
+Abt4U3mhMBtcdD4Oz0mo+iuXLePbdo3uwCGFE7GOb+XdxvegYzTE0w/24mXNluz8
+BiFzhF0Dgq2SmUkVpqYehZNmfm61/xtyOM5uHOtphetSdA5lPaplSiLzi6piaaKa
+huUdkWLWC9t9M+VuEZhk0ra/x7b1HDy4bLqBaXzJtKvZyRlOBWBFmIVmctygG6t9
+ZwIDAQAB
+-----END PUBLIC KEY-----`
 )
 
 type (
@@ -186,137 +191,102 @@ func fetchLatestRelease() (gitlabRelease, error) {
 // updateToRelease updates spd and spc to the release specified. spc is
 // assumed to be in the same folder as spd.
 func updateToRelease(version string) error {
-	return errors.New("Updating to specified release is not supported yet")
-	/*
-		binaryFolder, err := osext.ExecutableFolder()
-		if err != nil {
-			return err
-		}
 
-		// Download file of signed hashes.
-		resp, err := http.Get(fmt.Sprintf("https://sia.tech/releases/ScPrime-%s-SHA256SUMS.txt.asc", version))
-		if err != nil {
-			return err
-		}
+	binaryFolder, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	// trim release version for generate correct URL in request, ex v1.5.1 -> 1.5.1
+	version = strings.Trim(version, "v")
 
-		// The file should be small enough to store in memory (<1 MiB); use
-		// MaxBytesReader to ensure we don't download more than 8 MiB
-		signatureBytes, err := ioutil.ReadAll(http.MaxBytesReader(nil, resp.Body, 1<<23))
-		resp.Body.Close()
-		if err != nil {
-			return err
-		}
-		sigBlock, _ := clearsign.Decode(signatureBytes)
-		if sigBlock == nil {
-			return errors.New("No signature found in checksums file")
-		}
+	// Download file of signed hashes.
+	resp, err := http.Get(fmt.Sprintf("https://releases.scpri.me/%s/ScPrime-v%s-%s-%s.zip.asc", version, version,
+		runtime.GOOS, runtime.GOARCH))
+	if err != nil {
+		return err
+	}
 
-		// Open the developer key for verifying signatures.
-		keyring, err := openpgp.ReadArmoredKeyRing(strings.NewReader(developerKey))
-		if err != nil {
-			return errors.AddContext(err, "Error reading keyring")
-		}
-		// Verify the signature.
-		_, err = openpgp.CheckDetachedSignature(keyring, bytes.NewBuffer(sigBlock.Bytes), sigBlock.ArmoredSignature.Body)
-		if err != nil {
-			return errors.AddContext(err, "signature verification error")
-		}
+	// The file should be small enough to store in memory (<1 MiB); use
+	// MaxBytesReader to ensure we don't download more than 8 MiB
+	signatureBytes, err := ioutil.ReadAll(http.MaxBytesReader(nil, resp.Body, 1<<23))
+	resp.Body.Close()
+	if err != nil {
+		return err
+	}
+	// Open the developer key for verifying signatures.
+	keyring, err := openpgp.ReadArmoredKeyRing(strings.NewReader(developerKey))
+	if err != nil {
+		return errors.AddContext(err, "Error reading keyring")
+	}
 
-		// Build a map of signed binary checksums.
-		checksumsPlaintext := strings.TrimSpace(string(sigBlock.Plaintext))
-		checksums := make(map[string]string) // maps GOOS-GOARCH to SHA-256 checksum.
-		for _, line := range strings.Split(checksumsPlaintext, "\n") {
-			splitBySpace := strings.Split(line, "  ")
-			if len(splitBySpace) != 2 {
+	// download release archive
+	releaseFilePrefix := fmt.Sprintf("ScPrime-v%s-%s-%s", version, runtime.GOOS, runtime.GOARCH)
+	zipResp, err := http.Get(fmt.Sprintf("https://releases.scpri.me/%s/%s.zip", version, releaseFilePrefix))
+	if err != nil {
+		return err
+	}
+	// release should be small enough to store in memory (<10 MiB); use
+	// LimitReader to ensure we don't download more than 32 MiB
+	content, err := ioutil.ReadAll(http.MaxBytesReader(nil, zipResp.Body, 1<<25))
+	resp.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	// verify release with signature and developer key
+	_, err = openpgp.CheckArmoredDetachedSignature(keyring, bytes.NewBuffer(content), bytes.NewBuffer(signatureBytes))
+	if err != nil {
+		return errors.AddContext(err, "release verification error")
+	}
+	r := bytes.NewReader(content)
+	z, err := zip.NewReader(r, r.Size())
+	if err != nil {
+		return err
+	}
+
+	// Process zip, finding spd/spc binaries and validate the checksum against
+	// the signed checksums file.
+	for _, binary := range []string{"spd", "spc"} {
+		var binData io.ReadCloser
+		var binaryName string // needed for TargetPath below
+		for _, zf := range z.File {
+			fileName := path.Base(zf.Name)
+			if (fileName != binary) && (fileName != binary+".exe") {
 				continue
 			}
-			checksum := splitBySpace[0]
-			fileName := splitBySpace[1]
-			checksums[fileName] = checksum
-		}
-
-		// download release archive
-		releaseFilePrefix := fmt.Sprintf("ScPrime-%s-%s-%s", version, runtime.GOOS, runtime.GOARCH)
-		zipResp, err := http.Get(fmt.Sprintf("https://sia.tech/releases/%s.zip", releaseFilePrefix))
-		if err != nil {
-			return err
-		}
-		// release should be small enough to store in memory (<10 MiB); use
-		// LimitReader to ensure we don't download more than 32 MiB
-		content, err := ioutil.ReadAll(http.MaxBytesReader(nil, zipResp.Body, 1<<25))
-		resp.Body.Close()
-		if err != nil {
-			return err
-		}
-		r := bytes.NewReader(content)
-		z, err := zip.NewReader(r, r.Size())
-		if err != nil {
-			return err
-		}
-		zipChecksum := fmt.Sprintf("%x", sha256.Sum256(content))
-		expectedZipChecksum, ok := checksums[releaseFilePrefix+".zip"]
-		if !ok {
-			return errors.New("No checksum for zip file found")
-		}
-		if strings.TrimSpace(zipChecksum) != strings.TrimSpace(expectedZipChecksum) {
-			return errors.New("Expected zip file checksums to match")
-		}
-
-		// Process zip, finding spd/spc binaries and validate the checksum against
-		// the signed checksums file.
-		for _, binary := range []string{"spd", "spc"} {
-			var binData io.ReadCloser
-			var binaryName string // needed for TargetPath below
-			for _, zf := range z.File {
-				fileName := path.Base(zf.Name)
-				if (fileName != binary) && (fileName != binary+".exe") {
-					continue
-				}
-				binaryName = fileName
-				binData, err = zf.Open()
-				if err != nil {
-					return err
-				}
-				defer binData.Close()
-			}
-			if binData == nil {
-				return errors.New("could not find " + binary + " binary")
-			}
-
-			// Verify the checksum matches the signed checksum.
-			// Use io.LimitReader to ensure we don't download more than 32 MiB
-			binaryBytes, err := ioutil.ReadAll(io.LimitReader(binData, 1<<25))
+			binaryName = fileName
+			binData, err = zf.Open()
 			if err != nil {
 				return err
 			}
-			// binData (an io.ReadCloser) is still needed to update the binary.
-			binData = ioutil.NopCloser(bytes.NewBuffer(binaryBytes))
-
-			// Check that the checksums match.
-			binChecksum := fmt.Sprintf("%x", sha256.Sum256(binaryBytes))
-			expectedChecksum, ok := checksums[releaseFilePrefix+"/"+binary]
-			if !ok {
-				errors.New("No checksum found for binary")
-			}
-			if strings.TrimSpace(binChecksum) != strings.TrimSpace(expectedChecksum) {
-				return errors.New("Expected binary checksums to match")
-			}
-
-			updateOpts := update.Options{
-				Signature:  nil,  // Signature verification is skipped because we already verified the signature of the checksum.
-				TargetMode: 0775, // executable
-				TargetPath: filepath.Join(binaryFolder, binaryName),
-			}
-
-			// apply update
-			err = update.Apply(binData, updateOpts)
-			if err != nil {
-				return err
-			}
+			defer binData.Close()
+		}
+		if binData == nil {
+			return errors.New("could not find " + binary + " binary")
 		}
 
-		return nil
-	*/
+		// Verify the checksum matches the signed checksum.
+		// Use io.LimitReader to ensure we don't download more than 32 MiB
+		binaryBytes, err := ioutil.ReadAll(io.LimitReader(binData, 1<<25))
+		if err != nil {
+			return err
+		}
+		// binData (an io.ReadCloser) is still needed to update the binary.
+		binData = ioutil.NopCloser(bytes.NewBuffer(binaryBytes))
+
+		updateOpts := update.Options{
+			Signature:  nil,  // Signature verification is skipped because we already verified the signature of the checksum.
+			TargetMode: 0775, // executable
+			TargetPath: filepath.Join(binaryFolder, binaryName),
+		}
+
+		// apply update
+		err = update.Apply(binData, updateOpts)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // daemonAlertsHandlerGET handles the API call that returns the alerts of all
