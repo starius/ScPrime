@@ -191,7 +191,6 @@ func fetchLatestRelease() (gitlabRelease, error) {
 // updateToRelease updates spd and spc to the release specified. spc is
 // assumed to be in the same folder as spd.
 func updateToRelease(version string) error {
-
 	binaryFolder, err := os.Executable()
 	if err != nil {
 		return err
