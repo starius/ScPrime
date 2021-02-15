@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -61,11 +62,16 @@ func (cs *ConsensusSet) computeConsensusChange(tx *bolt.Tx, ce changeEntry) (mod
 	cc := modules.ConsensusChange{
 		ID: ce.ID(),
 	}
+
+	cc.OldHeight = 0
 	for _, revertedBlockID := range ce.RevertedBlocks {
 		revertedBlock, err := getBlockMap(tx, revertedBlockID)
 		if err != nil {
 			cs.log.Critical("getBlockMap failed in computeConsensusChange:", err)
 			return modules.ConsensusChange{}, err
+		}
+		if revertedBlock.Height > cc.OldHeight {
+			cc.OldHeight = revertedBlock.Height
 		}
 		cc.RevertedBlocks = append(cc.RevertedBlocks, revertedBlock.Block)
 		diffs := computeConsensusChangeDiffs(revertedBlock, false)
@@ -101,6 +107,16 @@ func (cs *ConsensusSet) computeConsensusChange(tx *bolt.Tx, ce changeEntry) (mod
 	// Add the unexported tryTransactionSet function.
 	cc.TryTransactionSet = cs.tryTransactionSet
 
+	//Save the old and new blockheights
+	if cc.OldHeight == 0 {
+		//No reverted blocks
+		firstAppliedBlock, err := getBlockMap(tx, ce.AppliedBlocks[0])
+		if err != nil {
+			cs.log.Critical("Can not find block that was just applied!")
+		}
+		cc.OldHeight = firstAppliedBlock.Height - 1
+	}
+	cc.NewHeight = pb.Height
 	return cc, nil
 }
 
@@ -128,9 +144,17 @@ func (cs *ConsensusSet) updateSubscribers(ce changeEntry) {
 	if len(cc.RevertedBlocks) > 0 {
 		cs.log.Println("ConsensusChange with re-org detected: ", cc.ID, len(cc.RevertedBlocks))
 	}
-
+	//TODO parallelize this (move wg.Wait() out of the loop)
+	var wg sync.WaitGroup
 	for _, subscriber := range cs.subscribers {
-		subscriber.ProcessConsensusChange(cc)
+		wg.Add(1)
+		go func() {
+			defer func() {
+				wg.Done()
+			}()
+			subscriber.ProcessConsensusChange(cc)
+		}()
+		wg.Wait()
 	}
 }
 

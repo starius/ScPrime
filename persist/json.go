@@ -316,7 +316,7 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 			return errors.AddContext(err, "unable to open temp file")
 		}
 		defer func() {
-			err = errors.AddContext(errors.Compose(err, file.Close()), "Error saving JSON file")
+			err = errors.AddContext(errors.Compose(err, file.Close()), "Error saving temporary JSON file")
 		}()
 
 		// Write and sync.
@@ -341,7 +341,7 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 			return errors.AddContext(err, "unable to open file")
 		}
 		defer func() {
-			err = errors.Compose(err, file.Close())
+			err = errors.AddContext(errors.Compose(err, file.Close()), fmt.Sprintf("Error saving JSON file %v", filename))
 		}()
 
 		// Write and sync.
@@ -350,15 +350,9 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 			return errors.AddContext(err, "unable to write file")
 		}
 		err = file.Sync()
-		if err != nil {
-			return errors.AddContext(err, "unable to sync temp file")
-		}
-		return nil
+		return errors.AddContext(err, fmt.Sprintf("Error syncing file %v", err))
 	}()
-	if err != nil {
-		return err
-	}
 
-	// Success
-	return nil
+	// err is nil on success
+	return err
 }

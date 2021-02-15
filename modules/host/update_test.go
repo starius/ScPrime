@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
@@ -38,7 +40,12 @@ func TestStorageProof(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = txnBuilder.FundSiacoins(fc.Payout)
+	uc, err := ht.wallet.UnlockConditions(ht.host.unlockHash)
+	if err != nil {
+		txnBuilder.Drop()
+		t.Fatal(errors.AddContext(err, "Can not get host unlockhash"))
+	}
+	err = txnBuilder.FundSiacoinsFixedAddress(fc.Payout, uc, uc)
 	if err != nil {
 		t.Fatal(err)
 	}

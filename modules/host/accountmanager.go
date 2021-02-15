@@ -412,7 +412,7 @@ func (am *accountManager) callWithdraw(msg *modules.WithdrawalMessage, sig crypt
 
 // callConsensusChanged is called by the host whenever it processed a change to
 // the consensus. We use it to remove fingerprints which have been expired.
-func (am *accountManager) callConsensusChanged(cc modules.ConsensusChange, oldHeight, newHeight types.BlockHeight) {
+func (am *accountManager) callConsensusChanged(cc modules.ConsensusChange) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
 
@@ -431,9 +431,9 @@ func (am *accountManager) callConsensusChanged(cc modules.ConsensusChange, oldHe
 	// new height due to blockchain reorgs that could cause the blockheight
 	// to increase (or decrease) by multiple blocks at a time, potentially
 	// skipping over the min height of the bucket.
-	min, _ := currentBucketRange(newHeight)
+	min, _ := currentBucketRange(cc.NewHeight)
 	withdrawalsActive := !am.withdrawalsInactive
-	shouldRotate := oldHeight < newHeight && oldHeight < min && min <= newHeight
+	shouldRotate := cc.OldHeight < cc.NewHeight && cc.OldHeight < min && min <= cc.NewHeight
 	if withdrawalsActive && !shouldRotate {
 		return
 	}

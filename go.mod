@@ -12,12 +12,14 @@ require (
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/klauspost/cpuid/v2 v2.0.3 // indirect
-	github.com/klauspost/reedsolomon v1.9.10
+	github.com/klauspost/reedsolomon v1.9.11
 	github.com/magiconair/properties v1.8.4 // indirect
-	github.com/mitchellh/mapstructure v1.4.0 // indirect
+	github.com/mattn/go-runewidth v0.0.10 // indirect
+	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
 	github.com/pkg/errors v0.9.1
+	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sasha-s/go-deadlock v0.2.0
 	github.com/spf13/afero v1.5.1 // indirect
@@ -39,13 +41,13 @@ require (
 	gitlab.com/NebulousLabs/merkletree v0.0.0-20200118113624-07fbf710afc4
 	gitlab.com/NebulousLabs/monitor v0.0.0-20191205095550-2b0fd3e1012a
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20200811080431-99b8f0768b2e
-	gitlab.com/NebulousLabs/siamux v0.0.0-20201105164950-869a9dc7edcf
+	gitlab.com/NebulousLabs/siamux v0.0.0-20210108135516-0ae2bb104b77
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200814111317-c404cb85e61f
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
-	golang.org/x/sys v0.0.0-20210108172913-0df2131ae363 // indirect
+	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
+	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf // indirect
 	golang.org/x/text v0.3.5 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect

@@ -83,6 +83,12 @@ func (h *Host) managedAnnounce(addr modules.NetAddress) (err error) {
 		return err
 	}
 
+	// Use unlockConditions of host.unlockHash the address fo
+	uc, err := h.wallet.UnlockConditions(h.unlockHash)
+	if err != nil {
+		return err
+	}
+
 	// Create a transaction, with a fee, that contains the full announcement.
 	txnBuilder, err := h.wallet.StartTransaction()
 	if err != nil {
@@ -95,7 +101,7 @@ func (h *Host) managedAnnounce(addr modules.NetAddress) (err error) {
 	}()
 	_, fee := h.tpool.FeeEstimation()
 	fee = fee.Mul64(600) // Estimated txn size (in bytes) of a host announcement.
-	err = txnBuilder.FundSiacoins(fee)
+	err = txnBuilder.FundSiacoinsFixedAddress(fee, uc, uc)
 	if err != nil {
 		return err
 	}

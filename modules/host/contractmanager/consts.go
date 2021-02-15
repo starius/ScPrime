@@ -55,7 +55,7 @@ const (
 
 	// maxSectorBatchThreads is the maximum number of threads updating
 	// sector counters on disk in AddSectorBatch and RemoveSectorBatch.
-	maxSectorBatchThreads = 100
+	maxSectorBatchThreads = 64
 
 	// sectorMetadataDiskSize defines the number of bytes it takes to store the
 	// metadata of a single sector on disk.

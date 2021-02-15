@@ -9,7 +9,6 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 )
 
@@ -287,16 +286,6 @@ func TestAccountFundingTracking(t *testing.T) {
 	// reset the host's financial metrics (expect PAF and AF to remain the same)
 	if err = expectDelta(0, 0, "reset FM", func() error {
 		return ht.host.resetFinancialMetrics()
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	// prune stale obligations - note that we will fake the SO being deleted
-	// from the database instead of mocking the conditions for it to be pruned.
-	// This to avoid having to manually delete the transaction after it have
-	// being confirmed (expect PAF to remain the same, but AF to decrease)
-	if err = expectDelta(0, -1*total, "prune stale SOs", func() error {
-		return errors.Compose(ht.host.deleteStorageObligations([]types.FileContractID{so.id()}), ht.host.PruneStaleStorageObligations())
 	}); err != nil {
 		t.Fatal(err)
 	}
