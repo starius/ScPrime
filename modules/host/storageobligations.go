@@ -1458,7 +1458,8 @@ func (h *Host) auditStorageObligations() error {
 				err = h.db.Update(func(tx *bolt.Tx) error {
 					bucket := tx.Bucket(bucketStorageObligations)
 					h.log.Printf("Deleting %v as stale contract from database.\n", id)
-					return errors.AddContext(bucket.Delete(key.([]byte)), "Error deleting contract from database")
+					e := bucket.Delete([]byte(id[:]))
+					return errors.AddContext(e, "Error deleting contract from database")
 				})
 				if err != nil {
 					h.log.Println(errors.AddContext(err, "Audit: database failed to delete storage obligations"))

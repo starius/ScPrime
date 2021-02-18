@@ -11,12 +11,13 @@ package contractmanager
 
 import (
 	"bytes"
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
+
+	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -266,7 +267,8 @@ func TestAddSectorFillFolder(t *testing.T) {
 			defer wg.Done()
 			err := cmt.cm.AddSector(roots[i], datas[i])
 			if err != nil {
-				t.Fatal(err)
+				t.Error(errors.AddContext(err, "Could not add sector"))
+				return
 			}
 		}(i)
 	}
@@ -347,7 +349,8 @@ func TestAddSectorFillLargerFolder(t *testing.T) {
 			defer wg.Done()
 			err := cmt.cm.AddSector(roots[i], datas[i])
 			if err != nil {
-				t.Fatal(err)
+				t.Error(errors.AddContext(err, "Could not add sector"))
+				return
 			}
 		}(i)
 	}
@@ -725,14 +728,14 @@ func TestAddVirtualSectorParallel(t *testing.T) {
 		defer wg.Done()
 		err := cmt.cm.AddSector(root, data)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 	}()
 	go func() {
 		defer wg.Done()
 		err := cmt.cm.AddSector(root, data)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 	}()
 	wg.Wait()
@@ -873,7 +876,7 @@ func TestAddVirtualSectorMassiveParallel(t *testing.T) {
 			defer wg.Done()
 			err := cmt.cm.AddSector(root, data)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
 			}
 		}()
 	}
@@ -1592,7 +1595,7 @@ func TestSectorBalancing(t *testing.T) {
 			defer wg.Done()
 			err := cmt.cm.AddSector(randSector())
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
 			}
 		}()
 	}
@@ -1771,7 +1774,7 @@ func TestFailingStorageFolder(t *testing.T) {
 			defer wg.Done()
 			err := cmt.cm.AddSector(randSector())
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
 			}
 		}()
 	}
@@ -1824,7 +1827,7 @@ func TestFailingStorageFolder(t *testing.T) {
 			defer wg.Done()
 			err := cmt.cm.AddSector(randSector())
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
 			}
 		}()
 	}

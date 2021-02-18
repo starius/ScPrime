@@ -462,12 +462,14 @@ func TestStresstestSiaFileSet(t *testing.T) {
 				continue
 			}
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			dir := dirs[fastrand.Intn(len(dirs))]
 			sp, err := dir.Join(persist.RandomSuffix())
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			// 30% chance for the file to be a 0-byte file.
 			size := int(modules.SectorSize) + siatest.Fuzz()
@@ -477,14 +479,17 @@ func TestStresstestSiaFileSet(t *testing.T) {
 			// Upload the file
 			lf, err := r.FilesDir().NewFile(size)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			rf, err := r.Upload(lf, sp, dataPieces, parityPieces, false)
 			if err != nil && !strings.Contains(err.Error(), siafile.ErrUnknownPath.Error()) && !errors.Contains(err, siatest.ErrFileNotTracked) {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			if err := r.WaitForUploadHealth(rf); err != nil && !errors.Contains(err, siatest.ErrFileNotTracked) {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			time.Sleep(time.Duration(fastrand.Intn(1000))*time.Millisecond + time.Second) // between 1s and 2s
 		}
@@ -502,7 +507,8 @@ func TestStresstestSiaFileSet(t *testing.T) {
 			// Get existing files and choose one randomly.
 			files, err := r.Files(false)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			// If there are no files we try again later.
 			if len(files) == 0 {
@@ -518,14 +524,17 @@ func TestStresstestSiaFileSet(t *testing.T) {
 			sp := files[fastrand.Intn(len(files))].SiaPath
 			lf, err := r.FilesDir().NewFile(size)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			rf, err := r.Upload(lf, sp, dataPieces, parityPieces, true)
 			if err != nil && !strings.Contains(err.Error(), siafile.ErrUnknownPath.Error()) && !errors.Contains(err, siatest.ErrFileNotTracked) {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			if err := r.WaitForUploadHealth(rf); err != nil && !errors.Contains(err, siatest.ErrFileNotTracked) {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			time.Sleep(time.Duration(fastrand.Intn(4000))*time.Millisecond + time.Second) // between 4s and 5s
 		}
@@ -544,7 +553,8 @@ func TestStresstestSiaFileSet(t *testing.T) {
 			// Get existing files and choose one randomly.
 			files, err := r.Files(false)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			// If there are no files we try again later.
 			if len(files) == 0 {
@@ -554,17 +564,20 @@ func TestStresstestSiaFileSet(t *testing.T) {
 			sp := files[fastrand.Intn(len(files))].SiaPath
 			err = r.RenterRenamePost(sp, modules.RandomSiaPath(), false)
 			if err != nil && !strings.Contains(err.Error(), siafile.ErrUnknownPath.Error()) {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			// 50% chance to replace renamed file with new one.
 			if fastrand.Intn(2) == 0 {
 				lf, err := r.FilesDir().NewFile(int(modules.SectorSize) + siatest.Fuzz())
 				if err != nil {
-					t.Fatal(err)
+					t.Error(err)
+					return
 				}
 				err = r.RenterUploadForcePost(lf.Path(), sp, dataPieces, parityPieces, false)
 				if err != nil && !strings.Contains(err.Error(), filesystem.ErrExists.Error()) {
-					t.Fatal(err)
+					t.Error(err)
+					return
 				}
 			}
 			time.Sleep(time.Duration(fastrand.Intn(4000))*time.Millisecond + time.Second) // between 4s and 5s
@@ -583,7 +596,8 @@ func TestStresstestSiaFileSet(t *testing.T) {
 			// Get existing files and choose one randomly.
 			files, err := r.Files(false)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			// If there are no files we try again later.
 			if len(files) == 0 {
@@ -593,7 +607,8 @@ func TestStresstestSiaFileSet(t *testing.T) {
 			sp := files[fastrand.Intn(len(files))].SiaPath
 			err = r.RenterFileDeletePost(sp)
 			if err != nil && !strings.Contains(err.Error(), siafile.ErrUnknownPath.Error()) {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			time.Sleep(time.Duration(fastrand.Intn(5000))*time.Millisecond + time.Second) // between 5s and 6s
 		}
@@ -617,15 +632,18 @@ func TestStresstestSiaFileSet(t *testing.T) {
 				continue
 			}
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			dir := dirs[fastrand.Intn(len(dirs))]
 			sp, err := dir.Join(persist.RandomSuffix())
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			if err := r.RenterDirCreatePost(sp); err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			time.Sleep(time.Duration(fastrand.Intn(500))*time.Millisecond + 500*time.Millisecond) // between 0.5s and 1s
 		}
@@ -650,7 +668,8 @@ func TestStresstestSiaFileSet(t *testing.T) {
 				continue
 			}
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 			dir := dirs[fastrand.Intn(len(dirs))]
 			// Make sure that dir isn't the root.
@@ -660,14 +679,16 @@ func TestStresstestSiaFileSet(t *testing.T) {
 			if fastrand.Intn(2) == 0 {
 				// 50% chance to delete and recreate the directory.
 				if err := r.RenterDirDeletePost(dir); err != nil {
-					t.Fatal(err)
+					t.Error(err)
+					return
 				}
 				err := r.RenterDirCreatePost(dir)
 				// NOTE we could probably avoid ignoring ErrPathOverload if we
 				// decided that `siadir.New` returns a potentially existing
 				// directory instead.
 				if err != nil && !strings.Contains(err.Error(), filesystem.ErrExists.Error()) {
-					t.Fatal(err)
+					t.Error(err)
+					return
 				}
 			} else {
 				// 50% chance to rename the directory to be the child of a
@@ -675,13 +696,15 @@ func TestStresstestSiaFileSet(t *testing.T) {
 				newParent := dirs[fastrand.Intn(len(dirs))]
 				newDir, err := newParent.Join(persist.RandomSuffix())
 				if err != nil {
-					t.Fatal(err)
+					t.Error(err)
+					return
 				}
 				if strings.HasPrefix(newDir.String(), dir.String()) {
 					continue // can't rename folder into itself
 				}
 				if err := r.RenterDirRenamePost(dir, newDir); err != nil {
-					t.Fatal(err)
+					t.Error(err)
+					return
 				}
 			}
 			time.Sleep(time.Duration(fastrand.Intn(500))*time.Millisecond + 500*time.Millisecond) // between 0.5s and 1s
@@ -706,7 +729,8 @@ func TestStresstestSiaFileSet(t *testing.T) {
 			// Choose random host.
 			host := hosts[fastrand.Intn(len(hosts))]
 			if err := tg.RemoveNode(host); err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				return
 			}
 		}
 	}()
@@ -734,7 +758,7 @@ func TestUploadStreamFailAndRepair(t *testing.T) {
 	}
 	defer func() {
 		if err := tg.Close(); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 	}()
 	// Add a renter with a dependency that causes an upload to fail after a certain

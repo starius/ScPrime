@@ -24,7 +24,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.2.0
 	github.com/spf13/afero v1.5.1 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
-	github.com/spf13/cobra v1.1.1
+	github.com/spf13/cobra v1.1.3
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1
@@ -45,11 +45,10 @@ require (
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200814111317-c404cb85e61f
 	go.etcd.io/bbolt v1.3.5
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/crypto v0.0.0-20210218145215-b8e89b74b9df
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
-	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
+	golang.org/x/sys v0.0.0-20210218155724-8ebf48af031b // indirect
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf // indirect
 	golang.org/x/text v0.3.5 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

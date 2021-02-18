@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 )
@@ -303,7 +305,8 @@ func TestLoadMissingStorageFolder(t *testing.T) {
 			datas[i] = dataI
 			err := cmt.cm.AddSector(rootI, dataI)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(errors.AddContext(err, "Could not add sector"))
+				return
 			}
 		}(i)
 	}

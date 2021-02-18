@@ -7,6 +7,8 @@ import (
 	"time"
 	"unsafe"
 
+	"gitlab.com/NebulousLabs/errors"
+
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -343,7 +345,8 @@ func TestMinerCloseDeadlock(t *testing.T) {
 	closed := make(chan struct{})
 	go func() {
 		if err := mt.miner.Close(); err != nil {
-			t.Fatal(err)
+			t.Error(errors.AddContext(err, "Could not close miner"))
+			return
 		}
 		closed <- struct{}{}
 	}()
