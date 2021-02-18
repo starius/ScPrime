@@ -58,7 +58,7 @@ for arch in amd64 arm; do
       # import key from $keyfile to gpg keys
 			gpg --import $keyfile
 			# sign zip release
-			gpg --output ScPrime-$version-$os-$arch.zip.asc --detach-sig ScPrime-$version-$os-$arch.zip
+			gpg --armour --output ScPrime-$version-$os-$arch.zip.asc --detach-sig ScPrime-$version-$os-$arch.zip
 		)
 	done
 done

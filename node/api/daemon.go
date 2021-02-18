@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
-	"os"
+	"os/user"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -42,30 +42,30 @@ const (
 	// The developer key is used to sign updates and other important ScPrime-
 	// related information.
 	developerKey = `-----BEGIN PUBLIC KEY-----
-MIIEIjANBgkqhkiG9w0BAQEFAAOCBA8AMIIECgKCBAEA05U9xFO9EgKEUQ5LzLkD
-//iODWzBY+bKWEMial0hxHnFU/FD0DOqpjvbZV8NgF0rFZu6MznN+UO8+a8EqGiq
-L3XkUmnJu9K2sWOJOv9aYYbFQwxay1gI+jIFsldjTVf7yOz+9IcM48zyX0A952Fx
-y5ugctqr7Sr+2uuLAqXXyWwA8FQ5ZPWOzCySJCbcaKSP4fP+caRKCUeAci9CON6g
-UxIGgO3H5KjBa1nt38XE4Qt7hy7peIRigmfm3FJkSnqWijkYUXrPIwILfqaFMknZ
-40Yc5GEqxOdzSYoptWXfVdnoDvu58qJI5ikAwr/pIjVCSn3sdMudlDiRoiUfHCYn
-T7OEq6wWSL/lmpOKSXavIxUwfs4mpCA/a9E0P1FICLr52DNrzVVveEXmkzUEtqlF
-26FssMzTt6mkmAF8T7HRBtVyuTt+UD2I7oEJ29CPV0U7YE5KVhmQG7ae3i6k2csJ
-mEdDNbb0rOdZrsygyfJNkG/IkD09PTn9KteTDc9ULnEhq2LXtot0y1/zas1z8BsC
-rJbAdGU0o5/SpWPfOrw2O/aa0Ja413cMyGAXUZRiseTncLod9dKn9Y6GVIb3LSj7
-D3FfV2ADG2vdpuBc18JsPDC+oLWjIjpEZKlyr3tqyQsE3lJjWteU2W+Tju4PWM9Q
-GT/e9SY9DcFKTY8AIxrtzyuCGwuW5a3yQ9FP2yEDpF7j2POIU7LIEtnyn9oXP/6d
-3y4X+DJhkDm4cKfV+OsVyCYwK3+IQvr1g1F2N/xsKByZbb4Jgwge5Libtrnc0GH8
-WxdIlbNBHHuU58yI0GjPnFLqRMe0duPzJXWtq18RJFjUHg8muhb14lBuXOqaF0cs
-gn+8izPgbSMhEHPQBhT9Ux+byU3qDjKqim3f5xtZNH6R2eT58N8y5CwXYYodpMVL
-nhcX29QsqqpO1mZQwx6snSJ6QDvmcSrhEgFhWLAbUY6R+I0UWGY23dlI/cNEWOyu
-zRSS/DDK0gV7+pPFT2+HiP6YkZ4qlHqmWIWXBFeXSAEzVNe2AG48BD3sXQGlh7Jd
-x73jHo/17DZUivnQ8MyvOfDY1ThfwSNlCJzfYvQUxpa43JAZzCGxEDw7pJvrHqLD
-cV75Zk12DzRBoC4neDRWd4qfXApx066Ew56xxeCQI5Z5suZ1juaejpr9BDshHyE4
-Abt4U3mhMBtcdD4Oz0mo+iuXLePbdo3uwCGFE7GOb+XdxvegYzTE0w/24mXNluz8
-BiFzhF0Dgq2SmUkVpqYehZNmfm61/xtyOM5uHOtphetSdA5lPaplSiLzi6piaaKa
-huUdkWLWC9t9M+VuEZhk0ra/x7b1HDy4bLqBaXzJtKvZyRlOBWBFmIVmctygG6t9
-ZwIDAQAB
------END PUBLIC KEY-----`
+	MIIEIjANBgkqhkiG9w0BAQEFAAOCBA8AMIIECgKCBAEA05U9xFO9EgKEUQ5LzLkD
+	//iODWzBY+bKWEMial0hxHnFU/FD0DOqpjvbZV8NgF0rFZu6MznN+UO8+a8EqGiq
+	L3XkUmnJu9K2sWOJOv9aYYbFQwxay1gI+jIFsldjTVf7yOz+9IcM48zyX0A952Fx
+	y5ugctqr7Sr+2uuLAqXXyWwA8FQ5ZPWOzCySJCbcaKSP4fP+caRKCUeAci9CON6g
+	UxIGgO3H5KjBa1nt38XE4Qt7hy7peIRigmfm3FJkSnqWijkYUXrPIwILfqaFMknZ
+	40Yc5GEqxOdzSYoptWXfVdnoDvu58qJI5ikAwr/pIjVCSn3sdMudlDiRoiUfHCYn
+	T7OEq6wWSL/lmpOKSXavIxUwfs4mpCA/a9E0P1FICLr52DNrzVVveEXmkzUEtqlF
+	26FssMzTt6mkmAF8T7HRBtVyuTt+UD2I7oEJ29CPV0U7YE5KVhmQG7ae3i6k2csJ
+	mEdDNbb0rOdZrsygyfJNkG/IkD09PTn9KteTDc9ULnEhq2LXtot0y1/zas1z8BsC
+	rJbAdGU0o5/SpWPfOrw2O/aa0Ja413cMyGAXUZRiseTncLod9dKn9Y6GVIb3LSj7
+	D3FfV2ADG2vdpuBc18JsPDC+oLWjIjpEZKlyr3tqyQsE3lJjWteU2W+Tju4PWM9Q
+	GT/e9SY9DcFKTY8AIxrtzyuCGwuW5a3yQ9FP2yEDpF7j2POIU7LIEtnyn9oXP/6d
+	3y4X+DJhkDm4cKfV+OsVyCYwK3+IQvr1g1F2N/xsKByZbb4Jgwge5Libtrnc0GH8
+	WxdIlbNBHHuU58yI0GjPnFLqRMe0duPzJXWtq18RJFjUHg8muhb14lBuXOqaF0cs
+	gn+8izPgbSMhEHPQBhT9Ux+byU3qDjKqim3f5xtZNH6R2eT58N8y5CwXYYodpMVL
+	nhcX29QsqqpO1mZQwx6snSJ6QDvmcSrhEgFhWLAbUY6R+I0UWGY23dlI/cNEWOyu
+	zRSS/DDK0gV7+pPFT2+HiP6YkZ4qlHqmWIWXBFeXSAEzVNe2AG48BD3sXQGlh7Jd
+	x73jHo/17DZUivnQ8MyvOfDY1ThfwSNlCJzfYvQUxpa43JAZzCGxEDw7pJvrHqLD
+	cV75Zk12DzRBoC4neDRWd4qfXApx066Ew56xxeCQI5Z5suZ1juaejpr9BDshHyE4
+	Abt4U3mhMBtcdD4Oz0mo+iuXLePbdo3uwCGFE7GOb+XdxvegYzTE0w/24mXNluz8
+	BiFzhF0Dgq2SmUkVpqYehZNmfm61/xtyOM5uHOtphetSdA5lPaplSiLzi6piaaKa
+	huUdkWLWC9t9M+VuEZhk0ra/x7b1HDy4bLqBaXzJtKvZyRlOBWBFmIVmctygG6t9
+	ZwIDAQAB
+	-----END PUBLIC KEY-----`
 )
 
 type (
@@ -191,10 +191,11 @@ func fetchLatestRelease() (gitlabRelease, error) {
 // updateToRelease updates spd and spc to the release specified. spc is
 // assumed to be in the same folder as spd.
 func updateToRelease(version string) error {
-	binaryFolder, err := os.Executable()
+	usr, err := user.Current()
 	if err != nil {
 		return err
 	}
+	binaryFolder := usr.HomeDir + "/go/bin/"
 	// trim release version for generate correct URL in request, ex v1.5.1 -> 1.5.1
 	version = strings.Trim(version, "v")
 
@@ -204,7 +205,6 @@ func updateToRelease(version string) error {
 	if err != nil {
 		return err
 	}
-
 	// The file should be small enough to store in memory (<1 MiB); use
 	// MaxBytesReader to ensure we don't download more than 8 MiB
 	signatureBytes, err := ioutil.ReadAll(http.MaxBytesReader(nil, resp.Body, 1<<23))
@@ -227,7 +227,7 @@ func updateToRelease(version string) error {
 	// release should be small enough to store in memory (<10 MiB); use
 	// LimitReader to ensure we don't download more than 32 MiB
 	content, err := ioutil.ReadAll(http.MaxBytesReader(nil, zipResp.Body, 1<<25))
-	resp.Body.Close()
+	zipResp.Body.Close()
 	if err != nil {
 		return err
 	}
