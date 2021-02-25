@@ -284,6 +284,103 @@ func TestHostBandwidth(t *testing.T) {
 	}
 }
 
+// TestHostContract confirms that the host contract endpoint returns the expected values
+func TestHostContract(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+
+	gp := siatest.GroupParams{
+		Hosts:   2,
+		Renters: 1,
+		Miners:  1,
+	}
+	tg, err := siatest.NewGroupFromTemplate(hostTestDir(t.Name()), gp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := tg.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	hostNode := tg.Hosts()[0]
+	renterNode := tg.Renters()[0]
+
+	_, err = hostNode.HostContractGet(types.FileContractID{})
+	if err == nil {
+		t.Fatal("expected unknown obligation id to return error")
+	}
+
+	formed, err := hostNode.HostContractInfoGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(formed.Contracts) == 0 {
+		t.Fatal("expected renter to form contract")
+	}
+
+	contractID := formed.Contracts[0].ObligationId
+	hcg, err := hostNode.HostContractGet(contractID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if hcg.Contract.ObligationId != contractID {
+		t.Fatalf("returned contract id %s should match requested id %s", hcg.Contract.ObligationId, contractID)
+	}
+
+	if hcg.Contract.DataSize != 0 {
+		t.Fatal("contract should have 0 datasize")
+	}
+
+	prevValidPayout := hcg.Contract.ValidProofOutputs[1].Value
+	prevMissPayout := hcg.Contract.MissedProofOutputs[1].Value
+	_, _, err = renterNode.UploadNewFileBlocking(int(modules.SectorSize), 1, 1, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hcg, err = hostNode.HostContractGet(contractID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if hcg.Contract.DataSize != modules.SectorSize {
+		t.Fatal("contract should have 1 sector uploaded")
+	}
+
+	// to avoid an NDF we do not compare the RevisionNumber to an exact number
+	// because that is not deterministic due to the new RHP3 protocol, which
+	// uses the contract to fund EAs do balance checks and so forth
+	if hcg.Contract.RevisionNumber == 1 {
+		t.Fatal("contract should have received more revisions from the upload", hcg.Contract.RevisionNumber)
+	}
+
+	if hcg.Contract.PotentialAccountFunding.IsZero() {
+		t.Fatal("contract should have account funding")
+	}
+
+	if hcg.Contract.PotentialUploadRevenue.IsZero() {
+		t.Fatal("contract should have upload revenue")
+	}
+
+	if hcg.Contract.PotentialStorageRevenue.IsZero() {
+		t.Fatal("contract should have storage revenue")
+	}
+
+	if hcg.Contract.ValidProofOutputs[1].Value.Cmp(prevValidPayout) != 1 {
+		t.Fatal("valid payout should be greater than old valid payout")
+	}
+
+	if cmp := hcg.Contract.MissedProofOutputs[1].Value.Cmp(prevMissPayout); cmp != 1 {
+		t.Fatal("missed payout should be more than old missed payout", cmp)
+	}
+}
+
 // TestHostContracts confirms that the host contracts endpoint returns the expected values
 func TestHostContracts(t *testing.T) {
 	if testing.Short() {
