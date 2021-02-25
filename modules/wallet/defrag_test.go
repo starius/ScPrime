@@ -164,7 +164,8 @@ func TestDefragOutputExhaustion(t *testing.T) {
 			case <-time.After(time.Millisecond * 100):
 				_, err := wt.miner.AddBlock()
 				if err != nil {
-					t.Fatal(err)
+					t.Error(err)
+					return
 				}
 				txnValue := types.SiacoinPrecision.Mul64(3000)
 				fee := types.SiacoinPrecision.Mul64(10)
@@ -172,7 +173,8 @@ func TestDefragOutputExhaustion(t *testing.T) {
 
 				tbuilder, err := wt.wallet.StartTransaction()
 				if err != nil {
-					t.Fatal(err)
+					t.Error(err)
+					return
 				}
 
 				tbuilder.FundSiacoins(txnValue.Mul64(uint64(numOutputs)).Add(fee))
@@ -189,14 +191,17 @@ func TestDefragOutputExhaustion(t *testing.T) {
 				txns, err := tbuilder.Sign(true)
 				if err != nil {
 					t.Error("Error signing fragmenting transaction:", err)
+					return
 				}
 				err = wt.tpool.AcceptTransactionSet(txns)
 				if err != nil {
 					t.Error("Error accepting fragmenting transaction:", err)
+					return
 				}
 				_, err = wt.miner.AddBlock()
 				if err != nil {
-					t.Fatal(err)
+					t.Error(err)
+					return
 				}
 			}
 		}

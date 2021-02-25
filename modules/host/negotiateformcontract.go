@@ -47,7 +47,12 @@ func (h *Host) managedAddCollateral(settings modules.HostExternalSettings, txnSe
 		// We don't need to add anything to the transaction.
 		return builder, nil, nil, nil, nil
 	}
-	err = builder.FundSiacoins(hostPortion)
+	uc, err := h.wallet.UnlockConditions(h.unlockHash)
+	if err != nil {
+		builder.Drop()
+		return nil, nil, nil, nil, extendErr("Can not use host unlockhash when forming contract", ErrorInternal(err.Error()))
+	}
+	err = builder.FundSiacoinsFixedAddress(hostPortion, uc, uc)
 	if err != nil {
 		builder.Drop()
 		return nil, nil, nil, nil, extendErr("could not add collateral: ", ErrorInternal(err.Error()))

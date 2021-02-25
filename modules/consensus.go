@@ -135,6 +135,12 @@ type (
 		// function to be called by a subscriber during
 		// ProcessConsensusChange.
 		TryTransactionSet func([]types.Transaction) (ConsensusChange, error)
+
+		// OldHeight is the blockheight before applying the consensus change
+		OldHeight types.BlockHeight
+
+		// NewHeight is the blockheight that is the result of this consensus change
+		NewHeight types.BlockHeight
 	}
 
 	// A SiacoinOutputDiff indicates the addition or removal of a SiacoinOutput in

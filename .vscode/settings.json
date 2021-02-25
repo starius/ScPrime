@@ -1,9 +1,0 @@
-{
-    "go.buildTags": "netgo",
-    "go.testTags": "testing debug netgo",
-    "go.testTimeout": "3600s",
-    "go.testFlags": [
-        "-v"
-    ],
-    "go.lintTool": "golangci-lint"
-}

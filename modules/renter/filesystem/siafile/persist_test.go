@@ -62,6 +62,8 @@ func equalFiles(sf, sf2 *SiaFile) error {
 	sf2.staticMetadata.CreateTime = time.Time{}
 	sf2.staticMetadata.ModTime = time.Time{}
 	sf2.staticMetadata.LastHealthCheckTime = time.Time{}
+	// ignore staticErasureCode
+	sf.staticMetadata.staticErasureCode = sf2.staticMetadata.staticErasureCode
 	// Compare the rest of sf and sf2.
 	if !reflect.DeepEqual(sf.staticMetadata, sf2.staticMetadata) {
 		fmt.Printf("Siafile1:\n%+v\n", sf.staticMetadata)

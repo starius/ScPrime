@@ -6,6 +6,7 @@ package host
 import (
 	"encoding/binary"
 	"encoding/json"
+	"sync/atomic"
 
 	bolt "go.etcd.io/bbolt"
 
@@ -119,7 +120,16 @@ func (h *Host) initConsensusSubscription() error {
 // ProcessConsensusChange will be called by the consensus set every time there
 // is a change to the blockchain.
 func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
-	var oldHeight, newHeight types.BlockHeight
+	//Skip processing if host is not configured and announced, just update the host.blockHeight
+	hostinitialized := h.wallet.IsWatchedAddress(h.unlockHash)
+	if !hostinitialized && len(h.StorageObligations()) < 1 {
+		h.mu.Lock()
+		h.recentChange = cc.ID
+		h.blockHeight = cc.NewHeight
+		h.staticAccountManager.callConsensusChanged(cc)
+		h.mu.Unlock()
+		return
+	}
 
 	// Add is called at the beginning of the function, but Done cannot be
 	// called until all of the threads spawned by this function have also
@@ -127,9 +137,8 @@ func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
 	// terminate.
 	h.mu.Lock()
 	// Notify the account manager of an update to the consensus.
-	oldHeight = h.blockHeight
 	defer func() {
-		h.staticAccountManager.callConsensusChanged(cc, oldHeight, newHeight)
+		h.staticAccountManager.callConsensusChanged(cc)
 	}()
 	defer h.mu.Unlock()
 
@@ -191,7 +200,7 @@ func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
 							// will have to perform a rescan.
 							continue
 						}
-						so.ProofConfirmed = false
+						so.ProofConfirmed = false //reverting storage proofs
 						err = putStorageObligation(tx, so)
 						if err != nil {
 							continue
@@ -311,11 +320,23 @@ func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
 	// change.
 	h.recentChange = cc.ID
 
+	//Launch the audit if it is time to do so
+	if cc.NewHeight >= types.BlockHeight(atomic.LoadUint64(&h.scheduledAuditBlockheight)) {
+		atomic.StoreUint64(&h.scheduledAuditBlockheight, uint64(cc.NewHeight+storageObligationAuditInteval))
+		err = h.auditStorageObligations()
+		if err != nil {
+			h.log.Println("ERROR: AuditStorageObligations() failed:", err)
+		}
+		//Recalculate the financial metrics of the host.
+		err = h.resetFinancialMetrics()
+		if err != nil {
+			h.log.Println("Unable to reset host financial metrics:", err)
+		}
+	}
+
 	// Save the host.
 	err = h.saveSync()
 	if err != nil {
-		h.log.Println("ERROR: could not save during ProcessConsensusChange:", err)
+		h.log.Println("ERROR: could not save host state in ProcessConsensusChange:", err)
 	}
-
-	newHeight = h.blockHeight
 }

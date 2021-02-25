@@ -470,11 +470,15 @@ func TestParallelBuilders(t *testing.T) {
 			// Create the builder and fund the transaction.
 			builder, err := wt.wallet.StartTransaction()
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				wg.Done()
+				return
 			}
 			err = builder.FundSiacoins(funding)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				wg.Done()
+				return
 			}
 
 			// Spend the transaction funds on miner fees and the void output.
@@ -484,11 +488,13 @@ func TestParallelBuilders(t *testing.T) {
 			// Sign the transactions and verify that both are valid.
 			tset, err := builder.Sign(true)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				wg.Done()
+				return
 			}
 			err = wt.tpool.AcceptTransactionSet(tset)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
 			}
 			wg.Done()
 		}()

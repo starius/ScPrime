@@ -1,6 +1,7 @@
 package siafile
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -129,8 +130,12 @@ func TestMarshalUnmarshalMetadata(t *testing.T) {
 	md.CreateTime = time.Time{}
 	md.ModTime = time.Time{}
 	md.LastHealthCheckTime = time.Time{}
+	// ignore staticErasureCode
+	md.staticErasureCode = sf.staticMetadata.staticErasureCode
 	// Compare result to original
 	if !reflect.DeepEqual(md, sf.staticMetadata) {
+		fmt.Printf("md:\n%+v\n", md)
+		fmt.Printf("sf.staticMetadata:\n%+v\n", sf.staticMetadata)
 		t.Fatal("Unmarshaled metadata not equal to marshaled metadata:", err)
 	}
 }

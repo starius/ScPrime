@@ -35,6 +35,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"strconv"
+	"sync"
 	"time"
 
 	"gitlab.com/NebulousLabs/encoding"
@@ -802,45 +803,17 @@ func (h *Host) managedModifyStorageObligation(so storageObligation, sectorsRemov
 	return nil
 }
 
-// PruneStaleStorageObligations will delete storage obligations from the host
-// that, for whatever reason, did not make it on the block chain. As these stale
-// storage obligations have an impact on the host financial metrics, this method
-// updates the host financial metrics to show the correct values.
-func (h *Host) PruneStaleStorageObligations() error {
-	// Filter the stale obligations from the set of all obligations.
-	sos := h.StorageObligations()
-	var stale []types.FileContractID
-	for _, so := range sos {
-		conf, err := h.tpool.TransactionConfirmed(so.TransactionID)
-		if err != nil {
-			return build.ExtendErr("unable to get transaction ID:", err)
-		}
-		// An obligation is considered stale if it has not been confirmed
-		// within RespendTimeout blocks after negotiation.
-		if (h.blockHeight > so.NegotiationHeight+wallet.RespendTimeout) && !conf {
-			stale = append(stale, so.ObligationId)
-		}
-	}
-	// Delete stale obligations from the database.
-	err := h.deleteStorageObligations(stale)
-	if err != nil {
-		return build.ExtendErr("unable to delete stale storage ids:", err)
-	}
-	// Update the financial metrics of the host.
-	err = h.resetFinancialMetrics()
-	if err != nil {
-		h.log.Println(build.ExtendErr("unable to reset host financial metrics:", err))
-		return err
-	}
-	return nil
-}
-
 // removeStorageObligation will remove a storage obligation from the host,
 // either due to failure or success.
 func (h *Host) removeStorageObligation(so storageObligation, sos storageObligationStatus) error {
-	// Error is not checked, we want to call remove on every sector even if
-	// there are problems - disk health information will be updated.
-	_ = h.RemoveSectorBatch(so.SectorRoots)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func(roots []crypto.Hash) {
+		// Error is not checked, we want to call remove on every sector even if
+		// there are problems - disk health information will be updated.
+		_ = h.RemoveSectorBatch(roots)
+		wg.Done()
+	}(so.SectorRoots)
 
 	// Update the host revenue metrics based on the status of the obligation.
 	if sos == obligationUnresolved {
@@ -915,7 +888,7 @@ func (h *Host) removeStorageObligation(so storageObligation, sos storageObligati
 		// unregister the insufficient collateral budget alert
 		h.tryUnregisterInsufficientCollateralBudgetAlert()
 	}
-
+	wg.Wait()
 	// Update the storage obligation to be finalized but still in-database. The
 	// obligation status is updated so that the user can see how the obligation
 	// ended up, and the sector roots are removed because they are large
@@ -933,8 +906,6 @@ func (h *Host) removeStorageObligation(so storageObligation, sos storageObligati
 // function is triggered after pruning stale obligations and is a way to ensure
 // the financial metrics correctly reflect the host's financial statistics.
 func (h *Host) resetFinancialMetrics() error {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
 	// Initialize new values for the host financial metrics.
 	fm := modules.HostFinancialMetrics{}
 	err := h.db.View(func(tx *bolt.Tx) error {
@@ -1114,7 +1085,13 @@ func (h *Host) threadedHandleActionItem(soid types.FileContractID) {
 		}
 		txnSize := uint64(len(encoding.MarshalAll(so.RevisionTransactionSet)) + txnFeeSizeBuffer)
 		requiredFee := feeRecommendation.Mul64(txnSize)
-		err = builder.FundSiacoins(requiredFee)
+		uc, err := h.wallet.UnlockConditions(h.unlockHash)
+		if err != nil {
+			builder.Drop()
+			h.log.Printf("Can not get host unlockhash, error: %v ", err.Error())
+			return
+		}
+		err = builder.FundSiacoinsFixedAddress(requiredFee, uc, uc)
 		if err != nil {
 			h.log.Println("Error funding transaction fees", err)
 			builder.Drop()
@@ -1200,7 +1177,13 @@ func (h *Host) threadedHandleActionItem(soid types.FileContractID) {
 			builder.Drop()
 			return
 		}
-		err = builder.FundSiacoins(requiredFee)
+		uc, err := h.wallet.UnlockConditions(h.unlockHash)
+		if err != nil {
+			builder.Drop()
+			h.log.Printf("Can not get host unlockhash, error: %v ", err.Error())
+			return
+		}
+		err = builder.FundSiacoinsFixedAddress(requiredFee, uc, uc)
 		if err != nil {
 			h.log.Println("Host error when funding a storage proof transaction fee:", err)
 			builder.Drop()
@@ -1353,4 +1336,137 @@ func (h *Host) StorageObligations() (sos []modules.StorageObligation) {
 	}
 
 	return sos
+}
+
+// AuditStorageObligations locks the host, fetches the set of storage
+// obligations in the host and checks if any old storage obligations are not
+// marked correctly and removed if expired along with stale contract removal
+func (h *Host) AuditStorageObligations() {
+	//Host needs to be locked for audit
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	err := h.auditStorageObligations()
+	if err != nil {
+		h.log.Println("ERROR: AuditStorageObligations() failed:", err)
+	}
+	//Recalculate the financial metrics of the host.
+	err = h.resetFinancialMetrics()
+	if err != nil {
+		h.log.Println(errors.AddContext(err, "Autit: unable to reset host financial metrics"))
+	}
+}
+
+// auditStorageObligations fetches the set of storage obligations in the host and
+// checks if any old storage obligations are not marked correctly and removed if expired.
+func (h *Host) auditStorageObligations() error {
+	var storageObligations sync.Map
+	var badDBEntries sync.Map
+	//Read storage obligations from DB
+	//h.mu.RLock()
+	err := h.db.View(func(tx *bolt.Tx) error {
+		cursor := tx.Bucket(bucketStorageObligations).Cursor()
+		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+			var so storageObligation
+			dataerr := json.Unmarshal(v, &so)
+			if dataerr != nil {
+				h.log.Printf("Marking corrupt storageobligation key: %v with error: %v\n", k, dataerr.Error())
+				badDBEntries.Store(k, v)
+				continue
+			}
+			storageObligations.Store(so.id(), so)
+		}
+		return nil
+	})
+	//h.mu.RUnlock()
+	if err != nil {
+		h.log.Errorf("Auditing contracts, reading contracts from database failed: %v", err.Error())
+		return err
+	}
+
+	// Delete corrupt entries from DB if there are any
+	//h.mu.Lock()
+	badDBEntries.Range(func(key, value interface{}) bool {
+		id := key.([]byte)
+		if build.DEBUG {
+			// TODO: Save invalid entries
+			// contents := value.([]byte)
+		}
+		err = h.db.Update(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket(bucketStorageObligations)
+			var dbErr error
+			h.log.Printf("Deleting %v from database.\n", id)
+			dbErr = bucket.Delete(id)
+			if dbErr != nil {
+				return dbErr
+			}
+			return nil
+		})
+		if err != nil {
+			h.log.Errorf("Deleting corrupt storage obligation entry from database failed: %v\n", err.Error())
+			return false
+		}
+		return true
+	})
+	//h.mu.Unlock()
+
+	// Remove any non confirmed (stale) contracts and close all expired contracts and free storage.
+	//var wg sync.WaitGroup
+	storageObligations.Range(func(key, value interface{}) bool {
+		defer storageObligations.Delete(key)
+		id := key.(types.FileContractID)
+		so := value.(storageObligation)
+		h.log.Debugf("auditing storage obligation %v\n", id)
+		endHeight := so.expiration()
+		status := so.ObligationStatus
+
+		//Clear expired contracts
+		if status == 0 && (h.blockHeight > endHeight+144) { //status 0 means unresolved, let it stay for a day longer
+			//TODO: Check the correct state of contract!
+			//If it was renewed without storage proof, then it should get
+			//marked as success if still as unresolved fro correct accounting.
+			if len(so.SectorRoots) == 0 { //empty or renewed by renewAndClear
+				h.log.Printf("Audit: Empty storage obligation %v, removing as Succeeded\n", id)
+				h.removeStorageObligation(so, obligationSucceeded)
+				return true
+			}
+			h.log.Printf("Audit: Marking storage obligation %v as Failed and closing it\n", id)
+			err = h.removeStorageObligation(so, obligationFailed)
+			if err != nil {
+				h.log.Printf("Audit: Error clearing storage obligation %v as Failed and closing it: %v\n", id, err.Error())
+				return false
+			}
+			return true
+		}
+
+		// Check for existence (stale obligation)
+		if h.blockHeight > (so.NegotiationHeight + wallet.RespendTimeout) {
+			// An obligation is considered stale if it has not been confirmed
+			// within RespendTimeout blocks after negotiation.
+			confirmed, err := h.tpool.TransactionConfirmed(so.transactionID())
+			if err != nil {
+				h.log.Printf("Audit: check transaction failed with error %v\n", errors.AddContext(err, "unable to get transaction ID"))
+			}
+			if !confirmed {
+				h.log.Printf("Deleting non existing (stale) contract ID %v\n", so.id())
+				if len(so.SectorRoots) > 0 {
+					err = h.RemoveSectorBatch(so.SectorRoots)
+					if err != nil {
+						h.log.Printf("Audit: removing stale contract data sectors error %v\n",
+							errors.AddContext(err, "RemoveSectorBatch failed"))
+					}
+				}
+				err = h.db.Update(func(tx *bolt.Tx) error {
+					bucket := tx.Bucket(bucketStorageObligations)
+					h.log.Printf("Deleting %v as stale contract from database.\n", id)
+					e := bucket.Delete([]byte(id[:]))
+					return errors.AddContext(e, "Error deleting contract from database")
+				})
+				if err != nil {
+					h.log.Println(errors.AddContext(err, "Audit: database failed to delete storage obligations"))
+				}
+			}
+		}
+		return true
+	})
+	return nil
 }

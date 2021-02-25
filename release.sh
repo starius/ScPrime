@@ -19,11 +19,6 @@ if [ ! -f $keyfile ]; then
     echo "Key file not found: $keyfile"
     exit 1
 fi
-keysum=$(shasum -a 256 $keyfile | cut -c -64)
-if [ $keysum != "92269cd84af7dabdf3aa358ff3d154ad68bcfd837e29d32356eda13eb9771089" ]; then
-    echo "Wrong key file: checksum does not match developer key file."
-    exit 1
-fi
 
 # setup build-time vars
 ldflags="-s -w -X 'gitlab.com/scpcorp/ScPrime/build.GitRevision=`git rev-parse --short HEAD`' -X 'gitlab.com/scpcorp/ScPrime/build.BuildTime=`date`' -X 'gitlab.com/scpcorp/ScPrime/build.ReleaseTag=${rc}'"
@@ -51,11 +46,6 @@ for arch in amd64 arm; do
 				bin=${pkg}.exe
 			fi
 			GOOS=${os} GOARCH=${arch} go build -a -tags 'netgo' -ldflags="$ldflags" -o $folder/$bin ./cmd/$pkg
-			openssl dgst -sha256 -sign $keyfile -out $folder/${bin}.sig $folder/$bin
-			# verify signature
-			if [[ -n $pubkeyfile ]]; then
-				openssl dgst -sha256 -verify $pubkeyfile -signature $folder/${bin}.sig $folder/$bin
-			fi
 
 		done
 
@@ -65,11 +55,10 @@ for arch in amd64 arm; do
 		(
 			cd release
 			zip -rq ScPrime-$version-$os-$arch.zip ScPrime-$version-$os-$arch
-			openssl dgst -sha256 -sign $keyfile -out ScPrime-$version-$os-$arch.zip.sig ScPrime-$version-$os-$arch.zip
-			# verify signature
-			if [[ -n $pubkeyfile ]]; then
-				openssl dgst -sha256 -verify $pubkeyfile -signature ScPrime-$version-$os-$arch.zip.sig ScPrime-$version-$os-$arch.zip
-			fi
+      # import key from $keyfile to gpg keys
+			gpg --import $keyfile
+			# sign zip release
+			gpg --armour --output ScPrime-$version-$os-$arch.zip.asc --detach-sig ScPrime-$version-$os-$arch.zip
 		)
 	done
 done

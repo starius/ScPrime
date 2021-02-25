@@ -299,3 +299,10 @@ func (w *Wallet) managedCanSpendUnlockHash(unlockHash types.UnlockHash) bool {
 	_, isSpendable := w.keys[unlockHash]
 	return isSpendable
 }
+
+// IsWatchedAddress checks if the supplied unlockhash is in the list
+// of watched addresses. Returns true only if the address is already known
+func (w *Wallet) IsWatchedAddress(address types.UnlockHash) bool {
+	_, watched := w.watchedAddrs[address]
+	return watched
+}

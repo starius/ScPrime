@@ -78,6 +78,9 @@ func (h *Host) establishDefaults() error {
 		MaxEphemeralAccountRisk:    defaultMaxEphemeralAccountRisk,
 	}
 
+	// Set the recent consensusChange to current so rescanning consensus can be skipped
+	h.recentChange = modules.ConsensusChangeRecent
+
 	// Load the host's key pair, use the same keys as the SiaMux.
 	var sk crypto.SecretKey
 	var pk crypto.PublicKey
@@ -95,7 +98,7 @@ func (h *Host) establishDefaults() error {
 	h.publicKey = types.Ed25519PublicKey(pk)
 	h.secretKey = sk
 
-	return nil
+	return h.saveSync()
 }
 
 // loadPersistObject will take a persist object and copy the data into the
@@ -262,14 +265,18 @@ func (h *Host) load() error {
 		//Try to recover by reading again and pruning invalid entries
 		err = h.db.Update(func(tx *bolt.Tx) error {
 			bucket := tx.Bucket(bucketStorageObligations)
+			var dbErr error
 			for _, invalidKey := range invalidSOkeys {
 				h.log.Printf("Deleting %v from database.\n", invalidKey)
-				bucket.Delete(invalidKey)
+				dbErr = bucket.Delete(invalidKey)
+				if dbErr != nil {
+					return dbErr
+				}
 			}
 			return nil
 		})
 	}
-	return err
+	return h.saveSync()
 }
 
 // saveSync stores all of the persist data to disk and then syncs to disk.

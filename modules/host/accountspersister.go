@@ -294,7 +294,7 @@ func (ap *accountsPersister) callRotateFingerprintBuckets() (err error) {
 	}
 
 	// Get blockheight before acquiring fingerprint manager lock.
-	bh := ap.h.BlockHeight()
+	bh := ap.h.blockHeight
 
 	fm := ap.staticFingerprintManager
 	fm.mu.Lock()

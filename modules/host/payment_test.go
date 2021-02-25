@@ -447,7 +447,7 @@ func testPayByEphemeralAccount(t *testing.T, pair *renterHostPair) {
 		if err != nil {
 			modules.RPCWriteError(hStream, err)
 		}
-		return nil
+		return err
 	}
 
 	// verify err is nil
@@ -697,6 +697,7 @@ func (s testStream) SetReadDeadline(t time.Time) error {
 func (s testStream) SetWriteDeadline(t time.Time) error {
 	panic("not implemented")
 }
+func (s testStream) Mux() *mux.Mux { panic("not implemented") }
 
 // TestStreams is a small test that verifies the working of the test stream. It
 // will test that an object can be written to and read from the stream over the

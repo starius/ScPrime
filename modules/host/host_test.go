@@ -236,6 +236,13 @@ func newMockHostTester(d modules.Dependencies, name string) (*hostTester, error)
 	if err != nil {
 		return nil, err
 	}
+
+	//init the host.unlockHash to use in host transactions
+	address, err := ht.wallet.NextAddress()
+	if err != nil {
+		return nil, errors.AddContext(err, "Unable to init host.Unlockhash")
+	}
+	ht.host.unlockHash = address.UnlockHash()
 	return ht, nil
 }
 

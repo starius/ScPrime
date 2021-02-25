@@ -84,7 +84,7 @@ func TestFingerprintsReload(t *testing.T) {
 	}
 	t.Parallel()
 
-	ht, err := blankHostTester(t.Name())
+	ht, err := newHostTester(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +154,7 @@ func TestFingerprintsRotate(t *testing.T) {
 	}
 	t.Parallel()
 
-	ht, err := blankHostTester(t.Name())
+	ht, err := newHostTester(t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}

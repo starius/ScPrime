@@ -2,10 +2,10 @@ package wallet
 
 import (
 	"bytes"
-	"errors"
 	"sort"
 
 	"gitlab.com/NebulousLabs/encoding"
+	"gitlab.com/NebulousLabs/errors"
 	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -190,7 +190,34 @@ func (tb *transactionBuilder) MarkWalletInputs() bool {
 // transaction. A parent transaction may be needed to achieve an input with the
 // correct value. The siacoin input will not be signed until 'Sign' is called
 // on the transaction builder.
+// Generates new address for each new ScPrimecoin output.
+// To use/reuse specific wallet address for the transaction
+// use the FundSiacoinsFixedAddress function.
 func (tb *transactionBuilder) FundSiacoins(amount types.Currency) error {
+	// Create and add the output that will be used to fund the standard
+	// transaction.
+	tb.wallet.mu.Lock()
+	parentUnlockConditions, err := tb.wallet.nextPrimarySeedAddress(tb.wallet.dbTx)
+	tb.wallet.mu.Unlock()
+	if err != nil {
+		return errors.AddContext(err, "Unable to generate new wallet address for transaction input creation")
+	}
+	tb.wallet.mu.Lock()
+	refundUnlockConditions, err := tb.wallet.nextPrimarySeedAddress(tb.wallet.dbTx)
+	tb.wallet.mu.Unlock()
+	if err != nil {
+		return errors.AddContext(err, "Unable to generate new wallet address for remaining unspent inputs")
+	}
+	return tb.FundSiacoinsFixedAddress(amount, parentUnlockConditions, refundUnlockConditions)
+}
+
+// FundSiacoins will add a siacoin input of exactly 'amount' to the
+// transaction. A parent transaction may be needed to achieve an input with the
+// correct value. The siacoin input will not be signed until 'Sign' is called
+// on the transaction builder.
+// Uses the specified addresses `parentUnlockConditions` for the input building transaction
+// and `refundUnlockConditions` for the remaining unspent amount (change return address).
+func (tb *transactionBuilder) FundSiacoinsFixedAddress(amount types.Currency, parentUnlockConditions, refundUnlockConditions types.UnlockConditions) error {
 	// dustThreshold has to be obtained separate from the lock
 	dustThreshold, err := tb.wallet.DustThreshold()
 	if err != nil {
@@ -271,13 +298,6 @@ func (tb *transactionBuilder) FundSiacoins(amount types.Currency) error {
 		return modules.ErrLowBalance
 	}
 
-	// Create and add the output that will be used to fund the standard
-	// transaction.
-	parentUnlockConditions, err := tb.wallet.nextPrimarySeedAddress(tb.wallet.dbTx)
-	if err != nil {
-		return err
-	}
-
 	exactOutput := types.SiacoinOutput{
 		Value:      amount,
 		UnlockHash: parentUnlockConditions.UnlockHash(),
@@ -286,10 +306,6 @@ func (tb *transactionBuilder) FundSiacoins(amount types.Currency) error {
 
 	// Create a refund output if needed.
 	if !amount.Equals(fund) {
-		refundUnlockConditions, err := tb.wallet.nextPrimarySeedAddress(tb.wallet.dbTx)
-		if err != nil {
-			return err
-		}
 		refundOutput := types.SiacoinOutput{
 			Value:      fund.Sub(amount),
 			UnlockHash: refundUnlockConditions.UnlockHash(),

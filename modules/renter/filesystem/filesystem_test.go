@@ -758,7 +758,8 @@ func TestThreadedAccess(t *testing.T) {
 				sp := newSiaPath(filePaths[fastrand.Intn(len(filePaths))])
 				sf, err := fs.OpenSiaFile(sp)
 				if err != nil {
-					t.Fatal(err)
+					t.Error(err)
+					return
 				}
 				sf.Close()
 			}
@@ -777,11 +778,13 @@ func TestThreadedAccess(t *testing.T) {
 				sp := newSiaPath(filePaths[fastrand.Intn(len(filePaths))])
 				sp, err := sp.Dir()
 				if err != nil {
-					t.Fatal(err)
+					t.Error(err)
+					return
 				}
 				sd, err := fs.OpenSiaDir(sp)
 				if err != nil {
-					t.Fatal(err)
+					t.Error(err)
+					return
 				}
 				sd.Close()
 			}

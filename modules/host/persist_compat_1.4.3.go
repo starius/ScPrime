@@ -47,7 +47,7 @@ func (h *Host) upgradeFromV120ToV143() error {
 	// Save the updated persist so that the upgrade is not triggered again.
 	err = persist.SaveJSON(modules.Hostv143PersistMetadata, h.persistData(), filepath.Join(h.persistDir, settingsFile))
 	if err != nil {
-		return build.ExtendErr("could not save persistence object", err)
+		return errors.AddContext(err, "could not save persistence object")
 	}
 
 	return nil

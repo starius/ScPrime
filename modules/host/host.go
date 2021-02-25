@@ -90,9 +90,10 @@ const (
 	// Directory name for token storage.
 	tokenStorDir = "token_storage"
 	// Names of the various persistent files in the host.
-	dbFilename   = modules.HostDir + ".db"
-	logFile      = modules.HostDir + ".log"
-	settingsFile = modules.HostDir + ".json"
+	dbFilename                    = modules.HostDir + ".db"
+	logFile                       = modules.HostDir + ".log"
+	settingsFile                  = modules.HostDir + ".json"
+	storageObligationAuditInteval = 144 // Audit contracts once a day
 )
 
 var (
@@ -180,6 +181,9 @@ type Host struct {
 	revisionNumber       uint64
 	workingStatus        modules.HostWorkingStatus
 	connectabilityStatus modules.HostConnectabilityStatus
+	// scheduledAuditBlockheight is the blockheight when the next AuditStorageObligations()
+	// should be started
+	scheduledAuditBlockheight uint64
 
 	// A map of storage obligations that are currently being modified. Locks on
 	// storage obligations can be long-running, and each storage obligation can
@@ -524,16 +528,12 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 		return nil, errors.AddContext(err, "Could not create account manager")
 	}
 
+	atomic.StoreUint64(&h.scheduledAuditBlockheight, uint64(h.blockHeight))
+
 	// Subscribe to the consensus set.
 	err = h.initConsensusSubscription()
 	if err != nil {
 		return nil, err
-	}
-
-	// Ensure the host is consistent by pruning any stale storage obligations.
-	if err := h.PruneStaleStorageObligations(); err != nil {
-		h.log.Println("Could not prune stale storage obligations:", err)
-		return nil, errors.AddContext(err, "Error pruning stale contracts")
 	}
 
 	// Create bandwidth monitor
