@@ -8,6 +8,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/node/api"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
 // HostParam is a parameter in the host's settings that can be changed via the
@@ -74,6 +75,13 @@ func (c *Client) HostAnnouncePost() (err error) {
 // the network using the provided address.
 func (c *Client) HostAnnounceAddrPost(address modules.NetAddress) (err error) {
 	err = c.post("/host/announce", "netaddress="+string(address), nil)
+	return
+}
+
+// HostContractGet uses the /host/contracts/:id endpoint to get information
+// about a contract on the host.
+func (c *Client) HostContractGet(obligationID types.FileContractID) (cg api.HostContractGET, err error) {
+	err = c.get("/host/contracts/"+obligationID.String(), &cg)
 	return
 }
 
