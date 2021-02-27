@@ -1878,7 +1878,7 @@ based on their needs.
 > curl example
 
 ```go
-curl -A "Sia-Agent" "localhost:9980/host/contracts/75868cef0d7462bf8047f9ad7380ccd73a84e6c65ccf88cf237646ce240e9d6c"
+curl -A "ScPrime-Agent" "localhost:4280/host/contracts/75868cef0d7462bf8047f9ad7380ccd73a84e6c65ccf88cf237646ce240e9d6c"
 ```
 
 Returns a storage obligation matching the contract id from the host's contracts. 
