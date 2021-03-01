@@ -72,3 +72,55 @@ func TestTpoolTransactionsGet(t *testing.T) {
 		t.Fatal("expected no transactions got", len(tptg.Transactions))
 	}
 }
+
+// TestTPoolTransactionConfirmed probes the API end point from returning the
+// transaction already verified on blockchain
+func TestTPoolTransactionConfirmed(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+
+	// Create testing directory.
+	testdir := tpoolTestDir(t.Name())
+
+	// Create a miners
+	miner, err := siatest.NewNode(node.Miner(filepath.Join(testdir, "miner")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := miner.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	// Transaction pool should be empty to start
+	tptg, err := miner.TransactionPoolTransactionsGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tptg.Transactions) != 0 {
+		t.Fatal("expected no transactions got", len(tptg.Transactions))
+	}
+
+	// miner sends a txn to itself
+	uc, err := miner.WalletAddressGet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	wsp, err := miner.WalletSiacoinsPost(types.SiacoinPrecision, uc.Address, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Mine a block to confirm the transaction
+	if err := miner.MineBlock(); err != nil {
+		t.Fatal(err)
+	}
+	resp, err := miner.TransactionPoolTransactionConfirmed(wsp.TransactionIDs[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !resp.Confirmed {
+		t.Fatal("the transaction must have been confirmed")
+	}
+}
