@@ -6,6 +6,7 @@ version="$1"
 rc=`echo $version | awk -F - '{print $2}'`
 keyfile="$2"
 pubkeyfile="$3" # optional
+
 if [[ -z $version || -z $keyfile ]]; then
 	echo "Usage: $0 VERSION KEYFILE"
 	exit 1
@@ -19,6 +20,9 @@ if [ ! -f $keyfile ]; then
     echo "Key file not found: $keyfile"
     exit 1
 fi
+
+# import key from $keyfile to gpg keys
+gpg --import $keyfile
 
 # setup build-time vars
 ldflags="-s -w -X 'gitlab.com/scpcorp/ScPrime/build.GitRevision=`git rev-parse --short HEAD`' -X 'gitlab.com/scpcorp/ScPrime/build.BuildTime=`date`' -X 'gitlab.com/scpcorp/ScPrime/build.ReleaseTag=${rc}'"
@@ -55,8 +59,6 @@ for arch in amd64 arm; do
 		(
 			cd release
 			zip -rq ScPrime-$version-$os-$arch.zip ScPrime-$version-$os-$arch
-      # import key from $keyfile to gpg keys
-			gpg --import $keyfile
 			# sign zip release
 			gpg --armour --output ScPrime-$version-$os-$arch.zip.asc --detach-sig ScPrime-$version-$os-$arch.zip
 		)
