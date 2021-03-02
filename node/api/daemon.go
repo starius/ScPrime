@@ -259,8 +259,11 @@ func updateToRelease(version string) error {
 	}
 
 	// verify release with signature and developer key
-	_, err = openpgp.CheckArmoredDetachedSignature(keyring, bytes.NewBuffer(content), bytes.NewBuffer(signatureBytes))
+	entity, err := openpgp.CheckArmoredDetachedSignature(keyring, bytes.NewBuffer(content), bytes.NewBuffer(signatureBytes))
 	if err != nil {
+		return errors.AddContext(err, "release verification error")
+	}
+	if entity == nil {
 		return errors.AddContext(err, "release verification error")
 	}
 	r := bytes.NewReader(content)
