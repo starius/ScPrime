@@ -41,31 +41,57 @@ import (
 const (
 	// The developer key is used to sign updates and other important ScPrime-
 	// related information.
-	developerKey = `-----BEGIN PUBLIC KEY-----
-	MIIEIjANBgkqhkiG9w0BAQEFAAOCBA8AMIIECgKCBAEA05U9xFO9EgKEUQ5LzLkD
-	//iODWzBY+bKWEMial0hxHnFU/FD0DOqpjvbZV8NgF0rFZu6MznN+UO8+a8EqGiq
-	L3XkUmnJu9K2sWOJOv9aYYbFQwxay1gI+jIFsldjTVf7yOz+9IcM48zyX0A952Fx
-	y5ugctqr7Sr+2uuLAqXXyWwA8FQ5ZPWOzCySJCbcaKSP4fP+caRKCUeAci9CON6g
-	UxIGgO3H5KjBa1nt38XE4Qt7hy7peIRigmfm3FJkSnqWijkYUXrPIwILfqaFMknZ
-	40Yc5GEqxOdzSYoptWXfVdnoDvu58qJI5ikAwr/pIjVCSn3sdMudlDiRoiUfHCYn
-	T7OEq6wWSL/lmpOKSXavIxUwfs4mpCA/a9E0P1FICLr52DNrzVVveEXmkzUEtqlF
-	26FssMzTt6mkmAF8T7HRBtVyuTt+UD2I7oEJ29CPV0U7YE5KVhmQG7ae3i6k2csJ
-	mEdDNbb0rOdZrsygyfJNkG/IkD09PTn9KteTDc9ULnEhq2LXtot0y1/zas1z8BsC
-	rJbAdGU0o5/SpWPfOrw2O/aa0Ja413cMyGAXUZRiseTncLod9dKn9Y6GVIb3LSj7
-	D3FfV2ADG2vdpuBc18JsPDC+oLWjIjpEZKlyr3tqyQsE3lJjWteU2W+Tju4PWM9Q
-	GT/e9SY9DcFKTY8AIxrtzyuCGwuW5a3yQ9FP2yEDpF7j2POIU7LIEtnyn9oXP/6d
-	3y4X+DJhkDm4cKfV+OsVyCYwK3+IQvr1g1F2N/xsKByZbb4Jgwge5Libtrnc0GH8
-	WxdIlbNBHHuU58yI0GjPnFLqRMe0duPzJXWtq18RJFjUHg8muhb14lBuXOqaF0cs
-	gn+8izPgbSMhEHPQBhT9Ux+byU3qDjKqim3f5xtZNH6R2eT58N8y5CwXYYodpMVL
-	nhcX29QsqqpO1mZQwx6snSJ6QDvmcSrhEgFhWLAbUY6R+I0UWGY23dlI/cNEWOyu
-	zRSS/DDK0gV7+pPFT2+HiP6YkZ4qlHqmWIWXBFeXSAEzVNe2AG48BD3sXQGlh7Jd
-	x73jHo/17DZUivnQ8MyvOfDY1ThfwSNlCJzfYvQUxpa43JAZzCGxEDw7pJvrHqLD
-	cV75Zk12DzRBoC4neDRWd4qfXApx066Ew56xxeCQI5Z5suZ1juaejpr9BDshHyE4
-	Abt4U3mhMBtcdD4Oz0mo+iuXLePbdo3uwCGFE7GOb+XdxvegYzTE0w/24mXNluz8
-	BiFzhF0Dgq2SmUkVpqYehZNmfm61/xtyOM5uHOtphetSdA5lPaplSiLzi6piaaKa
-	huUdkWLWC9t9M+VuEZhk0ra/x7b1HDy4bLqBaXzJtKvZyRlOBWBFmIVmctygG6t9
-	ZwIDAQAB
-	-----END PUBLIC KEY-----`
+	developerKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+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
+=UVXH
+-----END PGP PUBLIC KEY BLOCK-----`
 )
 
 type (
@@ -233,8 +259,11 @@ func updateToRelease(version string) error {
 	}
 
 	// verify release with signature and developer key
-	_, err = openpgp.CheckArmoredDetachedSignature(keyring, bytes.NewBuffer(content), bytes.NewBuffer(signatureBytes))
+	entity, err := openpgp.CheckArmoredDetachedSignature(keyring, bytes.NewBuffer(content), bytes.NewBuffer(signatureBytes))
 	if err != nil {
+		return errors.AddContext(err, "release verification error")
+	}
+	if entity == nil {
 		return errors.AddContext(err, "release verification error")
 	}
 	r := bytes.NewReader(content)
