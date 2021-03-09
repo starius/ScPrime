@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"os"
@@ -166,6 +167,11 @@ func hostcmd() {
 	is := hg.InternalSettings
 	nm := hg.NetworkMetrics
 
+	//read and hex encode the PublicKey
+	buf := make([]byte, 64)
+	hex.Encode(buf, hg.PublicKey.Key)
+	pk := string(buf)
+
 	// calculate total storage available and remaining
 	var totalstorage, storageremaining uint64
 	for _, folder := range sg.Folders {
@@ -186,10 +192,14 @@ func hostcmd() {
 		Add(fm.PotentialUploadBandwidthRevenue)
 	// determine the display method for the net address.
 	netaddr := es.NetAddress
-	if is.NetAddress == "" {
-		netaddr += " (automatically determined)"
+	if len(netaddr) > 0 {
+		if is.NetAddress == "" {
+			netaddr += " (automatically determined)"
+		} else {
+			netaddr += " (manually specified)"
+		}
 	} else {
-		netaddr += " (manually specified)"
+		netaddr = "NA"
 	}
 
 	var connectabilityString string
@@ -206,6 +216,7 @@ func hostcmd() {
 	if hostVerbose {
 		// describe net address
 		fmt.Printf(`General Info:
+	Provider ID          : %v
 	Connectability Status: %v
 	Version:               %v
 
@@ -259,6 +270,7 @@ RPC Stats:
 	Settings Calls:     %v
 	FormContract Calls: %v
 `,
+			pk,
 			connectabilityString,
 			es.Version,
 
@@ -305,6 +317,8 @@ RPC Stats:
 			nm.FormContractCalls)
 	} else {
 		fmt.Printf(`Host info:
+	Provider ID          : %v
+	Announced as         : %v
 	Connectability Status: %v
 
 	Storage:      %v (%v used)
@@ -316,6 +330,9 @@ RPC Stats:
 	Locked Collateral:    %v
 	Revenue:              %v
 `,
+
+			pk,
+			netaddr,
 			connectabilityString,
 
 			modules.FilesizeUnits(totalstorage),
