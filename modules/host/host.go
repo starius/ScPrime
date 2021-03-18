@@ -90,10 +90,9 @@ const (
 	// Directory name for token storage.
 	tokenStorDir = "token_storage"
 	// Names of the various persistent files in the host.
-	dbFilename                    = modules.HostDir + ".db"
-	logFile                       = modules.HostDir + ".log"
-	settingsFile                  = modules.HostDir + ".json"
-	storageObligationAuditInteval = 144 // Audit contracts once a day
+	dbFilename   = modules.HostDir + ".db"
+	logFile      = modules.HostDir + ".log"
+	settingsFile = modules.HostDir + ".json"
 )
 
 var (
@@ -125,6 +124,8 @@ var (
 		Dev:      10 * time.Minute,
 		Testing:  30 * time.Second,
 	}).(time.Duration)
+
+	storageObligationAuditInteval = types.BlocksPerDay // Audit contracts once a day
 )
 
 // A Host contains all the fields necessary for storing files for clients and
