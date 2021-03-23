@@ -1352,10 +1352,10 @@ func TestRenterPricesHandlerPricey(t *testing.T) {
 	// Set host 2 to be more expensive than the rest by a substantial amount. This
 	// should result in an increase for the price estimation.
 	vals := url.Values{}
-	vals.Set("mindownloadbandwidthprice", "100000000000000000000")
-	vals.Set("mincontractprice", "1000000000000000000000000")
-	vals.Set("minstorageprice", "1000000000000000000000")
-	vals.Set("minuploadbandwidthprice", "100000000000000000000")
+	vals.Set("mindownloadbandwidthprice", modules.DefaultDownloadBandwidthPrice.Mul64(10000).String())
+	vals.Set("mincontractprice", modules.DefaultContractPrice.Mul64(1125).Div64(10000).String())
+	vals.Set("minstorageprice", modules.DefaultStoragePrice.Mul64(50).String())
+	vals.Set("minuploadbandwidthprice", modules.DefaultUploadBandwidthPrice.Mul64(10000).String())
 	err = stHost2.stdPostAPI("/host", vals)
 	if err != nil {
 		t.Fatal(err)

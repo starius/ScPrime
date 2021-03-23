@@ -17,16 +17,17 @@ import (
 
 var (
 	// DefaultAllowance is the set of default allowance settings that will be
-	// used when allowances are not set or not fully set
+	// used when allowances are not set or not fully set.
+	// Using default storage price and default collateral for 2 months and 50 hosts
 	DefaultAllowance = Allowance{
-		Funds:       types.ScPrimecoinPrecision.Mul64(100),       // 100 SCP
-		Hosts:       uint64(PriceEstimationScope),                // 50
-		Period:      2 * types.BlockHeight(types.BlocksPerMonth), // 1 Month
-		RenewWindow: types.BlockHeight(3 * types.BlocksPerWeek),  // 3 Weeks
+		Funds:       DefaultStoragePrice.Add(DefaultCollateral).Mul(BlockBytesPerMonthTerabyte).Mul64(2).Mul64(uint64(PriceEstimationScope)),
+		Hosts:       uint64(PriceEstimationScope), // 50
+		Period:      types.BlocksPerWeek * 6,      // 6 Weeks
+		RenewWindow: types.BlocksPerWeek * 2,      // 2 Weeks
 
 		ExpectedStorage:    1e12,                                         // 1 TB
-		ExpectedUpload:     uint64(300e9) / uint64(types.BlocksPerMonth), // 300 GB per month
-		ExpectedDownload:   uint64(200e9) / uint64(types.BlocksPerMonth), // 200 GB per month
+		ExpectedUpload:     uint64(500e9) / uint64(types.BlocksPerMonth), // 500 GB per month
+		ExpectedDownload:   uint64(500e9) / uint64(types.BlocksPerMonth), // 500 GB per month
 		ExpectedRedundancy: 3.0,                                          // default is 10/30 erasure coding
 		MaxPeriodChurn:     uint64(250e9),                                // 250 GB
 	}

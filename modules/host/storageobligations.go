@@ -1431,11 +1431,10 @@ func (h *Host) auditStorageObligations() error {
 		id := key.(types.FileContractID)
 		so := value.(storageObligation)
 		h.log.Debugf("auditing storage obligation %v\n", id)
-		endHeight := so.expiration()
 		status := so.ObligationStatus
 
 		//Clear expired contracts
-		if status == 0 && (h.blockHeight > endHeight+144) { //status 0 means unresolved, let it stay for a day longer
+		if status == 0 && (h.blockHeight > so.proofDeadline()+types.BlocksPerDay) { //status 0 means unresolved, let it stay for a day after the deadline has passed
 			//TODO: Check the correct state of contract!
 			//If it was renewed without storage proof, then it should get
 			//marked as success if still as unresolved fro correct accounting.
