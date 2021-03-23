@@ -80,7 +80,7 @@ const (
 	//
 	// This is necessary to prevent exploits where a host gets an unreasonable
 	// score by putting it's price way too low.
-	priceFloor = 0.1
+	priceFloor = 0.2
 )
 
 // basePriceAdjustments will adjust the weight of the entry according to the prices

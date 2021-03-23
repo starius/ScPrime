@@ -289,11 +289,10 @@ func (r *Renter) PriceEstimation(allowance modules.Allowance) (modules.RenterPri
 		if !ok {
 			continue
 		}
-		// Check for active contracts only
-		if !u.GoodForRenew {
-			continue
+		// Count active contracts only
+		if u.GoodForRenew {
+			pks = append(pks, c.HostPublicKey)
 		}
-		pks = append(pks, c.HostPublicKey)
 	}
 	// Get hosts from pubkeys
 	for _, pk := range pks {
@@ -363,8 +362,8 @@ func (r *Renter) PriceEstimation(allowance modules.Allowance) (modules.RenterPri
 	totalUploadCost = totalUploadCost.Mul(modules.BytesPerTerabyte)
 
 	// Factor in redundancy.
-	totalStorageCost = totalStorageCost.Mul64(3) // TODO: follow file settings?
-	totalUploadCost = totalUploadCost.Mul64(3)   // TODO: follow file settings?
+	totalStorageCost = totalStorageCost.MulFloat(allowance.ExpectedRedundancy) // TODO: follow file settings?
+	totalUploadCost = totalUploadCost.MulFloat(allowance.ExpectedRedundancy)   // TODO: follow file settings?
 
 	// Perform averages.
 	totalContractCost = totalContractCost.Div64(uint64(len(hosts)))
@@ -376,7 +375,6 @@ func (r *Renter) PriceEstimation(allowance modules.Allowance) (modules.RenterPri
 	// contract forming. This is to protect against the case where less hosts
 	// were gathered for the estimate that the allowance requires
 	totalContractCost = totalContractCost.Mul64(allowance.Hosts)
-
 	// Add the cost of paying the transaction fees and then double the contract
 	// costs to account for renewing a full set of contracts.
 	_, feePerByte := r.tpool.FeeEstimation()
@@ -385,7 +383,7 @@ func (r *Renter) PriceEstimation(allowance modules.Allowance) (modules.RenterPri
 	totalContractCost = totalContractCost.Mul64(2)
 
 	// Determine host collateral to be added to siafund fee
-	var hostCollateral types.Currency
+	var totalCollateral types.Currency
 	contractCostPerHost := totalContractCost.Div64(allowance.Hosts)
 	fundingPerHost := allowance.Funds.Div64(allowance.Hosts)
 	numHosts := uint64(0)
@@ -399,7 +397,7 @@ func (r *Renter) PriceEstimation(allowance modules.Allowance) (modules.RenterPri
 		if err != nil {
 			continue
 		}
-		hostCollateral = hostCollateral.Add(collateral)
+		totalCollateral = totalCollateral.Add(collateral)
 		numHosts++
 	}
 
@@ -411,14 +409,14 @@ func (r *Renter) PriceEstimation(allowance modules.Allowance) (modules.RenterPri
 		return modules.RenterPriceEstimation{}, allowance, errors.New("funding insufficient for number of hosts")
 	}
 	// Calculate average collateral and determine collateral for allowance
-	hostCollateral = hostCollateral.Div64(numHosts)
-	hostCollateral = hostCollateral.Mul64(allowance.Hosts)
+	totalCollateral = totalCollateral.Div64(numHosts)
+	totalCollateral = totalCollateral.Mul64(allowance.Hosts)
 
 	// Add in siafund fee. which should be around 10%. The 10% siafund fee
 	// accounts for paying 3.9% siafund on transactions and host collateral. We
 	// estimate the renter to spend all of it's allowance so the siafund fee
 	// will be calculated on the sum of the allowance and the hosts collateral
-	totalPayout := allowance.Funds.Add(hostCollateral)
+	totalPayout := allowance.Funds.Add(totalCollateral)
 	siafundFee := types.Tax(r.cs.Height(), totalPayout)
 	totalContractCost = totalContractCost.Add(siafundFee)
 

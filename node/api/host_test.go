@@ -76,24 +76,25 @@ func TestEstimateWeight(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var eg HostEstimateScoreGET
-	if err := st.getAPI("/host/estimatescore", &eg); err != nil {
+	var oeg, neg HostEstimateScoreGET
+	if err := st.getAPI("/host/estimatescore", &oeg); err != nil {
 		t.Fatal(err)
 	}
-	originalEstimate := eg.EstimatedScore
-
+	originalEstimate := oeg.EstimatedScore
 	// verify that the estimate is being correctly updated by setting a massively
 	// increased min contract price and verifying that the score decreases.
 	is := st.host.InternalSettings()
-	is.MinContractPrice = is.MinContractPrice.Add(types.SiacoinPrecision.Mul64(9999999999))
+	is.MinContractPrice = is.MinContractPrice.Mul64(10)
 	if err := st.host.SetInternalSettings(is); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.getAPI("/host/estimatescore", &eg); err != nil {
+	if err := st.getAPI("/host/estimatescore", &neg); err != nil {
 		t.Fatal(err)
 	}
-	if eg.EstimatedScore.Cmp(originalEstimate) != -1 {
-		t.Fatal("score estimate did not decrease after incrementing mincontractprice")
+	newEstimate := neg.EstimatedScore
+	if newEstimate.Cmp(originalEstimate) != -1 {
+		t.Logf("Initial score: %+v\n\t\tNew score: %+v\n", originalEstimate, newEstimate)
+		t.Errorf("score estimate did not decrease after incrementing mincontractprice")
 	}
 
 	// add a few hosts to the hostdb and verify that the conversion rate is
@@ -146,6 +147,7 @@ func TestEstimateWeight(t *testing.T) {
 		{types.SiacoinPrecision.Mul64(20000), 0.00001},
 	}
 	for i, test := range tests {
+		var eg HostEstimateScoreGET
 		err = st.getAPI(fmt.Sprintf("/host/estimatescore?mincontractprice=%v", test.price.String()), &eg)
 		if err != nil {
 			t.Fatal("test", i, "failed:", err)

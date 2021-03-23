@@ -114,11 +114,11 @@ var (
 
 	// DefaultMaxCollateral defines the maximum amount of collateral that the
 	// host is comfortable putting into a single file contract.
-	// 10 terabytemonths seem reasonable, but thousands of SCP could be locked
-	// away by only a few hundred file contracts. As the ecosystem matures, it
-	// is expected that the safe default for this value will increase quite a
-	// bit.
-	DefaultMaxCollateral = DefaultStoragePrice.Mul64(10) // 10 times the default storage price
+	// 16 terabytemonths seem reasonable, but substantial amounts of SCP could
+	// be locked away by only a few hundred file contracts. As the ecosystem
+	// matures, it is expected that the safe default for this value will
+	// increase quite a bit.
+	DefaultMaxCollateral = DefaultStoragePrice.Mul64(16) // 16 times the default storage price
 
 	// DefaultContractPrice defines the default price of creating a contract
 	// with the host. The current default is 0.1. This was chosen since it is
@@ -148,7 +148,7 @@ var (
 	// DefaultStoragePrice defines the starting price for hosts selling
 	// storage. We try to match a number that is both reasonably profitable and
 	// reasonably competitive.
-	DefaultStoragePrice = types.ScPrimecoinPrecision.Mul64(20).Div(BlockBytesPerMonthTerabyte) // 20 SCP / TB / Month
+	DefaultStoragePrice = types.ScPrimecoinPrecision.Mul64(15).Div(BlockBytesPerMonthTerabyte) // 15 SCP / TB / Month
 
 	// DefaultUploadBandwidthPrice defines the default price of upload
 	// bandwidth. The default is set to 2 SCP per TB, because the host is
