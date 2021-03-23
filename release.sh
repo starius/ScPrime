@@ -49,7 +49,7 @@ for arch in amd64 arm; do
 			if [ "$os" == "windows" ]; then
 				bin=${pkg}.exe
 			fi
-			GOOS=${os} GOARCH=${arch} go build -a -tags 'netgo' -ldflags="$ldflags" -o $folder/$bin ./cmd/$pkg
+			CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go build -a -tags 'netgo' -ldflags="$ldflags" -o $folder/$bin ./cmd/$pkg
 
 		done
 
