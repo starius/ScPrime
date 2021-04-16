@@ -59,7 +59,7 @@ pubfile.
 - Rename `Gateway` `blacklist` to `blocklist`
 - Allow host netAddress and announcements with local network IP on dev builds.
 - Add default timeouts to opening a stream on the mux
-- Update to bolt version with upstream fixes. This enables builds with Go 1.14.
+- Update to bolt version with upstream fixes. This enables builds with Go 1.16.
 
 ### v1.4.4.0
 **Key Updates**
