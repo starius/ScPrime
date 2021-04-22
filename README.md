@@ -1,4 +1,4 @@
-# [![ScPrime Logo](https://scpri.me/imagestore/SPRho_256x256.png)](http://scpri.me) v1.4.3.0
+# [![ScPrime Logo](https://scpri.me/imagestore/SPRho_256x256.png)](http://scpri.me) v1.5.3
 
 [![Build Status](https://gitlab.com/scpcorp/ScPrime/badges/master/pipeline.svg)](https://gitlab.com/scpcorp/ScPrime/commits/master)
 [![Coverage Report](https://gitlab.com/scpcorp/ScPrime/badges/master/coverage.svg)](https://gitlab.com/scpcorp/ScPrime/commits/master)
@@ -58,7 +58,7 @@ This release comes with 2 binaries, `spd` and `spc`. `spd` is a background
 service, or "daemon," that runs the ScPrime protocol and exposes an HTTP API on
 port 4280. `spc` is a command-line client that can be used to interact with
 `spd` in a user-friendly way. There is also a graphical client, [ScPrime-UI](https://gitlab.com/scpcorp/ScPrime-UI),
-which is the preferred way of using ScPrime for most users. For interested 
+which is a way of using ScPrime for wallet users. For interested 
 developers, the `spd` API is documented [here](doc/API.md).
 
 On Windows, double-click `spd.exe`. For command line operation, navigate to the
@@ -72,7 +72,7 @@ prompt) or ScPrime-UI to interact with `spd`.
 Building From Source
 --------------------
 
-To build from source, [Go 1.13 or above must be installed](https://golang.org/doc/install)
+To build from source, [Go 1.16 or above must be installed](https://golang.org/doc/install)
 on the system. Clone the repo and run `make`:
 
 ```
