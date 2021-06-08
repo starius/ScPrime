@@ -64,6 +64,7 @@ package host
 // TODO: update_test.go has commented out tests.
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -75,12 +76,12 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	connmonitor "gitlab.com/NebulousLabs/monitor"
 	"gitlab.com/NebulousLabs/siamux"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/host/contractmanager"
 	"gitlab.com/scpcorp/ScPrime/modules/host/mdm"
+	"gitlab.com/scpcorp/ScPrime/modules/host/tokenstorage"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
 	"gitlab.com/scpcorp/ScPrime/types"
@@ -192,7 +193,7 @@ type Host struct {
 	lockedStorageObligations map[types.FileContractID]*lockedObligation
 
 	// Storage of tokens for prepaid downloads.
-	tokenStor *tokenStorage
+	tokenStor *tokenstorage.TokenStorage
 
 	// A collection of rpc price tables, covered by its own RW mutex. It
 	// contains the host's current price table and the set of price tables the
@@ -468,12 +469,12 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Initialize token storage.
 	// TODO: the current version of tokens storage does not support reverting blocks.
 	// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
-	h.tokenStor, err = newTokenStorage(tokenStorageDir)
+	h.tokenStor, err = tokenstorage.NewTokenStorage(tokenStorageDir)
 	if err != nil {
 		return nil, errors.AddContext(err, "Could not initialize token storage")
 	}
 	h.tg.AfterStop(func() {
-		err = h.tokenStor.close()
+		err = h.tokenStor.Close(context.Background())
 		if err != nil {
 			fmt.Println("Error when closing token storage:", err)
 		}
