@@ -232,6 +232,8 @@ github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An
 github.com/spf13/viper v1.7.0/go.mod h1:8WkrPz2fc9jxqZNCJI/76HCieCp4Q8HaLFoCha5qpdg=
 github.com/spf13/viper v1.7.1 h1:pM5oEahlgWv/WnHXpgbKz7iLIxRf65tye2Ci+XFK5sk=
 github.com/spf13/viper v1.7.1/go.mod h1:8WkrPz2fc9jxqZNCJI/76HCieCp4Q8HaLFoCha5qpdg=
+github.com/starius/flock v0.0.0-20170317185950-31e2b263f285 h1:uTlyPjMqHtBJJ3WiqY58XQzLhQ4JBPI7wRj4De0JzEk=
+github.com/starius/flock v0.0.0-20170317185950-31e2b263f285/go.mod h1:hEXRD8OB17ugloCKLHqb9h/YTbK5bOb7h5Vecv2fJyI=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
@@ -282,6 +284,10 @@ gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213 h1:owERlK
 gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213/go.mod h1:vIutAvl7lmJqLVYTCBY5WDdJomP+V74At8LCeEYoH8w=
 gitlab.com/scpcorp/writeaheadlog v0.0.0-20200814111317-c404cb85e61f h1:ZFxFhrhADCgqg1hFlH67eZcADhBYvAboZcJX0pQPc70=
 gitlab.com/scpcorp/writeaheadlog v0.0.0-20200814111317-c404cb85e61f/go.mod h1:8Q1sCZj1cAJ3jMr9fObxOxDfzKr0hHBufj91IoDUS/w=
+gitlab.com/zer0main/eventsourcing v0.0.0-20210603205953-656d120c3836 h1:DyQ+3f8OGydIcLyJqzBKb27xLklAeeK/3qnKbTnwM4s=
+gitlab.com/zer0main/eventsourcing v0.0.0-20210603205953-656d120c3836/go.mod h1:W0bwUhH556zFZSXktwL1m29OrwyEIO/fEyB2urjmUO4=
+gitlab.com/zer0main/filestorage v0.0.0-20210603210652-2ee6eb57d4a3 h1:bRc6IySNc8+vL7AQMluuS+rUARuDVejd9LqktpyOZm0=
+gitlab.com/zer0main/filestorage v0.0.0-20210603210652-2ee6eb57d4a3/go.mod h1:R/+d8z2RiCdhjm0NTwj5IaVw1BwVRiz+IjKw4vY3Z7c=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5 h1:XAzx9gjCb0Rxj7EoqcClPD1d5ZBxZJk0jbuoPHenBt0=
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=

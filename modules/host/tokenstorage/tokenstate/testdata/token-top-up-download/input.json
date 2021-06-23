@@ -1,0 +1,25 @@
+{
+  "event_top_up": {
+    "token_id": [
+      189,120,86,140,250,185,11,184,215,48,131,186,98,107,229,208],
+    "resource_type": "DownloadBytes",
+    "resource_amount": 5000
+  }
+}
+{
+  "event_top_up": {
+    "token_id": [
+      189,120,86,140,250,185,11,184,215,48,131,186,98,107,229,208],
+    "resource_type": "SectorAccesses",
+    "resource_amount": 5000
+  }
+}
+
+{
+  "event_token_download":
+  {
+    "token_id": [189, 120,86,140,250,185,11,184,215,48,131,186,98,107,229,208],
+    "download_bytes": 1000,
+    "sector_accesses": 1000
+  }
+}

@@ -18,7 +18,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/pelletier/go-toml v1.9.0 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
-	github.com/pkg/errors v0.9.1
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sasha-s/go-deadlock v0.2.0
@@ -27,8 +27,9 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.1
+	github.com/starius/flock v0.0.0-20170317185950-31e2b263f285 // indirect
 	github.com/stretchr/testify v1.6.1
-	github.com/syndtr/goleveldb v1.0.0
+	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/vbauerster/mpb/v5 v5.4.0
 	github.com/xtaci/smux v1.5.15
 	gitlab.com/NebulousLabs/demotemutex v0.0.0-20151003192217-235395f71c40
@@ -44,6 +45,8 @@ require (
 	gitlab.com/NebulousLabs/siamux v0.0.0-20210409140711-e667c5f458e4
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200814111317-c404cb85e61f
+	gitlab.com/zer0main/eventsourcing v0.0.0-20210603205953-656d120c3836
+	gitlab.com/zer0main/filestorage v0.0.0-20210603210652-2ee6eb57d4a3
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/net v0.0.0-20210421230115-4e50805a0758 // indirect

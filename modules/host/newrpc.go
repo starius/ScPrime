@@ -10,11 +10,10 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/fastrand"
-	bolt "go.etcd.io/bbolt"
-
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
+	bolt "go.etcd.io/bbolt"
 )
 
 // managedRPCLoopSettings writes an RPC response containing the host's
@@ -1183,8 +1182,8 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 	}
 
 	// Save changes to token storage.
-	id := tokenID(req.Token)
-	if err := h.tokenStor.addResources(&id, req.ResourcesType, req.ResourcesAmount); err != nil {
+	id := types.TokenID(req.Token)
+	if err := h.tokenStor.AddResources(id, req.ResourcesType, req.ResourcesAmount); err != nil {
 		return err
 	}
 
@@ -1224,18 +1223,18 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 	}
 
 	// Make sure token has enough resources to handle this RPC call.
-	id := tokenID(req.Token)
+	id := types.TokenID(req.Token)
 	estBandwidth := estimateBandwidth(req.Sections)
 	sectorAccesses := estimateSectorsAccesses(req.Sections)
 	enoughBytes := true
 	enoughSectors := true
 	availableBandwidth := int64(0)
 	availableSectors := int64(0)
-	tokenResources, err := h.tokenStor.tokenRecord(&id)
+	tokenResources, err := h.tokenStor.TokenRecord(id)
 	if err == nil {
 		// Token not found = no resources, and 0 is correct.
-		availableBandwidth = tokenResources.downloadBytes
-		availableSectors = tokenResources.sectorAccesses
+		availableBandwidth = tokenResources.DownloadBytes
+		availableSectors = tokenResources.SectorAccesses
 	}
 	if availableBandwidth < estBandwidth {
 		// Not enough download bandwidth.
@@ -1257,25 +1256,9 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 		// The stop signal must arrive before RPC is complete.
 		return <-stopSignal
 	}
-
-	go func() {
-		err := h.tg.Add()
-		if err != nil {
-			return
-		}
-		defer h.tg.Done()
-		// Update token resources.
-		// We do it in a separate goroutine, because we want this RPC
-		// to start returning data as soon as possible,
-		// and here we do slow operatin - saving to disk.
-		newDownloadBytes := availableBandwidth - estBandwidth
-		tokenResources.downloadBytes = newDownloadBytes
-		newSectorAccesses := availableSectors - sectorAccesses
-		tokenResources.sectorAccesses = newSectorAccesses
-		if err := h.tokenStor.setTokenRecord(&id, tokenResources); err != nil {
-			h.log.Println(err)
-		}
-	}()
+	if err := h.tokenStor.RecordDownload(id, estBandwidth, sectorAccesses); err != nil {
+		h.log.Println(err)
+	}
 
 	// Enter response loop.
 	for _, sec := range req.Sections {
