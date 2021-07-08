@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules/host/tokenstorage/tokenstate"
 	"gitlab.com/scpcorp/ScPrime/types"
 	"gitlab.com/zer0main/eventsourcing"
@@ -55,7 +56,7 @@ func NewTokenStorage(dir string) (*TokenStorage, error) {
 
 	var state *tokenstate.State
 	err := storage.LoadMeta(ctx, func(r io.Reader) error {
-		state = tokenstate.NewState()
+		state = tokenstate.NewState(dir)
 		return state.LoadHistory(r)
 	})
 	if err != nil {
@@ -133,6 +134,52 @@ func (t *TokenStorage) AddResources(id types.TokenID, resourceType types.Specifi
 		TokenID:        id,
 		ResourceType:   resourceType,
 		ResourceAmount: amount,
+	}})
+	return nil
+}
+
+// AddSectors add sectors to token
+func (t *TokenStorage) AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error {
+	t.stateMu.Lock()
+	defer t.stateMu.Unlock()
+	if t.closed {
+		return fmt.Errorf("token storage closed")
+	}
+	t.applyEvent(&tokenstate.Event{EventAddSectors: &tokenstate.EventAddSectors{
+		TokenID:    id,
+		SectorsIDs: sectorsIDs,
+		Time:       time,
+	}})
+	return nil
+}
+
+// RemoveSectors remove sectors from token
+func (t *TokenStorage) RemoveSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error {
+	t.stateMu.Lock()
+	defer t.stateMu.Unlock()
+	if t.closed {
+		return fmt.Errorf("token storage closed")
+	}
+	t.applyEvent(&tokenstate.Event{EventRemoveSectors: &tokenstate.EventRemoveSectors{
+		TokenID:    id,
+		SectorsIDs: sectorsIDs,
+		Time:       time,
+	}})
+	return nil
+}
+
+// AttachSectors attach sectors to contract
+func (t *TokenStorage) AttachSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time, isDel bool) error {
+	t.stateMu.Lock()
+	defer t.stateMu.Unlock()
+	if t.closed {
+		return fmt.Errorf("token storage closed")
+	}
+	t.applyEvent(&tokenstate.Event{EventAttachSectors: &tokenstate.EventAttachSectors{
+		TokenID:          id,
+		SectorsIDs:       sectorsIDs,
+		Time:             time,
+		IsDeletingNeeded: isDel,
 	}})
 	return nil
 }

@@ -7,6 +7,7 @@ require (
 	github.com/dchest/threefish v0.0.0-20120919164726-3ecf4c494abf
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-sql-driver/mysql v1.6.0
+	github.com/golang/snappy v0.0.3 // indirect
 	github.com/hanwen/go-fuse/v2 v2.1.0
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/julienschmidt/httprouter v1.3.0
@@ -17,6 +18,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/pelletier/go-toml v1.9.0 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sasha-s/go-deadlock v0.2.0
@@ -28,6 +30,7 @@ require (
 	github.com/starius/api2 v0.0.0-20210709155629-af59869d0519
 	github.com/starius/flock v0.0.0-20170317185950-31e2b263f285 // indirect
 	github.com/stretchr/testify v1.6.1
+	github.com/syndtr/goleveldb v1.0.0
 	github.com/vbauerster/mpb/v5 v5.4.0
 	github.com/xtaci/smux v1.5.15
 	gitlab.com/NebulousLabs/demotemutex v0.0.0-20151003192217-235395f71c40
