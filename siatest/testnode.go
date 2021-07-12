@@ -5,16 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/phayes/freeport"
-
 	"gitlab.com/NebulousLabs/errors"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/node"
@@ -124,8 +120,7 @@ func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error)
 	userAgent := "ScPrime-Agent"
 	password := "password"
 
-	port, _ := freeport.GetFreePort()
-	nodeParams.HostAPIAddr = ":" + strconv.Itoa(port)
+	nodeParams.HostAPIAddr = ":0"
 
 	// Check if an RPC address is set
 	if nodeParams.RPCAddress == "" {

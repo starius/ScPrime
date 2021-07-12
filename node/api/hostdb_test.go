@@ -7,11 +7,9 @@ import (
 	"io/ioutil"
 	"net/url"
 	"path/filepath"
-	"strconv"
 	"testing"
 	"time"
 
-	"github.com/phayes/freeport"
 	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -310,8 +308,7 @@ func assembleHostPort(key crypto.CipherKey, hostHostname string, testdir string)
 	if err != nil {
 		return nil, err
 	}
-	port, _ := freeport.GetFreePort()
-	h, err := host.New(cs, g, tp, w, mux, hostHostname, filepath.Join(testdir, modules.HostDir), ":"+strconv.Itoa(port))
+	h, err := host.New(cs, g, tp, w, mux, hostHostname, filepath.Join(testdir, modules.HostDir), ":0")
 	if err != nil {
 		return nil, err
 	}

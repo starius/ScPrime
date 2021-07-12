@@ -3,10 +3,8 @@ package host
 import (
 	"io/ioutil"
 	"path/filepath"
-	"strconv"
 	"testing"
 
-	"github.com/phayes/freeport"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -177,8 +175,7 @@ func TestIntegrationAutoRescan(t *testing.T) {
 
 	// Create a new host and check that the persist variables have correctly
 	// reset.
-	port, _ := freeport.GetFreePort()
-	h, err := New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	h, err := New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,12 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/phayes/freeport"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/host"
@@ -620,8 +618,7 @@ func TestStorageProofEmptyContract(t *testing.T) {
 
 	// Prevent contract renewals to make sure the revision number stays at 1.
 	rt := node.RenterTemplate
-	port, _ := freeport.GetFreePort()
-	rt.HostAPIAddr = ":" + strconv.Itoa(port)
+	rt.HostAPIAddr = ":0"
 	rt.ContractorDeps = &dependencies.DependencyDisableRenewal{}
 	_, err = tg.AddNodeN(rt, 2)
 	if err != nil {

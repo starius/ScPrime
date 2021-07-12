@@ -2,10 +2,8 @@ package host
 
 import (
 	"path/filepath"
-	"strconv"
 	"testing"
 
-	"github.com/phayes/freeport"
 	"gitlab.com/scpcorp/ScPrime/modules"
 )
 
@@ -48,8 +46,7 @@ func TestHostContractCountPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	port, _ := freeport.GetFreePort()
-	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,8 +87,7 @@ func TestHostAddressPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	port, _ := freeport.GetFreePort()
-	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,8 +131,7 @@ func TestHostPriceRatios(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	port, _ := freeport.GetFreePort()
-	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,8 +164,7 @@ func TestHostPriceRatios(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	port, _ = freeport.GetFreePort()
-	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != nil {
 		t.Fatal(err)
 	}

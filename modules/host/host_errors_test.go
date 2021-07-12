@@ -5,11 +5,9 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
-	"github.com/phayes/freeport"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
@@ -42,16 +40,14 @@ func TestHostFailedMkdirAll(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	port, _ := freeport.GetFreePort()
-	ht.host, err = NewCustomHost(&dependencyErrMkdirAll{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = NewCustomHost(&dependencyErrMkdirAll{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if !errors.Contains(err, mockErrMkdirAll) {
 		t.Fatal(err)
 	}
 	// Set ht.host to something non-nil - nil was returned because startup was
 	// incomplete. If ht.host is nil at the end of the function, the ht.Close()
 	// operation will fail.
-	port, _ = freeport.GetFreePort()
-	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,16 +80,14 @@ func TestHostFailedNewLogger(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	port, _ := freeport.GetFreePort()
-	ht.host, err = NewCustomHost(&dependencyErrNewLogger{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = NewCustomHost(&dependencyErrNewLogger{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if !errors.Contains(err, mockErrNewLogger) {
 		t.Fatal(errors.AddContext(err, fmt.Sprintf("Wrong error received. Got %v instead of %v", err, mockErrNewLogger)))
 	}
 	// Set ht.host to something non-nil - nil was returned because startup was
 	// incomplete. If ht.host is nil at the end of the function, the ht.Close()
 	// operation will fail.
-	port, _ = freeport.GetFreePort()
-	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,16 +120,14 @@ func TestHostFailedOpenDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	port, _ := freeport.GetFreePort()
-	ht.host, err = NewCustomHost(&dependencyErrOpenDatabase{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = NewCustomHost(&dependencyErrOpenDatabase{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err == nil || !strings.Contains(err.Error(), "simulated OpenDatabase failure") {
 		t.Fatal("Opening database should have failed", err)
 	}
 	// Set ht.host to something non-nil - nil was returned because startup was
 	// incomplete. If ht.host is nil at the end of the function, the ht.Close()
 	// operation will fail.
-	port, _ = freeport.GetFreePort()
-	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,16 +160,14 @@ func TestHostFailedLoadFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	port, _ := freeport.GetFreePort()
-	ht.host, err = NewCustomHost(&dependencyErrLoadFile{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = NewCustomHost(&dependencyErrLoadFile{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if !errors.Contains(err, mockErrLoadFile) {
 		t.Fatal(err)
 	}
 	// Set ht.host to something non-nil - nil was returned because startup was
 	// incomplete. If ht.host is nil at the end of the function, the ht.Close()
 	// operation will fail.
-	port, _ = freeport.GetFreePort()
-	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,16 +200,14 @@ func TestHostFailedListen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	port, _ := freeport.GetFreePort()
-	ht.host, err = NewCustomHost(&dependencyErrListen{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = NewCustomHost(&dependencyErrListen{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != mockErrListen {
 		t.Fatal(err)
 	}
 	// Set ht.host to something non-nil - nil was returned because startup was
 	// incomplete. If ht.host is nil at the end of the function, the ht.Close()
 	// operation will fail.
-	port, _ = freeport.GetFreePort()
-	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":"+strconv.Itoa(port))
+	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != nil {
 		t.Fatal(err)
 	}

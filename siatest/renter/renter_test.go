@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/phayes/freeport"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -1054,8 +1053,7 @@ func TestLocalRepairCorrupted(t *testing.T) {
 	for hostsRemoved > 0 {
 		hostsRemoved--
 		nodeTemplate := node.HostTemplate
-		port, _ := freeport.GetFreePort()
-		nodeTemplate.HostAPIAddr = ":" + strconv.Itoa(port)
+		nodeTemplate.HostAPIAddr = ":0"
 		_, err = tg.AddNodes(nodeTemplate)
 		if err != nil {
 			t.Fatal("Failed to create a new host", err)
@@ -1086,8 +1084,7 @@ func TestLocalRepairCorrupted(t *testing.T) {
 	// available. Because the local file is corrupt, the repair should be
 	// blocked.
 	nodeTemplate := node.HostTemplate
-	port, _ := freeport.GetFreePort()
-	nodeTemplate.HostAPIAddr = ":" + strconv.Itoa(port)
+	nodeTemplate.HostAPIAddr = ":0"
 	_, err = tg.AddNodes(nodeTemplate)
 	if err != nil {
 		t.Fatal(err)

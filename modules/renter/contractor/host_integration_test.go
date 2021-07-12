@@ -6,11 +6,9 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 	"time"
 
-	"github.com/phayes/freeport"
 	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
@@ -79,8 +77,7 @@ func newCustomTestingHost(testdir string, cs modules.ConsensusSet, tp modules.Tr
 	if err != nil {
 		return nil, nil, err
 	}
-	port, _ := freeport.GetFreePort()
-	h, err := host.NewCustomHost(deps, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":"+strconv.Itoa(port))
+	h, err := host.NewCustomHost(deps, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":0")
 	if err != nil {
 		return nil, nil, err
 	}

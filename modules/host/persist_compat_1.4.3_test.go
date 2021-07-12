@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 
-	"github.com/phayes/freeport"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -150,8 +148,7 @@ func loadExistingHostWithNewDeps(modulesDir, siaMuxDir, hostDir string) (closeFn
 	}
 
 	// Create the host.
-	port, _ := freeport.GetFreePort()
-	h, err := NewCustomHost(modules.ProdDependencies, cs, g, tp, w, mux, "localhost:0", hostDir, ":"+strconv.Itoa(port))
+	h, err := NewCustomHost(modules.ProdDependencies, cs, g, tp, w, mux, "localhost:0", hostDir, ":0")
 	if err != nil {
 		return nil, nil, errors.AddContext(err, "Error creating host")
 	}

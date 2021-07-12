@@ -5,14 +5,10 @@ import (
 	"math"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"sync"
 	"time"
 
-	"github.com/phayes/freeport"
-
 	"gitlab.com/NebulousLabs/errors"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/host/contractmanager"
@@ -194,25 +190,22 @@ func NewGroupFromTemplate(groupDir string, groupParams GroupParams) (*TestGroup,
 	var params []node.NodeParams
 	// Create host params
 	for i := 0; i < groupParams.Hosts; i++ {
-		port, _ := freeport.GetFreePort()
 		template := node.HostTemplate
-		template.HostAPIAddr = ":" + strconv.Itoa(port)
+		template.HostAPIAddr = ":0"
 		params = append(params, template)
 		randomNodeDir(groupDir, &params[len(params)-1])
 	}
 	// Create renter params
 	for i := 0; i < groupParams.Renters; i++ {
-		port, _ := freeport.GetFreePort()
 		template := node.RenterTemplate
-		template.HostAPIAddr = ":" + strconv.Itoa(port)
+		template.HostAPIAddr = ":0"
 		params = append(params, template)
 		randomNodeDir(groupDir, &params[len(params)-1])
 	}
 	// Create miner params
 	for i := 0; i < groupParams.Miners; i++ {
-		port, _ := freeport.GetFreePort()
 		template := node.MinerTemplate
-		template.HostAPIAddr = ":" + strconv.Itoa(port)
+		template.HostAPIAddr = ":0"
 		params = append(params, template)
 		randomNodeDir(groupDir, &params[len(params)-1])
 	}
@@ -526,8 +519,7 @@ func waitForContracts(miner *TestNode, renters map[*TestNode]struct{}, hosts map
 func (tg *TestGroup) AddNodeN(np node.NodeParams, n int) ([]*TestNode, error) {
 	nps := make([]node.NodeParams, n)
 	for i := 0; i < n; i++ {
-		port, _ := freeport.GetFreePort()
-		np.HostAPIAddr = ":" + strconv.Itoa(port)
+		np.HostAPIAddr = ":0"
 		nps[i] = np
 	}
 	return tg.AddNodes(nps...)
