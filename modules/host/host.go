@@ -79,6 +79,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/host/api"
 	"gitlab.com/scpcorp/ScPrime/modules/host/contractmanager"
 	"gitlab.com/scpcorp/ScPrime/modules/host/mdm"
 	"gitlab.com/scpcorp/ScPrime/modules/host/tokenstorage"
@@ -193,7 +194,7 @@ type Host struct {
 	lockedStorageObligations map[types.FileContractID]*lockedObligation
 
 	// Storage of tokens for prepaid downloads.
-	tokenStor *tokenstorage.TokenStorage
+	TokenStor *tokenstorage.TokenStorage
 
 	// A collection of rpc price tables, covered by its own RW mutex. It
 	// contains the host's current price table and the set of price tables the
@@ -408,7 +409,7 @@ func (h *Host) threadedPruneExpiredPriceTables() {
 // mocked such that the dependencies can return unexpected errors or unique
 // behaviors during testing, enabling easier testing of the failure modes of
 // the Host.
-func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, listenerAddress string, persistDir string) (*Host, error) {
+func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, listenerAddress, persistDir, hostAPIPort string) (*Host, error) {
 	// Check that all the dependencies were provided.
 	if cs == nil {
 		return nil, errNilCS
@@ -469,12 +470,12 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Initialize token storage.
 	// TODO: the current version of tokens storage does not support reverting blocks.
 	// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
-	h.tokenStor, err = tokenstorage.NewTokenStorage(tokenStorageDir)
+	h.TokenStor, err = tokenstorage.NewTokenStorage(tokenStorageDir)
 	if err != nil {
 		return nil, errors.AddContext(err, "Could not initialize token storage")
 	}
 	h.tg.AfterStop(func() {
-		err = h.tokenStor.Close(context.Background())
+		err = h.TokenStor.Close(context.Background())
 		if err != nil {
 			fmt.Println("Error when closing token storage:", err)
 		}
@@ -557,24 +558,38 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Ensure the expired RPC tables get pruned as to not leak memory
 	go h.threadedPruneExpiredPriceTables()
 
+	//	Initialize and run host API
+	hostApi := api.NewAPI(hostAPIPort, h.TokenStor, h.StorageManager, h.secretKey)
+	err = hostApi.Start()
+	if err != nil {
+		h.log.Println("Could not start host api:", err)
+		return nil, err
+	}
+	h.tg.AfterStop(func() {
+		err = hostApi.Close()
+		if err != nil {
+			h.log.Println("Could not stop host API:", err)
+			err = errors.AddContext(err, "Could not stop host API")
+		}
+	})
 	return h, nil
 }
 
 // New returns an initialized Host.
-func New(cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address string, persistDir string) (*Host, error) {
-	return newHost(modules.ProdDependencies, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir)
+func New(cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir, hostAPIPort string) (*Host, error) {
+	return newHost(modules.ProdDependencies, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIPort)
 }
 
 // NewCustomHost returns an initialized Host using the provided dependencies.
-func NewCustomHost(deps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address string, persistDir string) (*Host, error) {
-	return newHost(deps, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir)
+func NewCustomHost(deps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir, hostAPIPort string) (*Host, error) {
+	return newHost(deps, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIPort)
 }
 
 // NewCustomTestHost allows passing in both host dependencies and storage
 // manager dependencies. Used solely for testing purposes, to allow dependency
 // injection into the host's submodules.
-func NewCustomTestHost(deps modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address string, persistDir string) (*Host, error) {
-	return newHost(deps, smDeps, cs, g, tpool, wallet, mux, address, persistDir)
+func NewCustomTestHost(deps modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir, hostAPIPort string) (*Host, error) {
+	return newHost(deps, smDeps, cs, g, tpool, wallet, mux, address, persistDir, hostAPIPort)
 }
 
 // Close shuts down the host.

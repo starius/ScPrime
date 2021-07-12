@@ -7,9 +7,12 @@ import (
 	"io/ioutil"
 	"net/url"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/phayes/freeport"
+	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -20,8 +23,6 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/renter"
 	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
 	"gitlab.com/scpcorp/ScPrime/modules/wallet"
-
-	"gitlab.com/NebulousLabs/ratelimit"
 )
 
 // TestHostDBHostsActiveHandler checks the behavior of the call to
@@ -309,7 +310,8 @@ func assembleHostPort(key crypto.CipherKey, hostHostname string, testdir string)
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.New(cs, g, tp, w, mux, hostHostname, filepath.Join(testdir, modules.HostDir))
+	port, _ := freeport.GetFreePort()
+	h, err := host.New(cs, g, tp, w, mux, hostHostname, filepath.Join(testdir, modules.HostDir), ":"+strconv.Itoa(port))
 	if err != nil {
 		return nil, err
 	}

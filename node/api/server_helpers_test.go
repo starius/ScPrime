@@ -9,14 +9,15 @@ import (
 	"net/url"
 	"path/filepath"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/phayes/freeport"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/NebulousLabs/threadgroup"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/config"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -215,7 +216,8 @@ func assembleServerTesterWithDeps(key crypto.CipherKey, testdir string, gDeps, c
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.NewCustomHost(hDeps, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	port, _ := freeport.GetFreePort()
+	h, err := host.NewCustomHost(hDeps, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":"+strconv.Itoa(port))
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +332,8 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.New(cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	port, _ := freeport.GetFreePort()
+	h, err := host.New(cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":"+strconv.Itoa(port))
 	if err != nil {
 		return nil, err
 	}

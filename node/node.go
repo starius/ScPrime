@@ -132,6 +132,8 @@ type NodeParams struct {
 
 	// Configuration settings for the Mining pool.
 	PoolConfig config.MiningPoolConfig
+
+	HostAPIAddr string
 }
 
 // Node is a collection of ScPrime modules operating together as a ScPrime node.
@@ -518,7 +520,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		}
 		i++
 		printfRelease("(%d/%d) Loading host...", i, numModules)
-		host, err := host.NewCustomTestHost(hostDeps, smDeps, cs, g, tp, w, mux, params.HostAddress, filepath.Join(dir, modules.HostDir))
+		host, err := host.NewCustomTestHost(hostDeps, smDeps, cs, g, tp, w, mux, params.HostAddress, filepath.Join(dir, modules.HostDir), params.HostAPIAddr)
 		return host, err
 	}()
 	if err != nil {

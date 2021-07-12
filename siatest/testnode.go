@@ -5,10 +5,13 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/phayes/freeport"
 
 	"gitlab.com/NebulousLabs/errors"
 
@@ -120,6 +123,9 @@ func NewCleanNodeAsync(nodeParams node.NodeParams) (*TestNode, error) {
 func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error) {
 	userAgent := "ScPrime-Agent"
 	password := "password"
+
+	port, _ := freeport.GetFreePort()
+	nodeParams.HostAPIAddr = ":" + strconv.Itoa(port)
 
 	// Check if an RPC address is set
 	if nodeParams.RPCAddress == "" {

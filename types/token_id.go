@@ -1,6 +1,9 @@
 package types
 
-import "fmt"
+import (
+	"encoding/hex"
+	"fmt"
+)
 
 const (
 	tokenNameSize = 16
@@ -12,4 +15,12 @@ type TokenID [tokenNameSize]byte
 // String prints the id in hex.
 func (t TokenID) String() string {
 	return fmt.Sprintf("%x", t[:])
+}
+
+// ParseToken parse token from string
+func ParseToken(t string) TokenID {
+	tokenBytes, _ := hex.DecodeString(t)
+	var token [16]byte
+	copy(token[:], tokenBytes[:])
+	return token
 }

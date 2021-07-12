@@ -1,5 +1,11 @@
 package node
 
+import (
+	"strconv"
+
+	"github.com/phayes/freeport"
+)
+
 // templates.go contains a bunch of sane default templates that you can use to
 // create ScPrime nodes.
 
@@ -125,6 +131,8 @@ func Gateway(dir string) NodeParams {
 func Host(dir string) NodeParams {
 	template := HostTemplate
 	template.Dir = dir
+	port, _ := freeport.GetFreePort()
+	template.HostAPIAddr = ":" + strconv.Itoa(port)
 	return template
 }
 

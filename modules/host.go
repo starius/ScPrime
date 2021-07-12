@@ -1,6 +1,10 @@
 package modules
 
 import (
+	"crypto/ed25519"
+	"crypto/tls"
+	"fmt"
+	"net/http"
 	"time"
 
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -525,5 +529,28 @@ func DefaultHostExternalSettings() HostExternalSettings {
 		MaxEphemeralAccountBalance: DefaultMaxEphemeralAccountBalance,
 
 		Version: build.Version,
+	}
+}
+
+// GetHostApiClient return http Client for host API
+func GetHostApiClient(pk types.SiaPublicKey) *http.Client {
+	return &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true, //nolint:gosec // Not to require root CA signature.
+				VerifyConnection: func(state tls.ConnectionState) error {
+					if len(state.PeerCertificates) != 1 {
+						return fmt.Errorf("want 1 cert")
+					}
+					if string(state.PeerCertificates[0].PublicKey.(ed25519.PublicKey)) != string(pk.Key) {
+						return fmt.Errorf("wrong cert")
+					}
+					return nil
+				},
+			},
+		},
 	}
 }
