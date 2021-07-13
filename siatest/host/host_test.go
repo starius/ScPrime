@@ -618,6 +618,7 @@ func TestStorageProofEmptyContract(t *testing.T) {
 
 	// Prevent contract renewals to make sure the revision number stays at 1.
 	rt := node.RenterTemplate
+	rt.HostAPIAddr = ":0"
 	rt.ContractorDeps = &dependencies.DependencyDisableRenewal{}
 	_, err = tg.AddNodeN(rt, 2)
 	if err != nil {

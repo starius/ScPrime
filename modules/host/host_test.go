@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
-
 	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/NebulousLabs/siamux/mux"
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -159,7 +158,7 @@ func blankMockHostTester(d modules.Dependencies, name string) (*hostTester, erro
 	if err != nil {
 		return nil, err
 	}
-	h, err := NewCustomHost(d, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := NewCustomHost(d, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":0")
 	if err != nil {
 		return nil, err
 	}
@@ -1038,7 +1037,7 @@ func TestHostMultiClose(t *testing.T) {
 	// Set ht.host to something non-nil - nil was returned because startup was
 	// incomplete. If ht.host is nil at the end of the function, the ht.Close()
 	// operation will fail.
-	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
+	ht.host, err = NewCustomHost(modules.ProdDependencies, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1057,19 +1056,22 @@ func TestNilValues(t *testing.T) {
 	defer ht.Close()
 
 	hostDir := filepath.Join(ht.persistDir, modules.HostDir)
-	_, err = New(nil, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", hostDir)
+	_, err = New(nil, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", hostDir, ":0")
 	if err != errNilCS {
 		t.Fatal("could not trigger errNilCS")
 	}
-	_, err = New(ht.cs, nil, ht.tpool, ht.wallet, ht.mux, "localhost:0", hostDir)
+
+	_, err = New(ht.cs, nil, ht.tpool, ht.wallet, ht.mux, "localhost:0", hostDir, ":0")
 	if err != errNilGateway {
 		t.Fatal("Could not trigger errNilGateay")
 	}
-	_, err = New(ht.cs, ht.gateway, nil, ht.wallet, ht.mux, "localhost:0", hostDir)
+
+	_, err = New(ht.cs, ht.gateway, nil, ht.wallet, ht.mux, "localhost:0", hostDir, ":0")
 	if err != errNilTpool {
 		t.Fatal("could not trigger errNilTpool")
 	}
-	_, err = New(ht.cs, ht.gateway, ht.tpool, nil, ht.mux, "localhost:0", hostDir)
+
+	_, err = New(ht.cs, ht.gateway, ht.tpool, nil, ht.mux, "localhost:0", hostDir, ":0")
 	if err != errNilWallet {
 		t.Fatal("Could not trigger errNilWallet")
 	}
@@ -1188,7 +1190,7 @@ func TestSetAndGetInternalSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rebootHost, err := New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
+	rebootHost, err := New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != nil {
 		t.Fatal(err)
 	}

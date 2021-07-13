@@ -51,5 +51,6 @@ func parseModules(config Config) node.NodeParams {
 	params.SiaMuxTCPAddress = config.Spd.SiaMuxTCPAddr
 	params.SiaMuxWSAddress = config.Spd.SiaMuxWSAddr
 	params.Dir = config.Spd.DataDir
+	params.HostAPIAddr = config.Spd.HostApiAddr
 	return params
 }

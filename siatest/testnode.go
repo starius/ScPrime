@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/node"
@@ -120,6 +119,8 @@ func NewCleanNodeAsync(nodeParams node.NodeParams) (*TestNode, error) {
 func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error) {
 	userAgent := "ScPrime-Agent"
 	password := "password"
+
+	nodeParams.HostAPIAddr = ":0"
 
 	// Check if an RPC address is set
 	if nodeParams.RPCAddress == "" {

@@ -6,13 +6,11 @@ import (
 	"testing"
 
 	"gitlab.com/NebulousLabs/errors"
-
+	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 // TestStorageProof checks that the host can create and submit a storage proof.
@@ -177,7 +175,7 @@ func TestIntegrationAutoRescan(t *testing.T) {
 
 	// Create a new host and check that the persist variables have correctly
 	// reset.
-	h, err := New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir))
+	h, err := New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
 	if err != nil {
 		t.Fatal(err)
 	}

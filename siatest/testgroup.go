@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/host/contractmanager"
@@ -191,17 +190,23 @@ func NewGroupFromTemplate(groupDir string, groupParams GroupParams) (*TestGroup,
 	var params []node.NodeParams
 	// Create host params
 	for i := 0; i < groupParams.Hosts; i++ {
-		params = append(params, node.HostTemplate)
+		template := node.HostTemplate
+		template.HostAPIAddr = ":0"
+		params = append(params, template)
 		randomNodeDir(groupDir, &params[len(params)-1])
 	}
 	// Create renter params
 	for i := 0; i < groupParams.Renters; i++ {
-		params = append(params, node.RenterTemplate)
+		template := node.RenterTemplate
+		template.HostAPIAddr = ":0"
+		params = append(params, template)
 		randomNodeDir(groupDir, &params[len(params)-1])
 	}
 	// Create miner params
 	for i := 0; i < groupParams.Miners; i++ {
-		params = append(params, node.MinerTemplate)
+		template := node.MinerTemplate
+		template.HostAPIAddr = ":0"
+		params = append(params, template)
 		randomNodeDir(groupDir, &params[len(params)-1])
 	}
 	return NewGroup(groupDir, params...)
@@ -514,6 +519,7 @@ func waitForContracts(miner *TestNode, renters map[*TestNode]struct{}, hosts map
 func (tg *TestGroup) AddNodeN(np node.NodeParams, n int) ([]*TestNode, error) {
 	nps := make([]node.NodeParams, n)
 	for i := 0; i < n; i++ {
+		np.HostAPIAddr = ":0"
 		nps[i] = np
 	}
 	return tg.AddNodes(nps...)

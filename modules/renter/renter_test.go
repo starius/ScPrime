@@ -10,7 +10,6 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/NebulousLabs/siamux"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -62,7 +61,7 @@ func (rt *renterTester) addCustomHost(testdir string, deps modules.Dependencies)
 		return nil, errors.AddContext(err, "Failed to create SiaMux")
 	}
 
-	h, err := host.NewCustomHost(deps, rt.cs, rt.gateway, rt.tpool, rt.wallet, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := host.NewCustomHost(deps, rt.cs, rt.gateway, rt.tpool, rt.wallet, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":0")
 	if err != nil {
 		return nil, errors.AddContext(err, "Failed to create host")
 	}

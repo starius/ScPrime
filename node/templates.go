@@ -125,6 +125,7 @@ func Gateway(dir string) NodeParams {
 func Host(dir string) NodeParams {
 	template := HostTemplate
 	template.Dir = dir
+	template.HostAPIAddr = ":0"
 	return template
 }
 

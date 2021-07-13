@@ -16,7 +16,6 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/NebulousLabs/threadgroup"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/config"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -215,7 +214,7 @@ func assembleServerTesterWithDeps(key crypto.CipherKey, testdir string, gDeps, c
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.NewCustomHost(hDeps, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := host.NewCustomHost(hDeps, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":0")
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +329,7 @@ func assembleAuthenticatedServerTester(requiredPassword string, key crypto.Ciphe
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.New(cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := host.New(cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":0")
 	if err != nil {
 		return nil, err
 	}

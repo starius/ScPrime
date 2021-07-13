@@ -18,7 +18,6 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -1053,7 +1052,9 @@ func TestLocalRepairCorrupted(t *testing.T) {
 	// repair.
 	for hostsRemoved > 0 {
 		hostsRemoved--
-		_, err = tg.AddNodes(node.HostTemplate)
+		nodeTemplate := node.HostTemplate
+		nodeTemplate.HostAPIAddr = ":0"
+		_, err = tg.AddNodes(nodeTemplate)
 		if err != nil {
 			t.Fatal("Failed to create a new host", err)
 		}
@@ -1082,7 +1083,9 @@ func TestLocalRepairCorrupted(t *testing.T) {
 	// Bring a host back online so that the file can be repaired to be
 	// available. Because the local file is corrupt, the repair should be
 	// blocked.
-	_, err = tg.AddNodes(node.HostTemplate)
+	nodeTemplate := node.HostTemplate
+	nodeTemplate.HostAPIAddr = ":0"
+	_, err = tg.AddNodes(nodeTemplate)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -14,7 +14,6 @@ import (
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/NebulousLabs/siamux"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -78,7 +77,7 @@ func newCustomTestingHost(testdir string, cs modules.ConsensusSet, tp modules.Tr
 	if err != nil {
 		return nil, nil, err
 	}
-	h, err := host.NewCustomHost(deps, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir))
+	h, err := host.NewCustomHost(deps, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":0")
 	if err != nil {
 		return nil, nil, err
 	}
