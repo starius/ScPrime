@@ -15,8 +15,8 @@ import (
 var (
 	alertsCmd = &cobra.Command{
 		Use:   "alerts",
-		Short: "view daemon alerts",
-		Long:  "view daemon alerts",
+		Short: "View daemon alerts",
+		Long:  "View daemon alerts",
 		Run:   wrap(alertscmd),
 	}
 

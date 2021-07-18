@@ -317,7 +317,7 @@ func assembleHostPort(key crypto.CipherKey, hostHostname string, testdir string)
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
-	srv, err := NewServer(testdir, "localhost:0", "ScPrime-Agent", "", cs, nil, nil, g, h, m, r, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "localhost:0", "ScPrime-Agent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -26,9 +26,6 @@ var (
 	// Daemon Flags
 	daemonStackOutputFile string // The file that the stack trace will be written to
 
-	// FeeManager Flags
-	feeManagerVerbose bool // display additional info for the FeeManager
-
 	// Host Flags
 	hostContractOutputType string // output type for host contracts
 	hostFolderRemoveForce  bool   // force folder remove
@@ -300,13 +297,6 @@ func initCmds() *cobra.Command {
 	// create command tree (alphabetized by root command)
 	root.AddCommand(consensusCmd)
 	consensusCmd.Flags().BoolVarP(&consensusCmdVerbose, "verbose", "v", false, "Display full consensus information")
-
-	// Add feemanager commands
-	root.AddCommand(feeManagerCmd)
-	feeManagerCmd.AddCommand(feeManagerCancelFeeCmd)
-
-	// Add flags to FeeManager commands
-	feeManagerCmd.Flags().BoolVarP(&feeManagerVerbose, "verbose", "v", false, "Show additional FeeManager info such as paid fees")
 
 	root.AddCommand(gatewayCmd)
 	gatewayCmd.AddCommand(gatewayAddressCmd, gatewayBandwidthCmd, gatewayBlocklistCmd, gatewayConnectCmd, gatewayDisconnectCmd, gatewayListCmd, gatewayRatelimitCmd)

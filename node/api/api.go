@@ -110,7 +110,6 @@ type (
 	API struct {
 		cs                  modules.ConsensusSet
 		explorer            modules.Explorer
-		feemanager          modules.FeeManager
 		gateway             modules.Gateway
 		host                modules.Host
 		miner               modules.Miner
@@ -143,7 +142,6 @@ type (
 	configModules struct {
 		Consensus       bool `json:"consensus"`
 		Explorer        bool `json:"explorer"`
-		FeeManager      bool `json:"feemanager"`
 		Gateway         bool `json:"gateway"`
 		Host            bool `json:"host"`
 		Miner           bool `json:"miner"`
@@ -163,13 +161,12 @@ func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // SetModules allows for replacing the modules in the API at runtime.
-func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner) {
+func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner) {
 	if api.modulesSet {
 		build.Critical("can't call SetModules more than once")
 	}
 	api.cs = cs
 	api.explorer = e
-	api.feemanager = fm
 	api.gateway = g
 	api.host = h
 	api.miner = m
@@ -181,7 +178,6 @@ func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, fm modul
 	api.staticConfigModules = configModules{
 		Consensus:       api.cs != nil,
 		Explorer:        api.explorer != nil,
-		FeeManager:      api.feemanager != nil,
 		Gateway:         api.gateway != nil,
 		Host:            api.host != nil,
 		Miner:           api.miner != nil,
@@ -203,8 +199,8 @@ func (api *API) StartTime() time.Time {
 // New creates a new ScPrime API from the provided modules.  The API will require
 // authentication using HTTP basic auth for certain endpoints of the supplied
 // password is not the empty string.  Usernames are ignored for authentication.
-func New(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner, index modules.Index) *API {
-	return NewCustom(cfg, requiredUserAgent, requiredPassword, cs, e, fm, g, h, m, r, tp, w, p, sm, index, modules.ProdDependencies)
+func New(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner, index modules.Index) *API {
+	return NewCustom(cfg, requiredUserAgent, requiredPassword, cs, e, g, h, m, r, tp, w, p, sm, index, modules.ProdDependencies)
 }
 
 // NewCustom creates a new Sia API from the provided modules. The API will
@@ -212,11 +208,10 @@ func New(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword stri
 // supplied password is not the empty string. Usernames are ignored for
 // authentication. It is custom because it allows to inject custom dependencies
 // into the API.
-func NewCustom(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, fm modules.FeeManager, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner, index modules.Index, a modules.Dependencies) *API {
+func NewCustom(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner, index modules.Index, a modules.Dependencies) *API {
 	api := &API{
 		cs:                cs,
 		explorer:          e,
-		feemanager:        fm,
 		gateway:           g,
 		host:              h,
 		miner:             m,

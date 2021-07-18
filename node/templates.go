@@ -9,25 +9,10 @@ var (
 	AllModulesTemplate = NodeParams{
 		CreateConsensusSet:    true,
 		CreateExplorer:        false, // TODO: Implement explorer.
-		CreateFeeManager:      true,
 		CreateGateway:         true,
 		CreateHost:            true,
 		CreateMiner:           true,
 		CreateRenter:          true,
-		CreateTransactionPool: true,
-		CreateWallet:          true,
-	}
-	// FeeManagerTemplate is a template for a ScPrime node that has a functioning
-	// FeeManager. The node has a FeeManager and all dependencies, but no other
-	// modules.
-	FeeManagerTemplate = NodeParams{
-		CreateConsensusSet:    true,
-		CreateExplorer:        false,
-		CreateFeeManager:      true,
-		CreateGateway:         true,
-		CreateHost:            false,
-		CreateMiner:           false,
-		CreateRenter:          false,
 		CreateTransactionPool: true,
 		CreateWallet:          true,
 	}
@@ -36,7 +21,6 @@ var (
 	GatewayTemplate = NodeParams{
 		CreateConsensusSet:    false,
 		CreateExplorer:        false,
-		CreateFeeManager:      false,
 		CreateGateway:         true,
 		CreateHost:            false,
 		CreateMiner:           false,
@@ -49,7 +33,6 @@ var (
 	HostTemplate = NodeParams{
 		CreateConsensusSet:    true,
 		CreateExplorer:        false,
-		CreateFeeManager:      false,
 		CreateGateway:         true,
 		CreateHost:            true,
 		CreateMiner:           false,
@@ -62,7 +45,6 @@ var (
 	MinerTemplate = NodeParams{
 		CreateConsensusSet:    true,
 		CreateExplorer:        false,
-		CreateFeeManager:      false,
 		CreateGateway:         true,
 		CreateHost:            false,
 		CreateMiner:           true,
@@ -76,7 +58,6 @@ var (
 	RenterTemplate = NodeParams{
 		CreateConsensusSet:    true,
 		CreateExplorer:        false,
-		CreateFeeManager:      false,
 		CreateGateway:         true,
 		CreateHost:            false,
 		CreateMiner:           false,
@@ -90,7 +71,6 @@ var (
 	WalletTemplate = NodeParams{
 		CreateConsensusSet:    true,
 		CreateExplorer:        false,
-		CreateFeeManager:      false,
 		CreateGateway:         true,
 		CreateHost:            false,
 		CreateMiner:           false,
@@ -103,13 +83,6 @@ var (
 // AllModules returns an AllModulesTemplate filled out with the provided dir.
 func AllModules(dir string) NodeParams {
 	template := AllModulesTemplate
-	template.Dir = dir
-	return template
-}
-
-// FeeManager returns a FeeManagerTemplate filled out with the provided dir.
-func FeeManager(dir string) NodeParams {
-	template := FeeManagerTemplate
 	template.Dir = dir
 	return template
 }

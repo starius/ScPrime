@@ -10,6 +10,9 @@ Version History
 ---------------
 
 Latest:
+### v1.5.4
+- Remove NebulousLabs feemanager module
+
 
 ### v1.5.0
 **Key Updates**
