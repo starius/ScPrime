@@ -35,7 +35,7 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	length := 128
 
 	req := &api.DownloadWithTokenRequest{
-		TokenHex: tokenID.String(),
+		Authorization: api.Authorization{HostToken: tokenID.String()},
 		Ranges: []api.Range{{
 			MerkleRoot:  root,
 			MerkleProof: true,
@@ -102,5 +102,76 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	}
 	if !bytes.Equal(resp.Sections[0].Data, sectorData[offset:offset+length]) {
 		t.Fatal("incorrect resp data")
+	}
+}
+
+func TestApi_UploadWithToken(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+	host, _ := blankMockHostTester(modules.ProdDependencies, t.Name())
+	defer host.Close()
+	hostApi := api.NewAPI("", host.host.TokenStor, host.host.StorageManager, host.host.secretKey)
+
+	// generate token
+	b := fastrand.Bytes(16)
+	var tokenID types.TokenID
+	copy(tokenID[:], b)
+
+	// error empty sectors
+	req := &api.UploadWithTokenRequest{
+		Authorization: api.Authorization{HostToken: tokenID.String()},
+		Sectors:       nil,
+	}
+	_, err := hostApi.UploadWithToken(context.Background(), req)
+	cErr := err.(*api.UploadWithTokenError)
+	if !cErr.DataLengthIsZero {
+		t.Fatal("should be 'data length is zero' error")
+	}
+
+	// generate sector with incorrect size
+	sectorData := fastrand.Bytes(10)
+	req.Sectors = [][]byte{sectorData}
+	_, err = hostApi.UploadWithToken(context.Background(), req)
+	cErr = err.(*api.UploadWithTokenError)
+	if !cErr.IncorrectSectorSize {
+		t.Fatal("should be 'incorrect sector size' error")
+	}
+
+	//	generate 10 sectors with correct size
+	req.Sectors = nil
+	for i := 0; i < 10; i++ {
+		req.Sectors = append(req.Sectors, fastrand.Bytes(int(modules.SectorSize)))
+	}
+	_, err = hostApi.UploadWithToken(context.Background(), req)
+	cErr = err.(*api.UploadWithTokenError)
+	if !cErr.NotEnoughBytes {
+		t.Fatal("should be 'not enough bytes' error")
+	}
+
+	err = host.host.TokenStor.AddResources(tokenID, modules.UploadBytes, 41943041)
+	_, err = hostApi.UploadWithToken(context.Background(), req)
+	cErr = err.(*api.UploadWithTokenError)
+	if !cErr.NotEnoughStorage {
+		t.Fatal("should be 'not enough storage' error")
+	}
+
+	// correct case
+	// add storage resource
+	err = host.host.TokenStor.AddResources(tokenID, modules.Storage, 100)
+	// create storage folder
+	storageFolderOne := filepath.Join(host.host.persistDir, "hostTesterStorageFolderOne")
+	err = os.Mkdir(storageFolderOne, 0700)
+	if err != nil {
+		t.Fatal("error creating storage folder")
+	}
+	err = host.host.AddStorageFolder(storageFolderOne, modules.SectorSize*64)
+	if err != nil {
+		t.Fatal("error adding storage folder")
+	}
+	_, err = hostApi.UploadWithToken(context.Background(), req)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

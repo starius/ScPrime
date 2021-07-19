@@ -25,6 +25,8 @@ import (
 type TokenStorage interface {
 	TokenRecord(id types.TokenID) (tokenstorage.TokenRecord, error)
 	RecordDownload(id types.TokenID, downloadBytes, sectorAccesses int64) error
+	AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error
+	EnoughStorageResource(id types.TokenID, sectorsNum uint64) (bool, error)
 }
 
 // API represent host API

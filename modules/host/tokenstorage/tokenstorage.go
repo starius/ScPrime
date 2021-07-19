@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/host/tokenstorage/tokenstate"
 	"gitlab.com/scpcorp/ScPrime/types"
 	"gitlab.com/zer0main/eventsourcing"
@@ -20,11 +21,19 @@ import (
 
 const persistDelay = 1 * time.Second
 
+// TokenStorageInfo represent data about storage resource
+type TokenStorageInfo struct {
+	Storage        uint64 // sectors * second
+	LastChangeTime time.Time
+	SectorsNum     uint64
+}
+
 // TokenRecord include information about token record
 type TokenRecord struct {
-	DownloadBytes  int64
-	UploadBytes    int64
-	SectorAccesses int64
+	DownloadBytes    int64
+	UploadBytes      int64
+	SectorAccesses   int64
+	TokenStorageInfo TokenStorageInfo
 }
 
 type storage interface {
@@ -55,8 +64,11 @@ func NewTokenStorage(dir string) (*TokenStorage, error) {
 	}
 
 	var state *tokenstate.State
-	err := storage.LoadMeta(ctx, func(r io.Reader) error {
-		state = tokenstate.NewState(dir)
+	state, err := tokenstate.NewState(dir)
+	if err != nil {
+		return nil, err
+	}
+	err = storage.LoadMeta(ctx, func(r io.Reader) error {
 		return state.LoadHistory(r)
 	})
 	if err != nil {
@@ -74,11 +86,14 @@ func (t *TokenStorage) Close(ctx context.Context) error {
 	t.stateMu.Lock()
 	t.closed = true
 	t.stateMu.Unlock()
-
-	if err := t.drainEventsQueue(); err != nil {
+	err := t.state.Close()
+	if err != nil {
+		return err
+	}
+	if err = t.drainEventsQueue(); err != nil {
 		return fmt.Errorf("drainEventsQueue: %w", err)
 	}
-	if err := t.storage.Unlock(ctx); err != nil {
+	if err = t.storage.Unlock(ctx); err != nil {
 		return fmt.Errorf("failed to unlock: %w", err)
 	}
 	return nil
@@ -105,6 +120,11 @@ func (t *TokenStorage) TokenRecord(id types.TokenID) (TokenRecord, error) {
 		DownloadBytes:  record.DownloadBytes,
 		UploadBytes:    record.UploadBytes,
 		SectorAccesses: record.SectorAccesses,
+		TokenStorageInfo: TokenStorageInfo{
+			Storage:        record.TokenInfo.Storage,
+			LastChangeTime: record.TokenInfo.LastChangeTime,
+			SectorsNum:     record.TokenInfo.SectorsNum,
+		},
 	}, nil
 }
 
@@ -119,7 +139,7 @@ func (t *TokenStorage) RecordDownload(id types.TokenID, downloadBytes, sectorAcc
 		TokenID:        id,
 		DownloadBytes:  downloadBytes,
 		SectorAccesses: sectorAccesses,
-	}})
+	}, Time: time.Now()})
 	return nil
 }
 
@@ -134,7 +154,7 @@ func (t *TokenStorage) AddResources(id types.TokenID, resourceType types.Specifi
 		TokenID:        id,
 		ResourceType:   resourceType,
 		ResourceAmount: amount,
-	}})
+	}, Time: time.Now()})
 	return nil
 }
 
@@ -147,9 +167,8 @@ func (t *TokenStorage) AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, ti
 	}
 	t.applyEvent(&tokenstate.Event{EventAddSectors: &tokenstate.EventAddSectors{
 		TokenID:    id,
-		SectorsIDs: sectorsIDs,
-		Time:       time,
-	}})
+		SectorsIDs: crypto.ConvertHashesToByteSlices(sectorsIDs),
+	}, Time: time})
 	return nil
 }
 
@@ -162,9 +181,8 @@ func (t *TokenStorage) RemoveSectors(id types.TokenID, sectorsIDs []crypto.Hash,
 	}
 	t.applyEvent(&tokenstate.Event{EventRemoveSectors: &tokenstate.EventRemoveSectors{
 		TokenID:    id,
-		SectorsIDs: sectorsIDs,
-		Time:       time,
-	}})
+		SectorsIDs: crypto.ConvertHashesToByteSlices(sectorsIDs),
+	}, Time: time})
 	return nil
 }
 
@@ -177,11 +195,21 @@ func (t *TokenStorage) AttachSectors(id types.TokenID, sectorsIDs []crypto.Hash,
 	}
 	t.applyEvent(&tokenstate.Event{EventAttachSectors: &tokenstate.EventAttachSectors{
 		TokenID:          id,
-		SectorsIDs:       sectorsIDs,
-		Time:             time,
+		SectorsIDs:       crypto.ConvertHashesToByteSlices(sectorsIDs),
 		IsDeletingNeeded: isDel,
-	}})
+	}, Time: time})
 	return nil
+}
+
+// EnoughStorageResource checks if there is enough storage resource on token to store existing
+// sectors and new ones, return false if not enough
+func (t *TokenStorage) EnoughStorageResource(id types.TokenID, sectorsNum uint64) (bool, error) {
+	t.stateMu.Lock()
+	defer t.stateMu.Unlock()
+	if t.closed {
+		return false, fmt.Errorf("token storage closed")
+	}
+	return t.state.EnoughStorageResource(id, sectorsNum), nil
 }
 
 // applyEvent applies an event to State and adds it to a queue to be added to metadata.json.
@@ -200,4 +228,48 @@ func (t *TokenStorage) applyEvent(event *tokenstate.Event) {
 			}
 		})
 	}
+}
+
+// CheckExpiration remove sectors from token when token storage resource ends
+func (t *TokenStorage) CheckExpiration(sm modules.StorageManager, frequency time.Duration, done chan bool) {
+	ticker := time.NewTicker(frequency)
+	for {
+		select {
+		case <-done:
+			ticker.Stop()
+			return
+
+		case <-ticker.C:
+			t.checkExpiration(sm)
+		}
+	}
+}
+
+func (t *TokenStorage) checkExpiration(sm modules.StorageManager) {
+	t.stateMu.Lock()
+	if t.closed {
+		t.stateMu.Unlock()
+		return
+	}
+	for token, record := range t.state.Tokens {
+		if record.TokenInfo.HasStorage(time.Now()) {
+			continue
+		}
+		sectors, err := t.state.GetSectors(token)
+		if err != nil {
+			continue
+		}
+
+		t.applyEvent(&tokenstate.Event{EventRemoveSectors: &tokenstate.EventRemoveSectors{
+			TokenID:    token,
+			SectorsIDs: crypto.ConvertHashesToByteSlices(sectors),
+		}, Time: time.Now()})
+		for _, sec := range sectors {
+			err = sm.DeleteSector(sec)
+			if err != nil {
+				continue
+			}
+		}
+	}
+	t.stateMu.Unlock()
 }

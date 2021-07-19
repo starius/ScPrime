@@ -12,11 +12,10 @@ import (
 
 	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/fastrand"
-	"golang.org/x/crypto/chacha20poly1305"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/types"
+	"golang.org/x/crypto/chacha20poly1305"
 )
 
 const (
@@ -446,12 +445,10 @@ var (
 
 // Token resources
 var (
-	DownloadBytes   = types.NewSpecifier("DownloadBytes")
-	UploadBytes     = types.NewSpecifier("UploadBytes")
-	SectorAccesses  = types.NewSpecifier("SectorAccesses")
-	KeyValueSets    = types.NewSpecifier("KeyValueSets")
-	KeyValueGets    = types.NewSpecifier("KeyValueGets")
-	KeyValueDeletes = types.NewSpecifier("KeyValueDeletes")
+	DownloadBytes  = types.NewSpecifier("DownloadBytes")
+	UploadBytes    = types.NewSpecifier("UploadBytes")
+	SectorAccesses = types.NewSpecifier("SectorAccesses")
+	Storage        = types.NewSpecifier("Storage")
 )
 
 // New RPC request and response types
@@ -1059,4 +1056,10 @@ func RenterPayoutsPreTax(host HostDBEntry, funding, txnFee, basePrice, baseColla
 	// Calculate hostPayout.
 	hostPayout = hostCollateral.Add(host.ContractPrice).Add(basePrice)
 	return
+}
+
+// CalculateSectorsSecondPrice takes storage price and sector size and calculate price in sectors * seconds units
+func CalculateSectorsSecondPrice(storagePrice types.Currency, sectorSize uint64) types.Currency {
+	var sec uint64 = 600 // 1 block == 10 min, 10 min == 600 seconds
+	return storagePrice.Div64(sec).Mul64(sectorSize)
 }

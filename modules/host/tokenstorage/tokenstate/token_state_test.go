@@ -20,8 +20,9 @@ func encodeState(state *State) (result stateForCmp) {
 }
 
 func TestState(t *testing.T) {
+	s, _ := NewState("")
 	stateGen := func() eventsourcing.StateLoader {
-		return NewState("")
+		return s
 	}
 	encoderForCmp := func(state interface{}) interface{} {
 		return encodeState(state.(*State))

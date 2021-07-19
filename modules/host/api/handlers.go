@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/bits"
+	"time"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -17,7 +18,7 @@ func (a *API) DownloadWithToken(ctx context.Context, req *DownloadWithTokenReque
 		return nil, &DownloadWithTokenError{UnknownError: err.Error()}
 	}
 	// Make sure token has enough resources to handle this call.
-	id := types.ParseToken(req.TokenHex)
+	id := types.ParseToken(req.Authorization.HostToken)
 	estBandwidth := estimateBandwidth(req.Ranges)
 	sectorAccesses := estimateSectorsAccesses(req.Ranges)
 	enoughBytes := true
@@ -46,7 +47,7 @@ func (a *API) DownloadWithToken(ctx context.Context, req *DownloadWithTokenReque
 			NotEnoughBytes:          !enoughBytes,
 		}
 	}
-	if err := a.ts.RecordDownload(id, estBandwidth, sectorAccesses); err != nil {
+	if err = a.ts.RecordDownload(id, estBandwidth, sectorAccesses); err != nil {
 		return nil, &DownloadWithTokenError{UnknownError: err.Error()}
 	}
 	var resp DownloadWithTokenResponse
@@ -72,7 +73,64 @@ func (a *API) DownloadWithToken(ctx context.Context, req *DownloadWithTokenReque
 			MerkleProof: proof,
 		})
 	}
+	tokenResources, err = a.ts.TokenRecord(id)
+	if err != nil {
+		return nil, &DownloadWithTokenError{UnknownError: err.Error()}
+	}
+	// include updated information about token resources in response
+	resp.TokenRecord = toTokenRecord(tokenResources)
 	return &resp, nil
+}
+
+// UploadWithToken handler for /upload [POST] request
+func (a *API) UploadWithToken(ctx context.Context, req *UploadWithTokenRequest) (*UploadWithTokenResponse, error) {
+	if len(req.Sectors) == 0 {
+		return nil, &UploadWithTokenError{DataLengthIsZero: true}
+	}
+	id := types.ParseToken(req.Authorization.HostToken)
+	tr, err := a.ts.TokenRecord(id)
+	if err != nil {
+		return nil, &UploadWithTokenError{UnknownError: err.Error()}
+	}
+	var sectorsIDs []crypto.Hash
+	var totalBytes int64
+
+	for _, sector := range req.Sectors {
+		if uint64(len(sector)) != modules.SectorSize {
+			return nil, &UploadWithTokenError{IncorrectSectorSize: true}
+		}
+		newRoot := crypto.MerkleRoot(sector)
+		sectorsIDs = append(sectorsIDs, newRoot)
+		totalBytes += int64(len(sector))
+	}
+	if totalBytes > tr.UploadBytes {
+		return nil, &UploadWithTokenError{NotEnoughBytes: true, TokenRecord: toTokenRecord(tr)}
+	}
+	enoughResource, err := a.ts.EnoughStorageResource(id, uint64(len(sectorsIDs)))
+	if err != nil {
+		return nil, &UploadWithTokenError{UnknownError: err.Error()}
+	}
+	if !enoughResource {
+		return nil, &UploadWithTokenError{NotEnoughStorage: true, TokenRecord: toTokenRecord(tr)}
+	}
+
+	for _, sector := range req.Sectors {
+		newRoot := crypto.MerkleRoot(sector)
+		err = a.sm.AddSector(newRoot, sector)
+		if err != nil {
+			return nil, &UploadWithTokenError{UnknownError: err.Error()}
+		}
+	}
+	err = a.ts.AddSectors(id, sectorsIDs, time.Now())
+	if err != nil {
+		return nil, &UploadWithTokenError{UnknownError: err.Error()}
+	}
+	tr, err = a.ts.TokenRecord(id)
+	if err != nil {
+		return nil, &UploadWithTokenError{UnknownError: err.Error()}
+	}
+	// include updated information about token resources in response
+	return &UploadWithTokenResponse{TokenRecord: toTokenRecord(tr)}, nil
 }
 
 func validateSections(sections []Range) error {

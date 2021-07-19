@@ -49,6 +49,7 @@ require (
 	gitlab.com/zer0main/filestorage v0.0.0-20210603210652-2ee6eb57d4a3
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
+	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/net v0.0.0-20210421230115-4e50805a0758 // indirect
 	golang.org/x/sys v0.0.0-20210421221651-33663a62ff08 // indirect
 	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed // indirect

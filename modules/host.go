@@ -122,7 +122,7 @@ var (
 	// be locked away by only a few hundred file contracts. As the ecosystem
 	// matures, it is expected that the safe default for this value will
 	// increase quite a bit.
-	DefaultMaxCollateral = DefaultStoragePrice.Mul64(16) // 16 times the default storage price
+	DefaultMaxCollateral = DefaultCollateral.Mul64(DefaultMaxDuration).Mul(BytesPerTerabyte)
 
 	// DefaultContractPrice defines the default price of creating a contract
 	// with the host. The current default is 0.1. This was chosen since it is

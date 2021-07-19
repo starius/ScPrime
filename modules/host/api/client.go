@@ -34,3 +34,12 @@ func (c *Client) DownloadWithToken(ctx context.Context, req *DownloadWithTokenRe
 	}
 	return
 }
+
+func (c *Client) UploadWithToken(ctx context.Context, req *UploadWithTokenRequest) (res *UploadWithTokenResponse, err error) {
+	res = &UploadWithTokenResponse{}
+	err = c.api2client.Call(ctx, res, req)
+	if err != nil {
+		return nil, err
+	}
+	return
+}
