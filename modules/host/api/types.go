@@ -2,21 +2,20 @@ package api
 
 import (
 	"bytes"
-	"fmt"
 	"text/template"
 
-	"gitlab.com/scpcorp/ScPrime/modules/host/tokenstorage"
-
 	"gitlab.com/scpcorp/ScPrime/crypto"
+	"gitlab.com/scpcorp/ScPrime/modules/host/tokenstorage"
+	"gitlab.com/scpcorp/ScPrime/types"
 )
 
-// TokenStorageInfo represent info about token storage resource
+// TokenStorageInfo represent info about token storage resource.
 type TokenStorageInfo struct {
-	Storage    uint64 `json:"storage"` // sectors * second
+	Storage    int64  `json:"storage"` // sectors * second.
 	SectorsNum uint64 `json:"sectors_num"`
 }
 
-// TokenRecord include information about token record
+// TokenRecord include information about token record.
 type TokenRecord struct {
 	DownloadBytes  int64            `json:"download_bytes"`
 	UploadBytes    int64            `json:"upload_bytes"`
@@ -36,7 +35,7 @@ func toTokenRecord(record tokenstorage.TokenRecord) *TokenRecord {
 	}
 }
 
-// DownloadWithTokenError represent error message
+// DownloadWithTokenError represent error message.
 type DownloadWithTokenError struct {
 	NotEnoughSectorAccesses bool         `json:"not_enough_sector_accesses,omitempty"`
 	NotEnoughBytes          bool         `json:"not_enough_bytes,omitempty"`
@@ -44,19 +43,20 @@ type DownloadWithTokenError struct {
 	UnknownError            string       `json:"unknown_error,omitempty"`
 }
 
+var downloadWithTokenErrorTemplate = template.Must(template.New("error").Parse(`
+not enough sector accesses: {{.NotEnoughSectorAccesses}}
+not enough bytes: {{.NotEnoughBytes}}
+no such sector: {{.NoSuchSector}}
+unknown error: {{.UnknownError}}
+`))
+
 func (e DownloadWithTokenError) Error() string {
-	return fmt.Sprintf("not enough sector accesses: %t \n"+
-		"not enough bytes: %t \n"+
-		"no such sector: [% x] \n"+
-		"unknown error: %s", e.NotEnoughSectorAccesses, e.NotEnoughBytes, e.NoSuchSector, e.UnknownError)
+	var tpl bytes.Buffer
+	_ = downloadWithTokenErrorTemplate.Execute(&tpl, e)
+	return tpl.String()
 }
 
-// Authorization represent request authorization
-type Authorization struct {
-	HostToken string `json:"token_hex"`
-}
-
-// Range part of request
+// Range part of request.
 type Range struct {
 	MerkleRoot  crypto.Hash `json:"merkle_root"`
 	Offset      uint32      `json:"offset"`
@@ -64,25 +64,25 @@ type Range struct {
 	MerkleProof bool        `json:"merkle_proof"`
 }
 
-// DownloadWithTokenRequest represent request
+// DownloadWithTokenRequest represent request.
 type DownloadWithTokenRequest struct {
-	Authorization Authorization `header:"Authorization"`
-	Ranges        []Range       `json:"ranges"`
+	Authorization string  `header:"Authorization"`
+	Ranges        []Range `json:"ranges"`
 }
 
-// Section part of response
+// Section part of response.
 type Section struct {
 	Data        []byte        `json:"data"`
 	MerkleProof []crypto.Hash `json:"merkle_proof"`
 }
 
-// DownloadWithTokenResponse represent response
+// DownloadWithTokenResponse represent response.
 type DownloadWithTokenResponse struct {
 	Sections    []Section    `json:"sections"`
 	TokenRecord *TokenRecord `json:"token_record,omitempty"`
 }
 
-// UploadWithTokenError represent error message
+// UploadWithTokenError represent error message.
 type UploadWithTokenError struct {
 	DataLengthIsZero    bool         `json:"data_length_is_zero,omitempty"`
 	IncorrectSectorSize bool         `json:"incorrect_sector_size,omitempty"`
@@ -111,13 +111,55 @@ func (e UploadWithTokenError) Error() string {
 	return tpl.String()
 }
 
-// UploadWithTokenRequest represent request data
+// UploadWithTokenRequest represent request data.
 type UploadWithTokenRequest struct {
-	Authorization Authorization `header:"Authorization"`
-	Sectors       [][]byte      `json:"sectors"`
+	Authorization string   `header:"Authorization"`
+	Sectors       [][]byte `json:"sectors"`
 }
 
-// UploadWithTokenResponse represent response data
+// UploadWithTokenResponse represent response data.
 type UploadWithTokenResponse struct {
 	TokenRecord *TokenRecord `json:"token_record,omitempty"`
+}
+
+// TokenAndSector include information about token and sectors.
+type TokenAndSector struct {
+	Authorization string      `json:"Authorization"`
+	SectorID      crypto.Hash `json:"sector_id"`
+	// If true. keep the sector in the temporary store.
+	// If false, the sector is moved from temporary store to the contract.
+	KeepInTmp bool `json:"keep_in_tmp"`
+}
+
+// AttachSectorsRequest represent request data.
+type AttachSectorsRequest struct {
+	ContractID      types.FileContractID       `json:"contract_id"`
+	Sectors         []TokenAndSector           `json:"sectors"`
+	Revision        types.FileContractRevision `json:"revision"`
+	RenterSignature []byte                     `json:"renter_signature"`
+	BlockHeight     types.BlockHeight          `json:"block_height"` // must be current or previous block
+}
+
+// AttachSectorsResponse represent response data.
+type AttachSectorsResponse struct {
+	HostSignature []byte `json:"host_signature"`
+}
+
+// AttachSectorsError represent error message.
+type AttachSectorsError struct {
+	IncorrectBlock   bool   `json:"incorrect_block,omitempty"`
+	NotEnoughStorage bool   `json:"not_enough_storage,omitempty"`
+	UnknownError     string `json:"unknown_error,omitempty"`
+}
+
+var attachSectorsErrorTemplate = template.Must(template.New("error").Parse(`
+incorrect block: {{.IncorrectBlock}}
+not enough storage: {{.NotEnoughStorage}}
+unknown error: {{.UnknownError}}
+`))
+
+func (e AttachSectorsError) Error() string {
+	var tpl bytes.Buffer
+	_ = attachSectorsErrorTemplate.Execute(&tpl, e)
+	return tpl.String()
 }

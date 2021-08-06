@@ -21,7 +21,7 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	t.Parallel()
 	host, _ := blankMockHostTester(modules.ProdDependencies, t.Name())
 	defer host.Close()
-	hostApi := api.NewAPI("", host.host.TokenStor, host.host.StorageManager, host.host.secretKey)
+	hostApi := api.NewAPI("", host.host.TokenStor, host.host.secretKey, host.host)
 
 	// generate sector
 	sectorData := fastrand.Bytes(int(modules.SectorSize))
@@ -35,7 +35,7 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	length := 128
 
 	req := &api.DownloadWithTokenRequest{
-		Authorization: api.Authorization{HostToken: tokenID.String()},
+		Authorization: tokenID.String(),
 		Ranges: []api.Range{{
 			MerkleRoot:  root,
 			MerkleProof: true,
@@ -112,7 +112,7 @@ func TestApi_UploadWithToken(t *testing.T) {
 	t.Parallel()
 	host, _ := blankMockHostTester(modules.ProdDependencies, t.Name())
 	defer host.Close()
-	hostApi := api.NewAPI("", host.host.TokenStor, host.host.StorageManager, host.host.secretKey)
+	hostApi := api.NewAPI("", host.host.TokenStor, host.host.secretKey, host.host)
 
 	// generate token
 	b := fastrand.Bytes(16)
@@ -121,7 +121,7 @@ func TestApi_UploadWithToken(t *testing.T) {
 
 	// error empty sectors
 	req := &api.UploadWithTokenRequest{
-		Authorization: api.Authorization{HostToken: tokenID.String()},
+		Authorization: tokenID.String(),
 		Sectors:       nil,
 	}
 	_, err := hostApi.UploadWithToken(context.Background(), req)
@@ -173,5 +173,183 @@ func TestApi_UploadWithToken(t *testing.T) {
 	_, err = hostApi.UploadWithToken(context.Background(), req)
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestApi_CircleIntegration(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+	rhp, err := newRenterHostPair(t.Name())
+	defer rhp.Close()
+	hostApi := api.NewAPI("", rhp.staticHT.host.TokenStor, rhp.staticHT.host.secretKey, rhp.staticHT.host)
+
+	// generate token
+	b := fastrand.Bytes(16)
+	var tokenID types.TokenID
+	copy(tokenID[:], b)
+
+	// add storage resource
+	err = rhp.staticHT.host.TokenStor.AddResources(tokenID, modules.Storage, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// add upload bytes resource
+	err = rhp.staticHT.host.TokenStor.AddResources(tokenID, modules.UploadBytes, 41943041)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// add download bytes resource
+	err = rhp.staticHT.host.TokenStor.AddResources(tokenID, modules.DownloadBytes, 41943041)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// add sector accesses bytes resource
+	err = rhp.staticHT.host.TokenStor.AddResources(tokenID, modules.SectorAccesses, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// form upload with token request
+	req := &api.UploadWithTokenRequest{
+		Authorization: tokenID.String(),
+	}
+	req.Sectors = nil
+	for i := 0; i < 10; i++ {
+		req.Sectors = append(req.Sectors, fastrand.Bytes(int(modules.SectorSize)))
+	}
+
+	// create storage folder
+	storageFolderOne := filepath.Join(rhp.staticHT.host.persistDir, "hostTesterStorageFolderOne")
+	err = os.Mkdir(storageFolderOne, 0700)
+	if err != nil {
+		t.Fatal("error creating storage folder")
+	}
+	err = rhp.staticHT.host.AddStorageFolder(storageFolderOne, modules.SectorSize*64)
+	if err != nil {
+		t.Fatal("error adding storage folder")
+	}
+	_, err = hostApi.UploadWithToken(context.Background(), req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//	attach to contract call
+	so, err := rhp.staticHT.host.managedGetStorageObligation(rhp.staticFCID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	currentRevision := so.RevisionTransactionSet[len(so.RevisionTransactionSet)-1].FileContractRevisions[0]
+	revision := types.FileContractRevision{
+		ParentID:              rhp.staticFCID,
+		UnlockConditions:      currentRevision.UnlockConditions,
+		NewRevisionNumber:     currentRevision.NewRevisionNumber + 1,
+		NewFileSize:           modules.SectorSize * uint64(5), // move 5 sectors to contract
+		NewFileMerkleRoot:     currentRevision.NewFileMerkleRoot,
+		NewWindowStart:        currentRevision.NewWindowStart,
+		NewWindowEnd:          currentRevision.NewWindowEnd,
+		NewValidProofOutputs:  currentRevision.NewValidProofOutputs,
+		NewMissedProofOutputs: currentRevision.NewMissedProofOutputs,
+		NewUnlockHash:         currentRevision.NewUnlockHash,
+	}
+	sig := rhp.managedSign(revision)
+	attachReq := &api.AttachSectorsRequest{
+		ContractID: rhp.staticFCID,
+		Sectors: []api.TokenAndSector{
+			{
+				Authorization: tokenID.String(),
+				SectorID:      crypto.HashBytes(req.Sectors[0]),
+				KeepInTmp:     false,
+			},
+			{
+				Authorization: tokenID.String(),
+				SectorID:      crypto.HashBytes(req.Sectors[3]),
+				KeepInTmp:     false,
+			},
+			{
+				Authorization: tokenID.String(),
+				SectorID:      crypto.HashBytes(req.Sectors[5]),
+				KeepInTmp:     false,
+			},
+			{
+				Authorization: tokenID.String(),
+				SectorID:      crypto.HashBytes(req.Sectors[7]),
+				KeepInTmp:     false,
+			},
+			{
+				Authorization: tokenID.String(),
+				SectorID:      crypto.HashBytes(req.Sectors[9]),
+				KeepInTmp:     false,
+			},
+		},
+		Revision:        revision,
+		RenterSignature: sig[:],
+		BlockHeight:     rhp.staticHT.host.BlockHeight(),
+	}
+	_, err = hostApi.AttachSectors(context.Background(), attachReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// download data
+	offset := 64
+	length := 128
+
+	resp, err := hostApi.DownloadWithToken(context.Background(), &api.DownloadWithTokenRequest{
+		Authorization: tokenID.String(),
+		Ranges: []api.Range{
+			// download 5 sectors which has moved from temporary storage to contract
+			{
+				MerkleRoot:  crypto.MerkleRoot(req.Sectors[0]),
+				MerkleProof: true,
+				Length:      uint32(length),
+				Offset:      uint32(offset),
+			},
+			{
+				MerkleRoot:  crypto.MerkleRoot(req.Sectors[3]),
+				MerkleProof: true,
+				Length:      uint32(length),
+				Offset:      uint32(offset),
+			},
+			{
+				MerkleRoot:  crypto.MerkleRoot(req.Sectors[5]),
+				MerkleProof: true,
+				Length:      uint32(length),
+				Offset:      uint32(offset),
+			},
+			{
+				MerkleRoot:  crypto.MerkleRoot(req.Sectors[7]),
+				MerkleProof: true,
+				Length:      uint32(length),
+				Offset:      uint32(offset),
+			},
+			{
+				MerkleRoot:  crypto.MerkleRoot(req.Sectors[9]),
+				MerkleProof: true,
+				Length:      uint32(length),
+				Offset:      uint32(offset),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// compare downloaded and uploaded data
+	if !bytes.Equal(resp.Sections[0].Data, req.Sectors[0][offset:offset+length]) {
+		t.Fatal("incorrect resp data")
+	}
+	if !bytes.Equal(resp.Sections[1].Data, req.Sectors[3][offset:offset+length]) {
+		t.Fatal("incorrect resp data")
+	}
+	if !bytes.Equal(resp.Sections[2].Data, req.Sectors[5][offset:offset+length]) {
+		t.Fatal("incorrect resp data")
+	}
+	if !bytes.Equal(resp.Sections[3].Data, req.Sectors[7][offset:offset+length]) {
+		t.Fatal("incorrect resp data")
+	}
+	if !bytes.Equal(resp.Sections[4].Data, req.Sectors[9][offset:offset+length]) {
+		t.Fatal("incorrect resp data")
 	}
 }

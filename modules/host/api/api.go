@@ -16,39 +16,47 @@ import (
 	"github.com/starius/api2"
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/host/tokenstorage"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
-// TokenStorage represent communication between api and token storage
+// TokenStorage represent communication between api and token storage.
 type TokenStorage interface {
 	TokenRecord(id types.TokenID) (tokenstorage.TokenRecord, error)
 	RecordDownload(id types.TokenID, downloadBytes, sectorAccesses int64) error
 	AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error
-	EnoughStorageResource(id types.TokenID, sectorsNum uint64) (bool, error)
+	AttachSectors(data []tokenstorage.AttachSectorsData, time time.Time) error
+	EnoughStorageResource(id types.TokenID, sectorsNum int64, now time.Time) (bool, error)
 }
 
-// API represent host API
+// Host represent host interface.
+type Host interface {
+	BlockHeight() types.BlockHeight
+	AddSector(sectorRoot crypto.Hash, sectorData []byte) error
+	ReadSector(sectorRoot crypto.Hash) ([]byte, error)
+	ModifyStorageObligation(fcID types.FileContractID, newRev types.FileContractRevision, newRoots []crypto.Hash, renterSig []byte) ([]byte, error)
+}
+
+// API represent host API.
 type API struct {
+	host       Host
 	hostSK     crypto.SecretKey
 	ts         TokenStorage
-	sm         modules.StorageManager
 	port       string
 	httpServer *http.Server
 }
 
-// NewAPI return new host API
-func NewAPI(port string, ts TokenStorage, sm modules.StorageManager, hostSK crypto.SecretKey) *API {
+// NewAPI return new host API.
+func NewAPI(port string, ts TokenStorage, hostSK crypto.SecretKey, host Host) *API {
 	return &API{
 		hostSK: hostSK,
+		host:   host,
 		ts:     ts,
-		sm:     sm,
 		port:   port,
 	}
 }
 
-// Start run API
+// Start run API.
 func (a *API) Start() (err error) {
 	routes := GetRoutes(a)
 	mux := http.NewServeMux()
@@ -111,7 +119,7 @@ func (a *API) certSetup() *tls.Certificate {
 	return &cert
 }
 
-// Close stop API server
+// Close stop API server.
 func (a *API) Close() error {
 	return a.httpServer.Close()
 }

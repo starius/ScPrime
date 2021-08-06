@@ -43,3 +43,12 @@ func (c *Client) UploadWithToken(ctx context.Context, req *UploadWithTokenReques
 	}
 	return
 }
+
+func (c *Client) AttachSectors(ctx context.Context, req *AttachSectorsRequest) (res *AttachSectorsResponse, err error) {
+	res = &AttachSectorsResponse{}
+	err = c.api2client.Call(ctx, res, req)
+	if err != nil {
+		return nil, err
+	}
+	return
+}
