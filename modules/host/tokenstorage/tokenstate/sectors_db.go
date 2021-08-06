@@ -19,7 +19,7 @@ type sectorsDB struct {
 func newSectorsDB(dir string) (*sectorsDB, error) {
 	dbDir := filepath.Join(dir, "level_db")
 	// remove all files from level DB dir and create new folder
-	// all sectors will be upload from events
+	// all sectors will be upload from events.
 	err := os.RemoveAll(dbDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to remove old level DB directory: %w", err)
@@ -67,7 +67,10 @@ func (s *sectorsDB) BatchDelete(tokenID types.TokenID) error {
 	for iter.Next() {
 		batch.Delete(iter.Key())
 	}
-	_ = s.db.Write(batch, nil)
+	err := s.db.Write(batch, nil)
+	if err != nil {
+		return err
+	}
 	iter.Release()
 	return iter.Error()
 }

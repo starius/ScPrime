@@ -21,19 +21,28 @@ import (
 
 const persistDelay = 1 * time.Second
 
-// TokenStorageInfo represent data about storage resource
+// TokenStorageInfo represent data about storage resource.
 type TokenStorageInfo struct {
-	Storage        uint64 // sectors * second
+	Storage        int64 // sectors * second
 	LastChangeTime time.Time
 	SectorsNum     uint64
 }
 
-// TokenRecord include information about token record
+// TokenRecord include information about token record.
 type TokenRecord struct {
 	DownloadBytes    int64
 	UploadBytes      int64
 	SectorAccesses   int64
 	TokenStorageInfo TokenStorageInfo
+}
+
+// AttachSectorsData include information about token sector and storing it.
+type AttachSectorsData struct {
+	TokenID  types.TokenID
+	SectorID []byte
+	// If true. keep the sector in the temporary store.
+	// If false, the sector is moved from temporary store to the contract.
+	KeepInTmp bool
 }
 
 type storage interface {
@@ -42,7 +51,7 @@ type storage interface {
 	AppendMeta(ctx context.Context, callback func(w io.Writer) error) error
 }
 
-// TokenStorage - storage of tokens for prepaid downloads
+// TokenStorage - storage of tokens for prepaid downloads.
 type TokenStorage struct {
 	storage storage
 	state   *tokenstate.State
@@ -54,7 +63,7 @@ type TokenStorage struct {
 	closed bool
 }
 
-// NewTokenStorage - create new storage of tokens for prepaid downloads
+// NewTokenStorage - create new storage of tokens for prepaid downloads.
 func NewTokenStorage(dir string) (*TokenStorage, error) {
 	storage := filestorage.NewFileStorage(dir)
 	ctx := context.Background()
@@ -81,7 +90,7 @@ func NewTokenStorage(dir string) (*TokenStorage, error) {
 	return s, nil
 }
 
-// Close - drain event queue and close storage
+// Close - drain event queue and close storage.
 func (t *TokenStorage) Close(ctx context.Context) error {
 	t.stateMu.Lock()
 	t.closed = true
@@ -105,7 +114,7 @@ func (t *TokenStorage) drainEventsQueue() error {
 	return eventsourcing.DrainEventsQueue(context.Background(), &t.stateMu, &t.metaMu, &t.eventsQueue, t.storage)
 }
 
-// TokenRecord return token record by id
+// TokenRecord return token record by id.
 func (t *TokenStorage) TokenRecord(id types.TokenID) (TokenRecord, error) {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
@@ -128,7 +137,7 @@ func (t *TokenStorage) TokenRecord(id types.TokenID) (TokenRecord, error) {
 	}, nil
 }
 
-// RecordDownload set token record fields
+// RecordDownload set token record fields.
 func (t *TokenStorage) RecordDownload(id types.TokenID, downloadBytes, sectorAccesses int64) error {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
@@ -143,7 +152,7 @@ func (t *TokenStorage) RecordDownload(id types.TokenID, downloadBytes, sectorAcc
 	return nil
 }
 
-// AddResources - add resource to token
+// AddResources - add resource to token.
 func (t *TokenStorage) AddResources(id types.TokenID, resourceType types.Specifier, amount int64) error {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
@@ -158,7 +167,7 @@ func (t *TokenStorage) AddResources(id types.TokenID, resourceType types.Specifi
 	return nil
 }
 
-// AddSectors add sectors to token
+// AddSectors add sectors to token.
 func (t *TokenStorage) AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
@@ -172,7 +181,7 @@ func (t *TokenStorage) AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, ti
 	return nil
 }
 
-// RemoveSectors remove sectors from token
+// RemoveSectors remove sectors from token.
 func (t *TokenStorage) RemoveSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
@@ -186,30 +195,36 @@ func (t *TokenStorage) RemoveSectors(id types.TokenID, sectorsIDs []crypto.Hash,
 	return nil
 }
 
-// AttachSectors attach sectors to contract
-func (t *TokenStorage) AttachSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time, isDel bool) error {
+// AttachSectors attach sector to contract.
+func (t *TokenStorage) AttachSectors(data []AttachSectorsData, time time.Time) error {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
 	if t.closed {
 		return fmt.Errorf("token storage closed")
 	}
+	var attachSectors []tokenstate.AttachSectorsData
+	for _, el := range data {
+		attachSectors = append(attachSectors, tokenstate.AttachSectorsData{
+			TokenID:   el.TokenID,
+			SectorID:  el.SectorID,
+			KeepInTmp: el.KeepInTmp,
+		})
+	}
 	t.applyEvent(&tokenstate.Event{EventAttachSectors: &tokenstate.EventAttachSectors{
-		TokenID:          id,
-		SectorsIDs:       crypto.ConvertHashesToByteSlices(sectorsIDs),
-		IsDeletingNeeded: isDel,
+		TokensSectors: attachSectors,
 	}, Time: time})
 	return nil
 }
 
 // EnoughStorageResource checks if there is enough storage resource on token to store existing
-// sectors and new ones, return false if not enough
-func (t *TokenStorage) EnoughStorageResource(id types.TokenID, sectorsNum uint64) (bool, error) {
+// sectors and new ones, return false if not enough.
+func (t *TokenStorage) EnoughStorageResource(id types.TokenID, sectorsNum int64, now time.Time) (bool, error) {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
 	if t.closed {
 		return false, fmt.Errorf("token storage closed")
 	}
-	return t.state.EnoughStorageResource(id, sectorsNum), nil
+	return t.state.EnoughStorageResource(id, sectorsNum, now), nil
 }
 
 // applyEvent applies an event to State and adds it to a queue to be added to metadata.json.
@@ -230,7 +245,7 @@ func (t *TokenStorage) applyEvent(event *tokenstate.Event) {
 	}
 }
 
-// CheckExpiration remove sectors from token when token storage resource ends
+// CheckExpiration remove sectors from token when token storage resource ends.
 func (t *TokenStorage) CheckExpiration(sm modules.StorageManager, frequency time.Duration, done chan bool) {
 	ticker := time.NewTicker(frequency)
 	for {
@@ -251,8 +266,9 @@ func (t *TokenStorage) checkExpiration(sm modules.StorageManager) {
 		t.stateMu.Unlock()
 		return
 	}
-	for token, record := range t.state.Tokens {
-		if record.TokenInfo.HasStorage(time.Now()) {
+
+	for token := range t.state.Tokens {
+		if enough := t.state.EnoughStorageResource(token, 0, time.Now()); !enough {
 			continue
 		}
 		sectors, err := t.state.GetSectors(token)

@@ -339,7 +339,7 @@ func (h *Host) managedInternalSettings() modules.HostInternalSettings {
 // price table accordingly.
 func (h *Host) managedUpdatePriceTable() {
 	// create a new RPC price table
-	hes := h.managedExternalSettings()
+	hes := h.ManagedExternalSettings()
 	priceTable := modules.RPCPriceTable{
 		// TODO: hardcoded cost should be updated to use a better value.
 		AccountBalanceCost:   types.NewCurrency64(1),
@@ -568,7 +568,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	go h.threadedPruneExpiredPriceTables()
 
 	//	Initialize and run host API
-	hostApi := api.NewAPI(hostAPIPort, h.TokenStor, h.StorageManager, h.secretKey)
+	hostApi := api.NewAPI(hostAPIPort, h.TokenStor, h.secretKey, h)
 	err = hostApi.Start()
 	if err != nil {
 		h.log.Println("Could not start host api:", err)
@@ -615,7 +615,7 @@ func (h *Host) ExternalSettings() modules.HostExternalSettings {
 		build.Critical("Call to ExternalSettings after close")
 	}
 	defer h.tg.Done()
-	return h.managedExternalSettings()
+	return h.ManagedExternalSettings()
 }
 
 // BandwidthCounters returns the Hosts's upload and download bandwidth
@@ -748,10 +748,10 @@ func (h *Host) BlockHeight() types.BlockHeight {
 	return h.blockHeight
 }
 
-// managedExternalSettings returns the host's external settings. These values
+// ManagedExternalSettings returns the host's external settings. These values
 // cannot be set by the user (host is configured through InternalSettings), and
 // are the values that get displayed to other hosts on the network.
-func (h *Host) managedExternalSettings() modules.HostExternalSettings {
+func (h *Host) ManagedExternalSettings() modules.HostExternalSettings {
 	_, maxFee := h.tpool.FeeEstimation()
 	h.mu.Lock()
 	defer h.mu.Unlock()

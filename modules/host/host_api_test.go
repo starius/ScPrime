@@ -21,7 +21,7 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	t.Parallel()
 	host, _ := blankMockHostTester(modules.ProdDependencies, t.Name())
 	defer host.Close()
-	hostApi := api.NewAPI("", host.host.TokenStor, host.host.StorageManager, host.host.secretKey)
+	hostApi := api.NewAPI("", host.host.TokenStor, host.host.secretKey, host.host)
 
 	// generate sector
 	sectorData := fastrand.Bytes(int(modules.SectorSize))
@@ -35,7 +35,7 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	length := 128
 
 	req := &api.DownloadWithTokenRequest{
-		Authorization: api.Authorization{HostToken: tokenID.String()},
+		Authorization: tokenID.String(),
 		Ranges: []api.Range{{
 			MerkleRoot:  root,
 			MerkleProof: true,
@@ -112,7 +112,7 @@ func TestApi_UploadWithToken(t *testing.T) {
 	t.Parallel()
 	host, _ := blankMockHostTester(modules.ProdDependencies, t.Name())
 	defer host.Close()
-	hostApi := api.NewAPI("", host.host.TokenStor, host.host.StorageManager, host.host.secretKey)
+	hostApi := api.NewAPI("", host.host.TokenStor, host.host.secretKey, host.host)
 
 	// generate token
 	b := fastrand.Bytes(16)
@@ -121,7 +121,7 @@ func TestApi_UploadWithToken(t *testing.T) {
 
 	// error empty sectors
 	req := &api.UploadWithTokenRequest{
-		Authorization: api.Authorization{HostToken: tokenID.String()},
+		Authorization: tokenID.String(),
 		Sectors:       nil,
 	}
 	_, err := hostApi.UploadWithToken(context.Background(), req)

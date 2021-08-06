@@ -12,12 +12,12 @@ import (
 )
 
 type tokenStorageInfo struct {
-	Storage        uint64    `json:"storage"` // sectors * second
+	Storage        int64     `json:"storage"` // sectors * second
 	LastChangeTime time.Time `json:"last_change_time"`
 	SectorsNum     uint64    `json:"sectors_num"`
 }
 
-// TokenRecord include information about token record
+// TokenRecord include information about token record.
 type TokenRecord struct {
 	DownloadBytes  int64            `json:"download_bytes"`
 	UploadBytes    int64            `json:"upload_bytes"`
@@ -25,40 +25,47 @@ type TokenRecord struct {
 	TokenInfo      tokenStorageInfo `json:"token_info"`
 }
 
-// EventTopUp change of state when token replenishment
+// AttachSectorsData include information about token sector and storing it.
+type AttachSectorsData struct {
+	TokenID  types.TokenID
+	SectorID []byte
+	// If true. keep the sector in the temporary store.
+	// If false, the sector is moved from temporary store to the contract.
+	KeepInTmp bool
+}
+
+// EventTopUp change of state when token replenishment.
 type EventTopUp struct {
 	TokenID        types.TokenID   `json:"token_id"`
 	ResourceType   types.Specifier `json:"resource_type"`
 	ResourceAmount int64           `json:"resource_amount"`
 }
 
-// EventTokenDownload change of state when downloading
+// EventTokenDownload change of state when downloading.
 type EventTokenDownload struct {
 	TokenID        types.TokenID `json:"token_id"`
 	DownloadBytes  int64         `json:"download_bytes"`
 	SectorAccesses int64         `json:"sector_accesses"`
 }
 
-// EventAddSectors represent adding sectors to token
+// EventAddSectors represent adding sectors to token.
 type EventAddSectors struct {
 	TokenID    types.TokenID `json:"token_id"`
 	SectorsIDs [][]byte      `json:"sectors_ids"`
 }
 
-// EventRemoveSectors represent force removing sectors from token
+// EventRemoveSectors represent force removing sectors from token.
 type EventRemoveSectors struct {
 	TokenID    types.TokenID `json:"token_id"`
 	SectorsIDs [][]byte      `json:"sectors_ids"`
 }
 
-// EventAttachSectors represent attaching sectors to contract
+// EventAttachSectors represent attaching sector to contract.
 type EventAttachSectors struct {
-	TokenID          types.TokenID `json:"token_id"`
-	SectorsIDs       [][]byte      `json:"sectors_ids"`
-	IsDeletingNeeded bool          `json:"is_deleting_needed"`
+	TokensSectors []AttachSectorsData `json:"tokens_sectors"`
 }
 
-// Event include state events
+// Event include state events.
 type Event struct {
 	EventTopUp         *EventTopUp         `json:"event_top_up"`
 	EventTokenDownload *EventTokenDownload `json:"event_token_download"`
@@ -76,13 +83,13 @@ type sectorsDBer interface {
 	Close() error
 }
 
-// State representation of token storage state
+// State representation of token storage state.
 type State struct {
 	Tokens map[types.TokenID]TokenRecord `json:"tokens"`
 	db     sectorsDBer
 }
 
-// NewState create new state
+// NewState create new state.
 func NewState(dir string) (*State, error) {
 	db, err := newSectorsDB(dir)
 	if err != nil {
@@ -94,7 +101,7 @@ func NewState(dir string) (*State, error) {
 	}, nil
 }
 
-// Apply handle state events
+// Apply handle state events.
 func (s *State) Apply(e *Event) {
 	applied := 0
 
@@ -107,15 +114,15 @@ func (s *State) Apply(e *Event) {
 		applied++
 	}
 	if e.EventAddSectors != nil {
-		s.eventAddSectors(e.EventAddSectors)
+		s.eventAddSectors(e.EventAddSectors, e.Time)
 		applied++
 	}
 	if e.EventRemoveSectors != nil {
-		s.eventRemoveSectors(e.EventRemoveSectors)
+		s.eventRemoveSectors(e.EventRemoveSectors, e.Time)
 		applied++
 	}
 	if e.EventAttachSectors != nil {
-		s.eventAttachSectors(e.EventAttachSectors)
+		s.eventAttachSectors(e.EventAttachSectors, e.Time)
 		applied++
 	}
 	if applied != 1 {
@@ -134,7 +141,7 @@ func (s *State) eventTopUp(e *EventTopUp) {
 	case modules.SectorAccesses:
 		token.SectorAccesses += e.ResourceAmount
 	case modules.Storage:
-		token.TokenInfo.Storage += uint64(e.ResourceAmount)
+		token.TokenInfo.Storage += e.ResourceAmount
 	}
 	s.Tokens[e.TokenID] = token
 }
@@ -146,39 +153,44 @@ func (s *State) eventTokenDownload(e *EventTokenDownload) {
 	s.Tokens[e.TokenID] = token
 }
 
-func (s *State) eventAddSectors(e *EventAddSectors) {
+func (s *State) eventAddSectors(e *EventAddSectors, t time.Time) {
 	token := s.Tokens[e.TokenID]
-	token.TokenInfo.addSectors(uint64(len(e.SectorsIDs)))
+	token.TokenInfo.updateStorageResource(int64(len(e.SectorsIDs)), t)
 	token.UploadBytes -= int64(len(e.SectorsIDs) * int(modules.SectorSize))
 	s.Tokens[e.TokenID] = token
 
 	for _, sec := range e.SectorsIDs {
-		_ = s.db.Put(e.TokenID, crypto.ConvertBytesToHash(sec))
-	}
-}
-func (s *State) eventRemoveSectors(e *EventRemoveSectors) {
-	token := s.Tokens[e.TokenID]
-	token.TokenInfo.removeSectors(uint64(len(e.SectorsIDs)))
-	s.Tokens[e.TokenID] = token
-
-	_ = s.db.BatchDelete(e.TokenID)
-}
-
-func (s *State) eventAttachSectors(e *EventAttachSectors) {
-	var deleteSectorsNum uint64
-
-	for _, sec := range e.SectorsIDs {
-		if e.IsDeletingNeeded {
-			_ = s.db.Delete(e.TokenID, crypto.ConvertBytesToHash(sec))
-			deleteSectorsNum++
+		err := s.db.Put(e.TokenID, crypto.ConvertBytesToHash(sec))
+		if err != nil {
+			panic(err)
 		}
 	}
+}
+func (s *State) eventRemoveSectors(e *EventRemoveSectors, t time.Time) {
 	token := s.Tokens[e.TokenID]
-	token.TokenInfo.removeSectors(deleteSectorsNum)
+	token.TokenInfo.updateStorageResource(-int64(len(e.SectorsIDs)), t)
 	s.Tokens[e.TokenID] = token
+	err := s.db.BatchDelete(e.TokenID)
+	if err != nil {
+		panic(err)
+	}
 }
 
-// LoadHistory load history in state
+func (s *State) eventAttachSectors(e *EventAttachSectors, t time.Time) {
+	for _, ts := range e.TokensSectors {
+		if !ts.KeepInTmp {
+			err := s.db.Delete(ts.TokenID, crypto.HashBytes(ts.SectorID))
+			if err != nil {
+				panic(err)
+			}
+		}
+		token := s.Tokens[ts.TokenID]
+		token.TokenInfo.updateStorageResource(-1, t)
+		s.Tokens[ts.TokenID] = token
+	}
+}
+
+// LoadHistory load history in state.
 func (s *State) LoadHistory(r io.Reader) error {
 	decoder := json.NewDecoder(r)
 	decoder.DisallowUnknownFields()
@@ -195,55 +207,38 @@ func (s *State) LoadHistory(r io.Reader) error {
 	return nil
 }
 
-// GetSectors return sectors IDs from database by token ID
+// GetSectors return sectors IDs from database by token ID.
 func (s *State) GetSectors(tokenID types.TokenID) ([]crypto.Hash, error) {
 	return s.db.Get(tokenID)
 }
 
-func (t *tokenStorageInfo) addSectors(sectorsNum uint64) {
-	now := time.Now()
-	stResource := uint64(now.Sub(t.LastChangeTime).Seconds()) * t.SectorsNum
-	if t.Storage < stResource {
-		t.Storage = 0
+func (t *tokenStorageInfo) updateStorageResource(sectorsNum int64, now time.Time) {
+	stResource := int64(now.Sub(t.LastChangeTime).Seconds()) * int64(t.SectorsNum)
+	t.Storage = t.Storage - stResource
+	// sectorsNum can be negative for removing sectors.
+	if sectorsNum < 0 {
+		if uint64(-sectorsNum) > t.SectorsNum {
+			t.SectorsNum = 0
+		} else {
+			t.SectorsNum -= uint64(-sectorsNum)
+		}
 	} else {
-		t.Storage = t.Storage - stResource
+		t.SectorsNum += uint64(sectorsNum)
 	}
 	t.LastChangeTime = now
-	t.SectorsNum += sectorsNum
-}
-
-func (t *tokenStorageInfo) removeSectors(sectorsNum uint64) {
-	now := time.Now()
-	stResource := uint64(now.Sub(t.LastChangeTime).Seconds()) * t.SectorsNum
-	if t.Storage < stResource {
-		t.Storage = 0
-	} else {
-		t.Storage = t.Storage - stResource
-	}
-	if sectorsNum > t.SectorsNum {
-		t.SectorsNum = 0
-	} else {
-		t.SectorsNum -= sectorsNum
-	}
-	t.LastChangeTime = now
-}
-
-// HasStorage calculates the storage resource from the passed time
-func (t *tokenStorageInfo) HasStorage(now time.Time) bool {
-	return t.Storage > uint64(now.Sub(t.LastChangeTime).Seconds())*t.SectorsNum
 }
 
 // EnoughStorageResource checks if there is enough storage resource to store existing sectors and new ones
-// for one second. if the resource is less, it will return false
-func (s *State) EnoughStorageResource(id types.TokenID, sectorsNum uint64) (enoughResource bool) {
+// for one second. if the resource is less, it will return false.
+func (s *State) EnoughStorageResource(id types.TokenID, sectorsNum int64, now time.Time) (enoughResource bool) {
 	token := s.Tokens[id]
-	if token.TokenInfo.Storage < 1*(token.TokenInfo.SectorsNum+sectorsNum) {
-		return false
+	if token.TokenInfo.Storage > int64(now.Sub(token.TokenInfo.LastChangeTime).Seconds())*int64(token.TokenInfo.SectorsNum)+sectorsNum*1 {
+		return true
 	}
-	return true
+	return false
 }
 
-// Close close DB connection
+// Close DB connection.
 func (s *State) Close() error {
 	return s.db.Close()
 }
