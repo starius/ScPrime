@@ -13,15 +13,16 @@ type TXType int
 const (
 	TXTypeSetup TXType = iota
 	TXTypeMiner
-	TXTypeSPFTransaction
+	TXTypeSPFMove
 	TXTypeFileContractNew
 	TXTypeFileContractRenew
-	TXTypeRegularFileContractRevision
-	TXTypeRenewFileContractRevision
+	TXTypeContractRevisionRegular
+	TXTypeContractRevisionForRenew
 	TXTypeStorageProof
 	TXTypeHostAnnouncement
-	TXTypeArbitraryDataOnly
-	TXTypeSCPTransaction
+	TXTypeArbitraryData
+	TXTypeSCPMove
+	TXTypeMixed
 )
 
 func (t TXType) String() string {
@@ -37,10 +38,13 @@ func (t TXType) String() string {
 		"Host announcement",
 		"Arbitrary data",
 		"SCP move",
+		"Composite",
 	}[t]
 }
 
-// TransactionType returns the transaction type determined by the transaction contents
+// TransactionType returns the transaction type determined by the transaction
+// contents. Sanity or validity of transaction is not checked as that is done
+// by transactionpool when transactions get submitted
 func TransactionType(t *types.Transaction) TXType {
 	if len(t.SiacoinInputs)+len(t.SiafundInputs) == 0 {
 		return TXTypeMiner
@@ -48,8 +52,11 @@ func TransactionType(t *types.Transaction) TXType {
 	if len(t.MinerFees) == 0 {
 		return TXTypeSetup
 	}
+	if len(t.FileContracts)+len(t.FileContractRevisions)+len(t.StorageProofs) > 1 {
+		return TXTypeMixed
+	}
 	if len(t.SiafundInputs) > 0 {
-		return TXTypeSPFTransaction
+		return TXTypeSPFMove
 	}
 	if len(t.FileContracts) > 0 {
 		for _, contract := range t.FileContracts {
@@ -63,10 +70,10 @@ func TransactionType(t *types.Transaction) TXType {
 		for _, revision := range t.FileContractRevisions {
 			if revision.NewRevisionNumber == math.MaxUint64 {
 				if len(revision.NewMissedProofOutputs) < 3 {
-					return TXTypeRenewFileContractRevision
+					return TXTypeContractRevisionForRenew
 				}
 			}
-			return TXTypeRegularFileContractRevision
+			return TXTypeContractRevisionRegular
 		}
 	}
 	if len(t.StorageProofs) > 0 {
@@ -79,7 +86,7 @@ func TransactionType(t *types.Transaction) TXType {
 				return TXTypeHostAnnouncement
 			}
 		}
-		return TXTypeArbitraryDataOnly
+		return TXTypeArbitraryData
 	}
-	return TXTypeSCPTransaction
+	return TXTypeSCPMove
 }
