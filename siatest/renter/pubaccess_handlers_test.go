@@ -17,6 +17,7 @@ import (
 // when it handles different combinations of metadata and content. These tests
 // use the fixtures in `testdata/publink_fixtures.json`.
 func TestSkynetSkylinkHandlerGET(t *testing.T) {
+	t.Skip()
 	if testing.Short() {
 		t.SkipNow()
 	}

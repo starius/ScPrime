@@ -31,6 +31,7 @@ package host
 // is not set or used.
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"reflect"
@@ -40,13 +41,12 @@ import (
 
 	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
-	bolt "go.etcd.io/bbolt"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/wallet"
 	"gitlab.com/scpcorp/ScPrime/types"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
@@ -1313,13 +1313,12 @@ func (h *Host) managedBuildStorageProof(so storageObligation, segmentIndex uint6
 }
 
 // StorageObligation returns the storage obligation matching the id or
-// an error if it does not exist
+// an error if it does not exist.
 func (h *Host) StorageObligation(obligationID types.FileContractID) (modules.StorageObligation, error) {
 	so, err := h.managedGetStorageObligation(obligationID)
 	if err != nil {
 		return modules.StorageObligation{}, errors.AddContext(err, "failed to fetch storage obligation")
 	}
-
 	return so.StorageObligation(), nil
 }
 
@@ -1351,6 +1350,95 @@ func (h *Host) StorageObligations() (sos []modules.StorageObligation) {
 	}
 
 	return sos
+}
+
+// ModifyStorageObligation update storage obligation object and return host signature.
+func (h *Host) ModifyStorageObligation(fcID types.FileContractID, renterRevision types.FileContractRevision, newRoots []crypto.Hash, renterSig []byte) ([]byte, error) {
+	err := h.managedTryLockStorageObligation(fcID, obligationLockTimeout)
+	if err != nil {
+		return nil, err
+	}
+	defer h.managedUnlockStorageObligation(fcID)
+	var so storageObligation
+	h.mu.RLock()
+	err = h.db.View(func(tx *bolt.Tx) error {
+		var err error
+		so, err = h.getStorageObligation(tx, fcID)
+		return err
+	})
+	h.mu.RUnlock()
+	if err != nil {
+		return nil, extendErr("could not get storage obligation "+fcID.String()+": ", err)
+	}
+	_, maxFee := h.tpool.FeeEstimation()
+	h.mu.Lock()
+	settings := h.externalSettings(maxFee)
+	blockHeight := h.blockHeight
+	secretKey := h.secretKey
+	h.mu.Unlock()
+	currentRevision := so.RevisionTransactionSet[len(so.RevisionTransactionSet)-1].FileContractRevisions[0]
+
+	// update finances.
+	bytesAdded := modules.SectorSize * uint64(len(newRoots)-len(so.SectorRoots))
+	blocksRemaining := so.proofDeadline() - blockHeight
+	blockBytesCurrency := types.NewCurrency64(uint64(blocksRemaining)).Mul64(bytesAdded)
+	var storageRevenue, newCollateral, bandwidthRevenue types.Currency
+	storageRevenue = settings.StoragePrice.Mul(blockBytesCurrency)
+	newCollateral = newCollateral.Add(settings.Collateral.Mul(blockBytesCurrency))
+	bandwidthRevenue = bandwidthRevenue.Add(settings.UploadBandwidthPrice.Mul64(modules.SectorSize * uint64(len(newRoots))))
+
+	newRevision := currentRevision
+	newRevision.NewRevisionNumber = renterRevision.NewRevisionNumber
+	newRevision.NewFileSize += modules.SectorSize * uint64(len(newRoots))
+	newRevision.NewFileMerkleRoot = renterRevision.NewFileMerkleRoot
+
+	newRevision.NewValidProofOutputs = make([]types.SiacoinOutput, len(currentRevision.NewValidProofOutputs))
+	for i := range newRevision.NewValidProofOutputs {
+		newRevision.NewValidProofOutputs[i] = types.SiacoinOutput{
+			Value:      renterRevision.NewValidProofOutputs[i].Value,
+			UnlockHash: currentRevision.NewValidProofOutputs[i].UnlockHash,
+		}
+	}
+	newRevision.NewMissedProofOutputs = make([]types.SiacoinOutput, len(currentRevision.NewMissedProofOutputs))
+	for i := range newRevision.NewMissedProofOutputs {
+		newRevision.NewMissedProofOutputs[i] = types.SiacoinOutput{
+			Value:      renterRevision.NewMissedProofOutputs[i].Value,
+			UnlockHash: currentRevision.NewMissedProofOutputs[i].UnlockHash,
+		}
+	}
+	// compare new revision formed by host and new revision from renter.
+	bufNewRev := new(bytes.Buffer)
+	if err = newRevision.MarshalSia(bufNewRev); err != nil {
+		return nil, err
+	}
+	bufReqRev := new(bytes.Buffer)
+	if err = renterRevision.MarshalSia(bufReqRev); err != nil {
+		return nil, err
+	}
+	if bytes.Compare(bufNewRev.Bytes(), bufReqRev.Bytes()) != 0 {
+		return nil, errors.New("incorrect revision")
+	}
+
+	renterSignature := types.TransactionSignature{
+		ParentID:       crypto.Hash(newRevision.ParentID),
+		CoveredFields:  types.CoveredFields{FileContractRevisions: []uint64{0}},
+		PublicKeyIndex: 0,
+		Signature:      renterSig,
+	}
+	txn, err := createRevisionSignature(newRevision, renterSignature, secretKey, blockHeight)
+	if err != nil {
+		return nil, err
+	}
+	so.SectorRoots = append(so.SectorRoots, newRoots...)
+	so.PotentialStorageRevenue = so.PotentialStorageRevenue.Add(storageRevenue)
+	so.RiskedCollateral = so.RiskedCollateral.Add(newCollateral)
+	so.PotentialUploadRevenue = so.PotentialUploadRevenue.Add(bandwidthRevenue)
+	so.RevisionTransactionSet = []types.Transaction{txn}
+	err = h.managedModifyStorageObligation(so, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return txn.TransactionSignatures[1].Signature, nil
 }
 
 // AuditStorageObligations locks the host, fetches the set of storage

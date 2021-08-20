@@ -139,6 +139,7 @@ func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error)
 	if nodeParams.SiaMuxWSAddress == "" {
 		nodeParams.SiaMuxWSAddress = "localhost:0"
 	}
+	nodeParams.CheckTokenExpirationFrequency = 5 * time.Second
 
 	// Create server
 	var s *server.Server

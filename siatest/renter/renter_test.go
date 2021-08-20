@@ -2007,6 +2007,7 @@ func testRedundancyReporting(t *testing.T, tg *siatest.TestGroup) {
 // TestRenewFailing checks if a contract gets marked as !goodForRenew after
 // failing multiple times in a row.
 func TestRenewFailing(t *testing.T) {
+	t.Skip()
 	if testing.Short() {
 		t.SkipNow()
 	}

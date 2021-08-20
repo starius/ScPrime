@@ -24,3 +24,8 @@ func ParseToken(t string) TokenID {
 	copy(token[:], tokenBytes[:])
 	return token
 }
+
+// Bytes convert TokenID to byte slice
+func (t TokenID) Bytes() []byte {
+	return t[:]
+}

@@ -339,7 +339,7 @@ func (h *Host) managedInternalSettings() modules.HostInternalSettings {
 // price table accordingly.
 func (h *Host) managedUpdatePriceTable() {
 	// create a new RPC price table
-	hes := h.managedExternalSettings()
+	hes := h.ManagedExternalSettings()
 	priceTable := modules.RPCPriceTable{
 		// TODO: hardcoded cost should be updated to use a better value.
 		AccountBalanceCost:   types.NewCurrency64(1),
@@ -409,7 +409,9 @@ func (h *Host) threadedPruneExpiredPriceTables() {
 // mocked such that the dependencies can return unexpected errors or unique
 // behaviors during testing, enabling easier testing of the failure modes of
 // the Host.
-func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, listenerAddress, persistDir, hostAPIPort string) (*Host, error) {
+func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway,
+	tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, listenerAddress, persistDir,
+	hostAPIPort string, checkTokenExpirationFrequency time.Duration) (*Host, error) {
 	// Check that all the dependencies were provided.
 	if cs == nil {
 		return nil, errNilCS
@@ -460,27 +462,6 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 		return nil, errors.AddContext(err, "Could not create directory "+h.persistDir)
 	}
 
-	tokenStorageDir := filepath.Join(h.persistDir, tokenStorDir)
-	if _, err := os.Stat(tokenStorageDir); os.IsNotExist(err) {
-		// Create the token storage directory if it does not yet exist.
-		if err := os.Mkdir(tokenStorageDir, 0755); err != nil {
-			return nil, errors.AddContext(err, "Could not create token storage directory")
-		}
-	}
-	// Initialize token storage.
-	// TODO: the current version of tokens storage does not support reverting blocks.
-	// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
-	h.TokenStor, err = tokenstorage.NewTokenStorage(tokenStorageDir)
-	if err != nil {
-		return nil, errors.AddContext(err, "Could not initialize token storage")
-	}
-	h.tg.AfterStop(func() {
-		err = h.TokenStor.Close(context.Background())
-		if err != nil {
-			fmt.Println("Error when closing token storage:", err)
-		}
-	})
-
 	// Initialize the logger, and set up the stop call that will close the
 	// logger.
 	h.log, err = dependencies.NewLogger(filepath.Join(h.persistDir, logFile))
@@ -497,13 +478,38 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 		}
 	})
 
+	tokenStorageDir := filepath.Join(h.persistDir, tokenStorDir)
+	if _, err = os.Stat(tokenStorageDir); os.IsNotExist(err) {
+		// Create the token storage directory if it does not yet exist.
+		if err = os.Mkdir(tokenStorageDir, 0755); err != nil {
+			return nil, errors.AddContext(err, "Could not create token storage directory")
+		}
+	}
+	// Initialize token storage.
+	// TODO: the current version of tokens storage does not support reverting blocks.
+	// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
+	h.TokenStor, err = tokenstorage.NewTokenStorage(tokenStorageDir)
+	if err != nil {
+		return nil, errors.AddContext(err, "Could not initialize token storage")
+	}
+	updateTokenSectorsChan := make(chan bool)
+	h.tg.AfterStop(func() {
+		updateTokenSectorsChan <- true
+		err = h.TokenStor.Close(context.Background())
+		if err != nil {
+			fmt.Println("Error when closing token storage:", err)
+		}
+	})
+
 	// Add the storage manager to the host, and set up the stop call that will
 	// close the storage manager.
-	h.StorageManager, err = contractmanager.NewCustomContractManager(smDeps, filepath.Join(persistDir, "contractmanager"))
+	stManager, err := contractmanager.NewCustomContractManager(smDeps, filepath.Join(persistDir, "contractmanager"))
 	if err != nil {
 		h.log.Println("Could not open the storage manager:", err)
 		return nil, errors.AddContext(err, "Could not open the contract manager")
 	}
+	h.StorageManager = stManager
+
 	h.tg.AfterStop(func() {
 		err = h.StorageManager.Close()
 		if err != nil {
@@ -511,6 +517,9 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 			err = errors.AddContext(err, "Could not close the storage manager")
 		}
 	})
+
+	// remove sectors from token when token storage resource ends
+	go h.TokenStor.CheckExpiration(stManager, checkTokenExpirationFrequency, updateTokenSectorsChan)
 
 	// Load the prior persistence structures, and configure the host to save
 	// before shutting down.
@@ -559,7 +568,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	go h.threadedPruneExpiredPriceTables()
 
 	//	Initialize and run host API
-	hostApi := api.NewAPI(hostAPIPort, h.TokenStor, h.StorageManager, h.secretKey)
+	hostApi := api.NewAPI(hostAPIPort, h.TokenStor, h.secretKey, h)
 	err = hostApi.Start()
 	if err != nil {
 		h.log.Println("Could not start host api:", err)
@@ -576,20 +585,20 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 }
 
 // New returns an initialized Host.
-func New(cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir, hostAPIPort string) (*Host, error) {
-	return newHost(modules.ProdDependencies, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIPort)
+func New(cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir, hostAPIPort string, checkTokenExpirationFrequency time.Duration) (*Host, error) {
+	return newHost(modules.ProdDependencies, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIPort, checkTokenExpirationFrequency)
 }
 
 // NewCustomHost returns an initialized Host using the provided dependencies.
-func NewCustomHost(deps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir, hostAPIPort string) (*Host, error) {
-	return newHost(deps, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIPort)
+func NewCustomHost(deps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir, hostAPIPort string, checkTokenExpirationFrequency time.Duration) (*Host, error) {
+	return newHost(deps, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIPort, checkTokenExpirationFrequency)
 }
 
 // NewCustomTestHost allows passing in both host dependencies and storage
 // manager dependencies. Used solely for testing purposes, to allow dependency
 // injection into the host's submodules.
-func NewCustomTestHost(deps modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir, hostAPIPort string) (*Host, error) {
-	return newHost(deps, smDeps, cs, g, tpool, wallet, mux, address, persistDir, hostAPIPort)
+func NewCustomTestHost(deps modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir, hostAPIPort string, checkTokenExpirationFrequency time.Duration) (*Host, error) {
+	return newHost(deps, smDeps, cs, g, tpool, wallet, mux, address, persistDir, hostAPIPort, checkTokenExpirationFrequency)
 }
 
 // Close shuts down the host.
@@ -606,7 +615,7 @@ func (h *Host) ExternalSettings() modules.HostExternalSettings {
 		build.Critical("Call to ExternalSettings after close")
 	}
 	defer h.tg.Done()
-	return h.managedExternalSettings()
+	return h.ManagedExternalSettings()
 }
 
 // BandwidthCounters returns the Hosts's upload and download bandwidth
@@ -739,10 +748,10 @@ func (h *Host) BlockHeight() types.BlockHeight {
 	return h.blockHeight
 }
 
-// managedExternalSettings returns the host's external settings. These values
+// ManagedExternalSettings returns the host's external settings. These values
 // cannot be set by the user (host is configured through InternalSettings), and
 // are the values that get displayed to other hosts on the network.
-func (h *Host) managedExternalSettings() modules.HostExternalSettings {
+func (h *Host) ManagedExternalSettings() modules.HostExternalSettings {
 	_, maxFee := h.tpool.FeeEstimation()
 	h.mu.Lock()
 	defer h.mu.Unlock()
