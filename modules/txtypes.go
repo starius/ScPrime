@@ -2,7 +2,10 @@
 package modules
 
 import (
+	"encoding/json"
+	"fmt"
 	"math"
+	"strconv"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/types"
@@ -13,6 +16,7 @@ type TXType int
 const (
 	TXTypeSetup TXType = iota
 	TXTypeMiner
+	TXTypeSCPMove
 	TXTypeSPFMove
 	TXTypeFileContractNew
 	TXTypeFileContractRenew
@@ -21,14 +25,14 @@ const (
 	TXTypeStorageProof
 	TXTypeHostAnnouncement
 	TXTypeArbitraryData
-	TXTypeSCPMove
 	TXTypeMixed
 )
 
-func (t TXType) String() string {
-	return [...]string{
+var (
+	descriptionTXType = [...]string{
 		"Setup",
 		"Miner",
+		"SCP move",
 		"SPF move",
 		"New file contract",
 		"Renew file contract",
@@ -37,9 +41,41 @@ func (t TXType) String() string {
 		"Storage proof",
 		"Host announcement",
 		"Arbitrary data",
-		"SCP move",
 		"Composite",
-	}[t]
+	}
+)
+
+func (t TXType) String() string {
+	if int(t) >= len(descriptionTXType) || int(t) < 0 {
+		return fmt.Sprintf("Nonexisting TXType specified by index %v.", int(t))
+	}
+	return descriptionTXType[t]
+}
+
+// MarshalJSON puts the string represenation of TXType instead of int value
+func (tt TXType) MarshalJSON() ([]byte, error) {
+	//Check if known
+	i := int(tt)
+	if i >= len(descriptionTXType) || i < 0 {
+		return nil, fmt.Errorf("Cannot marshal unknown TXType (index %v)", i)
+	}
+	return json.Marshal(tt.String())
+}
+
+// UnmarshalJSON parses the input as string and converts it to the coded int constant
+func (tt *TXType) UnmarshalJSON(b []byte) error {
+	typeString := string(b)
+	typeString, err := strconv.Unquote(typeString)
+	if err != nil {
+		return fmt.Errorf("Error %v processing TXType %v", err, typeString)
+	}
+	for i, existingtype := range descriptionTXType {
+		if existingtype == typeString {
+			*tt = TXType(i)
+			return nil
+		}
+	}
+	return fmt.Errorf("TXType %s is not recognized", typeString)
 }
 
 // TransactionType returns the transaction type determined by the transaction

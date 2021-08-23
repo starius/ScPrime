@@ -2,6 +2,7 @@
 package modules
 
 import (
+	"encoding/json"
 	"math"
 	"testing"
 
@@ -128,4 +129,45 @@ func TestTXTypeTransactionType(t *testing.T) {
 	if tt = TransactionType(tx); tt != TXTypeMixed {
 		t.Errorf("Mixing contracts and revisions expected %v tx, got %s", TXTypeMixed, tt)
 	}
+}
+
+// TestTXTypeTransactionJSONMarshalling checks checks JSON marshalling in both directions
+func TestTXTypeTransactionJSONMarshalling(t *testing.T) {
+	for i, _ := range descriptionTXType {
+		tt := TXType(i)
+
+		// Marshal the TXType.
+		marTT, err := json.Marshal(tt)
+		if err != nil {
+			t.Errorf("TXType JSON marshalling error %v", err)
+		}
+
+		// Unmarshal the marshalled TXType and compare to the original.
+		var unmarTT TXType
+		err = json.Unmarshal(marTT, &unmarTT)
+		if err != nil {
+			t.Errorf("TXType JSON unmarshalling error %v", err)
+		}
+
+		//Check that the result equals the initial value
+		if tt != unmarTT {
+			t.Errorf("Expected TXType %v is not returned (%v instead) after marshalling and unmarshalling as JSON", tt, unmarTT)
+		}
+	}
+	//Test unknown txtype
+	tt := TXType(54321)
+	// Marshal the TXType.
+	_, err := json.Marshal(tt)
+	if err == nil {
+		t.Errorf("Expected JSON marshalling error but got %v", err)
+	}
+
+	marTT := []byte(`"UnknownTXtype1"`)
+	// Unmarshal the marshalled TXType and compare to the original.
+	var unmarTT TXType
+	err = json.Unmarshal(marTT, &unmarTT)
+	if err == nil {
+		t.Errorf("Expected TXType JSON unmarshalling error but got %v", err)
+	}
+
 }
