@@ -102,6 +102,7 @@ func (h *Host) externalSettings(maxFeeEstimation types.Currency) modules.HostExt
 		Version:        build.Version,
 
 		SiaMuxPort: port,
+		//TODO: RelayerPort
 	}
 }
 
