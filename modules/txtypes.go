@@ -116,13 +116,15 @@ func TransactionType(t *types.Transaction) TXType {
 		return TXTypeStorageProof
 	}
 	if len(t.SiacoinOutputs) == 0 {
-		for _, arb := range t.ArbitraryData {
-			_, _, err := DecodeAnnouncement(arb)
-			if err == nil {
-				return TXTypeHostAnnouncement
+		if len(t.ArbitraryData) > 0 {
+			for _, arb := range t.ArbitraryData {
+				_, _, err := DecodeAnnouncement(arb)
+				if err == nil {
+					return TXTypeHostAnnouncement
+				}
 			}
+			return TXTypeArbitraryData
 		}
-		return TXTypeArbitraryData
 	}
 	return TXTypeSCPMove
 }
