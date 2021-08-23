@@ -133,7 +133,7 @@ func TestTXTypeTransactionType(t *testing.T) {
 
 // TestTXTypeTransactionJSONMarshalling checks checks JSON marshalling in both directions
 func TestTXTypeTransactionJSONMarshalling(t *testing.T) {
-	for i, _ := range descriptionTXType {
+	for i := range descriptionTXType {
 		tt := TXType(i)
 
 		// Marshal the TXType.

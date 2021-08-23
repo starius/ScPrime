@@ -1,4 +1,3 @@
-// txtypes
 package modules
 
 import (
@@ -48,11 +47,13 @@ var (
 	}
 )
 
-func (t TXType) String() string {
-	if int(t) >= len(descriptionTXType) || int(t) < 0 {
-		return fmt.Sprintf("Nonexisting TXType specified by index %v.", int(t))
+func (tt TXType) String() string {
+	//Check if known
+	i := int(tt)
+	if i >= len(descriptionTXType) || i < 0 {
+		return fmt.Sprintf("Nonexisting TXType specified by index %v.", i)
 	}
-	return descriptionTXType[t]
+	return descriptionTXType[tt]
 }
 
 // MarshalJSON puts the string representation of TXType instead of int value
