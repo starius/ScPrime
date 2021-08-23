@@ -169,5 +169,4 @@ func TestTXTypeTransactionJSONMarshalling(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected TXType JSON unmarshalling error but got %v", err)
 	}
-
 }

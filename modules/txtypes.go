@@ -11,8 +11,11 @@ import (
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
+//TXType is the type of transaction determined by the contents
+// has String() and JSON marshalling functions
 type TXType int
 
+//TXType constants for recognized transaction types
 const (
 	TXTypeSetup TXType = iota
 	TXTypeMiner
@@ -52,7 +55,7 @@ func (t TXType) String() string {
 	return descriptionTXType[t]
 }
 
-// MarshalJSON puts the string represenation of TXType instead of int value
+// MarshalJSON puts the string representation of TXType instead of int value
 func (tt TXType) MarshalJSON() ([]byte, error) {
 	//Check if known
 	i := int(tt)
