@@ -86,17 +86,13 @@ func (tt *TXType) UnmarshalJSON(b []byte) error {
 // contents. Sanity or validity of transaction is not checked as that is done
 // by transactionpool when transactions get submitted
 func TransactionType(t *types.Transaction) TXType {
-	if len(t.SiacoinInputs)+len(t.SiafundInputs) == 0 {
+	if len(t.SiacoinInputs)+len(t.SiafundInputs)+
+		len(t.FileContracts)+len(t.FileContractRevisions)+
+		len(t.StorageProofs) == 0 {
 		return TXTypeMiner
-	}
-	if len(t.MinerFees) == 0 {
-		return TXTypeSetup
 	}
 	if len(t.FileContracts)+len(t.FileContractRevisions)+len(t.StorageProofs) > 1 {
 		return TXTypeMixed
-	}
-	if len(t.SiafundInputs) > 0 {
-		return TXTypeSPFMove
 	}
 	if len(t.FileContracts) > 0 {
 		for _, contract := range t.FileContracts {
@@ -118,6 +114,12 @@ func TransactionType(t *types.Transaction) TXType {
 	}
 	if len(t.StorageProofs) > 0 {
 		return TXTypeStorageProof
+	}
+	if len(t.MinerFees) == 0 {
+		return TXTypeSetup
+	}
+	if len(t.SiafundInputs) > 0 {
+		return TXTypeSPFMove
 	}
 	if len(t.SiacoinOutputs) == 0 {
 		if len(t.ArbitraryData) > 0 {
