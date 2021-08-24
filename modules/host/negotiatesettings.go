@@ -2,6 +2,7 @@ package host
 
 import (
 	"net"
+	"strings"
 	"time"
 
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -102,7 +103,7 @@ func (h *Host) externalSettings(maxFeeEstimation types.Currency) modules.HostExt
 		Version:        build.Version,
 
 		SiaMuxPort:  port,
-		RelayerPort: h.apiPort,
+		RelayerPort: strings.TrimPrefix(h.apiPort, ":"),
 	}
 }
 
