@@ -3,6 +3,7 @@ package host
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"gitlab.com/scpcorp/ScPrime/modules"
 )
@@ -46,7 +47,7 @@ func TestHostContractCountPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
+	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0", 5*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +88,7 @@ func TestHostAddressPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
+	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0", 5*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +132,7 @@ func TestHostPriceRatios(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
+	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0", 5*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +165,7 @@ func TestHostPriceRatios(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
+	ht.host, err = New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0", 5*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
@@ -175,7 +176,7 @@ func TestIntegrationAutoRescan(t *testing.T) {
 
 	// Create a new host and check that the persist variables have correctly
 	// reset.
-	h, err := New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0")
+	h, err := New(ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0", 5*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}

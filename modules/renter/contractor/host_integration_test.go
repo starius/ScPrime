@@ -77,7 +77,7 @@ func newCustomTestingHost(testdir string, cs modules.ConsensusSet, tp modules.Tr
 	if err != nil {
 		return nil, nil, err
 	}
-	h, err := host.NewCustomHost(deps, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":0")
+	h, err := host.NewCustomHost(deps, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":0", 5*time.Second)
 	if err != nil {
 		return nil, nil, err
 	}

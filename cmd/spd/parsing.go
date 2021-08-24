@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	"time"
 
 	"gitlab.com/scpcorp/ScPrime/node"
 )
@@ -49,5 +50,6 @@ func parseModules(config Config) node.NodeParams {
 	params.SiaMuxWSAddress = config.Spd.SiaMuxWSAddr
 	params.Dir = config.Spd.DataDir
 	params.HostAPIAddr = config.Spd.HostApiAddr
+	params.CheckTokenExpirationFrequency = 1 * time.Hour // default
 	return params
 }

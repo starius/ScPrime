@@ -115,3 +115,24 @@ func (h *Hash) UnmarshalJSON(b []byte) error {
 	copy(h[:], hBytes)
 	return nil
 }
+
+// Bytes convert Hash type to slice bytes
+func (h Hash) Bytes() []byte {
+	return h[:]
+}
+
+// ConvertBytesToHash return Hash type from slice byte
+func ConvertBytesToHash(b []byte) Hash {
+	var h Hash
+	copy(h[:], b)
+	return h
+}
+
+// ConvertHashesToByteSlices takes hash slice and convert to slice bytes slices
+func ConvertHashesToByteSlices(h []Hash) [][]byte {
+	var res [][]byte
+	for _, h := range h {
+		res = append(res, h.Bytes())
+	}
+	return res
+}
