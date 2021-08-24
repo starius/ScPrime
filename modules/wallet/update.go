@@ -314,6 +314,7 @@ func (w *Wallet) computeProcessedTransactionsFromBlock(tx *bolt.Tx, block types.
 			TransactionID:         txn.ID(),
 			ConfirmationHeight:    consensusHeight,
 			ConfirmationTimestamp: block.Timestamp,
+			TxType:                modules.TransactionType(&txn),
 		}
 
 		for _, sci := range txn.SiacoinInputs {

@@ -98,6 +98,8 @@ type (
 	// Because of the block subsidy, a block is considered as a transaction.
 	// Since there is technically no transaction id for the block subsidy, the
 	// block id is used instead.
+	//
+	// A transaction type is determined depending on contents
 	ProcessedTransaction struct {
 		Transaction           types.Transaction   `json:"transaction"`
 		TransactionID         types.TransactionID `json:"transactionid"`
@@ -106,6 +108,7 @@ type (
 
 		Inputs  []ProcessedInput  `json:"inputs"`
 		Outputs []ProcessedOutput `json:"outputs"`
+		TxType  TXType            `json:"txtype"`
 	}
 
 	// ValuedTransaction is a transaction that has been given incoming and
