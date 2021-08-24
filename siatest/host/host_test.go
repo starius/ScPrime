@@ -137,7 +137,7 @@ func TestHostAlertInsufficientCollateral(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	// Create a test group
 	groupParams := siatest.GroupParams{
@@ -169,7 +169,7 @@ func TestHostAlertInsufficientCollateral(t *testing.T) {
 	// Nullify the host's collateral budget
 	h := tg.Hosts()[0]
 	hS, _ := h.HostGet()
-	err = h.HostModifySettingPost(client.HostParamCollateralBudget, 0)
+	err = h.HostModifySettingPost(client.HostParamCollateralBudget, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -289,7 +289,7 @@ func TestHostContract(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	gp := siatest.GroupParams{
 		Hosts:   2,

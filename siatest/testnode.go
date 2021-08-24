@@ -91,7 +91,7 @@ func NewNode(nodeParams node.NodeParams) (*TestNode, error) {
 		return nil, errors.New("Can't create funded node without miner")
 	}
 	// Create clean node
-	tn, err := NewCleanNode(nodeParams)
+	tn, err := NewCleanNodeAsync(nodeParams)
 	if err != nil {
 		return nil, errors.AddContext(err, "Could not create new clean node")
 	}
