@@ -647,9 +647,9 @@ func wallettransactionscmd() {
 		fmt.Printf("%67v%15.2f SCP", txn.TransactionID, incomingSiacoinsFloat-outgoingSiacoinsFloat)
 		// For siafunds, need to avoid having a negative types.Currency.
 		if incomingSiafunds.Cmp(outgoingSiafunds) >= 0 {
-			fmt.Printf("%14v SPF\n", incomingSiafunds.Sub(outgoingSiafunds))
+			fmt.Printf("%14v SPF %v\n", incomingSiafunds.Sub(outgoingSiafunds), txn.TxType)
 		} else {
-			fmt.Printf("-%14v SPF\n", outgoingSiafunds.Sub(incomingSiafunds))
+			fmt.Printf("-%14v SPF %v\n", outgoingSiafunds.Sub(incomingSiafunds), txn.TxType)
 		}
 	}
 }

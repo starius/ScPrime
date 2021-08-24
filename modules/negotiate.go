@@ -339,6 +339,8 @@ type (
 		Version        string `json:"version"`
 
 		SiaMuxPort string `json:"siamuxport"`
+		// RelayerPort is the HTTP API port used by Relayer
+		RelayerPort string `json:"relayerport"`
 	}
 
 	// HostOldExternalSettings are the pre-v1.4.0 host settings.

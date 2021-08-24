@@ -70,6 +70,7 @@ type ConsensusBlocksGet struct {
 // additional ID field.
 type ConsensusBlocksGetTxn struct {
 	ID                    types.TransactionID               `json:"id"`
+	TxType                modules.TXType                    `json:"txtype"`
 	SiacoinInputs         []types.SiacoinInput              `json:"siacoininputs"`
 	SiacoinOutputs        []ConsensusBlocksGetSiacoinOutput `json:"siacoinoutputs"`
 	FileContracts         []ConsensusBlocksGetFileContract  `json:"filecontracts"`
@@ -183,6 +184,7 @@ func consensusBlocksGetFromBlock(b types.Block, h types.BlockHeight, d types.Cur
 			MinerFees:             t.MinerFees,
 			ArbitraryData:         t.ArbitraryData,
 			TransactionSignatures: t.TransactionSignatures,
+			TxType:                modules.TransactionType(&t),
 		})
 	}
 	return ConsensusBlocksGet{

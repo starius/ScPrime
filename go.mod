@@ -7,10 +7,12 @@ require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/dchest/threefish v0.0.0-20120919164726-3ecf4c494abf
-	github.com/fsnotify/fsnotify v1.5.0 // indirect
+	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/getkin/kin-openapi v0.49.0 // indirect
 	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hanwen/go-fuse/v2 v2.1.0
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/julienschmidt/httprouter v1.3.0

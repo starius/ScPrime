@@ -295,10 +295,20 @@ func dbAddProcessedTransactionAddrs(tx *bolt.Tx, pt modules.ProcessedTransaction
 func decodeProcessedTransaction(ptBytes []byte, pt *modules.ProcessedTransaction) error {
 	err := encoding.Unmarshal(ptBytes, pt)
 	if err != nil {
-		// COMPATv1.2.1: try decoding into old transaction type
-		var oldpt v121ProcessedTransaction
-		err = encoding.Unmarshal(ptBytes, &oldpt)
-		*pt = convertProcessedTransaction(oldpt)
+		// COMPATv1.5.3: try read as 1.5.3 and att TXType
+		var v153pt v153ProcessedTransaction
+		err = encoding.Unmarshal(ptBytes, &v153pt)
+		*pt = convert153ProcessedTransaction(v153pt)
+		if err != nil {
+			err153 := fmt.Errorf("Error unmarshalling v1.5.3 processed transaction:%v", err)
+			// COMPATv1.2.1: try decoding into old transaction type
+			var oldpt v121ProcessedTransaction
+			err = encoding.Unmarshal(ptBytes, &oldpt)
+			if err != nil {
+				return errors.Compose(err153, fmt.Errorf("Error unmarshalling v1.2.1 processed transaction:%v", err))
+			}
+			*pt = convert121ProcessedTransaction(oldpt)
+		}
 	}
 	return err
 }
@@ -515,9 +525,31 @@ type (
 		Inputs                []v121ProcessedInput
 		Outputs               []v121ProcessedOutput
 	}
+
+	v153ProcessedTransaction struct {
+		Transaction           types.Transaction   `json:"transaction"`
+		TransactionID         types.TransactionID `json:"transactionid"`
+		ConfirmationHeight    types.BlockHeight   `json:"confirmationheight"`
+		ConfirmationTimestamp types.Timestamp     `json:"confirmationtimestamp"`
+
+		Inputs  []modules.ProcessedInput  `json:"inputs"`
+		Outputs []modules.ProcessedOutput `json:"outputs"`
+	}
 )
 
-func convertProcessedTransaction(oldpt v121ProcessedTransaction) (pt modules.ProcessedTransaction) {
+// convert153ProcessedTransaction adds the TXType field
+func convert153ProcessedTransaction(oldpt v153ProcessedTransaction) (pt modules.ProcessedTransaction) {
+	pt.Transaction = oldpt.Transaction
+	pt.TransactionID = oldpt.TransactionID
+	pt.ConfirmationHeight = oldpt.ConfirmationHeight
+	pt.ConfirmationTimestamp = oldpt.ConfirmationTimestamp
+	pt.Inputs = oldpt.Inputs
+	pt.Outputs = oldpt.Outputs
+	pt.TxType = modules.TransactionType(&oldpt.Transaction)
+	return
+}
+
+func convert121ProcessedTransaction(oldpt v121ProcessedTransaction) (pt modules.ProcessedTransaction) {
 	pt.Transaction = oldpt.Transaction
 	pt.TransactionID = oldpt.TransactionID
 	pt.ConfirmationHeight = oldpt.ConfirmationHeight
