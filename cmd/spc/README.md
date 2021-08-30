@@ -61,14 +61,6 @@ Full Descriptions
 
 * `spc version` displays the version string of spc.
 
-### FeeManager tasks
-
-* `spc feemanager` prints info about the feemanager such as pending fees and
-  the next fee payout height.
-
-* `spc feemanager cancel <feeUID>` cancels a pending fee. If a transaction has
-  already been created the fee cannot be cancelled.
-
 ### Gateway tasks
 
 * `spc gateway` prints info about the gateway, including its address and how

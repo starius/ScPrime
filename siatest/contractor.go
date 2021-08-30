@@ -361,13 +361,12 @@ func RenewContractsByRenewWindow(renter *TestNode, tg *TestGroup) error {
 		if err = m.MineBlock(); err != nil {
 			return err
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 		currentHeight, err = renter.BlockHeight()
-	}
-
-	// Waiting for nodes to sync
-	if err = tg.Sync(); err != nil {
-		return err
+		// Waiting for nodes to sync
+		if err = tg.Sync(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

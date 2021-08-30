@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -75,7 +76,7 @@ Renter Rate limits:
   Download Speed: (no limit|\d+(\.\d+)? (B/s|KB/s|MB/s|GB/s|TB/s))
   Upload Speed:   (no limit|\d+(\.\d+)? (B/s|KB/s|MB/s|GB/s|TB/s))`
 
-	connectionRefusedPattern := `Could not get consensus status: \[failed to get reader response; GET request failed; Get "?http://localhost:5555/consensus"?: dial tcp \[::1\]:5555: connect: connection refused\]`
+	connectionRefusedPattern := `Could not get consensus status: \[failed to get reader response; GET request failed; Get "?http://localhost:5555/consensus"?: dial tcp \[::1\]:5555: connect.+`
 	siaClientVersionPattern := "ScPrime Client v" + strings.ReplaceAll(build.Version, ".", `\.`)
 
 	// Define subtests
@@ -164,14 +165,17 @@ func getCmdUsage(t *testing.T, cmd *cobra.Command) string {
 	// Escape regex special chars
 	usage := escapeRegexChars(baseUsage)
 
-	// Inject 2 missing rows
-	beforeHelpCommand := "Perform gateway actions"
-	helpCommand := "  help         Help about any command"
+	// Inject 3 missing lines
 	nl := `
 `
+	beforeCompletion := "View daemon alerts"
+	completionCommand := "  completion   generate the autocompletion script for the specified shell"
+	usage = strings.ReplaceAll(usage, beforeCompletion, beforeCompletion+nl+completionCommand)
+	beforeHelpCommand := "Perform gateway actions"
+	helpCommand := "  help         Help about any command"
 	usage = strings.ReplaceAll(usage, beforeHelpCommand, beforeHelpCommand+nl+helpCommand)
 	beforeHelpFlag := "the password for the API's http authentication"
-	helpFlag := `  -h, --help                       help for .*spc(\.test|)`
+	helpFlag := `  -h, --help                       help for ` + escapeRegexChars(os.Args[0])
 	cmdUsagePattern := strings.ReplaceAll(usage, beforeHelpFlag, beforeHelpFlag+nl+helpFlag)
 
 	return cmdUsagePattern

@@ -191,21 +191,21 @@ func NewGroupFromTemplate(groupDir string, groupParams GroupParams) (*TestGroup,
 	// Create host params
 	for i := 0; i < groupParams.Hosts; i++ {
 		template := node.HostTemplate
-		template.HostAPIAddr = ":0"
+		template.HostAPIAddr = "localhost:0"
 		params = append(params, template)
 		randomNodeDir(groupDir, &params[len(params)-1])
 	}
 	// Create renter params
 	for i := 0; i < groupParams.Renters; i++ {
 		template := node.RenterTemplate
-		template.HostAPIAddr = ":0"
+		template.HostAPIAddr = "localhost:0"
 		params = append(params, template)
 		randomNodeDir(groupDir, &params[len(params)-1])
 	}
 	// Create miner params
 	for i := 0; i < groupParams.Miners; i++ {
 		template := node.MinerTemplate
-		template.HostAPIAddr = ":0"
+		template.HostAPIAddr = "localhost:0"
 		params = append(params, template)
 		randomNodeDir(groupDir, &params[len(params)-1])
 	}
@@ -519,7 +519,7 @@ func waitForContracts(miner *TestNode, renters map[*TestNode]struct{}, hosts map
 func (tg *TestGroup) AddNodeN(np node.NodeParams, n int) ([]*TestNode, error) {
 	nps := make([]node.NodeParams, n)
 	for i := 0; i < n; i++ {
-		np.HostAPIAddr = ":0"
+		np.HostAPIAddr = "localhost:0"
 		nps[i] = np
 	}
 	return tg.AddNodes(nps...)

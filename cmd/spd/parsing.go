@@ -21,9 +21,6 @@ func parseModules(config Config) node.NodeParams {
 	if strings.Contains(config.Spd.Modules, "e") {
 		params.CreateExplorer = true
 	}
-	if strings.Contains(config.Spd.Modules, "f") {
-		params.CreateFeeManager = true
-	}
 	if strings.Contains(config.Spd.Modules, "t") {
 		params.CreateTransactionPool = true
 	}

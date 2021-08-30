@@ -216,6 +216,7 @@ type Host struct {
 	staticMonitor *connmonitor.Monitor
 	persistDir    string
 	port          string
+	apiPort       string
 	tg            siasync.ThreadGroup
 }
 
@@ -443,6 +444,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 			},
 		},
 		persistDir: persistDir,
+		apiPort:    hostAPIPort,
 	}
 
 	// Create MDM.

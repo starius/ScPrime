@@ -91,7 +91,7 @@ func NewNode(nodeParams node.NodeParams) (*TestNode, error) {
 		return nil, errors.New("Can't create funded node without miner")
 	}
 	// Create clean node
-	tn, err := NewCleanNode(nodeParams)
+	tn, err := NewCleanNodeAsync(nodeParams)
 	if err != nil {
 		return nil, errors.AddContext(err, "Could not create new clean node")
 	}
@@ -120,7 +120,7 @@ func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error)
 	userAgent := "ScPrime-Agent"
 	password := "password"
 
-	nodeParams.HostAPIAddr = ":0"
+	nodeParams.HostAPIAddr = "127.0.0.1:0"
 
 	// Check if an RPC address is set
 	if nodeParams.RPCAddress == "" {
@@ -146,10 +146,10 @@ func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error)
 	var err error
 	if asyncSync {
 		var errChan <-chan error
-		s, errChan = server.NewAsync(":0", userAgent, password, nodeParams, time.Now())
+		s, errChan = server.NewAsync("127.0.0.1:0", userAgent, password, nodeParams, time.Now())
 		err = errors.AddContext(modules.PeekErr(errChan), "Can not create NewAsync server")
 	} else {
-		s, err = server.New(":0", userAgent, password, nodeParams, time.Now())
+		s, err = server.New("127.0.0.1:0", userAgent, password, nodeParams, time.Now())
 		if err != nil {
 			err = errors.AddContext(err, "Can not create new server")
 		}

@@ -200,7 +200,6 @@ func TestInterruptBackup(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Parallel()
 
 	// Create a testgroup.
 	groupParams := siatest.GroupParams{
@@ -225,13 +224,13 @@ func TestInterruptBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Add a file to that dir.
-	lf, err := subDir.NewFile(100)
+	lf, err := subDir.NewFile(500)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Upload the file.
-	dataPieces := uint64(len(tg.Hosts()) - 1)
-	parityPieces := uint64(1)
+	dataPieces := uint64(len(tg.Hosts()) - 2)
+	parityPieces := uint64(2)
 	_, err = r.UploadBlocking(lf, dataPieces, parityPieces, false)
 	if err != nil {
 		r.PrintDebugInfo(t, true, true, true)

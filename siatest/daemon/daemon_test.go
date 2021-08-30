@@ -281,9 +281,6 @@ func TestDaemonConfig(t *testing.T) {
 	if dsg.Modules.Explorer {
 		t.Error("Explorer should be set as false")
 	}
-	if !dsg.Modules.FeeManager {
-		t.Error("FeeManager should be set as true")
-	}
 	if !dsg.Modules.Gateway {
 		t.Error("Gateway should be set as true")
 	}
@@ -331,9 +328,6 @@ func TestDaemonConfig(t *testing.T) {
 	}
 	if dsg.Modules.Explorer {
 		t.Error("Explorer should be set as false")
-	}
-	if dsg.Modules.FeeManager {
-		t.Error("FeeManager should be set as false")
 	}
 	if !dsg.Modules.Gateway {
 		t.Error("Gateway should be set as true")
