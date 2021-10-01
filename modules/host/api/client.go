@@ -26,6 +26,15 @@ func NewClient(baseURL string, opts ...api2.Option) (*Client, error) {
 	}, nil
 }
 
+func (c *Client) TokenResources(ctx context.Context, req *TokenResourcesRequest) (res *TokenResourcesResponse, err error) {
+	res = &TokenResourcesResponse{}
+	err = c.api2client.Call(ctx, res, req)
+	if err != nil {
+		return nil, err
+	}
+	return
+}
+
 func (c *Client) DownloadWithToken(ctx context.Context, req *DownloadWithTokenRequest) (res *DownloadWithTokenResponse, err error) {
 	res = &DownloadWithTokenResponse{}
 	err = c.api2client.Call(ctx, res, req)
