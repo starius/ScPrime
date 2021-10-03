@@ -12,6 +12,22 @@ import (
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
+// TokenResources handler for /resources [GET] request.
+func (a *API) TokenResources(ctx context.Context, req *TokenResourcesRequest) (*TokenResourcesResponse, error) {
+	id := types.ParseToken(req.Authorization)
+	tr, err := a.ts.TokenRecord(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TokenResourcesResponse{
+		UploadBytes:    tr.UploadBytes,
+		DownloadBytes:  tr.DownloadBytes,
+		SectorAccesses: tr.SectorAccesses,
+		Storage:        tr.TokenStorageInfo.Storage,
+	}, nil
+}
+
 // DownloadWithToken handler for /download [POST] request.
 func (a *API) DownloadWithToken(ctx context.Context, req *DownloadWithTokenRequest) (*DownloadWithTokenResponse, error) {
 	// Validate the request.

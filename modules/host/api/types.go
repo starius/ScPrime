@@ -35,6 +35,19 @@ func toTokenRecord(record tokenstorage.TokenRecord) *TokenRecord {
 	}
 }
 
+// TokenResourcesRequest represents request.
+type TokenResourcesRequest struct {
+	Authorization string `header:"Authorization"`
+}
+
+// TokenResourcesResponse represents response.
+type TokenResourcesResponse struct {
+	UploadBytes    int64 `json:"upload_bytes,omitempty"`
+	DownloadBytes  int64 `json:"download_bytes,omitempty"`
+	SectorAccesses int64 `json:"sector_accesses,omitempty"`
+	Storage        int64 `json:"storage,omitempty"`
+}
+
 // DownloadWithTokenError represent error message.
 type DownloadWithTokenError struct {
 	NotEnoughSectorAccesses bool         `json:"not_enough_sector_accesses,omitempty"`
