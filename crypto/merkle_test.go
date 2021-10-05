@@ -3,6 +3,7 @@ package crypto
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gitlab.com/NebulousLabs/fastrand"
 )
 
@@ -170,4 +171,40 @@ func TestOddDataSize(t *testing.T) {
 			t.Error("Padded data proof failed for", randFullSegments, randOverflow, randProofIndex)
 		}
 	}
+}
+
+// TestClone checks that clone makes copy of existed tree
+// and the clone has the same content,
+// produces same root and have different pointers.
+func TestClone(t *testing.T) {
+	tree := NewTree()
+
+	for i := 0; i < 15; i++ {
+		tree.PushObject(i)
+	}
+
+	// Cloned and origin tree are the same at the beginning.
+	clonedTree := tree.Clone()
+	require.Equal(t, tree, clonedTree)
+	require.Equal(t, tree.Root(), clonedTree.Root())
+
+	// Push new items to cloned tree, origin tree stayed the same.
+	treeRoot := tree.Root()
+	for i := 0; i < 5; i++ {
+		clonedTree.PushObject(i)
+	}
+	require.Equal(t, treeRoot, tree.Root())
+
+	// Cloned tree changed.
+	require.NotEqual(t, tree, clonedTree)
+	require.NotEqual(t, tree.Root(), clonedTree.Root())
+
+	// Copy only Tree struct value, not using Clone().
+	// Push object to one tree, it is changed,
+	// then push to the copied tree, both are changed now and became identical.
+	sameTree := &MerkleTree{Tree: clonedTree.Tree}
+	clonedTree.PushObject(1)
+	require.NotEqual(t, clonedTree.Root(), sameTree.Root())
+	sameTree.PushObject(2)
+	require.Equal(t, clonedTree.Root(), sameTree.Root())
 }

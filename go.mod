@@ -7,12 +7,9 @@ require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/dchest/threefish v0.0.0-20120919164726-3ecf4c494abf
-	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/getkin/kin-openapi v0.49.0 // indirect
 	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hanwen/go-fuse/v2 v2.1.0
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/julienschmidt/httprouter v1.3.0
@@ -37,19 +34,19 @@ require (
 	gitlab.com/NebulousLabs/fastrand v0.0.0-20181126182046-603482d69e40
 	gitlab.com/NebulousLabs/go-upnp v0.0.0-20210414172302-67b91c9a5c03
 	gitlab.com/NebulousLabs/log v0.0.0-20210609172545-77f6775350e2
-	gitlab.com/NebulousLabs/merkletree v0.0.0-20200118113624-07fbf710afc4
 	gitlab.com/NebulousLabs/monitor v0.0.0-20191205095550-2b0fd3e1012a
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20200811080431-99b8f0768b2e
 	gitlab.com/NebulousLabs/siamux v0.0.0-20210824082138-a4ebafe4b9d9
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213
+	gitlab.com/scpcorp/merkletree v0.0.0-20211005143105-0a12c01c1378 // indirect
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200814111317-c404cb85e61f
 	gitlab.com/zer0main/eventsourcing v0.0.0-20210603205953-656d120c3836
 	gitlab.com/zer0main/filestorage v0.0.0-20210603210652-2ee6eb57d4a3
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/mod v0.5.0 // indirect
 	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
-	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
+	golang.org/x/sys v0.0.0-20211004093028-2c5d950f24ef // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.5 // indirect

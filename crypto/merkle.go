@@ -4,8 +4,8 @@ import (
 	"bytes"
 
 	"gitlab.com/NebulousLabs/encoding"
-	"gitlab.com/NebulousLabs/merkletree/merkletree-blake"
 	"gitlab.com/scpcorp/ScPrime/build"
+	"gitlab.com/scpcorp/merkletree/merkletree-blake"
 )
 
 const (
@@ -39,6 +39,12 @@ func (t *MerkleTree) PushObject(obj interface{}) {
 // a []byte.
 func (t *MerkleTree) Root() (h Hash) {
 	return Hash(t.Tree.Root())
+}
+
+// Clone is a redefenition of merkletree.Tree.Clone, returning a clone of
+// the merkle tree.
+func (t *MerkleTree) Clone() *MerkleTree {
+	return &MerkleTree{Tree: *t.Tree.Clone()}
 }
 
 // CachedMerkleTree wraps merkletree.CachedTree, changing some of the function
