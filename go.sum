@@ -356,6 +356,8 @@ gitlab.com/scpcorp/merkletree v0.0.0-20211005070446-de1e23224550 h1:aYrKuk6GkL1Q
 gitlab.com/scpcorp/merkletree v0.0.0-20211005070446-de1e23224550/go.mod h1:3CWUfXmsEjKSv7z1ReNQzdDEl1Qg4FTYXWQf72D5Zxw=
 gitlab.com/scpcorp/merkletree v0.0.0-20211005143105-0a12c01c1378 h1:2e1PTtJfV0pYLgBFjoXxq41NM+qIbw6lUxdt60ErqzU=
 gitlab.com/scpcorp/merkletree v0.0.0-20211005143105-0a12c01c1378/go.mod h1:3CWUfXmsEjKSv7z1ReNQzdDEl1Qg4FTYXWQf72D5Zxw=
+gitlab.com/scpcorp/merkletree v0.0.0-20211011103924-f5b11bbb27af h1:o2Py9xjVvvf0+HXXIqdLfMoEPvJ3o6dgRorpqIWARlc=
+gitlab.com/scpcorp/merkletree v0.0.0-20211011103924-f5b11bbb27af/go.mod h1:3CWUfXmsEjKSv7z1ReNQzdDEl1Qg4FTYXWQf72D5Zxw=
 gitlab.com/scpcorp/writeaheadlog v0.0.0-20200814111317-c404cb85e61f h1:ZFxFhrhADCgqg1hFlH67eZcADhBYvAboZcJX0pQPc70=
 gitlab.com/scpcorp/writeaheadlog v0.0.0-20200814111317-c404cb85e61f/go.mod h1:8Q1sCZj1cAJ3jMr9fObxOxDfzKr0hHBufj91IoDUS/w=
 gitlab.com/zer0main/eventsourcing v0.0.0-20210603205953-656d120c3836 h1:DyQ+3f8OGydIcLyJqzBKb27xLklAeeK/3qnKbTnwM4s=
