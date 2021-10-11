@@ -98,6 +98,11 @@ func (ct *CachedMerkleTree) Root() (h Hash) {
 	return Hash(ct.CachedTree.Root())
 }
 
+// Clone creates copy of cached merkle tree.
+func (ct *CachedMerkleTree) Clone() *CachedMerkleTree {
+	return &CachedMerkleTree{CachedTree: *ct.CachedTree.Clone()}
+}
+
 // CalculateLeaves calculates the number of leaves that would be pushed from
 // data of size 'dataSize'.
 func CalculateLeaves(dataSize uint64) uint64 {

@@ -38,7 +38,7 @@ require (
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20200811080431-99b8f0768b2e
 	gitlab.com/NebulousLabs/siamux v0.0.0-20210824082138-a4ebafe4b9d9
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213
-	gitlab.com/scpcorp/merkletree v0.0.0-20211005143105-0a12c01c1378 // indirect
+	gitlab.com/scpcorp/merkletree v0.0.0-20211011103924-f5b11bbb27af // indirect
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200814111317-c404cb85e61f
 	gitlab.com/zer0main/eventsourcing v0.0.0-20210603205953-656d120c3836
 	gitlab.com/zer0main/filestorage v0.0.0-20210603210652-2ee6eb57d4a3
