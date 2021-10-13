@@ -12,6 +12,33 @@ import (
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
+// DefaultListSectorIDsLimit limits range of results for sectorIDs listing.
+const DefaultListSectorIDsLimit = 10000
+
+// ListSectorIDs handler for /list-sector-ids [GET] request.
+func (a *API) ListSectorIDs(ctx context.Context, req *ListSectorIDsRequest) (*ListSectorIDsResponse, error) {
+	id := types.ParseToken(req.Authorization)
+	sectorIDs, nextPageID, err := a.ts.ListSectorIDs(id, req.PageID, DefaultListSectorIDsLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ListSectorIDsResponse{
+		SectorIDs:  sectorIDs,
+		NextPageID: nextPageID,
+	}, nil
+}
+
+// RemoveSectors handler for /remove-sectors [POST] request.
+func (a *API) RemoveSectors(ctx context.Context, req *RemoveSectorsRequest) (*RemoveSectorsResponse, error) {
+	id := types.ParseToken(req.Authorization)
+	if err := a.ts.RemoveSpecificSectors(id, req.SectorIDs, time.Now()); err != nil {
+		return nil, err
+	}
+
+	return &RemoveSectorsResponse{}, nil
+}
+
 // TokenResources handler for /resources [GET] request.
 func (a *API) TokenResources(ctx context.Context, req *TokenResourcesRequest) (*TokenResourcesResponse, error) {
 	id := types.ParseToken(req.Authorization)

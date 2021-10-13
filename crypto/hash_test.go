@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gitlab.com/NebulousLabs/fastrand"
 )
 
@@ -194,4 +195,16 @@ func TestHashLoadString(t *testing.T) {
 	if err == nil {
 		t.Fatal("expecting error when decoding hash of too small length")
 	}
+}
+
+func TestConvertBytesHashes(t *testing.T) {
+	var arr [][]byte
+	for i := 0; i < 10; i++ {
+		item := make([]byte, 32)
+		item[0] = byte(i)
+		arr = append(arr, item)
+	}
+	converted := ConvertBytesToHashes(arr)
+	back := ConvertHashesToByteSlices(converted)
+	require.Equal(t, arr, back)
 }

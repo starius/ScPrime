@@ -13,9 +13,8 @@ import (
 	"errors"
 	"hash"
 
-	"golang.org/x/crypto/blake2b"
-
 	"gitlab.com/NebulousLabs/encoding"
+	"golang.org/x/crypto/blake2b"
 )
 
 const (
@@ -126,6 +125,18 @@ func ConvertBytesToHash(b []byte) Hash {
 	var h Hash
 	copy(h[:], b)
 	return h
+}
+
+// ConvertBytesToHashes return []Hash type from slices of bytes.
+func ConvertBytesToHashes(b [][]byte) []Hash {
+	res := make([]Hash, len(b))
+	for i, item := range b {
+		var h Hash
+		copy(h[:], item)
+		res[i] = h
+	}
+
+	return res
 }
 
 // ConvertHashesToByteSlices takes hash slice and convert to slice bytes slices

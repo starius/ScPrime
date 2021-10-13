@@ -35,6 +35,27 @@ func toTokenRecord(record tokenstorage.TokenRecord) *TokenRecord {
 	}
 }
 
+// ListSectorIDsRequest represents request.
+type ListSectorIDsRequest struct {
+	Authorization string `header:"Authorization"`
+	PageID        string `json:"page_id"`
+}
+
+// ListSectorIDsResponse represents response.
+type ListSectorIDsResponse struct {
+	SectorIDs  []crypto.Hash `json:"sector_ids"`
+	NextPageID string        `json:"next_page_id"`
+}
+
+// RemoveSectorsRequest represents request.
+type RemoveSectorsRequest struct {
+	Authorization string `header:"Authorization"`
+	SectorIDs     []crypto.Hash
+}
+
+// RemoveSectorsResponse represents response.
+type RemoveSectorsResponse struct{}
+
 // TokenResourcesRequest represents request.
 type TokenResourcesRequest struct {
 	Authorization string `header:"Authorization"`
