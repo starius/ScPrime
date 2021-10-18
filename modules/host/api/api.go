@@ -25,6 +25,9 @@ type TokenStorage interface {
 	TokenRecord(id types.TokenID) (tokenstorage.TokenRecord, error)
 	RecordDownload(id types.TokenID, downloadBytes, sectorAccesses int64) error
 	AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error
+	ListSectorIDs(id types.TokenID, pageID string, limit int) (sectorIDs []crypto.Hash, nextPageID string, err error)
+	RemoveSpecificSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error
+	RemoveAllSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error
 	AttachSectors(data []tokenstorage.AttachSectorsData, time time.Time) error
 	EnoughStorageResource(id types.TokenID, sectorsNum int64, now time.Time) (bool, error)
 }

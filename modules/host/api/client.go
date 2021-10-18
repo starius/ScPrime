@@ -35,6 +35,24 @@ func (c *Client) TokenResources(ctx context.Context, req *TokenResourcesRequest)
 	return
 }
 
+func (c *Client) ListSectorIDs(ctx context.Context, req *ListSectorIDsRequest) (res *ListSectorIDsResponse, err error) {
+	res = &ListSectorIDsResponse{}
+	err = c.api2client.Call(ctx, res, req)
+	if err != nil {
+		return nil, err
+	}
+	return
+}
+
+func (c *Client) RemoveSectors(ctx context.Context, req *RemoveSectorsRequest) (res *RemoveSectorsResponse, err error) {
+	res = &RemoveSectorsResponse{}
+	err = c.api2client.Call(ctx, res, req)
+	if err != nil {
+		return nil, err
+	}
+	return
+}
+
 func (c *Client) DownloadWithToken(ctx context.Context, req *DownloadWithTokenRequest) (res *DownloadWithTokenResponse, err error) {
 	res = &DownloadWithTokenResponse{}
 	err = c.api2client.Call(ctx, res, req)

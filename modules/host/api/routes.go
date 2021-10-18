@@ -10,6 +10,8 @@ import (
 // HandlerHTTPapi api interface.
 type HandlerHTTPapi interface {
 	TokenResources(ctx context.Context, req *TokenResourcesRequest) (*TokenResourcesResponse, error)
+	ListSectorIDs(ctx context.Context, req *ListSectorIDsRequest) (*ListSectorIDsResponse, error)
+	RemoveSectors(ctx context.Context, req *RemoveSectorsRequest) (*RemoveSectorsResponse, error)
 	DownloadWithToken(context.Context, *DownloadWithTokenRequest) (*DownloadWithTokenResponse, error)
 	UploadWithToken(context.Context, *UploadWithTokenRequest) (*UploadWithTokenResponse, error)
 	AttachSectors(context.Context, *AttachSectorsRequest) (*AttachSectorsResponse, error)
@@ -28,6 +30,8 @@ func GetRoutes(ol HandlerHTTPapi) []api2.Route {
 
 	return []api2.Route{
 		{Method: http.MethodGet, Path: "/resources", Handler: api2.Method(&ol, "TokenResources"), Transport: t},
+		{Method: http.MethodGet, Path: "/list-sector-ids", Handler: api2.Method(&ol, "ListSectorIDs"), Transport: t},
+		{Method: http.MethodPost, Path: "/remove-sectors", Handler: api2.Method(&ol, "RemoveSectors"), Transport: t},
 		{Method: http.MethodPost, Path: "/download", Handler: api2.Method(&ol, "DownloadWithToken"), Transport: t},
 		{Method: http.MethodPost, Path: "/upload", Handler: api2.Method(&ol, "UploadWithToken"), Transport: t},
 		{Method: http.MethodPost, Path: "/attach", Handler: api2.Method(&ol, "AttachSectors"), Transport: t},

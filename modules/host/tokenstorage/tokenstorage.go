@@ -181,14 +181,51 @@ func (t *TokenStorage) AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, ti
 	return nil
 }
 
-// RemoveSectors remove sectors from token.
-func (t *TokenStorage) RemoveSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error {
+// ListSectorIDs returns list of sector ids.
+func (t *TokenStorage) ListSectorIDs(id types.TokenID, pageID string, limit int) (sectorIDs []crypto.Hash, nextPageID string, err error) {
+	t.stateMu.Lock()
+	defer t.stateMu.Unlock()
+	if t.closed {
+		return nil, "", fmt.Errorf("token storage closed")
+	}
+	return t.state.GetLimitedSectors(id, pageID, limit)
+}
+
+// RemoveSpecificSectors removes only passed sectors ids.
+func (t *TokenStorage) RemoveSpecificSectors(id types.TokenID, sectorIDs []crypto.Hash, time time.Time) error {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
 	if t.closed {
 		return fmt.Errorf("token storage closed")
 	}
-	t.applyEvent(&tokenstate.Event{EventRemoveSectors: &tokenstate.EventRemoveSectors{
+
+	if len(sectorIDs) == 0 {
+		return nil
+	}
+
+	hasSectorIDs, err := t.state.HasSectors(id, sectorIDs)
+	if err != nil {
+		return fmt.Errorf("check has sector: %w", err)
+	}
+	if !hasSectorIDs {
+		return fmt.Errorf("invalid request. one or more sectors don't exist")
+	}
+
+	t.applyEvent(&tokenstate.Event{EventRemoveSpecificSectors: &tokenstate.EventRemoveSpecificSectors{
+		TokenID:    id,
+		SectorsIDs: crypto.ConvertHashesToByteSlices(sectorIDs),
+	}, Time: time})
+	return nil
+}
+
+// RemoveAllSectors remove sectors from token.
+func (t *TokenStorage) RemoveAllSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error {
+	t.stateMu.Lock()
+	defer t.stateMu.Unlock()
+	if t.closed {
+		return fmt.Errorf("token storage closed")
+	}
+	t.applyEvent(&tokenstate.Event{EventRemoveAllSectors: &tokenstate.EventRemoveAllSectors{
 		TokenID:    id,
 		SectorsIDs: crypto.ConvertHashesToByteSlices(sectorsIDs),
 	}, Time: time})
@@ -276,7 +313,7 @@ func (t *TokenStorage) checkExpiration(sm modules.StorageManager) {
 			continue
 		}
 
-		t.applyEvent(&tokenstate.Event{EventRemoveSectors: &tokenstate.EventRemoveSectors{
+		t.applyEvent(&tokenstate.Event{EventRemoveAllSectors: &tokenstate.EventRemoveAllSectors{
 			TokenID:    token,
 			SectorsIDs: crypto.ConvertHashesToByteSlices(sectors),
 		}, Time: time.Now()})

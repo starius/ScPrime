@@ -1,8 +1,10 @@
 package tokenstate
 
 import (
+	"os"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gitlab.com/zer0main/eventsourcing"
 )
 
@@ -20,7 +22,16 @@ func encodeState(state *State) (result stateForCmp) {
 }
 
 func TestState(t *testing.T) {
-	s, _ := NewState("")
+	dirName := "test-tmp"
+	err := os.Mkdir(dirName, os.ModePerm)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err = os.RemoveAll(dirName); err != nil {
+			t.Logf("remove all error: %v", err)
+		}
+	})
+
+	s, _ := NewState(dirName)
 	stateGen := func() eventsourcing.StateLoader {
 		return s
 	}

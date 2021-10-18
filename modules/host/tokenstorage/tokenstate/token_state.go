@@ -54,8 +54,14 @@ type EventAddSectors struct {
 	SectorsIDs [][]byte      `json:"sectors_ids"`
 }
 
-// EventRemoveSectors represent force removing sectors from token.
-type EventRemoveSectors struct {
+// EventRemoveSpecificSectors represent removing specified sectors from token.
+type EventRemoveSpecificSectors struct {
+	TokenID    types.TokenID `json:"token_id"`
+	SectorsIDs [][]byte      `json:"sectors_ids"`
+}
+
+// EventRemoveAllSectors represent force removing sectors from token.
+type EventRemoveAllSectors struct {
 	TokenID    types.TokenID `json:"token_id"`
 	SectorsIDs [][]byte      `json:"sectors_ids"`
 }
@@ -67,19 +73,22 @@ type EventAttachSectors struct {
 
 // Event include state events.
 type Event struct {
-	EventTopUp         *EventTopUp         `json:"event_top_up"`
-	EventTokenDownload *EventTokenDownload `json:"event_token_download"`
-	EventAddSectors    *EventAddSectors    `json:"event_add_sectors"`
-	EventRemoveSectors *EventRemoveSectors `json:"event_remove_sectors"`
-	EventAttachSectors *EventAttachSectors `json:"event_attach_sectors"`
-	Time               time.Time           `json:"time"`
+	EventTopUp                 *EventTopUp                 `json:"event_top_up"`
+	EventTokenDownload         *EventTokenDownload         `json:"event_token_download"`
+	EventAddSectors            *EventAddSectors            `json:"event_add_sectors"`
+	EventRemoveSpecificSectors *EventRemoveSpecificSectors `json:"event_remove_specific_sectors"`
+	EventRemoveAllSectors      *EventRemoveAllSectors      `json:"event_remove_sectors"`
+	EventAttachSectors         *EventAttachSectors         `json:"event_attach_sectors"`
+	Time                       time.Time                   `json:"time"`
 }
 
 type sectorsDBer interface {
 	Get(tokenID types.TokenID) ([]crypto.Hash, error)
+	GetLimited(tokenID types.TokenID, pageID string, limit int) ([]crypto.Hash, string, error)
 	Put(tokenID types.TokenID, sectorID crypto.Hash) error
-	Delete(tokenID types.TokenID, sectorID crypto.Hash) error
-	BatchDelete(tokenID types.TokenID) error
+	HasSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) (bool, error)
+	BatchDeleteSpecific(tokenID types.TokenID, sectorIDs []crypto.Hash) error
+	BatchDeleteAll(tokenID types.TokenID) error
 	Close() error
 }
 
@@ -117,8 +126,12 @@ func (s *State) Apply(e *Event) {
 		s.eventAddSectors(e.EventAddSectors, e.Time)
 		applied++
 	}
-	if e.EventRemoveSectors != nil {
-		s.eventRemoveSectors(e.EventRemoveSectors, e.Time)
+	if e.EventRemoveSpecificSectors != nil {
+		s.eventRemoveSpecificSectors(e.EventRemoveSpecificSectors, e.Time)
+		applied++
+	}
+	if e.EventRemoveAllSectors != nil {
+		s.eventRemoveAllSectors(e.EventRemoveAllSectors, e.Time)
 		applied++
 	}
 	if e.EventAttachSectors != nil {
@@ -166,27 +179,43 @@ func (s *State) eventAddSectors(e *EventAddSectors, t time.Time) {
 		}
 	}
 }
-func (s *State) eventRemoveSectors(e *EventRemoveSectors, t time.Time) {
+
+func (s *State) eventRemoveSpecificSectors(e *EventRemoveSpecificSectors, t time.Time) {
 	token := s.Tokens[e.TokenID]
 	token.TokenInfo.updateStorageResource(-int64(len(e.SectorsIDs)), t)
 	s.Tokens[e.TokenID] = token
-	err := s.db.BatchDelete(e.TokenID)
+	err := s.db.BatchDeleteSpecific(e.TokenID, crypto.ConvertBytesToHashes(e.SectorsIDs))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (s *State) eventRemoveAllSectors(e *EventRemoveAllSectors, t time.Time) {
+	token := s.Tokens[e.TokenID]
+	token.TokenInfo.updateStorageResource(-int64(len(e.SectorsIDs)), t)
+	s.Tokens[e.TokenID] = token
+	err := s.db.BatchDeleteAll(e.TokenID)
 	if err != nil {
 		panic(err)
 	}
 }
 
 func (s *State) eventAttachSectors(e *EventAttachSectors, t time.Time) {
-	for _, ts := range e.TokensSectors {
-		if !ts.KeepInTmp {
-			err := s.db.Delete(ts.TokenID, crypto.HashBytes(ts.SectorID))
-			if err != nil {
-				panic(err)
-			}
+	sectorsToRemove := map[types.TokenID][]crypto.Hash{}
+	for _, sectorData := range e.TokensSectors {
+		if !sectorData.KeepInTmp {
+			sectorsToRemove[sectorData.TokenID] = append(sectorsToRemove[sectorData.TokenID], crypto.ConvertBytesToHash(sectorData.SectorID))
 		}
-		token := s.Tokens[ts.TokenID]
+	}
+
+	for tokenID, sectorIDs := range sectorsToRemove {
+		if err := s.db.BatchDeleteSpecific(tokenID, sectorIDs); err != nil {
+			panic(err)
+		}
+
+		token := s.Tokens[tokenID]
 		token.TokenInfo.updateStorageResource(-1, t)
-		s.Tokens[ts.TokenID] = token
+		s.Tokens[tokenID] = token
 	}
 }
 
@@ -210,6 +239,16 @@ func (s *State) LoadHistory(r io.Reader) error {
 // GetSectors return sectors IDs from database by token ID.
 func (s *State) GetSectors(tokenID types.TokenID) ([]crypto.Hash, error) {
 	return s.db.Get(tokenID)
+}
+
+// GetLimitedSectors return paginated sectors.
+func (s *State) GetLimitedSectors(tokenID types.TokenID, pageID string, limit int) ([]crypto.Hash, string, error) {
+	return s.db.GetLimited(tokenID, pageID, limit)
+}
+
+// HasSectors determines whether given sectorID exists in database.
+func (s *State) HasSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) (bool, error) {
+	return s.db.HasSectors(tokenID, sectorIDs)
 }
 
 func (t *tokenStorageInfo) updateStorageResource(sectorsNum int64, now time.Time) {
