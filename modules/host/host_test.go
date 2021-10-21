@@ -14,14 +14,8 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/NebulousLabs/siamux/mux"
-	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
-	"gitlab.com/scpcorp/ScPrime/modules/consensus"
-	"gitlab.com/scpcorp/ScPrime/modules/gateway"
-	"gitlab.com/scpcorp/ScPrime/modules/miner"
-	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
-	"gitlab.com/scpcorp/ScPrime/modules/wallet"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
 	"gitlab.com/scpcorp/ScPrime/types"
@@ -33,27 +27,6 @@ const (
 	// it valid. This ensures a call to `managedFetchPriceTable` does not return
 	// a price table that expires the next second.
 	priceTableExpiryBuffer = 15 * time.Second
-)
-
-// A hostTester is the helper object for host testing, including helper modules
-// and methods for controlling synchronization.
-type (
-	closeFn func() error
-
-	hostTester struct {
-		mux *siamux.SiaMux
-
-		cs        modules.ConsensusSet
-		gateway   modules.Gateway
-		miner     modules.TestMiner
-		tpool     modules.TransactionPool
-		wallet    modules.Wallet
-		walletKey crypto.CipherKey
-
-		host *Host
-
-		persistDir string
-	}
 )
 
 /*
@@ -100,23 +73,6 @@ func (ht *hostTester) initRenting() error {
 }
 */
 
-// initWallet creates a wallet key, initializes the host wallet, unlocks it,
-// and then stores the key in the host tester.
-func (ht *hostTester) initWallet() error {
-	// Create the keys for the wallet and unlock it.
-	key := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
-	ht.walletKey = key
-	_, err := ht.wallet.Encrypt(key)
-	if err != nil {
-		return err
-	}
-	err = ht.wallet.Unlock(key)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // blankHostTester creates a host tester where the modules are created but no
 // extra initialization has been done, for example no blocks have been mined
 // and the wallet keys have not been created.
@@ -124,125 +80,10 @@ func blankHostTester(name string) (*hostTester, error) {
 	return blankMockHostTester(modules.ProdDependencies, name)
 }
 
-// blankMockHostTester creates a host tester where the modules are created but no
-// extra initialization has been done, for example no blocks have been mined
-// and the wallet keys have not been created.
-func blankMockHostTester(d modules.Dependencies, name string) (*hostTester, error) {
-	testdir := build.TempDir(modules.HostDir, name)
-
-	// Create the siamux.
-	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
-	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the modules.
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
-	if err != nil {
-		return nil, err
-	}
-	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
-	if err := <-errChan; err != nil {
-		return nil, err
-	}
-	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
-	if err != nil {
-		return nil, err
-	}
-	w, err := wallet.New(cs, tp, filepath.Join(testdir, modules.WalletDir))
-	if err != nil {
-		return nil, err
-	}
-	m, err := miner.New(cs, tp, w, filepath.Join(testdir, modules.MinerDir))
-	if err != nil {
-		return nil, err
-	}
-	h, err := NewCustomHost(d, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":0", 5*time.Second)
-	if err != nil {
-		return nil, err
-	}
-	/*
-		r, err := renter.New(cs, w, tp, filepath.Join(testdir, modules.RenterDir))
-		if err != nil {
-			return nil, err
-		}
-	*/
-
-	// Assemble all objects into a hostTester
-	ht := &hostTester{
-		mux: mux,
-
-		cs:      cs,
-		gateway: g,
-		miner:   m,
-		// renter:  r,
-		tpool:  tp,
-		wallet: w,
-
-		host: h,
-
-		persistDir: testdir,
-	}
-
-	return ht, nil
-}
-
 // newHostTester creates a host tester with an initialized wallet and money in
 // that wallet.
 func newHostTester(name string) (*hostTester, error) {
 	return newMockHostTester(modules.ProdDependencies, name)
-}
-
-// newMockHostTester creates a host tester with an initialized wallet and money
-// in that wallet, using the dependencies provided.
-func newMockHostTester(d modules.Dependencies, name string) (*hostTester, error) {
-	// Create a blank host tester.
-	ht, err := blankMockHostTester(d, name)
-	if err != nil {
-		return nil, err
-	}
-
-	// Initialize the wallet and mine blocks until the wallet has money.
-	err = ht.initWallet()
-	if err != nil {
-		return nil, err
-	}
-	for i := types.BlockHeight(0); i <= types.MaturityDelay; i++ {
-		_, err = ht.miner.AddBlock()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Create two storage folder for the host, one the minimum size and one
-	// twice the minimum size.
-	storageFolderOne := filepath.Join(ht.persistDir, "hostTesterStorageFolderOne")
-	err = os.Mkdir(storageFolderOne, 0700)
-	if err != nil {
-		return nil, err
-	}
-	err = ht.host.AddStorageFolder(storageFolderOne, modules.SectorSize*64)
-	if err != nil {
-		return nil, err
-	}
-	storageFolderTwo := filepath.Join(ht.persistDir, "hostTesterStorageFolderTwo")
-	err = os.Mkdir(storageFolderTwo, 0700)
-	if err != nil {
-		return nil, err
-	}
-	err = ht.host.AddStorageFolder(storageFolderTwo, modules.SectorSize*64*2)
-	if err != nil {
-		return nil, err
-	}
-
-	//init the host.unlockHash to use in host transactions
-	address, err := ht.wallet.NextAddress()
-	if err != nil {
-		return nil, errors.AddContext(err, "Unable to init host.Unlockhash")
-	}
-	ht.host.unlockHash = address.UnlockHash()
-	return ht, nil
 }
 
 // Close safely closes the hostTester. It panics if err != nil because there

@@ -395,6 +395,8 @@ type (
 		// The host needs to be able to shut down.
 		Close() error
 
+		Announcement() []byte
+
 		// ConnectabilityStatus returns the connectability status of the host,
 		// that is, if it can connect to itself on the configured NetAddress.
 		ConnectabilityStatus() HostConnectabilityStatus
