@@ -73,6 +73,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	connmonitor "gitlab.com/NebulousLabs/monitor"
 	"gitlab.com/NebulousLabs/siamux"
@@ -606,6 +607,18 @@ func NewCustomTestHost(deps modules.Dependencies, smDeps modules.Dependencies, c
 // Close shuts down the host.
 func (h *Host) Close() error {
 	return h.tg.Stop()
+}
+
+// Announcement returns host announcement.
+// For use as ghost.
+func (h *Host) Announcement() []byte {
+	ann := encoding.Marshal(modules.HostAnnouncement{
+		Specifier:  modules.PrefixHostAnnouncement,
+		NetAddress: modules.NetAddress(h.listener.Addr().String()),
+		PublicKey:  h.PublicKey(),
+	})
+	sig := crypto.SignHash(crypto.HashBytes(ann), h.secretKey)
+	return append(ann, sig[:]...)
 }
 
 // ExternalSettings returns the hosts external settings. These values cannot be
