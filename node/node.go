@@ -11,6 +11,7 @@ package node
 
 import (
 	"fmt"
+	"net"
 	"path/filepath"
 	"time"
 
@@ -479,9 +480,15 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		if smDeps == nil {
 			smDeps = new(modules.ProductionDependencies)
 		}
+
+		ln, err := net.Listen("tcp", params.HostAPIAddr)
+		if err != nil {
+			return nil, fmt.Errorf("listener for host api: %w", err)
+		}
+
 		i++
 		printfRelease("(%d/%d) Loading host...", i, numModules)
-		host, err := host.NewCustomTestHost(hostDeps, smDeps, cs, g, tp, w, mux, params.HostAddress, filepath.Join(dir, modules.HostDir), params.HostAPIAddr, params.CheckTokenExpirationFrequency)
+		host, err := host.NewCustomTestHost(hostDeps, smDeps, cs, g, tp, w, mux, params.HostAddress, filepath.Join(dir, modules.HostDir), ln, params.CheckTokenExpirationFrequency)
 		return host, err
 	}()
 	if err != nil {

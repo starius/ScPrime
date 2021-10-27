@@ -21,7 +21,7 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	t.Parallel()
 	host, _ := blankMockHostTester(modules.ProdDependencies, t.Name())
 	defer host.Close()
-	hostApi := api.NewAPI("", host.host.TokenStor, host.host.secretKey, host.host)
+	hostApi := api.NewAPI(host.host.TokenStor, host.host.secretKey, host.host)
 
 	// generate sector
 	sectorData := fastrand.Bytes(int(modules.SectorSize))
@@ -112,7 +112,7 @@ func TestApi_UploadWithToken(t *testing.T) {
 	t.Parallel()
 	host, _ := blankMockHostTester(modules.ProdDependencies, t.Name())
 	defer host.Close()
-	hostApi := api.NewAPI("", host.host.TokenStor, host.host.secretKey, host.host)
+	hostApi := api.NewAPI(host.host.TokenStor, host.host.secretKey, host.host)
 
 	// generate token
 	b := fastrand.Bytes(16)
@@ -183,7 +183,7 @@ func TestApi_CircleIntegration(t *testing.T) {
 	t.Parallel()
 	rhp, err := newRenterHostPair(t.Name())
 	defer rhp.Close()
-	hostApi := api.NewAPI("", rhp.staticHT.host.TokenStor, rhp.staticHT.host.secretKey, rhp.staticHT.host)
+	hostApi := api.NewAPI(rhp.staticHT.host.TokenStor, rhp.staticHT.host.secretKey, rhp.staticHT.host)
 
 	// generate token
 	b := fastrand.Bytes(16)

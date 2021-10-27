@@ -149,7 +149,7 @@ func loadExistingHostWithNewDeps(modulesDir, siaMuxDir, hostDir string) (closeFn
 	}
 
 	// Create the host.
-	h, err := NewCustomHost(modules.ProdDependencies, cs, g, tp, w, mux, "localhost:0", hostDir, ":0", 5*time.Second)
+	h, err := NewCustomHost(modules.ProdDependencies, cs, g, tp, w, mux, "localhost:0", hostDir, nil, 5*time.Second)
 	if err != nil {
 		return nil, nil, errors.AddContext(err, "Error creating host")
 	}

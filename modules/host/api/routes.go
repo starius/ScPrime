@@ -22,9 +22,9 @@ func GetRoutes(ol HandlerHTTPapi) []api2.Route {
 	// TODO: using JSON is a temporary solution (we will work on the custom transport)
 	t := &api2.JsonTransport{
 		Errors: map[string]error{
-			"DownloadWithTokenError": DownloadWithTokenError{},
-			"UploadWithTokenError":   UploadWithTokenError{},
-			"AttachSectorsError":     AttachSectorsError{},
+			"DownloadWithTokenError": &DownloadWithTokenError{},
+			"UploadWithTokenError":   &UploadWithTokenError{},
+			"AttachSectorsError":     &AttachSectorsError{},
 		},
 	}
 

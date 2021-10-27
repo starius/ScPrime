@@ -152,7 +152,8 @@ func blankMockHostTester(d modules.Dependencies, name string) (*hostTester, erro
 	if err != nil {
 		return nil, fmt.Errorf("new miner: %w", err)
 	}
-	h, err := NewCustomHost(d, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":0", 5*time.Second)
+
+	h, err := NewCustomHost(d, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), nil, 5*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("new custom host: %w", err)
 	}
