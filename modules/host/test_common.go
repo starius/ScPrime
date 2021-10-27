@@ -198,7 +198,7 @@ func newMockHostTester(d modules.Dependencies, name string) (*hostTester, error)
 	}
 
 	// TaxHardforkHeight == 10 for testing.
-	for i := types.BlockHeight(0); i <= 11; i++ {
+	for i := types.BlockHeight(0); i <= types.TaxHardforkHeight+1; i++ {
 		_, err = ht.miner.AddBlock()
 		if err != nil {
 			return nil, fmt.Errorf("add block: %w", err)
