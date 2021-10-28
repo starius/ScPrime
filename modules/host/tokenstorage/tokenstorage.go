@@ -299,13 +299,13 @@ func (t *TokenStorage) CheckExpiration(sm modules.StorageManager, frequency time
 
 func (t *TokenStorage) checkExpiration(sm modules.StorageManager) {
 	t.stateMu.Lock()
+	defer t.stateMu.Unlock()
 	if t.closed {
-		t.stateMu.Unlock()
 		return
 	}
 
 	for token := range t.state.Tokens {
-		if enough := t.state.EnoughStorageResource(token, 0, time.Now()); !enough {
+		if enough := t.state.EnoughStorageResource(token, 0, time.Now()); enough {
 			continue
 		}
 		sectors, err := t.state.GetSectors(token)
@@ -317,12 +317,15 @@ func (t *TokenStorage) checkExpiration(sm modules.StorageManager) {
 			TokenID:    token,
 			SectorsIDs: crypto.ConvertHashesToByteSlices(sectors),
 		}, Time: time.Now()})
-		for _, sec := range sectors {
-			err = sm.DeleteSector(sec)
-			if err != nil {
-				continue
+
+		// Removing a lot of sectors might take time, we can't do it under stateMu,
+		// so we do it in a separate goroutine here. IDs of these sectors are
+		// already removed from state, so there is no problem with returning
+		// from this function before fully removing sectors data from disk.
+		go func() {
+			if err := sm.RemoveSectorBatch(sectors); err != nil {
+				log.Printf("Failed to remove sectors of depleted token: %v", err)
 			}
-		}
+		}()
 	}
-	t.stateMu.Unlock()
 }
