@@ -196,7 +196,7 @@ type Host struct {
 	lockedStorageObligations map[types.FileContractID]*lockedObligation
 
 	// Storage of tokens for prepaid downloads.
-	TokenStor *tokenstorage.TokenStorage
+	tokenStor *tokenstorage.TokenStorage
 
 	// A collection of rpc price tables, covered by its own RW mutex. It
 	// contains the host's current price table and the set of price tables the
@@ -502,14 +502,14 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Initialize token storage.
 	// TODO: the current version of tokens storage does not support reverting blocks.
 	// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
-	h.TokenStor, err = tokenstorage.NewTokenStorage(tokenStorageDir)
+	h.tokenStor, err = tokenstorage.NewTokenStorage(tokenStorageDir)
 	if err != nil {
 		return nil, errors.AddContext(err, "Could not initialize token storage")
 	}
 	updateTokenSectorsChan := make(chan bool)
 	h.tg.AfterStop(func() {
 		updateTokenSectorsChan <- true
-		err = h.TokenStor.Close(context.Background())
+		err = h.tokenStor.Close(context.Background())
 		if err != nil {
 			fmt.Println("Error when closing token storage:", err)
 		}
@@ -533,7 +533,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	})
 
 	// remove sectors from token when token storage resource ends
-	go h.TokenStor.CheckExpiration(stManager, checkTokenExpirationFrequency, updateTokenSectorsChan)
+	go h.tokenStor.CheckExpiration(stManager, checkTokenExpirationFrequency, updateTokenSectorsChan)
 
 	// Load the prior persistence structures, and configure the host to save
 	// before shutting down.
@@ -582,7 +582,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	go h.threadedPruneExpiredPriceTables()
 
 	//	Initialize and run host API
-	hostApi := api.NewAPI(h.TokenStor, h.secretKey, h)
+	hostApi := api.NewAPI(h.tokenStor, h.secretKey, h)
 	err = hostApi.Start(hostAPIListener)
 	if err != nil {
 		h.log.Println("Could not start host api:", err)

@@ -2,6 +2,7 @@ package tokenstorage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,6 +15,11 @@ import (
 	"gitlab.com/scpcorp/ScPrime/types"
 	"gitlab.com/zer0main/eventsourcing"
 	"gitlab.com/zer0main/filestorage"
+)
+
+var (
+	// ErrInsufficientResource is an error indicating lack of resources on the token.
+	ErrInsufficientResource = errors.New("insufficient token resource for this operation")
 )
 
 // TODO: the current version of tokens storage does not support reverting blocks.
@@ -34,15 +40,6 @@ type TokenRecord struct {
 	UploadBytes      int64
 	SectorAccesses   int64
 	TokenStorageInfo TokenStorageInfo
-}
-
-// AttachSectorsData include information about token sector and storing it.
-type AttachSectorsData struct {
-	TokenID  types.TokenID
-	SectorID []byte
-	// If true. keep the sector in the temporary store.
-	// If false, the sector is moved from temporary store to the contract.
-	KeepInTmp bool
 }
 
 type storage interface {
@@ -233,23 +230,34 @@ func (t *TokenStorage) RemoveAllSectors(id types.TokenID, sectorsIDs []crypto.Ha
 }
 
 // AttachSectors attach sector to contract.
-func (t *TokenStorage) AttachSectors(data []AttachSectorsData, time time.Time) error {
+func (t *TokenStorage) AttachSectors(sectorIDs map[types.TokenID][]crypto.Hash, callTime time.Time) error {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
 	if t.closed {
 		return fmt.Errorf("token storage closed")
 	}
 	var attachSectors []tokenstate.AttachSectorsData
-	for _, el := range data {
-		attachSectors = append(attachSectors, tokenstate.AttachSectorsData{
-			TokenID:   el.TokenID,
-			SectorID:  el.SectorID,
-			KeepInTmp: el.KeepInTmp,
-		})
+	for token, ids := range sectorIDs {
+		hasSectors, err := t.state.HasSectors(token, ids)
+		if err != nil {
+			return fmt.Errorf("HasSectors failed: %w", err)
+		}
+		if !hasSectors {
+			return fmt.Errorf("some sectors of token %s don't exist", token.String())
+		}
+		if enough := t.state.EnoughStorageResource(token, int64(-len(ids)), time.Now()); !enough {
+			return ErrInsufficientResource
+		}
+		for _, id := range ids {
+			attachSectors = append(attachSectors, tokenstate.AttachSectorsData{
+				TokenID:  token,
+				SectorID: id.Bytes(),
+			})
+		}
 	}
 	t.applyEvent(&tokenstate.Event{EventAttachSectors: &tokenstate.EventAttachSectors{
 		TokensSectors: attachSectors,
-	}, Time: time})
+	}, Time: callTime})
 	return nil
 }
 

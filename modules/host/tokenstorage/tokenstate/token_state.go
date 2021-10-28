@@ -31,7 +31,7 @@ type AttachSectorsData struct {
 	SectorID []byte
 	// If true. keep the sector in the temporary store.
 	// If false, the sector is moved from temporary store to the contract.
-	KeepInTmp bool
+	// KeepInTmp bool
 }
 
 // EventTopUp change of state when token replenishment.
@@ -203,9 +203,7 @@ func (s *State) eventRemoveAllSectors(e *EventRemoveAllSectors, t time.Time) {
 func (s *State) eventAttachSectors(e *EventAttachSectors, t time.Time) {
 	sectorsToRemove := map[types.TokenID][]crypto.Hash{}
 	for _, sectorData := range e.TokensSectors {
-		if !sectorData.KeepInTmp {
-			sectorsToRemove[sectorData.TokenID] = append(sectorsToRemove[sectorData.TokenID], crypto.ConvertBytesToHash(sectorData.SectorID))
-		}
+		sectorsToRemove[sectorData.TokenID] = append(sectorsToRemove[sectorData.TokenID], crypto.ConvertBytesToHash(sectorData.SectorID))
 	}
 
 	for tokenID, sectorIDs := range sectorsToRemove {

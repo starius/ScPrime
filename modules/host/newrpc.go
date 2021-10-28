@@ -1183,7 +1183,7 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 
 	// Save changes to token storage.
 	id := types.TokenID(req.Token)
-	if err := h.TokenStor.AddResources(id, req.ResourcesType, req.ResourcesAmount); err != nil {
+	if err := h.tokenStor.AddResources(id, req.ResourcesType, req.ResourcesAmount); err != nil {
 		return err
 	}
 
@@ -1230,7 +1230,7 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 	enoughSectors := true
 	availableBandwidth := int64(0)
 	availableSectors := int64(0)
-	tokenResources, err := h.TokenStor.TokenRecord(id)
+	tokenResources, err := h.tokenStor.TokenRecord(id)
 	if err == nil {
 		// Token not found = no resources, and 0 is correct.
 		availableBandwidth = tokenResources.DownloadBytes
@@ -1256,7 +1256,7 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 		// The stop signal must arrive before RPC is complete.
 		return <-stopSignal
 	}
-	if err := h.TokenStor.RecordDownload(id, estBandwidth, sectorAccesses); err != nil {
+	if err := h.tokenStor.RecordDownload(id, estBandwidth, sectorAccesses); err != nil {
 		h.log.Println(err)
 	}
 

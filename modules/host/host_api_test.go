@@ -21,7 +21,7 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	t.Parallel()
 	host, _ := blankMockHostTester(modules.ProdDependencies, t.Name())
 	defer host.Close()
-	hostApi := api.NewAPI(host.host.TokenStor, host.host.secretKey, host.host)
+	hostApi := api.NewAPI(host.host.tokenStor, host.host.secretKey, host.host)
 
 	// generate sector
 	sectorData := fastrand.Bytes(int(modules.SectorSize))
@@ -52,7 +52,7 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	}
 
 	// add DownloadBytes, error not enough sector accesses
-	err = host.host.TokenStor.AddResources(tokenID, modules.DownloadBytes, 5000)
+	err = host.host.tokenStor.AddResources(tokenID, modules.DownloadBytes, 5000)
 	_, err = hostApi.DownloadWithToken(context.Background(), req)
 	cErr = err.(*api.DownloadWithTokenError)
 	if !cErr.NotEnoughSectorAccesses {
@@ -60,8 +60,8 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	}
 
 	// remove DownloadBytes, add SectorAccesses, error not enough bytes
-	_ = host.host.TokenStor.RecordDownload(tokenID, 5000, 0)
-	err = host.host.TokenStor.AddResources(tokenID, modules.SectorAccesses, 1)
+	_ = host.host.tokenStor.RecordDownload(tokenID, 5000, 0)
+	err = host.host.tokenStor.AddResources(tokenID, modules.SectorAccesses, 1)
 	_, err = hostApi.DownloadWithToken(context.Background(), req)
 	cErr = err.(*api.DownloadWithTokenError)
 	if !cErr.NotEnoughBytes {
@@ -69,7 +69,7 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	}
 
 	// error no such sector
-	err = host.host.TokenStor.AddResources(tokenID, modules.DownloadBytes, 5000)
+	err = host.host.tokenStor.AddResources(tokenID, modules.DownloadBytes, 5000)
 	_, err = hostApi.DownloadWithToken(context.Background(), req)
 	cErr = err.(*api.DownloadWithTokenError)
 	if cErr.NoSuchSector == nil {
@@ -77,8 +77,8 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	}
 
 	// correct case
-	err = host.host.TokenStor.AddResources(tokenID, modules.SectorAccesses, 1)
-	err = host.host.TokenStor.AddResources(tokenID, modules.DownloadBytes, 5000)
+	err = host.host.tokenStor.AddResources(tokenID, modules.SectorAccesses, 1)
+	err = host.host.tokenStor.AddResources(tokenID, modules.DownloadBytes, 5000)
 	// create storage folder
 	storageFolderOne := filepath.Join(host.host.persistDir, "hostTesterStorageFolderOne")
 	err = os.Mkdir(storageFolderOne, 0700)
@@ -112,7 +112,7 @@ func TestApi_UploadWithToken(t *testing.T) {
 	t.Parallel()
 	host, _ := blankMockHostTester(modules.ProdDependencies, t.Name())
 	defer host.Close()
-	hostApi := api.NewAPI(host.host.TokenStor, host.host.secretKey, host.host)
+	hostApi := api.NewAPI(host.host.tokenStor, host.host.secretKey, host.host)
 
 	// generate token
 	b := fastrand.Bytes(16)
@@ -150,7 +150,7 @@ func TestApi_UploadWithToken(t *testing.T) {
 		t.Fatal("should be 'not enough bytes' error")
 	}
 
-	err = host.host.TokenStor.AddResources(tokenID, modules.UploadBytes, 41943041)
+	err = host.host.tokenStor.AddResources(tokenID, modules.UploadBytes, 41943041)
 	_, err = hostApi.UploadWithToken(context.Background(), req)
 	cErr = err.(*api.UploadWithTokenError)
 	if !cErr.NotEnoughStorage {
@@ -159,7 +159,7 @@ func TestApi_UploadWithToken(t *testing.T) {
 
 	// correct case
 	// add storage resource
-	err = host.host.TokenStor.AddResources(tokenID, modules.Storage, 100)
+	err = host.host.tokenStor.AddResources(tokenID, modules.Storage, 100)
 	// create storage folder
 	storageFolderOne := filepath.Join(host.host.persistDir, "hostTesterStorageFolderOne")
 	err = os.Mkdir(storageFolderOne, 0700)
@@ -183,7 +183,7 @@ func TestApi_CircleIntegration(t *testing.T) {
 	t.Parallel()
 	rhp, err := newRenterHostPair(t.Name())
 	defer rhp.Close()
-	hostApi := api.NewAPI(rhp.staticHT.host.TokenStor, rhp.staticHT.host.secretKey, rhp.staticHT.host)
+	hostApi := api.NewAPI(rhp.staticHT.host.tokenStor, rhp.staticHT.host.secretKey, rhp.staticHT.host)
 
 	// generate token
 	b := fastrand.Bytes(16)
@@ -191,22 +191,22 @@ func TestApi_CircleIntegration(t *testing.T) {
 	copy(tokenID[:], b)
 
 	// add storage resource
-	err = rhp.staticHT.host.TokenStor.AddResources(tokenID, modules.Storage, 100)
+	err = rhp.staticHT.host.tokenStor.AddResources(tokenID, modules.Storage, 1000)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// add upload bytes resource
-	err = rhp.staticHT.host.TokenStor.AddResources(tokenID, modules.UploadBytes, 41943041)
+	err = rhp.staticHT.host.tokenStor.AddResources(tokenID, modules.UploadBytes, 41943041)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// add download bytes resource
-	err = rhp.staticHT.host.TokenStor.AddResources(tokenID, modules.DownloadBytes, 41943041)
+	err = rhp.staticHT.host.tokenStor.AddResources(tokenID, modules.DownloadBytes, 41943041)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// add sector accesses bytes resource
-	err = rhp.staticHT.host.TokenStor.AddResources(tokenID, modules.SectorAccesses, 10)
+	err = rhp.staticHT.host.tokenStor.AddResources(tokenID, modules.SectorAccesses, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,28 +259,23 @@ func TestApi_CircleIntegration(t *testing.T) {
 		Sectors: []api.TokenAndSector{
 			{
 				Authorization: tokenID.String(),
-				SectorID:      crypto.HashBytes(req.Sectors[0]),
-				KeepInTmp:     false,
+				SectorID:      crypto.MerkleRoot(req.Sectors[0]),
 			},
 			{
 				Authorization: tokenID.String(),
-				SectorID:      crypto.HashBytes(req.Sectors[3]),
-				KeepInTmp:     false,
+				SectorID:      crypto.MerkleRoot(req.Sectors[3]),
 			},
 			{
 				Authorization: tokenID.String(),
-				SectorID:      crypto.HashBytes(req.Sectors[5]),
-				KeepInTmp:     false,
+				SectorID:      crypto.MerkleRoot(req.Sectors[5]),
 			},
 			{
 				Authorization: tokenID.String(),
-				SectorID:      crypto.HashBytes(req.Sectors[7]),
-				KeepInTmp:     false,
+				SectorID:      crypto.MerkleRoot(req.Sectors[7]),
 			},
 			{
 				Authorization: tokenID.String(),
-				SectorID:      crypto.HashBytes(req.Sectors[9]),
-				KeepInTmp:     false,
+				SectorID:      crypto.MerkleRoot(req.Sectors[9]),
 			},
 		},
 		Revision:        revision,

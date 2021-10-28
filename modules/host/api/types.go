@@ -160,9 +160,14 @@ type UploadWithTokenResponse struct {
 type TokenAndSector struct {
 	Authorization string      `json:"Authorization"`
 	SectorID      crypto.Hash `json:"sector_id"`
+
+	// TODO: `KeepInTmp` is commented, because there is no way to implement
+	// it correctly with current architecture. It creates two ways of payment
+	// for the same sector after AttachSetor is called or requires copying.
+
 	// If true. keep the sector in the temporary store.
 	// If false, the sector is moved from temporary store to the contract.
-	KeepInTmp bool `json:"keep_in_tmp"`
+	// KeepInTmp bool `json:"keep_in_tmp"`
 }
 
 // AttachSectorsRequest represent request data.

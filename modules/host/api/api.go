@@ -28,7 +28,7 @@ type TokenStorage interface {
 	ListSectorIDs(id types.TokenID, pageID string, limit int) (sectorIDs []crypto.Hash, nextPageID string, err error)
 	RemoveSpecificSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error
 	RemoveAllSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error
-	AttachSectors(data []tokenstorage.AttachSectorsData, time time.Time) error
+	AttachSectors(tokensSectors map[types.TokenID][]crypto.Hash, time time.Time) error
 	EnoughStorageResource(id types.TokenID, sectorsNum int64, now time.Time) (bool, error)
 }
 
@@ -37,7 +37,7 @@ type Host interface {
 	BlockHeight() types.BlockHeight
 	AddSector(sectorRoot crypto.Hash, sectorData []byte) error
 	ReadSector(sectorRoot crypto.Hash) ([]byte, error)
-	ModifyStorageObligation(fcID types.FileContractID, newRev types.FileContractRevision, newRoots []crypto.Hash, renterSig []byte) ([]byte, error)
+	MoveTokenSectorsToStorageObligation(fcID types.FileContractID, newRev types.FileContractRevision, tokensSectors map[types.TokenID][]crypto.Hash, renterSig []byte) ([]byte, error)
 }
 
 // API represent host API.
