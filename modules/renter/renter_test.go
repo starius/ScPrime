@@ -61,7 +61,7 @@ func (rt *renterTester) addCustomHost(testdir string, deps modules.Dependencies)
 		return nil, errors.AddContext(err, "Failed to create SiaMux")
 	}
 
-	h, err := host.NewCustomHost(deps, rt.cs, rt.gateway, rt.tpool, rt.wallet, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), ":0", 5*time.Second)
+	h, err := host.NewCustomHost(deps, rt.cs, rt.gateway, rt.tpool, rt.wallet, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), nil, 5*time.Second)
 	if err != nil {
 		return nil, errors.AddContext(err, "Failed to create host")
 	}

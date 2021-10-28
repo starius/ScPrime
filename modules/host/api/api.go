@@ -45,36 +45,34 @@ type API struct {
 	host       Host
 	hostSK     crypto.SecretKey
 	ts         TokenStorage
-	port       string
 	httpServer *http.Server
 }
 
 // NewAPI return new host API.
-func NewAPI(port string, ts TokenStorage, hostSK crypto.SecretKey, host Host) *API {
+func NewAPI(ts TokenStorage, hostSK crypto.SecretKey, host Host) *API {
 	return &API{
 		hostSK: hostSK,
 		host:   host,
 		ts:     ts,
-		port:   port,
 	}
 }
 
 // Start run API.
-func (a *API) Start() (err error) {
+func (a *API) Start(ln net.Listener) (err error) {
 	routes := GetRoutes(a)
 	mux := http.NewServeMux()
 	api2.BindRoutes(mux, routes)
 	cert := a.certSetup()
 
 	a.httpServer = &http.Server{
-		Addr:    a.port,
 		Handler: mux,
 		TLSConfig: &tls.Config{ //nolint:gosec
 			Certificates: []tls.Certificate{*cert},
 		},
 	}
+
 	go func() {
-		if err := a.httpServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+		if err := a.httpServer.ServeTLS(ln, "", ""); err != nil && err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
 	}()

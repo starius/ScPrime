@@ -499,7 +499,7 @@ func reopenHost(ht *hostTester) error {
 // reopenCustomHost will create a new host and set it on the given host tester,
 // this function allows to pass custom dependencies
 func reopenCustomHost(ht *hostTester, deps modules.Dependencies) error {
-	host, err := NewCustomHost(deps, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), ":0", 5*time.Second)
+	host, err := NewCustomHost(deps, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), nil, 5*time.Second)
 	if err != nil {
 		return err
 	}

@@ -69,6 +69,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -412,8 +413,8 @@ func (h *Host) threadedPruneExpiredPriceTables() {
 // behaviors during testing, enabling easier testing of the failure modes of
 // the Host.
 func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway,
-	tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, listenerAddress, persistDir,
-	hostAPIPort string, checkTokenExpirationFrequency time.Duration) (*Host, error) {
+	tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, listenerAddress, persistDir string,
+	hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration) (*Host, error) {
 	// Check that all the dependencies were provided.
 	if cs == nil {
 		return nil, errNilCS
@@ -427,6 +428,17 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	if wallet == nil {
 		return nil, errNilWallet
 	}
+
+	var hostAPIPort string
+	var err error
+	if hostAPIListener == nil {
+		// Get free port.
+		hostAPIListener, err = net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			return nil, fmt.Errorf("make listener for host api2 port: %w", err)
+		}
+	}
+	hostAPIPort = ":" + strconv.Itoa(hostAPIListener.Addr().(*net.TCPAddr).Port)
 
 	// Create the host object.
 	h := &Host{
@@ -452,7 +464,6 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	h.staticMDM = mdm.New(h)
 
 	// Call stop in the event of a partial startup.
-	var err error
 	defer func() {
 		if err != nil {
 			err = composeErrors(h.tg.Stop(), err)
@@ -571,8 +582,8 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	go h.threadedPruneExpiredPriceTables()
 
 	//	Initialize and run host API
-	hostApi := api.NewAPI(hostAPIPort, h.TokenStor, h.secretKey, h)
-	err = hostApi.Start()
+	hostApi := api.NewAPI(h.TokenStor, h.secretKey, h)
+	err = hostApi.Start(hostAPIListener)
 	if err != nil {
 		h.log.Println("Could not start host api:", err)
 		return nil, err
@@ -588,20 +599,20 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 }
 
 // New returns an initialized Host.
-func New(cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir, hostAPIPort string, checkTokenExpirationFrequency time.Duration) (*Host, error) {
-	return newHost(modules.ProdDependencies, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIPort, checkTokenExpirationFrequency)
+func New(cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir string, hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration) (*Host, error) {
+	return newHost(modules.ProdDependencies, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIListener, checkTokenExpirationFrequency)
 }
 
 // NewCustomHost returns an initialized Host using the provided dependencies.
-func NewCustomHost(deps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir, hostAPIPort string, checkTokenExpirationFrequency time.Duration) (*Host, error) {
-	return newHost(deps, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIPort, checkTokenExpirationFrequency)
+func NewCustomHost(deps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir string, hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration) (*Host, error) {
+	return newHost(deps, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIListener, checkTokenExpirationFrequency)
 }
 
 // NewCustomTestHost allows passing in both host dependencies and storage
 // manager dependencies. Used solely for testing purposes, to allow dependency
 // injection into the host's submodules.
-func NewCustomTestHost(deps modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir, hostAPIPort string, checkTokenExpirationFrequency time.Duration) (*Host, error) {
-	return newHost(deps, smDeps, cs, g, tpool, wallet, mux, address, persistDir, hostAPIPort, checkTokenExpirationFrequency)
+func NewCustomTestHost(deps modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir string, hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration) (*Host, error) {
+	return newHost(deps, smDeps, cs, g, tpool, wallet, mux, address, persistDir, hostAPIListener, checkTokenExpirationFrequency)
 }
 
 // Close shuts down the host.
