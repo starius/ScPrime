@@ -86,7 +86,7 @@ type sectorsDBer interface {
 	Get(tokenID types.TokenID) ([]crypto.Hash, error)
 	GetLimited(tokenID types.TokenID, pageID string, limit int) ([]crypto.Hash, string, error)
 	Put(tokenID types.TokenID, sectorID crypto.Hash) error
-	HasSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) (bool, error)
+	HasSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) ([]crypto.Hash, bool, error)
 	BatchDeleteSpecific(tokenID types.TokenID, sectorIDs []crypto.Hash) error
 	BatchDeleteAll(tokenID types.TokenID) error
 	Close() error
@@ -244,8 +244,9 @@ func (s *State) GetLimitedSectors(tokenID types.TokenID, pageID string, limit in
 	return s.db.GetLimited(tokenID, pageID, limit)
 }
 
-// HasSectors determines whether given sectorID exists in database.
-func (s *State) HasSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) (bool, error) {
+// HasSectors checks if all sectors exist and returns a list of existing ones.
+// It also removes duplicates from the list.
+func (s *State) HasSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) ([]crypto.Hash, bool, error) {
 	return s.db.HasSectors(tokenID, sectorIDs)
 }
 

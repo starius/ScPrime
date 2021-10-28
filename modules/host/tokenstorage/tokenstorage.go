@@ -196,21 +196,17 @@ func (t *TokenStorage) RemoveSpecificSectors(id types.TokenID, sectorIDs []crypt
 		return fmt.Errorf("token storage closed")
 	}
 
-	if len(sectorIDs) == 0 {
-		return nil
-	}
-
-	hasSectorIDs, err := t.state.HasSectors(id, sectorIDs)
+	// Exclude nonexistent sectors before creating event to prevent attacks based on filling events history with garbage.
+	existingSectors, _, err := t.state.HasSectors(id, sectorIDs)
 	if err != nil {
 		return fmt.Errorf("check has sector: %w", err)
 	}
-	if !hasSectorIDs {
-		return fmt.Errorf("invalid request. one or more sectors don't exist")
+	if len(existingSectors) == 0 {
+		return nil
 	}
-
 	t.applyEvent(&tokenstate.Event{EventRemoveSpecificSectors: &tokenstate.EventRemoveSpecificSectors{
 		TokenID:    id,
-		SectorsIDs: crypto.ConvertHashesToByteSlices(sectorIDs),
+		SectorsIDs: crypto.ConvertHashesToByteSlices(existingSectors),
 	}, Time: time})
 	return nil
 }
@@ -238,7 +234,7 @@ func (t *TokenStorage) AttachSectors(sectorIDs map[types.TokenID][]crypto.Hash, 
 	}
 	var attachSectors []tokenstate.AttachSectorsData
 	for token, ids := range sectorIDs {
-		hasSectors, err := t.state.HasSectors(token, ids)
+		_, hasSectors, err := t.state.HasSectors(token, ids)
 		if err != nil {
 			return fmt.Errorf("HasSectors failed: %w", err)
 		}

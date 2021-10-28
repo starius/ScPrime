@@ -81,18 +81,27 @@ func (s *sectorsDB) Put(tokenID types.TokenID, sectorID crypto.Hash) error {
 	return s.db.Put(createDBKey(tokenID, sectorID), nil, nil)
 }
 
-func (s *sectorsDB) HasSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) (bool, error) {
+// HasSectors checks if all sectors exist and returns a list of existing ones.
+// It also removes duplicates from the list.
+func (s *sectorsDB) HasSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) ([]crypto.Hash, bool, error) {
+	allExist := true
+	existingSectors := make(map[crypto.Hash]bool)
 	for _, sectorID := range sectorIDs {
 		ok, err := s.db.Has(createDBKey(tokenID, sectorID), nil)
 		if err != nil {
-			return false, fmt.Errorf("check has sector: %w", err)
+			return nil, false, fmt.Errorf("check has sector: %w", err)
 		}
 		if !ok {
-			return false, nil
+			allExist = false
+			continue
 		}
+		existingSectors[sectorID] = true
 	}
-
-	return true, nil
+	existing := make([]crypto.Hash, 0, len(existingSectors))
+	for sectorID := range existingSectors {
+		existing = append(existing, sectorID)
+	}
+	return existing, allExist, nil
 }
 
 func (s *sectorsDB) BatchDeleteSpecific(tokenID types.TokenID, sectorIDs []crypto.Hash) error {
