@@ -9,27 +9,40 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/scpcorp/ScPrime/modules"
+	"gitlab.com/scpcorp/ScPrime/modules/host/contractmanager"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
-func createTokenStorage(t *testing.T) (*TokenStorage, string) {
+func createTokenStorage(t *testing.T) *TokenStorage {
+	stDir, err := ioutil.TempDir(os.TempDir(), "stDir0")
+	assert.NoError(t, err, "failed to create contract manager dir")
+	t.Cleanup(func() {
+		err = os.RemoveAll(stDir)
+		assert.NoError(t, err, "failed to remove test dir")
+	})
+	stManager, err := contractmanager.NewCustomContractManager(new(modules.ProductionDependencies), stDir)
+	assert.NoError(t, err, "NewCustomContractManager failed")
+	t.Cleanup(func() {
+		err = stManager.Close()
+		assert.NoError(t, err, "failed to close contract manager")
+	})
 	dbDir, err := ioutil.TempDir(os.TempDir(), "dbDir0")
 	assert.NoError(t, err, "failed to create test data dir")
-	stor, err := NewTokenStorage(dbDir)
+	t.Cleanup(func() {
+		err = os.RemoveAll(dbDir)
+		assert.NoError(t, err, "failed to remove test dir")
+	})
+	stor, err := NewTokenStorage(stManager, dbDir)
 	assert.NoError(t, err, "NewTokenStorage() failed")
-	return stor, dbDir
+	t.Cleanup(func() {
+		err = stor.Close(context.Background())
+		assert.NoError(t, err, "failed to close tokenStorage")
+	})
+	return stor
 }
 
 func TestAddResources(t *testing.T) {
-	stor, path := createTokenStorage(t)
-
-	defer func() {
-		err := stor.Close(context.Background())
-		assert.NoError(t, err, "failed to close tokenStorage")
-		err = os.RemoveAll(path)
-		assert.NoError(t, err, "failed to clean test data dir")
-	}()
-
+	stor := createTokenStorage(t)
 	amount := int64(100500)
 	var id types.TokenID
 	_, err := rand.Read(id[:])

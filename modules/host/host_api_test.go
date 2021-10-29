@@ -176,7 +176,7 @@ func TestApi_UploadWithToken(t *testing.T) {
 	}
 }
 
-func TestApi_CircleIntegration(t *testing.T) {
+func TestAPI_CircleIntegration(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -216,8 +216,10 @@ func TestApi_CircleIntegration(t *testing.T) {
 		Authorization: tokenID.String(),
 	}
 	req.Sectors = nil
+	var sectorIDs []crypto.Hash
 	for i := 0; i < 10; i++ {
 		req.Sectors = append(req.Sectors, fastrand.Bytes(int(modules.SectorSize)))
+		sectorIDs = append(sectorIDs, crypto.MerkleRoot(req.Sectors[i]))
 	}
 
 	// create storage folder
@@ -259,23 +261,23 @@ func TestApi_CircleIntegration(t *testing.T) {
 		Sectors: []api.TokenAndSector{
 			{
 				Authorization: tokenID.String(),
-				SectorID:      crypto.MerkleRoot(req.Sectors[0]),
+				SectorID:      sectorIDs[0],
 			},
 			{
 				Authorization: tokenID.String(),
-				SectorID:      crypto.MerkleRoot(req.Sectors[3]),
+				SectorID:      sectorIDs[3],
 			},
 			{
 				Authorization: tokenID.String(),
-				SectorID:      crypto.MerkleRoot(req.Sectors[5]),
+				SectorID:      sectorIDs[5],
 			},
 			{
 				Authorization: tokenID.String(),
-				SectorID:      crypto.MerkleRoot(req.Sectors[7]),
+				SectorID:      sectorIDs[7],
 			},
 			{
 				Authorization: tokenID.String(),
-				SectorID:      crypto.MerkleRoot(req.Sectors[9]),
+				SectorID:      sectorIDs[9],
 			},
 		},
 		Revision:        revision,
@@ -283,6 +285,16 @@ func TestApi_CircleIntegration(t *testing.T) {
 		BlockHeight:     rhp.staticHT.host.BlockHeight(),
 	}
 	_, err = hostApi.AttachSectors(context.Background(), attachReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Remove all sectors from temporary storage to check downloads from contract.
+	removeReq := &api.RemoveSectorsRequest{
+		Authorization: tokenID.String(),
+		SectorIDs:     sectorIDs,
+	}
+	_, err = hostApi.RemoveSectors(context.Background(), removeReq)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,31 +308,31 @@ func TestApi_CircleIntegration(t *testing.T) {
 		Ranges: []api.Range{
 			// download 5 sectors which has moved from temporary storage to contract
 			{
-				MerkleRoot:  crypto.MerkleRoot(req.Sectors[0]),
+				MerkleRoot:  sectorIDs[0],
 				MerkleProof: true,
 				Length:      uint32(length),
 				Offset:      uint32(offset),
 			},
 			{
-				MerkleRoot:  crypto.MerkleRoot(req.Sectors[3]),
+				MerkleRoot:  sectorIDs[3],
 				MerkleProof: true,
 				Length:      uint32(length),
 				Offset:      uint32(offset),
 			},
 			{
-				MerkleRoot:  crypto.MerkleRoot(req.Sectors[5]),
+				MerkleRoot:  sectorIDs[5],
 				MerkleProof: true,
 				Length:      uint32(length),
 				Offset:      uint32(offset),
 			},
 			{
-				MerkleRoot:  crypto.MerkleRoot(req.Sectors[7]),
+				MerkleRoot:  sectorIDs[7],
 				MerkleProof: true,
 				Length:      uint32(length),
 				Offset:      uint32(offset),
 			},
 			{
-				MerkleRoot:  crypto.MerkleRoot(req.Sectors[9]),
+				MerkleRoot:  sectorIDs[9],
 				MerkleProof: true,
 				Length:      uint32(length),
 				Offset:      uint32(offset),

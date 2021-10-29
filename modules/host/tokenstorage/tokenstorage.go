@@ -57,11 +57,13 @@ type TokenStorage struct {
 
 	eventsQueue []interface{}
 
+	storageManager modules.StorageManager
+
 	closed bool
 }
 
 // NewTokenStorage - create new storage of tokens for prepaid downloads.
-func NewTokenStorage(dir string) (*TokenStorage, error) {
+func NewTokenStorage(stManager modules.StorageManager, dir string) (*TokenStorage, error) {
 	storage := filestorage.NewFileStorage(dir)
 	ctx := context.Background()
 
@@ -81,8 +83,9 @@ func NewTokenStorage(dir string) (*TokenStorage, error) {
 		return nil, fmt.Errorf("failed to load history: %w", err)
 	}
 	s := &TokenStorage{
-		storage: storage,
-		state:   state,
+		storage:        storage,
+		state:          state,
+		storageManager: stManager,
 	}
 	return s, nil
 }
@@ -208,20 +211,13 @@ func (t *TokenStorage) RemoveSpecificSectors(id types.TokenID, sectorIDs []crypt
 		TokenID:    id,
 		SectorsIDs: crypto.ConvertHashesToByteSlices(existingSectors),
 	}, Time: time})
-	return nil
-}
 
-// RemoveAllSectors remove sectors from token.
-func (t *TokenStorage) RemoveAllSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error {
-	t.stateMu.Lock()
-	defer t.stateMu.Unlock()
-	if t.closed {
-		return fmt.Errorf("token storage closed")
-	}
-	t.applyEvent(&tokenstate.Event{EventRemoveAllSectors: &tokenstate.EventRemoveAllSectors{
-		TokenID:    id,
-		SectorsIDs: crypto.ConvertHashesToByteSlices(sectorsIDs),
-	}, Time: time})
+	// Remove sectors from disk.
+	go func() {
+		if err := t.storageManager.RemoveSectorBatch(existingSectors); err != nil {
+			log.Printf("Failed to remove sectors: %v", err)
+		}
+	}()
 	return nil
 }
 
@@ -287,7 +283,7 @@ func (t *TokenStorage) applyEvent(event *tokenstate.Event) {
 }
 
 // CheckExpiration remove sectors from token when token storage resource ends.
-func (t *TokenStorage) CheckExpiration(sm modules.StorageManager, frequency time.Duration, done chan bool) {
+func (t *TokenStorage) CheckExpiration(frequency time.Duration, done chan bool) {
 	ticker := time.NewTicker(frequency)
 	for {
 		select {
@@ -296,12 +292,12 @@ func (t *TokenStorage) CheckExpiration(sm modules.StorageManager, frequency time
 			return
 
 		case <-ticker.C:
-			t.checkExpiration(sm)
+			t.checkExpiration()
 		}
 	}
 }
 
-func (t *TokenStorage) checkExpiration(sm modules.StorageManager) {
+func (t *TokenStorage) checkExpiration() {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
 	if t.closed {
@@ -327,7 +323,7 @@ func (t *TokenStorage) checkExpiration(sm modules.StorageManager) {
 		// already removed from state, so there is no problem with returning
 		// from this function before fully removing sectors data from disk.
 		go func() {
-			if err := sm.RemoveSectorBatch(sectors); err != nil {
+			if err := t.storageManager.RemoveSectorBatch(sectors); err != nil {
 				log.Printf("Failed to remove sectors of depleted token: %v", err)
 			}
 		}()

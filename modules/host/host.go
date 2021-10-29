@@ -499,22 +499,6 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 			return nil, errors.AddContext(err, "Could not create token storage directory")
 		}
 	}
-	// Initialize token storage.
-	// TODO: the current version of tokens storage does not support reverting blocks.
-	// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
-	h.tokenStor, err = tokenstorage.NewTokenStorage(tokenStorageDir)
-	if err != nil {
-		return nil, errors.AddContext(err, "Could not initialize token storage")
-	}
-	updateTokenSectorsChan := make(chan bool)
-	h.tg.AfterStop(func() {
-		updateTokenSectorsChan <- true
-		err = h.tokenStor.Close(context.Background())
-		if err != nil {
-			fmt.Println("Error when closing token storage:", err)
-		}
-	})
-
 	// Add the storage manager to the host, and set up the stop call that will
 	// close the storage manager.
 	stManager, err := contractmanager.NewCustomContractManager(smDeps, filepath.Join(persistDir, "contractmanager"))
@@ -532,8 +516,23 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 		}
 	})
 
-	// remove sectors from token when token storage resource ends
-	go h.tokenStor.CheckExpiration(stManager, checkTokenExpirationFrequency, updateTokenSectorsChan)
+	// Initialize token storage.
+	// TODO: the current version of tokens storage does not support reverting blocks.
+	// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
+	h.tokenStor, err = tokenstorage.NewTokenStorage(stManager, tokenStorageDir)
+	if err != nil {
+		return nil, errors.AddContext(err, "Could not initialize token storage")
+	}
+	updateTokenSectorsChan := make(chan bool)
+	h.tg.AfterStop(func() {
+		updateTokenSectorsChan <- true
+		err = h.tokenStor.Close(context.Background())
+		if err != nil {
+			fmt.Println("Error when closing token storage:", err)
+		}
+	})
+	// Remove sectors from token when token storage resource ends.
+	go h.tokenStor.CheckExpiration(checkTokenExpirationFrequency, updateTokenSectorsChan)
 
 	// Load the prior persistence structures, and configure the host to save
 	// before shutting down.
