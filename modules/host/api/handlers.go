@@ -184,40 +184,20 @@ func (a *API) AttachSectors(ctx context.Context, req *AttachSectorsRequest) (*At
 	if blockHeight != hostHeight && blockHeight != hostHeight-1 && blockHeight != hostHeight+1 {
 		return nil, &AttachSectorsError{IncorrectBlock: true}
 	}
-	// TODO: there is a potential race between token storage and host
-	var attachSectors []tokenstorage.AttachSectorsData
-	tokenSectors := make(map[types.TokenID]int64)
-	var newRoots []crypto.Hash
 
+	sectorIDs := make(map[types.TokenID][]crypto.Hash)
 	for _, ts := range req.Sectors {
 		tokenID := types.ParseToken(ts.Authorization)
-		// count sectors which remove from token storage for check enough storage resource.
-		if !ts.KeepInTmp {
-			tokenSectors[tokenID] += 1
-			newRoots = append(newRoots, ts.SectorID)
-		}
-		attachSectors = append(attachSectors, tokenstorage.AttachSectorsData{
-			TokenID:   tokenID,
-			SectorID:  ts.SectorID.Bytes(),
-			KeepInTmp: ts.KeepInTmp,
-		})
+		tokenSectors := sectorIDs[tokenID]
+		tokenSectors = append(tokenSectors, ts.SectorID)
+		sectorIDs[tokenID] = tokenSectors
 	}
-	for t, sectorsNum := range tokenSectors {
-		enough, err := a.ts.EnoughStorageResource(t, -sectorsNum, time.Now())
-		if err != nil {
-			return nil, &AttachSectorsError{UnknownError: err.Error()}
-		}
-		if !enough {
-			return nil, &AttachSectorsError{NotEnoughStorage: true}
-		}
-	}
-	hostSig, err := a.host.ModifyStorageObligation(req.ContractID, req.Revision, newRoots, req.RenterSignature)
-	if err != nil {
-		return nil, err
-	}
-	err = a.ts.AttachSectors(attachSectors, time.Now())
-	if err != nil {
-		return nil, err
+
+	hostSig, err := a.host.MoveTokenSectorsToStorageObligation(req.ContractID, req.Revision, sectorIDs, req.RenterSignature)
+	if errors.Is(err, tokenstorage.ErrInsufficientResource) {
+		return nil, &AttachSectorsError{NotEnoughStorage: true}
+	} else if err != nil {
+		return nil, &AttachSectorsError{UnknownError: err.Error()}
 	}
 	return &AttachSectorsResponse{HostSignature: hostSig}, nil
 }

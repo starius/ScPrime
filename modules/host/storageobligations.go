@@ -34,6 +34,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strconv"
 	"sync"
@@ -1352,8 +1353,8 @@ func (h *Host) StorageObligations() (sos []modules.StorageObligation) {
 	return sos
 }
 
-// ModifyStorageObligation update storage obligation object and return host signature.
-func (h *Host) ModifyStorageObligation(fcID types.FileContractID, renterRevision types.FileContractRevision, newRoots []crypto.Hash, renterSig []byte) ([]byte, error) {
+// MoveTokenSectorsToStorageObligation moves sectors from temporary storage to storage obligation object and returns host signature.
+func (h *Host) MoveTokenSectorsToStorageObligation(fcID types.FileContractID, renterRevision types.FileContractRevision, tokensSectors map[types.TokenID][]crypto.Hash, renterSig []byte) ([]byte, error) {
 	err := h.managedTryLockStorageObligation(fcID, obligationLockTimeout)
 	if err != nil {
 		return nil, err
@@ -1377,6 +1378,11 @@ func (h *Host) ModifyStorageObligation(fcID types.FileContractID, renterRevision
 	secretKey := h.secretKey
 	h.mu.Unlock()
 	currentRevision := so.RevisionTransactionSet[len(so.RevisionTransactionSet)-1].FileContractRevisions[0]
+
+	var newRoots []crypto.Hash
+	for _, ids := range tokensSectors {
+		newRoots = append(newRoots, ids...)
+	}
 
 	// update finances.
 	bytesAdded := modules.SectorSize * uint64(len(newRoots)-len(so.SectorRoots))
@@ -1429,6 +1435,19 @@ func (h *Host) ModifyStorageObligation(fcID types.FileContractID, renterRevision
 	if err != nil {
 		return nil, err
 	}
+
+	// Now that all checks have passed, we can remove sector ids from temporary storage.
+	// We can't do it after `managedModifyStorageObligation`(), because there is no
+	// common lock for temporary storage and host's database, which means
+	// that someone (checkExpiration goroutine or RemoveSectors method) may
+	// remove sectors after we attach them to a storage obligation here,
+	// which would result in losing contract's sectors. We can't do it before this place,
+	// because renter's signature and revision is checked above.
+	// Therefore, the only place to call tokenStorage.AttachSectors is right here.
+	if err := h.tokenStor.AttachSectors(tokensSectors, time.Now()); err != nil {
+		return nil, fmt.Errorf("tokenStor.AttachSectors: %w", err)
+	}
+
 	so.SectorRoots = append(so.SectorRoots, newRoots...)
 	so.PotentialStorageRevenue = so.PotentialStorageRevenue.Add(storageRevenue)
 	so.RiskedCollateral = so.RiskedCollateral.Add(newCollateral)

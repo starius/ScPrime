@@ -2,6 +2,7 @@ package tokenstorage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,6 +15,11 @@ import (
 	"gitlab.com/scpcorp/ScPrime/types"
 	"gitlab.com/zer0main/eventsourcing"
 	"gitlab.com/zer0main/filestorage"
+)
+
+var (
+	// ErrInsufficientResource is an error indicating lack of resources on the token.
+	ErrInsufficientResource = errors.New("insufficient token resource for this operation")
 )
 
 // TODO: the current version of tokens storage does not support reverting blocks.
@@ -36,15 +42,6 @@ type TokenRecord struct {
 	TokenStorageInfo TokenStorageInfo
 }
 
-// AttachSectorsData include information about token sector and storing it.
-type AttachSectorsData struct {
-	TokenID  types.TokenID
-	SectorID []byte
-	// If true. keep the sector in the temporary store.
-	// If false, the sector is moved from temporary store to the contract.
-	KeepInTmp bool
-}
-
 type storage interface {
 	Lock(ctx context.Context) error
 	Unlock(ctx context.Context) error
@@ -60,11 +57,13 @@ type TokenStorage struct {
 
 	eventsQueue []interface{}
 
+	storageManager modules.StorageManager
+
 	closed bool
 }
 
 // NewTokenStorage - create new storage of tokens for prepaid downloads.
-func NewTokenStorage(dir string) (*TokenStorage, error) {
+func NewTokenStorage(stManager modules.StorageManager, dir string) (*TokenStorage, error) {
 	storage := filestorage.NewFileStorage(dir)
 	ctx := context.Background()
 
@@ -84,8 +83,9 @@ func NewTokenStorage(dir string) (*TokenStorage, error) {
 		return nil, fmt.Errorf("failed to load history: %w", err)
 	}
 	s := &TokenStorage{
-		storage: storage,
-		state:   state,
+		storage:        storage,
+		state:          state,
+		storageManager: stManager,
 	}
 	return s, nil
 }
@@ -199,57 +199,57 @@ func (t *TokenStorage) RemoveSpecificSectors(id types.TokenID, sectorIDs []crypt
 		return fmt.Errorf("token storage closed")
 	}
 
-	if len(sectorIDs) == 0 {
-		return nil
-	}
-
-	hasSectorIDs, err := t.state.HasSectors(id, sectorIDs)
+	// Exclude nonexistent sectors before creating event to prevent attacks based on filling events history with garbage.
+	existingSectors, _, err := t.state.HasSectors(id, sectorIDs)
 	if err != nil {
 		return fmt.Errorf("check has sector: %w", err)
 	}
-	if !hasSectorIDs {
-		return fmt.Errorf("invalid request. one or more sectors don't exist")
+	if len(existingSectors) == 0 {
+		return nil
 	}
-
 	t.applyEvent(&tokenstate.Event{EventRemoveSpecificSectors: &tokenstate.EventRemoveSpecificSectors{
 		TokenID:    id,
-		SectorsIDs: crypto.ConvertHashesToByteSlices(sectorIDs),
+		SectorsIDs: crypto.ConvertHashesToByteSlices(existingSectors),
 	}, Time: time})
-	return nil
-}
 
-// RemoveAllSectors remove sectors from token.
-func (t *TokenStorage) RemoveAllSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error {
-	t.stateMu.Lock()
-	defer t.stateMu.Unlock()
-	if t.closed {
-		return fmt.Errorf("token storage closed")
-	}
-	t.applyEvent(&tokenstate.Event{EventRemoveAllSectors: &tokenstate.EventRemoveAllSectors{
-		TokenID:    id,
-		SectorsIDs: crypto.ConvertHashesToByteSlices(sectorsIDs),
-	}, Time: time})
+	// Remove sectors from disk.
+	go func() {
+		if err := t.storageManager.RemoveSectorBatch(existingSectors); err != nil {
+			log.Printf("Failed to remove sectors: %v", err)
+		}
+	}()
 	return nil
 }
 
 // AttachSectors attach sector to contract.
-func (t *TokenStorage) AttachSectors(data []AttachSectorsData, time time.Time) error {
+func (t *TokenStorage) AttachSectors(sectorIDs map[types.TokenID][]crypto.Hash, callTime time.Time) error {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
 	if t.closed {
 		return fmt.Errorf("token storage closed")
 	}
 	var attachSectors []tokenstate.AttachSectorsData
-	for _, el := range data {
-		attachSectors = append(attachSectors, tokenstate.AttachSectorsData{
-			TokenID:   el.TokenID,
-			SectorID:  el.SectorID,
-			KeepInTmp: el.KeepInTmp,
-		})
+	for token, ids := range sectorIDs {
+		_, hasSectors, err := t.state.HasSectors(token, ids)
+		if err != nil {
+			return fmt.Errorf("HasSectors failed: %w", err)
+		}
+		if !hasSectors {
+			return fmt.Errorf("some sectors of token %s don't exist", token.String())
+		}
+		if enough := t.state.EnoughStorageResource(token, int64(-len(ids)), time.Now()); !enough {
+			return ErrInsufficientResource
+		}
+		for _, id := range ids {
+			attachSectors = append(attachSectors, tokenstate.AttachSectorsData{
+				TokenID:  token,
+				SectorID: id.Bytes(),
+			})
+		}
 	}
 	t.applyEvent(&tokenstate.Event{EventAttachSectors: &tokenstate.EventAttachSectors{
 		TokensSectors: attachSectors,
-	}, Time: time})
+	}, Time: callTime})
 	return nil
 }
 
@@ -283,7 +283,7 @@ func (t *TokenStorage) applyEvent(event *tokenstate.Event) {
 }
 
 // CheckExpiration remove sectors from token when token storage resource ends.
-func (t *TokenStorage) CheckExpiration(sm modules.StorageManager, frequency time.Duration, done chan bool) {
+func (t *TokenStorage) CheckExpiration(frequency time.Duration, done chan bool) {
 	ticker := time.NewTicker(frequency)
 	for {
 		select {
@@ -292,20 +292,20 @@ func (t *TokenStorage) CheckExpiration(sm modules.StorageManager, frequency time
 			return
 
 		case <-ticker.C:
-			t.checkExpiration(sm)
+			t.checkExpiration()
 		}
 	}
 }
 
-func (t *TokenStorage) checkExpiration(sm modules.StorageManager) {
+func (t *TokenStorage) checkExpiration() {
 	t.stateMu.Lock()
+	defer t.stateMu.Unlock()
 	if t.closed {
-		t.stateMu.Unlock()
 		return
 	}
 
 	for token := range t.state.Tokens {
-		if enough := t.state.EnoughStorageResource(token, 0, time.Now()); !enough {
+		if enough := t.state.EnoughStorageResource(token, 0, time.Now()); enough {
 			continue
 		}
 		sectors, err := t.state.GetSectors(token)
@@ -317,12 +317,15 @@ func (t *TokenStorage) checkExpiration(sm modules.StorageManager) {
 			TokenID:    token,
 			SectorsIDs: crypto.ConvertHashesToByteSlices(sectors),
 		}, Time: time.Now()})
-		for _, sec := range sectors {
-			err = sm.DeleteSector(sec)
-			if err != nil {
-				continue
+
+		// Removing a lot of sectors might take time, we can't do it under stateMu,
+		// so we do it in a separate goroutine here. IDs of these sectors are
+		// already removed from state, so there is no problem with returning
+		// from this function before fully removing sectors data from disk.
+		go func() {
+			if err := t.storageManager.RemoveSectorBatch(sectors); err != nil {
+				log.Printf("Failed to remove sectors of depleted token: %v", err)
 			}
-		}
+		}()
 	}
-	t.stateMu.Unlock()
 }
