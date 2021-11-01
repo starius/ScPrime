@@ -31,6 +31,31 @@ type (
 	}
 )
 
+// equals tests if all settings are equal between two savedSettings.
+func (s *savedSettings) equals(sb savedSettings) bool {
+	if s.SectorSalt != sb.SectorSalt || len(s.StorageFolders) != len(sb.StorageFolders) {
+		return false
+	}
+	for i, sf := range s.StorageFolders {
+		sfb, there := sb.StorageFolders[i]
+		if !there {
+			return false
+		}
+
+		if sf.Index != sfb.Index || sf.Path != sfb.Path || len(sf.Usage) != len(sfb.Usage) {
+			return false
+		}
+
+		for u := range sf.Usage {
+			if sf.Usage[u] != sfb.Usage[u] {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
 // savedStorageFolder returns the persistent version of the storage folder.
 func (sf *storageFolder) savedStorageFolder() savedStorageFolder {
 	ssf := savedStorageFolder{

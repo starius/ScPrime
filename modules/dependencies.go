@@ -172,12 +172,6 @@ func (pf *ProductionFile) Close() error {
 	return pf.File.Close()
 }
 
-// NebulousAddress will return an address that can be used to send SiaCoin to a
-// Nebulous managed Wallet.
-//func (*ProductionDependencies) NebulousAddress() types.UnlockHash {
-//	return nebulousAddress
-//}
-
 // AtLeastOne will return a value that is equal to 1 if debugging is disabled.
 // If debugging is enabled, a higher value may be returned.
 func (*ProductionDependencies) AtLeastOne() uint64 {

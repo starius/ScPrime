@@ -3,7 +3,6 @@ package contractmanager
 import (
 	"encoding/json"
 	"path/filepath"
-	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -33,7 +32,11 @@ func (wal *writeAheadLog) syncResources() {
 
 		tmpFilename := filepath.Join(wal.cm.persistDir, settingsFileTmp)
 		filename := filepath.Join(wal.cm.persistDir, settingsFile)
-		err := wal.fileSettingsTmp.Sync()
+		err := wal.cm.dependencies.RenameFile(filename, filename+".bak")
+		if err != nil {
+			wal.cm.log.Severe("ERROR: unable to backup of the contract manager settings:", err)
+		}
+		err = wal.fileSettingsTmp.Sync()
 		if err != nil {
 			wal.cm.log.Severe("ERROR: unable to sync the contract manager settings:", err)
 		}
@@ -81,7 +84,7 @@ func (wal *writeAheadLog) syncResources() {
 		}(sf)
 	}
 
-	// Sync the temp WAL file, but do not perform the atmoic rename - the
+	// Sync the temp WAL file, but do not perform the atomic rename - the
 	// atomic rename must be guaranteed to happen after all of the other files
 	// have been synced.
 	wg.Add(1)
@@ -163,7 +166,7 @@ func (wal *writeAheadLog) commit() {
 		defer wg.Done()
 
 		newSettings := wal.cm.savedSettings()
-		if reflect.DeepEqual(newSettings, wal.committedSettings) {
+		if wal.committedSettings.equals(newSettings) { // reflect.DeepEqual(newSettings, wal.committedSettings) {
 			// no need to write the settings file
 			wal.fileSettingsTmp = nil
 			return
