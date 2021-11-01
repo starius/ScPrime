@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -25,7 +27,10 @@ var (
 // TODO: the current version of tokens storage does not support reverting blocks.
 // If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
 
-const persistDelay = 1 * time.Second
+const (
+	persistDelay = 1 * time.Second
+	logFileName  = "token_storage.log"
+)
 
 // TokenStorageInfo represent data about storage resource.
 type TokenStorageInfo struct {
@@ -55,6 +60,8 @@ type TokenStorage struct {
 	stateMu sync.Mutex // For in-memory only.
 	metaMu  sync.Mutex // For drainEventsQueue (involving IO).
 
+	logFile *os.File
+
 	eventsQueue []interface{}
 
 	storageManager modules.StorageManager
@@ -82,10 +89,17 @@ func NewTokenStorage(stManager modules.StorageManager, dir string) (*TokenStorag
 	if err != nil {
 		return nil, fmt.Errorf("failed to load history: %w", err)
 	}
+	logPath := filepath.Join(dir, logFileName)
+	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %s for writing: %w", logPath, err)
+	}
+	log.SetOutput(logFile)
 	s := &TokenStorage{
 		storage:        storage,
 		state:          state,
 		storageManager: stManager,
+		logFile:        logFile,
 	}
 	return s, nil
 }
@@ -104,6 +118,9 @@ func (t *TokenStorage) Close(ctx context.Context) error {
 	}
 	if err = t.storage.Unlock(ctx); err != nil {
 		return fmt.Errorf("failed to unlock: %w", err)
+	}
+	if err = t.logFile.Close(); err != nil {
+		return fmt.Errorf("failed to close log file: %w", err)
 	}
 	return nil
 }
@@ -198,7 +215,7 @@ func (t *TokenStorage) RemoveSpecificSectors(id types.TokenID, sectorIDs []crypt
 	if t.closed {
 		return fmt.Errorf("token storage closed")
 	}
-
+	log.Printf("Received request to remove sectors of token %s", id.String())
 	// Exclude nonexistent sectors before creating event to prevent attacks based on filling events history with garbage.
 	existingSectors, _, err := t.state.HasSectors(id, sectorIDs)
 	if err != nil {
@@ -313,6 +330,8 @@ func (t *TokenStorage) checkExpiration() {
 			continue
 		}
 
+		log.Printf("Token %s does not have enough storage resource, removing all its sectors...", token.String())
+
 		t.applyEvent(&tokenstate.Event{EventRemoveAllSectors: &tokenstate.EventRemoveAllSectors{
 			TokenID:    token,
 			SectorsIDs: crypto.ConvertHashesToByteSlices(sectors),
@@ -322,10 +341,10 @@ func (t *TokenStorage) checkExpiration() {
 		// so we do it in a separate goroutine here. IDs of these sectors are
 		// already removed from state, so there is no problem with returning
 		// from this function before fully removing sectors data from disk.
-		go func() {
+		go func(token types.TokenID) {
 			if err := t.storageManager.RemoveSectorBatch(sectors); err != nil {
-				log.Printf("Failed to remove sectors of depleted token: %v", err)
+				log.Printf("Failed to remove sectors of depleted token %s: %v", token.String(), err)
 			}
-		}()
+		}(token)
 	}
 }
