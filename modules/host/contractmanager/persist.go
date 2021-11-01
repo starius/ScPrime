@@ -27,7 +27,7 @@ type (
 	// of the contract manager directory, alongside the WAL and log.
 	savedSettings struct {
 		SectorSalt     crypto.Hash
-		StorageFolders []savedStorageFolder
+		StorageFolders map[uint16]savedStorageFolder
 	}
 )
 
@@ -139,7 +139,8 @@ func (cm *ContractManager) loadSectorLocations(sf *storageFolder) {
 // easily-serializable form.
 func (cm *ContractManager) savedSettings() savedSettings {
 	ss := savedSettings{
-		SectorSalt: cm.sectorSalt,
+		SectorSalt:     cm.sectorSalt,
+		StorageFolders: make(map[uint16]savedStorageFolder),
 	}
 	for _, sf := range cm.storageFolders {
 		// Unset all of the usage bits in the storage folder for the queued sectors.
@@ -148,7 +149,8 @@ func (cm *ContractManager) savedSettings() savedSettings {
 		}
 
 		// Copy over the storage folder.
-		ss.StorageFolders = append(ss.StorageFolders, sf.savedStorageFolder())
+		//ss.StorageFolders = append(ss.StorageFolders, sf.savedStorageFolder())
+		ss.StorageFolders[sf.index] = sf.savedStorageFolder()
 
 		// Re-set all of the usage bits for the queued sectors.
 		for _, sectorIndex := range sf.availableSectors {
