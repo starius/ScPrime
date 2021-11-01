@@ -85,6 +85,7 @@ func (cm *ContractManager) initSettings() error {
 
 // loadSettings will load the contract manager settings.
 func (cm *ContractManager) loadSettings() error {
+	//TODO: convert old struct with array/slice to new with map
 	var ss savedSettings
 	err := cm.dependencies.LoadFile(settingsMetadata, &ss, filepath.Join(cm.persistDir, settingsFile))
 	if os.IsNotExist(err) {
