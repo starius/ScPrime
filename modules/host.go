@@ -55,7 +55,7 @@ const (
 	// DefaultMaxDuration defines the maximum number of blocks into the future
 	// that the host will accept for the duration of an incoming file contract
 	// obligation. 4 months are chosen as the network is in buildout.
-	DefaultMaxDuration = 144 * 7 * 18 // 18 weeks is a bit more than 4 months.
+	DefaultMaxDuration = 144 * 7 * 9 // 9 weeks is a bit more than 2 months.
 
 )
 
@@ -152,7 +152,7 @@ var (
 	// DefaultStoragePrice defines the starting price for hosts selling
 	// storage. We try to match a number that is both reasonably profitable and
 	// reasonably competitive.
-	DefaultStoragePrice = types.ScPrimecoinPrecision.Mul64(15).Div(BlockBytesPerMonthTerabyte) // 15 SCP / TB / Month
+	DefaultStoragePrice = types.ScPrimecoinPrecision.Mul64(10).Div(BlockBytesPerMonthTerabyte) // 10 SCP / TB / Month
 
 	// DefaultUploadBandwidthPrice defines the default price of upload
 	// bandwidth. The default is set to 2 SCP per TB, because the host is
