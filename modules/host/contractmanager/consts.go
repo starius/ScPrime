@@ -77,6 +77,13 @@ var (
 	// settingsMetadata is the header that is used when writing the contract
 	// manager's settings to disk.
 	settingsMetadata = persist.Metadata{
+		Header:  "ScPrime Contract Manager",
+		Version: "1.5.4",
+	}
+
+	// settingsMetadata120 is the header that was used before switching the
+	// storage folders from slice to map.
+	settingsMetadata120 = persist.Metadata{
 		Header:  "Sia Contract Manager",
 		Version: "1.2.0",
 	}

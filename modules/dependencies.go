@@ -15,10 +15,6 @@ import (
 	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
-// nebulousAddress is the nebulous address that is used to send SiaCoin to
-// Nebulous.
-//var nebulousAddress = [32]byte{14, 56, 201, 152, 87, 64, 139, 125, 38, 4, 161, 206, 32, 198, 119, 108, 158, 66, 177, 5, 178, 222, 155, 12, 209, 231, 91, 170, 213, 236, 57, 197}
-
 // ProdDependencies act as a global instance of the production dependencies to
 // avoid having to instantiate new dependencies every time we want to pass
 // production dependencies.

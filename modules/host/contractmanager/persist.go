@@ -1,7 +1,10 @@
 package contractmanager
 
 import (
+	"crypto/rand"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync/atomic"
@@ -9,9 +12,6 @@ import (
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/persist"
-
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 type (
@@ -28,6 +28,12 @@ type (
 	savedSettings struct {
 		SectorSalt     crypto.Hash
 		StorageFolders map[uint16]savedStorageFolder
+	}
+
+	// savedSettings120 is the old version (1.2.0) to read when upgrading to map based instead of slice
+	savedSettings120 struct {
+		SectorSalt     crypto.Hash
+		StorageFolders []savedStorageFolder
 	}
 )
 
@@ -46,7 +52,7 @@ func (sf *storageFolder) savedStorageFolder() savedStorageFolder {
 // initSettings should only be run for brand new contract maangers.
 func (cm *ContractManager) initSettings() error {
 	// Initialize the sector salt to a random value.
-	fastrand.Read(cm.sectorSalt[:])
+	rand.Read(cm.sectorSalt[:])
 
 	// Ensure that the initialized defaults have stuck.
 	ss := cm.savedSettings()
@@ -60,15 +66,27 @@ func (cm *ContractManager) initSettings() error {
 
 // loadSettings will load the contract manager settings.
 func (cm *ContractManager) loadSettings() error {
+	settingspath := filepath.Join(cm.persistDir, settingsFile)
 	var ss savedSettings
-	err := cm.dependencies.LoadFile(settingsMetadata, &ss, filepath.Join(cm.persistDir, settingsFile))
+	err := cm.dependencies.LoadFile(settingsMetadata, &ss, settingspath)
 	if os.IsNotExist(err) {
 		// There is no settings file, this must be the first time that the
 		// contract manager has been run. Initialize with default settings.
 		return cm.initSettings()
+	} else if errors.Is(err, persist.ErrBadHeader) || errors.Is(err, persist.ErrBadVersion) {
+		//Try to load old version structure
+		var ss120 savedSettings120
+		err120 := cm.dependencies.LoadFile(settingsMetadata120, &ss120, filepath.Join(cm.persistDir, settingsFile))
+		if err120 != nil {
+			return fmt.Errorf("cannot upgrade contractmanager: %w", err120)
+		}
+		ss.SectorSalt = ss120.SectorSalt
+		for _, osf := range ss120.StorageFolders {
+			ss.StorageFolders[osf.Index] = osf
+		}
 	} else if err != nil {
-		cm.log.Println("ERROR: unable to load the contract manager settings file:", err)
-		return errors.AddContext(err, "error loading the contract manager settings file")
+		cm.log.Printf("ERROR: unable to load the contract manager settings from %s : %v", settingspath, err.Error())
+		return fmt.Errorf("failed to load contract manager settings file: %w", err)
 	}
 
 	// Copy the saved settings into the contract manager.
