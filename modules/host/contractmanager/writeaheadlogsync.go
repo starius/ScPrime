@@ -50,7 +50,6 @@ func (wal *writeAheadLog) syncResources() {
 			return
 		}
 
-		wal.cm.s
 		err = wal.cm.dependencies.RenameFile(filename, filename+".bak")
 		if err != nil {
 			wal.cm.log.Severe("ERROR: unable to backup of the contract manager settings:", err)
