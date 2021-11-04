@@ -10,6 +10,8 @@ import (
 	"gitlab.com/scpcorp/ScPrime/build"
 )
 
+var syncCounter int64
+
 // syncResources will call Sync on all resources that the WAL has open. The
 // storage folder files will be left open, as they are not updated atomically.
 // The settings file and WAL tmp files will be synced and closed, to perform an
@@ -29,6 +31,7 @@ func (wal *writeAheadLog) syncResources() {
 			// nothing to sync
 			return
 		}
+		atomic.AddInt64(&syncCounter, 1)
 
 		tmpFilename := filepath.Join(wal.cm.persistDir, settingsFileTmp)
 		filename := filepath.Join(wal.cm.persistDir, settingsFile)
@@ -49,11 +52,12 @@ func (wal *writeAheadLog) syncResources() {
 			// saved.
 			return
 		}
-
-		err = wal.cm.dependencies.RenameFile(filename, filename+".bak")
-		if err != nil {
-			wal.cm.log.Severe("ERROR: unable to backup of the contract manager settings:", err)
-			return
+		if atomic.LoadInt64(&syncCounter)%30 == 0 {
+			err = wal.cm.dependencies.RenameFile(filename, filename+".bak")
+			if err != nil {
+				wal.cm.log.Severe("ERROR: unable to backup of the contract manager settings:", err)
+				return
+			}
 		}
 		err = wal.cm.dependencies.RenameFile(tmpFilename, filename)
 		if err != nil {
@@ -286,7 +290,7 @@ func (wal *writeAheadLog) threadedSyncLoop(threadsStopped chan struct{}, syncLoo
 		return
 	}
 
-	syncInterval := 400 * time.Millisecond
+	syncInterval := 333 * time.Millisecond
 	for {
 		select {
 		case <-threadsStopped:
