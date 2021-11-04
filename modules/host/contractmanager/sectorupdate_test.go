@@ -512,7 +512,7 @@ func TestAddSectorRecovery(t *testing.T) {
 	// Check that the sector was successfully added.
 	sfs = cmt.cm.StorageFolders()
 	if len(sfs) != 1 {
-		t.Fatal("There should be one storage folder in the contract manager", len(sfs))
+		t.Fatal("There should be one storage folder in the contract manager but got", len(sfs))
 	}
 	if sfs[0].Capacity != sfs[0].CapacityRemaining+modules.SectorSize {
 		t.Error("One sector's worth of capacity should be consumed:", (sfs[0].Capacity-sfs[0].CapacityRemaining)/modules.SectorSize)

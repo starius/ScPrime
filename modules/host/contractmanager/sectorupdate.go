@@ -16,7 +16,7 @@ import (
 func (wal *writeAheadLog) commitUpdateSector(su sectorUpdate) {
 	sf, exists := wal.cm.storageFolders[su.Folder]
 	if !exists || atomic.LoadUint64(&sf.atomicUnavailable) == 1 {
-		wal.cm.log.Printf("ERROR: unable to locate storage folder for a committed sector update.")
+		wal.cm.log.Printf("ERROR: unable to locate storage folder %v for a committed sector update.", su.Folder)
 		return
 	}
 

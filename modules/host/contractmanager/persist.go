@@ -37,6 +37,31 @@ type (
 	}
 )
 
+// equals tests if all settings are equal between two savedSettings.
+func (s *savedSettings) equals(sb savedSettings) bool {
+	if s.SectorSalt != sb.SectorSalt || len(s.StorageFolders) != len(sb.StorageFolders) {
+		return false
+	}
+	for i, sf := range s.StorageFolders {
+		sfb, there := sb.StorageFolders[i]
+		if !there {
+			return false
+		}
+
+		if sf.Index != sfb.Index || sf.Path != sfb.Path || len(sf.Usage) != len(sfb.Usage) {
+			return false
+		}
+
+		for u := range sf.Usage {
+			if sf.Usage[u] != sfb.Usage[u] {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
 // savedStorageFolder returns the persistent version of the storage folder.
 func (sf *storageFolder) savedStorageFolder() savedStorageFolder {
 	ssf := savedStorageFolder{
@@ -56,7 +81,9 @@ func (cm *ContractManager) initSettings() error {
 
 	// Ensure that the initialized defaults have stuck.
 	ss := cm.savedSettings()
-	err := persist.SaveJSON(settingsMetadata, &ss, filepath.Join(cm.persistDir, settingsFile))
+	settingspath := filepath.Join(cm.persistDir, settingsFile)
+	cm.log.Debugf("Initializing contractmanager settings, saving to %v", settingspath)
+	err := persist.SaveJSON(settingsMetadata, &ss, settingspath)
 	if err != nil {
 		cm.log.Println("ERROR: unable to initialize settings file for contract manager:", err)
 		return build.ExtendErr("error saving contract manager after initialization", err)
@@ -69,12 +96,16 @@ func (cm *ContractManager) loadSettings() error {
 	settingspath := filepath.Join(cm.persistDir, settingsFile)
 	var ss savedSettings
 	err := cm.dependencies.LoadFile(settingsMetadata, &ss, settingspath)
+	if err != nil {
+		cm.log.Debugf("Loading contractmanager settings from %v returned error %v", settingspath, err.Error())
+	}
 	if os.IsNotExist(err) {
 		// There is no settings file, this must be the first time that the
 		// contract manager has been run. Initialize with default settings.
 		return cm.initSettings()
 	} else if errors.Is(err, persist.ErrBadHeader) || errors.Is(err, persist.ErrBadVersion) {
 		//Try to load old version structure
+		cm.log.Printf("Upgrading contractmanager settings")
 		var ss120 savedSettings120
 		err120 := cm.dependencies.LoadFile(settingsMetadata120, &ss120, filepath.Join(cm.persistDir, settingsFile))
 		if err120 != nil {
@@ -88,21 +119,22 @@ func (cm *ContractManager) loadSettings() error {
 		cm.log.Printf("ERROR: unable to load the contract manager settings from %s : %v", settingspath, err.Error())
 		return fmt.Errorf("failed to load contract manager settings file: %w", err)
 	}
+	cm.log.Debugf("Loading contractmanager settings from %v done, %v folders", settingspath, len(ss.StorageFolders))
 
 	// Copy the saved settings into the contract manager.
 	cm.sectorSalt = ss.SectorSalt
-	for i := range ss.StorageFolders {
+	for _, psf := range ss.StorageFolders {
 		sf := new(storageFolder)
-		sf.index = ss.StorageFolders[i].Index
-		sf.path = ss.StorageFolders[i].Path
-		sf.usage = ss.StorageFolders[i].Usage
-		sf.metadataFile, err = cm.dependencies.OpenFile(filepath.Join(ss.StorageFolders[i].Path, metadataFile), os.O_RDWR, 0700)
+		sf.index = psf.Index
+		sf.path = psf.Path
+		sf.usage = psf.Usage
+		sf.metadataFile, err = cm.dependencies.OpenFile(filepath.Join(psf.Path, metadataFile), os.O_RDWR, 0700)
 		if err != nil {
 			// Mark the folder as unavailable and log an error.
 			atomic.StoreUint64(&sf.atomicUnavailable, 1)
 			cm.log.Printf("ERROR: unable to open the %v sector metadata file: %v\n", sf.path, err)
 		}
-		sf.sectorFile, err = cm.dependencies.OpenFile(filepath.Join(ss.StorageFolders[i].Path, sectorFile), os.O_RDWR, 0700)
+		sf.sectorFile, err = cm.dependencies.OpenFile(filepath.Join(psf.Path, sectorFile), os.O_RDWR, 0700)
 		if err != nil {
 			// Mark the folder as unavailable and log an error.
 			atomic.StoreUint64(&sf.atomicUnavailable, 1)
