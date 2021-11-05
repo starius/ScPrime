@@ -558,7 +558,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Subscribe to the consensus set.
 	err = h.initConsensusSubscription()
 	if err != nil {
-		return nil, fmt.Errorf("error subsctibing to consensus: %w", err)
+		return nil, fmt.Errorf("error subscribing to consensus: %w", err)
 	}
 
 	// Create bandwidth monitor

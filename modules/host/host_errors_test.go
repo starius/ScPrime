@@ -84,7 +84,6 @@ func TestHostFailedNewLogger(t *testing.T) {
 	}
 	ht.host, err = NewCustomHost(&dependencyErrNewLogger{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), nil, 5*time.Second)
 	if !errors.Is(err, mockErrNewLogger) {
-
 		t.Fatal(fmt.Errorf("Wrong error received. Got %v instead of %v", err, mockErrNewLogger))
 	}
 	log.Println(err)
