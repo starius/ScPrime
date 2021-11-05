@@ -65,6 +65,7 @@ package host
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -75,7 +76,6 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/encoding"
-	"gitlab.com/NebulousLabs/errors"
 	connmonitor "gitlab.com/NebulousLabs/monitor"
 	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -473,14 +473,14 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Create the perist directory if it does not yet exist.
 	err = dependencies.MkdirAll(h.persistDir, 0700)
 	if err != nil {
-		return nil, errors.AddContext(err, "Could not create directory "+h.persistDir)
+		return nil, fmt.Errorf("Could not create directory %v: %w", h.persistDir, err)
 	}
 
 	// Initialize the logger, and set up the stop call that will close the
 	// logger.
 	h.log, err = dependencies.NewLogger(filepath.Join(h.persistDir, logFile))
 	if err != nil {
-		return nil, errors.AddContext(err, "Error creating logger")
+		return nil, fmt.Errorf("Error creating logger: %w", err)
 	}
 
 	h.tg.AfterStop(func() {
@@ -496,7 +496,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	if _, err = os.Stat(tokenStorageDir); os.IsNotExist(err) {
 		// Create the token storage directory if it does not yet exist.
 		if err = os.Mkdir(tokenStorageDir, 0755); err != nil {
-			return nil, errors.AddContext(err, "Could not create token storage directory")
+			return nil, fmt.Errorf("error creating token storage directory: %w", err)
 		}
 	}
 	// Add the storage manager to the host, and set up the stop call that will
@@ -504,7 +504,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	stManager, err := contractmanager.NewCustomContractManager(smDeps, filepath.Join(persistDir, "contractmanager"))
 	if err != nil {
 		h.log.Println("Could not open the storage manager:", err)
-		return nil, errors.AddContext(err, "Could not open the contract manager")
+		return nil, fmt.Errorf("error creating contract manager: %w", err)
 	}
 	h.StorageManager = stManager
 
@@ -512,7 +512,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 		err = h.StorageManager.Close()
 		if err != nil {
 			h.log.Println("Could not close storage manager:", err)
-			err = errors.AddContext(err, "Could not close the storage manager")
+			err = fmt.Errorf("error closing the storage manager: %w", err)
 		}
 	})
 
@@ -521,14 +521,14 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
 	h.tokenStor, err = tokenstorage.NewTokenStorage(stManager, tokenStorageDir)
 	if err != nil {
-		return nil, errors.AddContext(err, "Could not initialize token storage")
+		return nil, fmt.Errorf("error initializing token storage: %w", err)
 	}
 	updateTokenSectorsChan := make(chan bool)
 	h.tg.AfterStop(func() {
 		updateTokenSectorsChan <- true
 		err = h.tokenStor.Close(context.Background())
 		if err != nil {
-			fmt.Println("Error when closing token storage:", err)
+			h.log.Errorf("Error when closing token storage: %v", err)
 		}
 	})
 	// Remove sectors from token when token storage resource ends.
@@ -538,19 +538,19 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// before shutting down.
 	err = h.load()
 	if err != nil {
-		return nil, errors.AddContext(err, "Error loading persistence")
+		return nil, fmt.Errorf("error loading persistence: %w", err)
 	}
 	h.tg.AfterStop(func() {
 		err = h.saveSync()
 		if err != nil {
-			h.log.Println("Could not save host upon shutdown:", err)
+			h.log.Errorf("Error saving host upon shutdown: %v", err)
 		}
 	})
 
 	// Add the account manager subsystem
 	h.staticAccountManager, err = h.newAccountManager()
 	if err != nil {
-		return nil, errors.AddContext(err, "Could not create account manager")
+		return nil, fmt.Errorf("error creating account manager: %w", err)
 	}
 
 	atomic.StoreUint64(&h.scheduledAuditBlockheight, uint64(h.blockHeight))
@@ -558,7 +558,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Subscribe to the consensus set.
 	err = h.initConsensusSubscription()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error subsctibing to consensus: %w", err)
 	}
 
 	// Create bandwidth monitor
@@ -570,7 +570,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	err = h.initNetworking(listenerAddress)
 	h.mu.Unlock()
 	if err != nil {
-		h.log.Println("Could not initialize host networking:", err)
+		h.log.Errorf("Could not initialize host networking: %v", err)
 		return nil, err
 	}
 
@@ -584,14 +584,15 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	hostApi := api.NewAPI(h.tokenStor, h.secretKey, h)
 	err = hostApi.Start(hostAPIListener)
 	if err != nil {
-		h.log.Println("Could not start host api:", err)
+		err = fmt.Errorf("error starting host api: %w", err)
+		h.log.Errorln(err)
 		return nil, err
 	}
 	h.tg.AfterStop(func() {
 		err = hostApi.Close()
 		if err != nil {
-			h.log.Println("Could not stop host API:", err)
-			err = errors.AddContext(err, "Could not stop host API")
+			h.log.Errorln("Could not close host API:", err)
+			err = fmt.Errorf("error closing host API: %w", err)
 		}
 	})
 	return h, nil

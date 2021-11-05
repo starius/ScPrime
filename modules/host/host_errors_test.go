@@ -1,6 +1,7 @@
 package host
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -10,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
 )
@@ -43,7 +43,7 @@ func TestHostFailedMkdirAll(t *testing.T) {
 		t.Fatal(err)
 	}
 	ht.host, err = NewCustomHost(&dependencyErrMkdirAll{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), nil, 5*time.Second)
-	if !errors.Contains(err, mockErrMkdirAll) {
+	if !errors.Is(err, mockErrMkdirAll) {
 		t.Fatal(err)
 	}
 	// Set ht.host to something non-nil - nil was returned because startup was
@@ -83,8 +83,9 @@ func TestHostFailedNewLogger(t *testing.T) {
 		t.Fatal(err)
 	}
 	ht.host, err = NewCustomHost(&dependencyErrNewLogger{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), nil, 5*time.Second)
-	if !errors.Contains(err, mockErrNewLogger) {
-		t.Fatal(errors.AddContext(err, fmt.Sprintf("Wrong error received. Got %v instead of %v", err, mockErrNewLogger)))
+	if !errors.Is(err, mockErrNewLogger) {
+
+		t.Fatal(fmt.Errorf("Wrong error received. Got %v instead of %v", err, mockErrNewLogger))
 	}
 	log.Println(err)
 	// Set ht.host to something non-nil - nil was returned because startup was
@@ -164,7 +165,7 @@ func TestHostFailedLoadFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	ht.host, err = NewCustomHost(&dependencyErrLoadFile{}, ht.cs, ht.gateway, ht.tpool, ht.wallet, ht.mux, "localhost:0", filepath.Join(ht.persistDir, modules.HostDir), nil, 5*time.Second)
-	if !errors.Contains(err, mockErrLoadFile) {
+	if !errors.Is(err, mockErrLoadFile) {
 		t.Fatal(err)
 	}
 	// Set ht.host to something non-nil - nil was returned because startup was

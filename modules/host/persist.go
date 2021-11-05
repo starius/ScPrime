@@ -2,10 +2,10 @@ package host
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
-
-	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -180,24 +180,23 @@ func (h *Host) load() error {
 	} else if os.IsNotExist(err) {
 		// There is no host.json file, set up sane defaults.
 		return h.establishDefaults()
-	} else if errors.Contains(err, persist.ErrBadVersion) || errors.Contains(err, persist.ErrBadHeader) {
+	} else if errors.Is(err, persist.ErrBadVersion) || errors.Is(err, persist.ErrBadHeader) {
 		// Then upgrade to V143.
 		err = h.upgradeFromV120ToV143()
 		if err != nil {
-			err = errors.AddContext(err, "v120 to v143 host upgrade failed")
-			h.log.Println("WARNING: v120 to v143 host upgrade failed, trying v143 to v151 next", err)
+			err = fmt.Errorf("v120 to v143 host upgrade failed: %w", err)
+			h.log.Printf("WARNING: %v, trying v143 to v151 next", err.Error())
 		}
 		// Then upgrade from V143 to V151.
 		err151 := h.upgradeFromV143ToV151()
 		if err151 != nil {
 			h.log.Println("WARNING: v143 to v151 host upgrade failed, nothing left to try", err)
-			return errors.AddContext(errors.Compose(err, err151), "v143 to v151 host upgrade failed")
+			return fmt.Errorf("v143 to v151 host upgrade failed: %w", err151)
 		}
-		errors.Compose(err, err151)
 
 		h.log.Println("SUCCESS: successfully upgraded host to v143")
 	} else {
-		return errors.AddContext(err, "Unspecified error = h.dependencies.LoadFile(modules.Hostv151PersistMetadata, p, filepath.Join(h.persistDir, settingsFile))")
+		return fmt.Errorf("unspecified error: %w", err)
 	}
 
 	// Compatv148 delete the old account file.
