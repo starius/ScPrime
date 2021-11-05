@@ -290,7 +290,7 @@ func (wal *writeAheadLog) threadedSyncLoop(threadsStopped chan struct{}, syncLoo
 		return
 	}
 
-	syncInterval := 333 * time.Millisecond
+	syncInterval := time.Second / 3
 	for {
 		select {
 		case <-threadsStopped:

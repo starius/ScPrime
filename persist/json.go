@@ -10,12 +10,11 @@ package persist
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
-
-	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -49,10 +48,11 @@ func verifyChecksum(filename string) (valid bool) {
 	var header, version string
 	dec := json.NewDecoder(file)
 
-	err = errors.AddContext(dec.Decode(&header), "File header error")
-	if err == nil {
-		err = errors.AddContext(dec.Decode(&version), "File version error")
+	err = dec.Decode(&header)
+	if err != nil {
+		return false
 	}
+	err = dec.Decode(&version)
 	if err != nil {
 		//stop reading and processing if file is wrong format
 		return false
@@ -114,41 +114,47 @@ func readJSON(meta Metadata, object interface{}, filename string) (err error) {
 		return err
 	}
 	if err != nil {
-		return errors.AddContext(err, "unable to open persisted json object file")
+		return fmt.Errorf("open persisted json object file error: %w", err)
 	}
 	defer func() {
-		err = errors.AddContext(errors.Compose(err, file.Close()), "Error reading JSON file")
+		ferr := file.Close()
+		if err != nil {
+			err = fmt.Errorf("error reading JSON file: %w", err)
+		}
+		if ferr != nil {
+			err = fmt.Errorf("file close error %v after: %w", ferr.Error(), err)
+		}
 	}()
 
 	// Read the metadata from the file.
 	var header, version string
 	dec := json.NewDecoder(file)
 	if err = dec.Decode(&header); err != nil {
-		return errors.AddContext(err, "unable to read header from persisted json object file")
+		return fmt.Errorf("error reading header from persisted json object file: %w", err)
 	}
 	if header != meta.Header {
 		return ErrBadHeader
 	}
 	if err = dec.Decode(&version); err != nil {
-		return errors.AddContext(err, "unable to read version from persisted json object file")
+		return fmt.Errorf("error reading version from persisted json object file: %w", err)
 	}
 	if build.VersionCmp(version, meta.Version) < 0 {
-		return errors.AddContext(ErrBadVersion, fmt.Sprintf("got %v but need at least %v", version, meta.Version))
+		return fmt.Errorf("%w: got %v but expect at least %v", ErrBadVersion, version, meta.Version)
 	}
 	if build.VersionCmp(version, meta.Version) > 0 {
-		return errors.AddContext(ErrBadVersion, fmt.Sprintf("got %v but need at most %v", version, meta.Version))
+		return fmt.Errorf("%w: got %v but expect at most %v", ErrBadVersion, version, meta.Version)
 	}
 
 	// Read everything else.
 	remainingBytes, err := ioutil.ReadAll(dec.Buffered())
 	if err != nil {
-		return errors.AddContext(err, "unable to read persisted json object data")
+		return fmt.Errorf("error reading persisted json object data: %w", err)
 	}
 	// The buffer may or may not have read the rest of the file, read the rest
 	// of the file to be certain.
 	remainingBytesExtra, err := ioutil.ReadAll(file)
 	if err != nil {
-		return errors.AddContext(err, "unable to read persisted json object data")
+		return fmt.Errorf("error reading persisted json object data: %w", err)
 	}
 	remainingBytes = append(remainingBytes, remainingBytesExtra...)
 
@@ -162,7 +168,7 @@ func readJSON(meta Metadata, object interface{}, filename string) (err error) {
 		err = json.Unmarshal(remainingBytes[:67], &checksum)
 		checkManual = checkManual && err != nil
 		if err == nil && checksum != crypto.HashBytes(remainingBytes[68:]) {
-			return errors.New("loading a file with a bad checksum")
+			return fmt.Errorf("loading a file with a bad checksum")
 		} else if err == nil {
 			remainingBytes = remainingBytes[68:]
 		}
@@ -176,7 +182,7 @@ func readJSON(meta Metadata, object interface{}, filename string) (err error) {
 		var manualChecksum string
 		err := json.Unmarshal(remainingBytes[:9], &manualChecksum)
 		if err == nil && manualChecksum != "manual" {
-			return errors.New("loading a file with a bad checksum")
+			return fmt.Errorf("loading a file with a bad checksum")
 		} else if err == nil {
 			remainingBytes = remainingBytes[10:]
 		}
@@ -192,14 +198,14 @@ func readJSON(meta Metadata, object interface{}, filename string) (err error) {
 }
 
 // LoadJSON will load a persisted json object from disk.
-func LoadJSON(meta Metadata, object interface{}, filename string) error {
+func LoadJSON(meta Metadata, object interface{}, filename string) (err error) {
 	// Verify that the filename does not have the persist temp suffix.
 	if strings.HasSuffix(filename, tempSuffix) {
 		return ErrBadFilenameSuffix
 	}
 
 	// Verify that no other thread is using this filename.
-	err := func() error {
+	err = func() error {
 		activeFilesMu.Lock()
 		defer activeFilesMu.Unlock()
 
@@ -226,16 +232,16 @@ func LoadJSON(meta Metadata, object interface{}, filename string) error {
 	if os.IsNotExist(err) {
 		return err
 	}
-	if errors.Contains(err, ErrBadHeader) || errors.Contains(err, ErrBadVersion) {
-		return errors.AddContext(err, "Error reading json from "+filename)
+	if errors.Is(err, ErrBadHeader) || errors.Is(err, ErrBadVersion) {
+		return fmt.Errorf("error %w reading json from %v", err, filename)
 	}
 	if err != nil {
+		err = fmt.Errorf("error loading main file: %w", err)
 		// Try opening the temp file.
 		errtempfile := readJSON(meta, object, filename+tempSuffix)
 		if errtempfile != nil {
-			failure := errors.Compose(errors.AddContext(err, "main file load failed"),
-				errors.AddContext(errtempfile, "_temp file load failed"))
-			return errors.AddContext(failure, "unable to read persisted json object from disk")
+			err = fmt.Errorf("error loading %v : %v after %w", filename+tempSuffix, errtempfile.Error(), err)
+			return fmt.Errorf("unable to read persisted json object from disk: %w", err)
 		}
 	}
 
@@ -281,21 +287,21 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 	buf := new(bytes.Buffer)
 	enc := json.NewEncoder(buf)
 	if err := enc.Encode(meta.Header); err != nil {
-		return errors.AddContext(err, "unable to encode metadata header")
+		return fmt.Errorf("unable to encode metadata header: %w", err)
 	}
 	if err := enc.Encode(meta.Version); err != nil {
-		return errors.AddContext(err, "unable to encode metadata version")
+		return fmt.Errorf("unable to encode metadata version: %w", err)
 	}
 
 	// Marshal the object into json and write the checksum + result to the
 	// buffer.
 	objBytes, err := json.MarshalIndent(object, "", "\t")
 	if err != nil {
-		return errors.AddContext(err, "unable to marshal the provided object")
+		return fmt.Errorf("unable to marshal the provided object: %w", err)
 	}
 	checksum := crypto.HashBytes(objBytes)
 	if err := enc.Encode(checksum); err != nil {
-		return errors.AddContext(err, "unable to encode checksum")
+		return fmt.Errorf("unable to encode checksum: %w", err)
 	}
 	buf.Write(objBytes)
 	data := buf.Bytes()
@@ -313,20 +319,27 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 
 		file, err := os.OpenFile(filename+tempSuffix, os.O_RDWR|os.O_TRUNC|os.O_CREATE, defaultFilePermissions)
 		if err != nil {
-			return errors.AddContext(err, "unable to open temp file")
+			return fmt.Errorf("unable to open %v: %w", filename+tempSuffix, err)
 		}
 		defer func() {
-			err = errors.AddContext(errors.Compose(err, file.Close()), "Error saving temporary JSON file")
+			ferr := file.Close()
+			if ferr != nil {
+				if err != nil {
+					err = fmt.Errorf("error %v closing file after %w", ferr.Error(), err)
+				} else {
+					err = fmt.Errorf("error closing file %v: %w", filename+tempSuffix, err)
+				}
+			}
 		}()
 
 		// Write and sync.
 		_, err = file.Write(data)
 		if err != nil {
-			return errors.AddContext(err, "unable to write temp file")
+			return fmt.Errorf("unable to write file %v: %w", filename+tempSuffix, err)
 		}
 		err = file.Sync()
 		if err != nil {
-			return errors.AddContext(err, "unable to sync temp file")
+			return fmt.Errorf("unable to sync write to %v: %w", filename+tempSuffix, err)
 		}
 		return nil
 	}()
@@ -338,19 +351,29 @@ func SaveJSON(meta Metadata, object interface{}, filename string) error {
 	err = func() (err error) {
 		file, err := os.OpenFile(filename, os.O_RDWR|os.O_TRUNC|os.O_CREATE, defaultFilePermissions)
 		if err != nil {
-			return errors.AddContext(err, "unable to open file")
+			return fmt.Errorf("unable to open file: %w", err)
 		}
 		defer func() {
-			err = errors.AddContext(errors.Compose(err, file.Close()), fmt.Sprintf("Error saving JSON file %v", filename))
+			ferr := file.Close()
+			if ferr != nil {
+				if err != nil {
+					err = fmt.Errorf("error %v closing file after %w", ferr.Error(), err)
+				} else {
+					err = fmt.Errorf("error closing file: %w", err)
+				}
+			}
 		}()
 
 		// Write and sync.
 		_, err = file.Write(data)
 		if err != nil {
-			return errors.AddContext(err, "unable to write file")
+			return fmt.Errorf("write to %v failed: %w", filename, err)
 		}
 		err = file.Sync()
-		return errors.AddContext(err, fmt.Sprintf("Error syncing file %v", err))
+		if err != nil {
+			return fmt.Errorf("syncing write to %v failed: %w", filename, err)
+		}
+		return nil
 	}()
 
 	// err is nil on success

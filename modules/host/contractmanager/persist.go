@@ -112,6 +112,7 @@ func (cm *ContractManager) loadSettings() error {
 			return fmt.Errorf("cannot upgrade contractmanager: %w", err120)
 		}
 		ss.SectorSalt = ss120.SectorSalt
+		ss.StorageFolders = make(map[uint16]savedStorageFolder)
 		for _, osf := range ss120.StorageFolders {
 			ss.StorageFolders[osf.Index] = osf
 		}
