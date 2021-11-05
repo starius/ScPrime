@@ -1,11 +1,10 @@
 package renter
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
-
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/scpcorp/writeaheadlog"
 
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
@@ -13,6 +12,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
+	"gitlab.com/scpcorp/writeaheadlog"
 )
 
 const (
@@ -81,9 +81,9 @@ func (r *Renter) managedLoadSettings() error {
 		err = r.saveSync()
 		r.mu.Unlock(id)
 		if err != nil {
-			return errors.AddContext(err, "failed to create default renters persistence files")
+			return fmt.Errorf("error creating default renter persistence files: %w", err)
 		}
-	} else if errors.Contains(err, persist.ErrBadVersion) {
+	} else if errors.Is(err, persist.ErrBadVersion) {
 		// Outdated version, try the 040 to 133 upgrade.
 		err = convertPersistVersionFrom040To133(filepath.Join(r.persistDir, PersistFilename))
 		if err != nil {
@@ -155,12 +155,12 @@ func (r *Renter) managedInitPersist() error {
 			if siafile.IsSiaFileUpdate(update) {
 				r.log.Println("Applying a siafile update:", update.Name)
 				if err := siafile.ApplyUpdates(update); err != nil {
-					return errors.AddContext(err, "failed to apply SiaFile update")
+					return fmt.Errorf("failed to apply SiaFile update: %w", err)
 				}
 			} else if siadir.IsSiaDirUpdate(update) {
 				r.log.Println("Applying a siadir update:", update.Name)
 				if err := siadir.ApplyUpdates(update); err != nil {
-					return errors.AddContext(err, "failed to apply SiaDir update")
+					return fmt.Errorf("failed to apply SiaDir update: %w", err)
 				}
 			} else {
 				r.log.Println("wal update not applied, marking transaction as not applied")
@@ -187,7 +187,7 @@ func (r *Renter) managedInitPersist() error {
 
 	// Load the prior persistence structures.
 	if err := r.managedLoadSettings(); err != nil {
-		return errors.AddContext(err, "failed to load renter's persistence structrue")
+		return fmt.Errorf("error loading renter's persistence structrue: %w", err)
 	}
 
 	// Create the essential dirs in the filesystem.

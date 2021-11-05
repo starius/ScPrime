@@ -2,6 +2,7 @@ package renter
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -16,7 +17,6 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -926,7 +926,7 @@ func testLocalRepair(t *testing.T, tg *siatest.TestGroup) {
 	err = build.Retry(100, 100*time.Millisecond, func() error {
 		dag, err := renterNode.DaemonAlertsGet()
 		if err != nil {
-			return errors.AddContext(err, "Failed to get alerts")
+			return fmt.Errorf("failed to get alerts: %w", err)
 		}
 		f, err := renterNode.File(remoteFile)
 		if err != nil {
@@ -2107,7 +2107,7 @@ func TestRenewFailing(t *testing.T) {
 	expiryHeight := rcg.ActiveContracts[0].EndHeight
 	renterSettings, err := renter.RenterSettings()
 	if err != nil {
-		t.Fatal(errors.AddContext(err, "could not read renter settings"))
+		t.Fatal(fmt.Errorf("error reading renter settings: %w", err))
 	}
 	renewWindow = renterSettings.Allowance.RenewWindow
 
@@ -2117,7 +2117,7 @@ func TestRenewFailing(t *testing.T) {
 		}
 		blockHeight, err = miner.BlockHeight()
 		if err != nil {
-			t.Fatal(errors.AddContext(err, "Error getting blockgeight"))
+			t.Fatal(fmt.Errorf("error getting blockgeight: %w", err))
 		}
 	}
 
@@ -3227,7 +3227,7 @@ func TestSetFileTrackingPath(t *testing.T) {
 	//increase allowance
 	rs, rserr := renter.RenterSettings()
 	if rserr != nil {
-		t.Fatal(errors.AddContext(rserr, "Could not get RenterSettings"))
+		t.Fatal(fmt.Errorf("error getting RenterSettings: %w", rserr))
 	}
 	allowance := rs.Allowance
 	allowance.Funds = rs.Allowance.Funds.Mul64(3)
