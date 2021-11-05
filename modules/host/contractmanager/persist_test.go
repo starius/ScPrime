@@ -695,6 +695,23 @@ func TestUpgradeSettingsFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	//Test if the old settings are read
+	if cm.sectorSalt != ss120.SectorSalt {
+		t.Error("sectorsalt not matching after upgrade")
+	}
+	if len(cm.storageFolders) != 2 {
+		t.Errorf("Expected 2 storage folders, got %v", len(cm.storageFolders))
+	}
+	_, ok := cm.storageFolders[35]
+	if !ok {
+		t.Error("Expected to see storage folder with index 35 but not found")
+	}
+	_, ok = cm.storageFolders[350]
+	if !ok {
+		t.Error("Expected to see storage folder with index 350 but not found")
+	}
+
 	// Close it again.
 	err = cm.Close()
 	if err != nil {
