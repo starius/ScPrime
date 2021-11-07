@@ -61,7 +61,9 @@ func NewHostMock(d modules.Dependencies, dirName string) (*HostMock, error) {
 		return nil, err
 	}
 
+	h.host.mu.Lock()
 	h.host.settings.AcceptingContracts = true
+	h.host.mu.Unlock()
 
 	renterWallet, err := createWallet(h.cs, h.tpool, h.miner, h.wallet, h.persistDir)
 	if err != nil {

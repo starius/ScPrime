@@ -32,18 +32,18 @@ const (
 
 var (
 	descriptionTXType = [...]string{
-		"Setup",
-		"Miner",
-		"SCP move",
-		"SPF move",
-		"New file contract",
-		"Renew file contract",
-		"Contract revision general",
-		"Contract revision for renew",
-		"Storage proof",
-		"Host announcement",
-		"Arbitrary data",
-		"Composite",
+		"setup",
+		"miner",
+		"scp_transfer",
+		"spf_transfer",
+		"new_file_contract",
+		"renew_file_contract",
+		"contract_rev_gen",
+		"contract_rev_renew",
+		"storageproof",
+		"hostannounce",
+		"arbitrary_data",
+		"composite",
 	}
 )
 
