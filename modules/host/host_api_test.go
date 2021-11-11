@@ -105,7 +105,7 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	}
 }
 
-func TestApi_UploadWithToken(t *testing.T) {
+func TestAPI_UploadWithToken(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}

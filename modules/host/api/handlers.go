@@ -70,6 +70,7 @@ func (a *API) DownloadWithToken(ctx context.Context, req *DownloadWithTokenReque
 	enoughSectors := true
 	availableBandwidth := int64(0)
 	availableSectors := int64(0)
+	// TODO: check resources under stateMu in ts.RecordDownload.
 	tokenResources, err := a.ts.TokenRecord(id)
 	if err == nil {
 		// Token not found = no resources, and 0 is correct.
@@ -148,6 +149,8 @@ func (a *API) UploadWithToken(ctx context.Context, req *UploadWithTokenRequest) 
 		sectorsIDs = append(sectorsIDs, newRoot)
 		totalBytes += int64(len(sector))
 	}
+	// TODO: check resources under stateMu in ts.AddSectors.
+	// If it fails, remove sectors from StorageManager.
 	if totalBytes > tr.UploadBytes {
 		return nil, &UploadWithTokenError{NotEnoughBytes: true, TokenRecord: toTokenRecord(tr)}
 	}
