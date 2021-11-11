@@ -95,6 +95,7 @@ func NewTokenStorage(stManager modules.StorageManager, dir string) (*TokenStorag
 		return nil, fmt.Errorf("failed to open file %s for writing: %w", logPath, err)
 	}
 	log.SetOutput(logFile)
+	log.Println("Created token storage")
 	s := &TokenStorage{
 		storage:        storage,
 		state:          state,
@@ -191,6 +192,7 @@ func (t *TokenStorage) AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, ti
 	if t.closed {
 		return fmt.Errorf("token storage closed")
 	}
+	log.Printf("Adding %d sectors to token %s", len(sectorsIDs), id.String())
 	t.applyEvent(&tokenstate.Event{EventAddSectors: &tokenstate.EventAddSectors{
 		TokenID:    id,
 		SectorsIDs: crypto.ConvertHashesToByteSlices(sectorsIDs),
@@ -278,6 +280,8 @@ func (t *TokenStorage) EnoughStorageResource(id types.TokenID, sectorsNum int64,
 	if t.closed {
 		return false, fmt.Errorf("token storage closed")
 	}
+	token := t.state.Tokens[id]
+	log.Printf("EnoughStorageResource: token %s; token.TokenInfo.Storage: %d; time diff: %s; token.TokenInfo.SectorsNum: %d", id.String(), token.TokenInfo.Storage, now.Sub(token.TokenInfo.LastChangeTime).String(), token.TokenInfo.SectorsNum)
 	return t.state.EnoughStorageResource(id, sectorsNum, now), nil
 }
 
@@ -302,6 +306,7 @@ func (t *TokenStorage) applyEvent(event *tokenstate.Event) {
 // CheckExpiration remove sectors from token when token storage resource ends.
 func (t *TokenStorage) CheckExpiration(frequency time.Duration, done chan bool) {
 	ticker := time.NewTicker(frequency)
+	log.Printf("CheckExpiration started with frequency %s", frequency.String())
 	for {
 		select {
 		case <-done:
@@ -321,12 +326,15 @@ func (t *TokenStorage) checkExpiration() {
 		return
 	}
 
+	log.Println("checkExpiration is called")
 	for token := range t.state.Tokens {
 		if enough := t.state.EnoughStorageResource(token, 0, time.Now()); enough {
+			log.Printf("Token %s has enough storage, don't remove", token.String())
 			continue
 		}
 		sectors, err := t.state.GetSectors(token)
 		if err != nil {
+			log.Printf("Failed to get sectors of token %s", token.String())
 			continue
 		}
 

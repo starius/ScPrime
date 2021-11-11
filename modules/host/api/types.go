@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"text/template"
+	"time"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules/host/tokenstorage"
@@ -11,8 +12,9 @@ import (
 
 // TokenStorageInfo represent info about token storage resource.
 type TokenStorageInfo struct {
-	Storage    int64  `json:"storage"` // sectors * second.
-	SectorsNum uint64 `json:"sectors_num"`
+	Storage        int64     `json:"storage"` // sectors * second.
+	SectorsNum     uint64    `json:"sectors_num"`
+	LastChangeTime time.Time `json:"last_change_time"`
 }
 
 // TokenRecord include information about token record.
@@ -29,8 +31,9 @@ func toTokenRecord(record tokenstorage.TokenRecord) *TokenRecord {
 		UploadBytes:    record.UploadBytes,
 		SectorAccesses: record.SectorAccesses,
 		TokenInfo: TokenStorageInfo{
-			Storage:    record.TokenStorageInfo.Storage,
-			SectorsNum: record.TokenStorageInfo.SectorsNum,
+			Storage:        record.TokenStorageInfo.Storage,
+			SectorsNum:     record.TokenStorageInfo.SectorsNum,
+			LastChangeTime: record.TokenStorageInfo.LastChangeTime,
 		},
 	}
 }
@@ -63,10 +66,11 @@ type TokenResourcesRequest struct {
 
 // TokenResourcesResponse represents response.
 type TokenResourcesResponse struct {
-	UploadBytes    int64 `json:"upload_bytes,omitempty"`
-	DownloadBytes  int64 `json:"download_bytes,omitempty"`
-	SectorAccesses int64 `json:"sector_accesses,omitempty"`
-	Storage        int64 `json:"storage,omitempty"`
+	UploadBytes    int64     `json:"upload_bytes,omitempty"`
+	DownloadBytes  int64     `json:"download_bytes,omitempty"`
+	SectorAccesses int64     `json:"sector_accesses,omitempty"`
+	Storage        int64     `json:"storage,omitempty"`
+	LastChangeTime time.Time `json:"last_change_time,omitempty"`
 }
 
 // DownloadWithTokenError represent error message.

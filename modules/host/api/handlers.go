@@ -52,6 +52,7 @@ func (a *API) TokenResources(ctx context.Context, req *TokenResourcesRequest) (*
 		DownloadBytes:  tr.DownloadBytes,
 		SectorAccesses: tr.SectorAccesses,
 		Storage:        tr.TokenStorageInfo.Storage,
+		LastChangeTime: tr.TokenStorageInfo.LastChangeTime,
 	}, nil
 }
 
