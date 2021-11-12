@@ -53,7 +53,7 @@ func createTokenStorageAndCheckExpiration(t *testing.T, period time.Duration) *T
 	return stor
 }
 
-func TestAddResources(t *testing.T) {
+func TestTokenStorage_AddResources(t *testing.T) {
 	stor := createTokenStorage(t)
 	amount := int64(100500)
 	var id types.TokenID
@@ -68,6 +68,32 @@ func TestAddResources(t *testing.T) {
 	newResources, err = stor.TokenRecord(id)
 	assert.NoError(t, err, "tokenRecord() failed")
 	assert.Equal(t, amount, newResources.UploadBytes)
+}
+
+func TestTokenStorage_AddDuplicateSectors(t *testing.T) {
+	stor := createTokenStorageAndCheckExpiration(t, time.Second)
+	var token types.TokenID
+	fastrand.Read(token[:])
+	storageDurationSeconds := int64(60)
+	sectorsNum := int64(5)
+	uploadBytesAmount := int64(modules.SectorSize) * sectorsNum
+	storageAmount := sectorsNum * storageDurationSeconds
+	assert.NoError(t, stor.AddResources(token, modules.UploadBytes, uploadBytesAmount))
+	assert.NoError(t, stor.AddResources(token, modules.Storage, storageAmount))
+
+	var sectorID0, sectorID1, sectorID2 crypto.Hash
+	fastrand.Read(sectorID0[:])
+	fastrand.Read(sectorID1[:])
+	fastrand.Read(sectorID2[:])
+	sectorIDs := []crypto.Hash{sectorID0, sectorID1, sectorID2, sectorID1, sectorID0}
+	assert.NoError(t, stor.AddSectors(token, sectorIDs, time.Now()))
+
+	resSectorIDs, _, err := stor.ListSectorIDs(token, "", 100)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []crypto.Hash{sectorID0, sectorID1, sectorID2}, resSectorIDs)
+	tr, err := stor.TokenRecord(token)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(3), tr.TokenStorageInfo.SectorsNum)
 }
 
 func TestTokenStorage_AttachSectors(t *testing.T) {

@@ -138,17 +138,23 @@ func (a *API) UploadWithToken(ctx context.Context, req *UploadWithTokenRequest) 
 	if err != nil {
 		return nil, &UploadWithTokenError{UnknownError: err.Error()}
 	}
-	var sectorsIDs []crypto.Hash
 	var totalBytes int64
 
+	sectorsByIDs := make(map[crypto.Hash][]byte, len(req.Sectors))
 	for _, sector := range req.Sectors {
 		if uint64(len(sector)) != modules.SectorSize {
 			return nil, &UploadWithTokenError{IncorrectSectorSize: true}
 		}
 		newRoot := crypto.MerkleRoot(sector)
-		sectorsIDs = append(sectorsIDs, newRoot)
+		sectorsByIDs[newRoot] = sector
 		totalBytes += int64(len(sector))
 	}
+
+	sectorsIDs := make([]crypto.Hash, 0, len(sectorsByIDs))
+	for sectorID := range sectorsByIDs {
+		sectorsIDs = append(sectorsIDs, sectorID)
+	}
+
 	// TODO: check resources under stateMu in ts.AddSectors.
 	// If it fails, remove sectors from StorageManager.
 	if totalBytes > tr.UploadBytes {
@@ -162,9 +168,8 @@ func (a *API) UploadWithToken(ctx context.Context, req *UploadWithTokenRequest) 
 		return nil, &UploadWithTokenError{NotEnoughStorage: true, TokenRecord: toTokenRecord(tr)}
 	}
 
-	for _, sector := range req.Sectors {
-		newRoot := crypto.MerkleRoot(sector)
-		err = a.host.AddSector(newRoot, sector)
+	for sectorID, sector := range sectorsByIDs {
+		err = a.host.AddSector(sectorID, sector)
 		if err != nil {
 			return nil, &UploadWithTokenError{UnknownError: err.Error()}
 		}

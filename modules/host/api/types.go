@@ -10,6 +10,8 @@ import (
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
+//go:generate go run ./gen/...
+
 // TokenStorageInfo represent info about token storage resource.
 type TokenStorageInfo struct {
 	Storage        int64     `json:"storage"` // sectors * second.

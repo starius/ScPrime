@@ -1,6 +1,7 @@
 package tokenstorage
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
@@ -192,10 +194,21 @@ func (t *TokenStorage) AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, ti
 	if t.closed {
 		return fmt.Errorf("token storage closed")
 	}
-	log.Printf("Adding %d sectors to token %s", len(sectorsIDs), id.String())
+	// Exclude existing sector IDs, remove duplicates.
+	newSectorIDs, err := t.state.NonexistentSectors(id, sectorsIDs)
+	if err != nil {
+		return fmt.Errorf("NonexistentSectors failed: %w", err)
+	}
+	if len(newSectorIDs) == 0 {
+		return nil
+	}
+	sort.SliceStable(newSectorIDs, func(i, j int) bool {
+		return bytes.Compare(newSectorIDs[i][:], newSectorIDs[j][:]) == -1
+	})
+	log.Printf("Adding %d sectors to token %s", len(newSectorIDs), id.String())
 	t.applyEvent(&tokenstate.Event{EventAddSectors: &tokenstate.EventAddSectors{
 		TokenID:    id,
-		SectorsIDs: crypto.ConvertHashesToByteSlices(sectorsIDs),
+		SectorsIDs: crypto.ConvertHashesToByteSlices(newSectorIDs),
 	}, Time: time})
 	return nil
 }
@@ -221,7 +234,7 @@ func (t *TokenStorage) RemoveSpecificSectors(id types.TokenID, sectorIDs []crypt
 	// Exclude nonexistent sectors before creating event to prevent attacks based on filling events history with garbage.
 	existingSectors, _, err := t.state.HasSectors(id, sectorIDs)
 	if err != nil {
-		return fmt.Errorf("check has sector: %w", err)
+		return fmt.Errorf("HasSectors failed: %w", err)
 	}
 	if len(existingSectors) == 0 {
 		return nil
