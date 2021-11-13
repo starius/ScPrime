@@ -1256,7 +1256,7 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 		// The stop signal must arrive before RPC is complete.
 		return <-stopSignal
 	}
-	if err := h.tokenStor.RecordDownload(id, estBandwidth, sectorAccesses); err != nil {
+	if _, err := h.tokenStor.RecordDownload(id, estBandwidth, sectorAccesses, time.Now()); err != nil {
 		h.log.Println(err)
 	}
 

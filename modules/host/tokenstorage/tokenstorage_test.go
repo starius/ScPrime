@@ -81,19 +81,27 @@ func TestTokenStorage_AddDuplicateSectors(t *testing.T) {
 	assert.NoError(t, stor.AddResources(token, modules.UploadBytes, uploadBytesAmount))
 	assert.NoError(t, stor.AddResources(token, modules.Storage, storageAmount))
 
+	// Make sure duplicates are not added.
 	var sectorID0, sectorID1, sectorID2 crypto.Hash
 	fastrand.Read(sectorID0[:])
 	fastrand.Read(sectorID1[:])
 	fastrand.Read(sectorID2[:])
 	sectorIDs := []crypto.Hash{sectorID0, sectorID1, sectorID2, sectorID1, sectorID0}
-	assert.NoError(t, stor.AddSectors(token, sectorIDs, time.Now()))
+	tr, err := stor.AddSectors(token, sectorIDs, time.Now())
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(3), tr.TokenStorageInfo.SectorsNum)
 
 	resSectorIDs, _, err := stor.ListSectorIDs(token, "", 100)
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []crypto.Hash{sectorID0, sectorID1, sectorID2}, resSectorIDs)
-	tr, err := stor.TokenRecord(token)
+
+	// Add existing, make sure nothing changes.
+	tr, err = stor.AddSectors(token, sectorIDs, time.Now())
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(3), tr.TokenStorageInfo.SectorsNum)
+	resSectorIDs, _, err = stor.ListSectorIDs(token, "", 100)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []crypto.Hash{sectorID0, sectorID1, sectorID2}, resSectorIDs)
 }
 
 func TestTokenStorage_AttachSectors(t *testing.T) {
@@ -111,8 +119,7 @@ func TestTokenStorage_AttachSectors(t *testing.T) {
 	assert.NoError(t, stor.AddResources(token, modules.UploadBytes, uploadBytesAmount))
 	assert.NoError(t, stor.AddResources(token, modules.Storage, storageAmount))
 	additionTime := time.Now()
-	assert.NoError(t, stor.AddSectors(token, []crypto.Hash{sectorID, sectorID1}, additionTime))
-	tr, err := stor.TokenRecord(token)
+	tr, err := stor.AddSectors(token, []crypto.Hash{sectorID, sectorID1}, additionTime)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(2), tr.TokenStorageInfo.SectorsNum)
 	attachSectors := map[types.TokenID][]crypto.Hash{token: {sectorID, sectorID1}}
@@ -138,8 +145,7 @@ func TestTokenStorage_RemoveUnpaidSectors(t *testing.T) {
 	assert.NoError(t, stor.AddResources(token, modules.UploadBytes, uploadBytesAmount))
 	assert.NoError(t, stor.AddResources(token, modules.Storage, storageAmount))
 	additionTime := time.Now()
-	assert.NoError(t, stor.AddSectors(token, []crypto.Hash{sectorID, sectorID1}, additionTime))
-	tr, err := stor.TokenRecord(token)
+	tr, err := stor.AddSectors(token, []crypto.Hash{sectorID, sectorID1}, additionTime)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), tr.DownloadBytes)
 	assert.Equal(t, int64(0), tr.UploadBytes)

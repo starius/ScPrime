@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -60,7 +61,7 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	}
 
 	// remove DownloadBytes, add SectorAccesses, error not enough bytes
-	_ = host.host.tokenStor.RecordDownload(tokenID, 5000, 0)
+	_, _ = host.host.tokenStor.RecordDownload(tokenID, 5000, 0, time.Now())
 	err = host.host.tokenStor.AddResources(tokenID, modules.SectorAccesses, 1)
 	_, err = hostApi.DownloadWithToken(context.Background(), req)
 	cErr = err.(*api.DownloadWithTokenError)

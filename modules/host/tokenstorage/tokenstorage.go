@@ -22,8 +22,20 @@ import (
 )
 
 var (
-	// ErrInsufficientResource is an error indicating lack of resources on the token.
-	ErrInsufficientResource = errors.New("insufficient token resource for this operation")
+	// ErrInsufficientDownloadBytes is an error indicating lack of DownloadBytes resource on the token.
+	ErrInsufficientDownloadBytes = errors.New("insufficient DownloadBytes for this operation")
+
+	// ErrInsufficientSectorAccesses is an error indicating lack of SectorAccesses resource on the token.
+	ErrInsufficientSectorAccesses = errors.New("insufficient SectorAccesses for this operation")
+
+	// ErrInsufficientDownloadBytesAndSectorAccesses is an error indicating lack of DownloadBytes and SectorAccesses resources on the token.
+	ErrInsufficientDownloadBytesAndSectorAccesses = errors.New("insufficient DownloadBytes and SectorAccesses for this operation")
+
+	// ErrInsufficientUploadBytes is an error indicating lack of UploadBytes resource on the token.
+	ErrInsufficientUploadBytes = errors.New("insufficient UploadBytes for this operation")
+
+	// ErrInsufficientStorage is an error indicating lack of Storage resource on the token.
+	ErrInsufficientStorage = errors.New("insufficient Storage for this operation")
 )
 
 // TODO: the current version of tokens storage does not support reverting blocks.
@@ -134,6 +146,19 @@ func (t *TokenStorage) drainEventsQueue() error {
 	return eventsourcing.DrainEventsQueue(context.Background(), &t.stateMu, &t.metaMu, &t.eventsQueue, t.storage)
 }
 
+func toTokenRecord(record tokenstate.TokenRecord) TokenRecord {
+	return TokenRecord{
+		DownloadBytes:  record.DownloadBytes,
+		UploadBytes:    record.UploadBytes,
+		SectorAccesses: record.SectorAccesses,
+		TokenStorageInfo: TokenStorageInfo{
+			Storage:        record.TokenInfo.Storage,
+			LastChangeTime: record.TokenInfo.LastChangeTime,
+			SectorsNum:     record.TokenInfo.SectorsNum,
+		},
+	}
+}
+
 // TokenRecord return token record by id.
 func (t *TokenStorage) TokenRecord(id types.TokenID) (TokenRecord, error) {
 	t.stateMu.Lock()
@@ -145,31 +170,38 @@ func (t *TokenStorage) TokenRecord(id types.TokenID) (TokenRecord, error) {
 	if !exist {
 		return TokenRecord{}, nil
 	}
-	return TokenRecord{
-		DownloadBytes:  record.DownloadBytes,
-		UploadBytes:    record.UploadBytes,
-		SectorAccesses: record.SectorAccesses,
-		TokenStorageInfo: TokenStorageInfo{
-			Storage:        record.TokenInfo.Storage,
-			LastChangeTime: record.TokenInfo.LastChangeTime,
-			SectorsNum:     record.TokenInfo.SectorsNum,
-		},
-	}, nil
+	return toTokenRecord(record), nil
 }
 
 // RecordDownload set token record fields.
-func (t *TokenStorage) RecordDownload(id types.TokenID, downloadBytes, sectorAccesses int64) error {
+func (t *TokenStorage) RecordDownload(id types.TokenID, downloadBytes, sectorAccesses int64, callTime time.Time) (TokenRecord, error) {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
 	if t.closed {
-		return fmt.Errorf("token storage closed")
+		return TokenRecord{}, fmt.Errorf("token storage closed")
+	}
+	stateRecord, exist := t.state.Tokens[id]
+	if !exist {
+		stateRecord = tokenstate.TokenRecord{}
+	}
+	record := toTokenRecord(stateRecord)
+	notEnoughSectorAccesses := record.SectorAccesses < sectorAccesses
+	notEnoughDownlodBytes := record.DownloadBytes < downloadBytes
+	if notEnoughSectorAccesses && notEnoughDownlodBytes {
+		return record, ErrInsufficientDownloadBytesAndSectorAccesses
+	}
+	if notEnoughDownlodBytes {
+		return record, ErrInsufficientDownloadBytes
+	}
+	if notEnoughSectorAccesses {
+		return record, ErrInsufficientSectorAccesses
 	}
 	t.applyEvent(&tokenstate.Event{EventTokenDownload: &tokenstate.EventTokenDownload{
 		TokenID:        id,
 		DownloadBytes:  downloadBytes,
 		SectorAccesses: sectorAccesses,
-	}, Time: time.Now()})
-	return nil
+	}, Time: callTime})
+	return toTokenRecord(t.state.Tokens[id]), nil
 }
 
 // AddResources - add resource to token.
@@ -188,19 +220,31 @@ func (t *TokenStorage) AddResources(id types.TokenID, resourceType types.Specifi
 }
 
 // AddSectors add sectors to token.
-func (t *TokenStorage) AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error {
+func (t *TokenStorage) AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) (TokenRecord, error) {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
 	if t.closed {
-		return fmt.Errorf("token storage closed")
+		return TokenRecord{}, fmt.Errorf("token storage closed")
 	}
+	stateRecord, exist := t.state.Tokens[id]
+	if !exist {
+		stateRecord = tokenstate.TokenRecord{}
+	}
+	record := toTokenRecord(stateRecord)
 	// Exclude existing sector IDs, remove duplicates.
 	newSectorIDs, err := t.state.NonexistentSectors(id, sectorsIDs)
 	if err != nil {
-		return fmt.Errorf("NonexistentSectors failed: %w", err)
+		return record, fmt.Errorf("NonexistentSectors failed: %w", err)
 	}
 	if len(newSectorIDs) == 0 {
-		return nil
+		return record, nil
+	}
+	totalBytes := int64(len(newSectorIDs) * int(modules.SectorSize))
+	if record.UploadBytes < totalBytes {
+		return record, ErrInsufficientUploadBytes
+	}
+	if !t.state.EnoughStorageResource(id, int64(len(newSectorIDs)), time) {
+		return record, ErrInsufficientStorage
 	}
 	sort.SliceStable(newSectorIDs, func(i, j int) bool {
 		return bytes.Compare(newSectorIDs[i][:], newSectorIDs[j][:]) == -1
@@ -210,7 +254,7 @@ func (t *TokenStorage) AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, ti
 		TokenID:    id,
 		SectorsIDs: crypto.ConvertHashesToByteSlices(newSectorIDs),
 	}, Time: time})
-	return nil
+	return toTokenRecord(t.state.Tokens[id]), nil
 }
 
 // ListSectorIDs returns list of sector ids.
@@ -269,8 +313,8 @@ func (t *TokenStorage) AttachSectors(sectorIDs map[types.TokenID][]crypto.Hash, 
 		if !hasSectors {
 			return fmt.Errorf("some sectors of token %s don't exist", token.String())
 		}
-		if enough := t.state.EnoughStorageResource(token, int64(-len(ids)), time.Now()); !enough {
-			return ErrInsufficientResource
+		if enough := t.state.EnoughStorageResource(token, int64(-len(ids)), callTime); !enough {
+			return ErrInsufficientStorage
 		}
 		for _, id := range ids {
 			attachSectors = append(attachSectors, tokenstate.AttachSectorsData{

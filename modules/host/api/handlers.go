@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"log"
 	"math/bits"
 	"time"
 
@@ -66,38 +67,23 @@ func (a *API) DownloadWithToken(ctx context.Context, req *DownloadWithTokenReque
 	id := types.ParseToken(req.Authorization)
 	estBandwidth := estimateBandwidth(req.Ranges)
 	sectorAccesses := estimateSectorsAccesses(req.Ranges)
-	enoughBytes := true
-	enoughSectors := true
-	availableBandwidth := int64(0)
-	availableSectors := int64(0)
-	// TODO: check resources under stateMu in ts.RecordDownload.
-	tokenResources, err := a.ts.TokenRecord(id)
-	if err == nil {
-		// Token not found = no resources, and 0 is correct.
-		availableBandwidth = tokenResources.DownloadBytes
-		availableSectors = tokenResources.SectorAccesses
-	}
-	if availableBandwidth < estBandwidth {
-		// Not enough download bandwidth.
-		enoughBytes = false
-	}
-
-	if availableSectors < sectorAccesses {
-		// Not enough sector accesses.
-		enoughSectors = false
-	}
-	if !enoughBytes || !enoughSectors {
-		// Send response indicating lack of resources.
-		return nil, &DownloadWithTokenError{
-			NotEnoughSectorAccesses: !enoughSectors,
-			NotEnoughBytes:          !enoughBytes,
+	tokenResources, err := a.ts.RecordDownload(id, estBandwidth, sectorAccesses, time.Now())
+	if err != nil {
+		var downloadWithTokenErr DownloadWithTokenError
+		if errors.Is(err, tokenstorage.ErrInsufficientDownloadBytesAndSectorAccesses) {
+			downloadWithTokenErr.NotEnoughSectorAccesses = true
+			downloadWithTokenErr.NotEnoughBytes = true
+		} else if errors.Is(err, tokenstorage.ErrInsufficientDownloadBytes) {
+			downloadWithTokenErr.NotEnoughBytes = true
+		} else if errors.Is(err, tokenstorage.ErrInsufficientSectorAccesses) {
+			downloadWithTokenErr.NotEnoughSectorAccesses = true
+		} else {
+			downloadWithTokenErr.UnknownError = err.Error()
 		}
+		return nil, &downloadWithTokenErr
 	}
-	if err = a.ts.RecordDownload(id, estBandwidth, sectorAccesses); err != nil {
-		return nil, &DownloadWithTokenError{UnknownError: err.Error()}
-	}
-	var resp DownloadWithTokenResponse
 
+	var resp DownloadWithTokenResponse
 	// Enter response loop.
 	for _, sec := range req.Ranges {
 		// Fetch the requested data.
@@ -118,10 +104,6 @@ func (a *API) DownloadWithToken(ctx context.Context, req *DownloadWithTokenReque
 			Data:        data,
 			MerkleProof: proof,
 		})
-	}
-	tokenResources, err = a.ts.TokenRecord(id)
-	if err != nil {
-		return nil, &DownloadWithTokenError{UnknownError: err.Error()}
 	}
 	// include updated information about token resources in response.
 	resp.TokenRecord = toTokenRecord(tokenResources)
@@ -147,16 +129,19 @@ func (a *API) UploadWithToken(ctx context.Context, req *UploadWithTokenRequest) 
 		}
 		newRoot := crypto.MerkleRoot(sector)
 		sectorsByIDs[newRoot] = sector
-		totalBytes += int64(len(sector))
 	}
 
 	sectorsIDs := make([]crypto.Hash, 0, len(sectorsByIDs))
-	for sectorID := range sectorsByIDs {
+	for sectorID, sector := range sectorsByIDs {
 		sectorsIDs = append(sectorsIDs, sectorID)
+		totalBytes += int64(len(sector))
 	}
 
-	// TODO: check resources under stateMu in ts.AddSectors.
-	// If it fails, remove sectors from StorageManager.
+	// tokenStorage.AddSectors checks resources again under stateMu to make sure
+	// we don't run into negative amounts due to a race (OK here, decreased in other goroutine before
+	// we reach tokenSectors.AddSectors). However, we still need to check it here
+	// to prevent attacking the host with empty tokens: such an attack requires no money,
+	// but makes host write sectors to disk, since tokenSectors.AddSectors is called after.
 	if totalBytes > tr.UploadBytes {
 		return nil, &UploadWithTokenError{NotEnoughBytes: true, TokenRecord: toTokenRecord(tr)}
 	}
@@ -169,20 +154,26 @@ func (a *API) UploadWithToken(ctx context.Context, req *UploadWithTokenRequest) 
 	}
 
 	for sectorID, sector := range sectorsByIDs {
-		err = a.host.AddSector(sectorID, sector)
-		if err != nil {
+		if err := a.host.AddSector(sectorID, sector); err != nil {
 			return nil, &UploadWithTokenError{UnknownError: err.Error()}
 		}
 	}
-	err = a.ts.AddSectors(id, sectorsIDs, time.Now())
+	tr, err = a.ts.AddSectors(id, sectorsIDs, time.Now())
 	if err != nil {
-		return nil, &UploadWithTokenError{UnknownError: err.Error()}
+		// If it fails, remove sectors from StorageManager.
+		go func() {
+			if err := a.host.RemoveSectorBatch(sectorsIDs); err != nil {
+				log.Printf("Failed to remove sectors after failed TokenStorage.AddSectors: %v", err)
+			}
+		}()
+		if errors.Is(err, tokenstorage.ErrInsufficientUploadBytes) {
+			return nil, &UploadWithTokenError{NotEnoughBytes: true, TokenRecord: toTokenRecord(tr)}
+		} else if errors.Is(err, tokenstorage.ErrInsufficientStorage) {
+			return nil, &UploadWithTokenError{NotEnoughStorage: true, TokenRecord: toTokenRecord(tr)}
+		}
+		return nil, &UploadWithTokenError{UnknownError: err.Error(), TokenRecord: toTokenRecord(tr)}
 	}
-	tr, err = a.ts.TokenRecord(id)
-	if err != nil {
-		return nil, &UploadWithTokenError{UnknownError: err.Error()}
-	}
-	// include updated information about token resources in response.
+	// Include updated information about token resources in response.
 	return &UploadWithTokenResponse{TokenRecord: toTokenRecord(tr)}, nil
 }
 
@@ -203,7 +194,7 @@ func (a *API) AttachSectors(ctx context.Context, req *AttachSectorsRequest) (*At
 	}
 
 	hostSig, err := a.host.MoveTokenSectorsToStorageObligation(req.ContractID, req.Revision, sectorIDs, req.RenterSignature)
-	if errors.Is(err, tokenstorage.ErrInsufficientResource) {
+	if errors.Is(err, tokenstorage.ErrInsufficientStorage) {
 		return nil, &AttachSectorsError{NotEnoughStorage: true}
 	} else if err != nil {
 		return nil, &AttachSectorsError{UnknownError: err.Error()}
