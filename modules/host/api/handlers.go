@@ -185,15 +185,13 @@ func (a *API) AttachSectors(ctx context.Context, req *AttachSectorsRequest) (*At
 		return nil, &AttachSectorsError{IncorrectBlock: true}
 	}
 
-	sectorIDs := make(map[types.TokenID][]crypto.Hash)
+	sectorsWithTokens := make([]types.SectorWithToken, 0, len(req.Sectors))
 	for _, ts := range req.Sectors {
 		tokenID := types.ParseToken(ts.Authorization)
-		tokenSectors := sectorIDs[tokenID]
-		tokenSectors = append(tokenSectors, ts.SectorID)
-		sectorIDs[tokenID] = tokenSectors
+		sectorsWithTokens = append(sectorsWithTokens, types.SectorWithToken{SectorID: ts.SectorID, Token: tokenID})
 	}
 
-	hostSig, err := a.host.MoveTokenSectorsToStorageObligation(req.ContractID, req.Revision, sectorIDs, req.RenterSignature)
+	hostSig, err := a.host.MoveTokenSectorsToStorageObligation(req.ContractID, req.Revision, sectorsWithTokens, req.RenterSignature)
 	if errors.Is(err, tokenstorage.ErrInsufficientStorage) {
 		return nil, &AttachSectorsError{NotEnoughStorage: true}
 	} else if err != nil {

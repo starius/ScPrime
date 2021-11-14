@@ -37,7 +37,7 @@ type Host interface {
 	AddSector(sectorRoot crypto.Hash, sectorData []byte) error
 	RemoveSectorBatch(sectorRoots []crypto.Hash) error
 	ReadSector(sectorRoot crypto.Hash) ([]byte, error)
-	MoveTokenSectorsToStorageObligation(fcID types.FileContractID, newRev types.FileContractRevision, tokensSectors map[types.TokenID][]crypto.Hash, renterSig []byte) ([]byte, error)
+	MoveTokenSectorsToStorageObligation(fcID types.FileContractID, newRev types.FileContractRevision, sectorsWithTokens []types.SectorWithToken, renterSig []byte) ([]byte, error)
 }
 
 // API represent host API.

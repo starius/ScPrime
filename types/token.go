@@ -3,11 +3,19 @@ package types
 import (
 	"encoding/hex"
 	"fmt"
+
+	"gitlab.com/scpcorp/ScPrime/crypto"
 )
 
 const (
 	tokenNameSize = 16
 )
+
+// SectorWithToken is a combination of sector ID and a token.
+type SectorWithToken struct {
+	Token    TokenID
+	SectorID crypto.Hash
+}
 
 // TokenID represent token type
 type TokenID [tokenNameSize]byte
