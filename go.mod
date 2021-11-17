@@ -39,6 +39,7 @@ require (
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213
 	gitlab.com/scpcorp/merkletree v0.0.0-20211011120743-60ebb43e826e
 	gitlab.com/scpcorp/writeaheadlog v0.0.0-20200814111317-c404cb85e61f
+	gitlab.com/zer0main/checkport v0.0.0-20211117123614-ea09614c7660
 	gitlab.com/zer0main/eventsourcing v0.0.0-20210911223220-4432c7e50e57
 	gitlab.com/zer0main/filestorage v0.0.0-20210603210652-2ee6eb57d4a3
 	go.etcd.io/bbolt v1.3.6
