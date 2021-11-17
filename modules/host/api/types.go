@@ -208,3 +208,12 @@ func (e AttachSectorsError) Error() string {
 	_ = attachSectorsErrorTemplate.Execute(&tpl, e)
 	return tpl.String()
 }
+
+// HealthRequest is a request for /health endpoint.
+type HealthRequest struct {
+}
+
+// HealthResponse is a response for /health endpoint.
+type HealthResponse struct {
+	Alive bool `json:"alive"`
+}

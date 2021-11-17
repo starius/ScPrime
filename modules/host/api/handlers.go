@@ -177,6 +177,11 @@ func (a *API) UploadWithToken(ctx context.Context, req *UploadWithTokenRequest) 
 	return &UploadWithTokenResponse{TokenRecord: toTokenRecord(tr)}, nil
 }
 
+// Health is a handler for /health [GET] request.
+func (a *API) Health(ctx context.Context, req *HealthRequest) (*HealthResponse, error) {
+	return &HealthResponse{Alive: true}, nil
+}
+
 // AttachSectors handler for /attach [POST] request.
 func (a *API) AttachSectors(ctx context.Context, req *AttachSectorsRequest) (*AttachSectorsResponse, error) {
 	blockHeight := req.BlockHeight
