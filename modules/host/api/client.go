@@ -26,6 +26,15 @@ func NewClient(baseURL string, opts ...api2.Option) (*Client, error) {
 	}, nil
 }
 
+func (c *Client) Health(ctx context.Context, req *HealthRequest) (res *HealthResponse, err error) {
+	res = &HealthResponse{}
+	err = c.api2client.Call(ctx, res, req)
+	if err != nil {
+		return nil, err
+	}
+	return
+}
+
 func (c *Client) TokenResources(ctx context.Context, req *TokenResourcesRequest) (res *TokenResourcesResponse, err error) {
 	res = &TokenResourcesResponse{}
 	err = c.api2client.Call(ctx, res, req)

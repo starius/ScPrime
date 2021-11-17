@@ -23,8 +23,8 @@ import (
 // TokenStorage represent communication between api and token storage.
 type TokenStorage interface {
 	TokenRecord(id types.TokenID) (tokenstorage.TokenRecord, error)
-	RecordDownload(id types.TokenID, downloadBytes, sectorAccesses int64) error
-	AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error
+	RecordDownload(id types.TokenID, downloadBytes, sectorAccesses int64, time time.Time) (tokenstorage.TokenRecord, error)
+	AddSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) (tokenstorage.TokenRecord, error)
 	ListSectorIDs(id types.TokenID, pageID string, limit int) (sectorIDs []crypto.Hash, nextPageID string, err error)
 	RemoveSpecificSectors(id types.TokenID, sectorsIDs []crypto.Hash, time time.Time) error
 	AttachSectors(tokensSectors map[types.TokenID][]crypto.Hash, time time.Time) error
@@ -35,8 +35,9 @@ type TokenStorage interface {
 type Host interface {
 	BlockHeight() types.BlockHeight
 	AddSector(sectorRoot crypto.Hash, sectorData []byte) error
+	RemoveSectorBatch(sectorRoots []crypto.Hash) error
 	ReadSector(sectorRoot crypto.Hash) ([]byte, error)
-	MoveTokenSectorsToStorageObligation(fcID types.FileContractID, newRev types.FileContractRevision, tokensSectors map[types.TokenID][]crypto.Hash, renterSig []byte) ([]byte, error)
+	MoveTokenSectorsToStorageObligation(fcID types.FileContractID, newRev types.FileContractRevision, sectorsWithTokens []types.SectorWithToken, renterSig []byte) ([]byte, error)
 }
 
 // API represent host API.

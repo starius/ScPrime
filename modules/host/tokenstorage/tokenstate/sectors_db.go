@@ -81,6 +81,27 @@ func (s *sectorsDB) Put(tokenID types.TokenID, sectorID crypto.Hash) error {
 	return s.db.Put(createDBKey(tokenID, sectorID), nil, nil)
 }
 
+// NonexistentSectors returns a list of only nonexistent sectors from sectorIDs.
+// It also removes duplicates from the list.
+func (s *sectorsDB) NonexistentSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) ([]crypto.Hash, error) {
+	nonexistentSectors := make(map[crypto.Hash]bool, len(sectorIDs))
+	for _, sectorID := range sectorIDs {
+		ok, err := s.db.Has(createDBKey(tokenID, sectorID), nil)
+		if err != nil {
+			return nil, fmt.Errorf("check has sector: %w", err)
+		}
+		if ok {
+			continue
+		}
+		nonexistentSectors[sectorID] = true
+	}
+	nonexistent := make([]crypto.Hash, 0, len(nonexistentSectors))
+	for sectorID := range nonexistentSectors {
+		nonexistent = append(nonexistent, sectorID)
+	}
+	return nonexistent, nil
+}
+
 // HasSectors checks if all sectors exist and returns a list of existing ones.
 // It also removes duplicates from the list.
 func (s *sectorsDB) HasSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) ([]crypto.Hash, bool, error) {

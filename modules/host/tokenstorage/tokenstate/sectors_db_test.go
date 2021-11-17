@@ -45,6 +45,15 @@ func TestSectorDB(t *testing.T) {
 		return res == -1
 	})
 
+	t.Run("check NonexistentSectors", func(t *testing.T) {
+		nonExistentSector := crypto.HashObject("nonExistent")
+		nonExistentSector2 := crypto.HashObject("nonExistent2")
+		sectorIDs := []crypto.Hash{originSectors[0], originSectors[0], originSectors[1], nonExistentSector, nonExistentSector, nonExistentSector2}
+		res, err := db.NonexistentSectors(token, sectorIDs)
+		require.NoError(t, err)
+		require.ElementsMatch(t, []crypto.Hash{nonExistentSector, nonExistentSector2}, res)
+	})
+
 	t.Run("check HasSectors", func(t *testing.T) {
 		res, ok, err := db.HasSectors(token, []crypto.Hash{originSectors[0]})
 		require.NoError(t, err)

@@ -1354,7 +1354,7 @@ func (h *Host) StorageObligations() (sos []modules.StorageObligation) {
 }
 
 // MoveTokenSectorsToStorageObligation moves sectors from temporary storage to storage obligation object and returns host signature.
-func (h *Host) MoveTokenSectorsToStorageObligation(fcID types.FileContractID, renterRevision types.FileContractRevision, tokensSectors map[types.TokenID][]crypto.Hash, renterSig []byte) ([]byte, error) {
+func (h *Host) MoveTokenSectorsToStorageObligation(fcID types.FileContractID, renterRevision types.FileContractRevision, sectorsWithTokens []types.SectorWithToken, renterSig []byte) ([]byte, error) {
 	err := h.managedTryLockStorageObligation(fcID, obligationLockTimeout)
 	if err != nil {
 		return nil, err
@@ -1379,19 +1379,19 @@ func (h *Host) MoveTokenSectorsToStorageObligation(fcID types.FileContractID, re
 	h.mu.Unlock()
 	currentRevision := so.RevisionTransactionSet[len(so.RevisionTransactionSet)-1].FileContractRevisions[0]
 
-	var newRoots []crypto.Hash
-	for _, ids := range tokensSectors {
-		newRoots = append(newRoots, ids...)
+	newRoots := make([]crypto.Hash, 0, len(sectorsWithTokens))
+	for _, s := range sectorsWithTokens {
+		newRoots = append(newRoots, s.SectorID)
 	}
 
 	// update finances.
-	bytesAdded := modules.SectorSize * uint64(len(newRoots)-len(so.SectorRoots))
+	bytesAdded := modules.SectorSize * uint64(len(newRoots))
 	blocksRemaining := so.proofDeadline() - blockHeight
 	blockBytesCurrency := types.NewCurrency64(uint64(blocksRemaining)).Mul64(bytesAdded)
 	var storageRevenue, newCollateral, bandwidthRevenue types.Currency
 	storageRevenue = settings.StoragePrice.Mul(blockBytesCurrency)
 	newCollateral = newCollateral.Add(settings.Collateral.Mul(blockBytesCurrency))
-	bandwidthRevenue = bandwidthRevenue.Add(settings.UploadBandwidthPrice.Mul64(modules.SectorSize * uint64(len(newRoots))))
+	bandwidthRevenue = bandwidthRevenue.Add(settings.UploadBandwidthPrice.Mul64(bytesAdded))
 
 	newRevision := currentRevision
 	newRevision.NewRevisionNumber = renterRevision.NewRevisionNumber
@@ -1412,7 +1412,18 @@ func (h *Host) MoveTokenSectorsToStorageObligation(fcID types.FileContractID, re
 			UnlockHash: currentRevision.NewMissedProofOutputs[i].UnlockHash,
 		}
 	}
-	// compare new revision formed by host and new revision from renter.
+
+	// Verify the new revision.
+	newTotalRoots := append(so.SectorRoots, newRoots...)
+	newRevenue := settings.BaseRPCPrice.Add(storageRevenue).Add(bandwidthRevenue)
+	so.SectorRoots, newTotalRoots = newTotalRoots, so.SectorRoots // verifyRevision assumes new roots
+	err = verifyRevision(so, newRevision, blockHeight, newRevenue, newCollateral)
+	so.SectorRoots, newTotalRoots = newTotalRoots, so.SectorRoots
+	if err != nil {
+		return nil, err
+	}
+
+	// Sanity check: compare new revision formed by host and new revision from renter.
 	bufNewRev := new(bytes.Buffer)
 	if err = newRevision.MarshalSia(bufNewRev); err != nil {
 		return nil, err
@@ -1444,11 +1455,17 @@ func (h *Host) MoveTokenSectorsToStorageObligation(fcID types.FileContractID, re
 	// which would result in losing contract's sectors. We can't do it before this place,
 	// because renter's signature and revision is checked above.
 	// Therefore, the only place to call tokenStorage.AttachSectors is right here.
+	tokensSectors := make(map[types.TokenID][]crypto.Hash)
+	for _, s := range sectorsWithTokens {
+		tokenSectors := tokensSectors[s.Token]
+		tokenSectors = append(tokenSectors, s.SectorID)
+		tokensSectors[s.Token] = tokenSectors
+	}
 	if err := h.tokenStor.AttachSectors(tokensSectors, time.Now()); err != nil {
 		return nil, fmt.Errorf("tokenStor.AttachSectors: %w", err)
 	}
 
-	so.SectorRoots = append(so.SectorRoots, newRoots...)
+	so.SectorRoots = newTotalRoots
 	so.PotentialStorageRevenue = so.PotentialStorageRevenue.Add(storageRevenue)
 	so.RiskedCollateral = so.RiskedCollateral.Add(newCollateral)
 	so.PotentialUploadRevenue = so.PotentialUploadRevenue.Add(bandwidthRevenue)

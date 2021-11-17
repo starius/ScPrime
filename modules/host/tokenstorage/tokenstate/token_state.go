@@ -86,6 +86,7 @@ type sectorsDBer interface {
 	Get(tokenID types.TokenID) ([]crypto.Hash, error)
 	GetLimited(tokenID types.TokenID, pageID string, limit int) ([]crypto.Hash, string, error)
 	Put(tokenID types.TokenID, sectorID crypto.Hash) error
+	NonexistentSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) ([]crypto.Hash, error)
 	HasSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) ([]crypto.Hash, bool, error)
 	BatchDeleteSpecific(tokenID types.TokenID, sectorIDs []crypto.Hash) error
 	BatchDeleteAll(tokenID types.TokenID) error
@@ -193,6 +194,14 @@ func (s *State) eventRemoveSpecificSectors(e *EventRemoveSpecificSectors, t time
 func (s *State) eventRemoveAllSectors(e *EventRemoveAllSectors, t time.Time) {
 	token := s.Tokens[e.TokenID]
 	token.TokenInfo.updateStorageResource(-int64(len(e.SectorsIDs)), t)
+	if token.TokenInfo.Storage < 0 {
+		// EventRemoveAllSectors also resets Storage resource if it goes below zero.
+		// This is needed, because in practice expiration checker (CheckExpiration of token storage)
+		// can not immediately remove sectors of token running out of Storage resource.
+		// In most cases, it removes them much later (e.g. in 1 hour) and produces EventRemoveAllSectors.
+		// It's not a fault of the token owner in this case, it's a property of the token storage implementation.
+		token.TokenInfo.Storage = 0
+	}
 	s.Tokens[e.TokenID] = token
 	err := s.db.BatchDeleteAll(e.TokenID)
 	if err != nil {
@@ -212,7 +221,7 @@ func (s *State) eventAttachSectors(e *EventAttachSectors, t time.Time) {
 		}
 
 		token := s.Tokens[tokenID]
-		token.TokenInfo.updateStorageResource(-1, t)
+		token.TokenInfo.updateStorageResource(-1*int64(len(sectorIDs)), t)
 		s.Tokens[tokenID] = token
 	}
 }
@@ -244,6 +253,12 @@ func (s *State) GetLimitedSectors(tokenID types.TokenID, pageID string, limit in
 	return s.db.GetLimited(tokenID, pageID, limit)
 }
 
+// NonexistentSectors returns a list of only nonexistent sectors from sectorIDs.
+// It also removes duplicates from the list.
+func (s *State) NonexistentSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) ([]crypto.Hash, error) {
+	return s.db.NonexistentSectors(tokenID, sectorIDs)
+}
+
 // HasSectors checks if all sectors exist and returns a list of existing ones.
 // It also removes duplicates from the list.
 func (s *State) HasSectors(tokenID types.TokenID, sectorIDs []crypto.Hash) ([]crypto.Hash, bool, error) {
@@ -270,7 +285,9 @@ func (t *tokenStorageInfo) updateStorageResource(sectorsNum int64, now time.Time
 // for one second. if the resource is less, it will return false.
 func (s *State) EnoughStorageResource(id types.TokenID, sectorsNum int64, now time.Time) (enoughResource bool) {
 	token := s.Tokens[id]
-	if token.TokenInfo.Storage > int64(now.Sub(token.TokenInfo.LastChangeTime).Seconds())*int64(token.TokenInfo.SectorsNum)+sectorsNum*1 {
+	currentSpentStorage := int64(now.Sub(token.TokenInfo.LastChangeTime).Seconds()) * int64(token.TokenInfo.SectorsNum)
+	nextSecondStorage := 1 * (sectorsNum + int64(token.TokenInfo.SectorsNum))
+	if token.TokenInfo.Storage > currentSpentStorage+nextSecondStorage {
 		return true
 	}
 	return false
