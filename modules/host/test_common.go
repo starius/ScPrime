@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
@@ -43,12 +44,12 @@ type (
 	HostMock struct {
 		Mux *siamux.SiaMux
 
-		CS        modules.ConsensusSet
-		Gateway   modules.Gateway
-		Miner     modules.TestMiner
-		Tpool     modules.TransactionPool
-		Wallet    modules.Wallet
-		WalletKey crypto.CipherKey
+		CS           modules.ConsensusSet
+		Gateway      modules.Gateway
+		Miner        modules.TestMiner
+		Tpool        modules.TransactionPool
+		HostWallet   modules.Wallet
+		RenterWallet modules.Wallet
 
 		Host *Host
 	}
@@ -71,15 +72,40 @@ func NewHostMock(d modules.Dependencies, dirName string) (*HostMock, error) {
 	}
 
 	return &HostMock{
-		Mux:       h.mux,
-		CS:        h.cs,
-		Gateway:   h.gateway,
-		Miner:     h.miner,
-		Tpool:     h.tpool,
-		Wallet:    renterWallet,
-		WalletKey: h.walletKey,
-		Host:      h.host,
+		Mux:          h.mux,
+		CS:           h.cs,
+		Gateway:      h.gateway,
+		Miner:        h.miner,
+		Tpool:        h.tpool,
+		HostWallet:   h.wallet,
+		RenterWallet: renterWallet,
+		Host:         h.host,
 	}, nil
+}
+
+// Close closes all host mock entities.
+func (hm *HostMock) Close() error {
+	errs := []string{}
+	addErr := func(err error, message string) {
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("%s: %s", message, err))
+		}
+	}
+
+	addErr(hm.Mux.Close(), "mux")
+	addErr(hm.CS.Close(), "consensus set")
+	addErr(hm.Gateway.Close(), "gateway")
+	addErr(hm.Miner.Close(), "miner")
+	addErr(hm.Tpool.Close(), "transaction pool")
+	addErr(hm.HostWallet.Close(), "host wallet")
+	addErr(hm.RenterWallet.Close(), "renter wallet")
+	addErr(hm.Host.Close(), "host")
+
+	if len(errs) == 0 {
+		return nil
+	}
+
+	return fmt.Errorf("host mock close errors: %s", strings.Join(errs, "; "))
 }
 
 func createWallet(cs modules.ConsensusSet, tp modules.TransactionPool, miner modules.TestMiner, hostWallet modules.Wallet, testdir string) (modules.Wallet, error) {
