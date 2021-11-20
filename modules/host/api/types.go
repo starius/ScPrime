@@ -215,5 +215,10 @@ type HealthRequest struct {
 
 // HealthResponse is a response for /health endpoint.
 type HealthResponse struct {
-	Alive bool `json:"alive"`
+	Alive       bool              `json:"alive"`
+	OS          string            `json:"os"`
+	Arch        string            `json:"arch"`
+	Commit      string            `json:"commit"`
+	BuildTime   string            `json:"build_time"`
+	BlockHeight types.BlockHeight `json:"block_height"`
 }

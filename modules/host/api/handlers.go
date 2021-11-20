@@ -5,8 +5,10 @@ import (
 	"errors"
 	"log"
 	"math/bits"
+	"runtime"
 	"time"
 
+	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/host/tokenstorage"
@@ -179,7 +181,14 @@ func (a *API) UploadWithToken(ctx context.Context, req *UploadWithTokenRequest) 
 
 // Health is a handler for /health [GET] request.
 func (a *API) Health(ctx context.Context, req *HealthRequest) (*HealthResponse, error) {
-	return &HealthResponse{Alive: true}, nil
+	return &HealthResponse{
+		Alive:       true,
+		OS:          runtime.GOOS,
+		Arch:        runtime.GOARCH,
+		Commit:      build.GitRevision, // TODO: return this only to telemetry, shouldn't be public.
+		BuildTime:   build.BuildTime,
+		BlockHeight: a.host.BlockHeight(),
+	}, nil
 }
 
 // AttachSectors handler for /attach [POST] request.
