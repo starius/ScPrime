@@ -21,7 +21,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.1
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.9.0
-	github.com/starius/api2 v0.0.0-20210722161435-0d538c9482f4
+	github.com/starius/api2 v0.0.0-20211115235008-5dde577762e6
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/vbauerster/mpb/v5 v5.4.0
@@ -43,11 +43,12 @@ require (
 	gitlab.com/zer0main/eventsourcing v0.0.0-20210911223220-4432c7e50e57
 	gitlab.com/zer0main/filestorage v0.0.0-20210603210652-2ee6eb57d4a3
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871
 	golang.org/x/mod v0.5.1 // indirect
-	golang.org/x/net v0.0.0-20211104170005-ce137452f963 // indirect
-	golang.org/x/sys v0.0.0-20211103235746-7861aae1554b // indirect
+	golang.org/x/net v0.0.0-20211118161319-6a13c67c3ce4 // indirect
+	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.7 // indirect
+	gopkg.in/ini.v1 v1.64.0 // indirect
 )
