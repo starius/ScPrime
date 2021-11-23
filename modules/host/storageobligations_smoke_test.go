@@ -72,6 +72,7 @@ func (ht *hostTester) newTesterStorageObligation() (storageObligation, error) {
 		return storageObligation{}, errors.AddContext(err, "Can not get host unlockhash")
 	}
 	payout := types.SiacoinPrecision.Mul64(10e3)
+	collateral := types.SiacoinPrecision.Mul64(10)
 	err = builder.FundSiacoinsFixedAddress(payout, uc, uc)
 	if err != nil {
 		builder.Drop()
@@ -88,18 +89,18 @@ func (ht *hostTester) newTesterStorageObligation() (storageObligation, error) {
 		Payout: payout,
 		ValidProofOutputs: []types.SiacoinOutput{
 			{
-				Value: types.PostTax(ht.host.blockHeight, payout),
+				Value: types.PostTax(ht.host.blockHeight, payout).Sub(collateral),
 			},
 			{
-				Value: types.ZeroCurrency,
+				Value: collateral,
 			},
 		},
 		MissedProofOutputs: []types.SiacoinOutput{
 			{
-				Value: types.PostTax(ht.host.blockHeight, payout),
+				Value: types.PostTax(ht.host.blockHeight, payout).Sub(collateral),
 			},
 			{
-				Value: types.ZeroCurrency,
+				Value: collateral,
 			},
 			{
 				Value: types.ZeroCurrency,

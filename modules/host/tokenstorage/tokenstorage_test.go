@@ -2,12 +2,14 @@ package tokenstorage
 
 import (
 	"context"
-	"crypto/rand"
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/NebulousLabs/fastrand"
+	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/host/contractmanager"
 	"gitlab.com/scpcorp/ScPrime/types"
@@ -41,13 +43,22 @@ func createTokenStorage(t *testing.T) *TokenStorage {
 	return stor
 }
 
-func TestAddResources(t *testing.T) {
+func createTokenStorageAndCheckExpiration(t *testing.T, period time.Duration) *TokenStorage {
+	stor := createTokenStorage(t)
+	done := make(chan bool)
+	t.Cleanup(func() {
+		done <- true
+	})
+	go stor.CheckExpiration(period, done)
+	return stor
+}
+
+func TestTokenStorage_AddResources(t *testing.T) {
 	stor := createTokenStorage(t)
 	amount := int64(100500)
 	var id types.TokenID
-	_, err := rand.Read(id[:])
-	assert.NoError(t, err, "rand.Read() failed")
-	err = stor.AddResources(id, modules.DownloadBytes, amount)
+	fastrand.Read(id[:])
+	err := stor.AddResources(id, modules.DownloadBytes, amount)
 	assert.NoError(t, err, "stor.addResources() failed")
 	newResources, err := stor.TokenRecord(id)
 	assert.NoError(t, err, "tokenRecord() failed")
@@ -57,4 +68,116 @@ func TestAddResources(t *testing.T) {
 	newResources, err = stor.TokenRecord(id)
 	assert.NoError(t, err, "tokenRecord() failed")
 	assert.Equal(t, amount, newResources.UploadBytes)
+}
+
+func TestTokenStorage_AddDuplicateSectors(t *testing.T) {
+	stor := createTokenStorageAndCheckExpiration(t, time.Second)
+	var token types.TokenID
+	fastrand.Read(token[:])
+	storageDurationSeconds := int64(60)
+	sectorsNum := int64(5)
+	uploadBytesAmount := int64(modules.SectorSize) * sectorsNum
+	storageAmount := sectorsNum * storageDurationSeconds
+	assert.NoError(t, stor.AddResources(token, modules.UploadBytes, uploadBytesAmount))
+	assert.NoError(t, stor.AddResources(token, modules.Storage, storageAmount))
+
+	// Make sure duplicates are not added.
+	var sectorID0, sectorID1, sectorID2 crypto.Hash
+	fastrand.Read(sectorID0[:])
+	fastrand.Read(sectorID1[:])
+	fastrand.Read(sectorID2[:])
+	sectorIDs := []crypto.Hash{sectorID0, sectorID1, sectorID2, sectorID1, sectorID0}
+	tr, err := stor.AddSectors(token, sectorIDs, time.Now())
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(3), tr.TokenStorageInfo.SectorsNum)
+
+	resSectorIDs, _, err := stor.ListSectorIDs(token, "", 100)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []crypto.Hash{sectorID0, sectorID1, sectorID2}, resSectorIDs)
+
+	// Add existing, make sure nothing changes.
+	tr, err = stor.AddSectors(token, sectorIDs, time.Now())
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(3), tr.TokenStorageInfo.SectorsNum)
+	resSectorIDs, _, err = stor.ListSectorIDs(token, "", 100)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []crypto.Hash{sectorID0, sectorID1, sectorID2}, resSectorIDs)
+}
+
+func TestTokenStorage_AttachSectors(t *testing.T) {
+	stor := createTokenStorageAndCheckExpiration(t, time.Second)
+	var token types.TokenID
+	fastrand.Read(token[:])
+	sector := fastrand.Bytes(int(modules.SectorSize))
+	sector1 := fastrand.Bytes(int(modules.SectorSize))
+	sectorID := crypto.MerkleRoot(sector)
+	sectorID1 := crypto.MerkleRoot(sector1)
+	sectorsAmount := int64(2)
+	storageTimeSeconds := int64(10)
+	uploadBytesAmount := int64(modules.SectorSize) * sectorsAmount
+	storageAmount := storageTimeSeconds * sectorsAmount
+	assert.NoError(t, stor.AddResources(token, modules.UploadBytes, uploadBytesAmount))
+	assert.NoError(t, stor.AddResources(token, modules.Storage, storageAmount))
+	additionTime := time.Now()
+	tr, err := stor.AddSectors(token, []crypto.Hash{sectorID, sectorID1}, additionTime)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(2), tr.TokenStorageInfo.SectorsNum)
+	attachSectors := map[types.TokenID][]crypto.Hash{token: {sectorID, sectorID1}}
+	assert.NoError(t, stor.AttachSectors(attachSectors, time.Now()))
+	tr, err = stor.TokenRecord(token)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(0), tr.TokenStorageInfo.SectorsNum)
+}
+
+func TestTokenStorage_RemoveUnpaidSectors(t *testing.T) {
+	expirationCheckPeriod := 7 * time.Second
+	stor := createTokenStorageAndCheckExpiration(t, expirationCheckPeriod)
+	var token types.TokenID
+	fastrand.Read(token[:])
+	sector := fastrand.Bytes(int(modules.SectorSize))
+	sector1 := fastrand.Bytes(int(modules.SectorSize))
+	sectorID := crypto.MerkleRoot(sector)
+	sectorID1 := crypto.MerkleRoot(sector1)
+	sectorsAmount := int64(2)
+	storageTimeSeconds := int64(5)
+	uploadBytesAmount := int64(modules.SectorSize) * sectorsAmount
+	storageAmount := storageTimeSeconds * sectorsAmount
+	assert.NoError(t, stor.AddResources(token, modules.UploadBytes, uploadBytesAmount))
+	assert.NoError(t, stor.AddResources(token, modules.Storage, storageAmount))
+	additionTime := time.Now()
+	tr, err := stor.AddSectors(token, []crypto.Hash{sectorID, sectorID1}, additionTime)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), tr.DownloadBytes)
+	assert.Equal(t, int64(0), tr.UploadBytes)
+	assert.Equal(t, int64(0), tr.SectorAccesses)
+	assert.Equal(t, uint64(2), tr.TokenStorageInfo.SectorsNum)
+	assert.True(t, tr.TokenStorageInfo.Storage > 0 && tr.TokenStorageInfo.Storage <= storageAmount)
+	assert.True(t, tr.TokenStorageInfo.LastChangeTime.Equal(additionTime))
+	sectorIDs, _, err := stor.ListSectorIDs(token, "", 10)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(sectorIDs))
+	assert.ElementsMatch(t, []crypto.Hash{sectorID, sectorID1}, sectorIDs)
+	enough, err := stor.EnoughStorageResource(token, 0, time.Now())
+	assert.NoError(t, err)
+	assert.True(t, enough)
+
+	beforeSleep := time.Now()
+	time.Sleep(time.Duration(storageTimeSeconds)*time.Second + expirationCheckPeriod)
+	afterSleep := time.Now()
+
+	sectorIDs, _, err = stor.ListSectorIDs(token, "", 1)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(sectorIDs))
+	tr, err = stor.TokenRecord(token)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), tr.DownloadBytes)
+	assert.Equal(t, int64(0), tr.UploadBytes)
+	assert.Equal(t, int64(0), tr.SectorAccesses)
+	assert.Equal(t, uint64(0), tr.TokenStorageInfo.SectorsNum)
+	assert.Equal(t, int64(0), tr.TokenStorageInfo.Storage)
+	assert.True(t, tr.TokenStorageInfo.LastChangeTime.After(beforeSleep))
+	assert.True(t, tr.TokenStorageInfo.LastChangeTime.Before(afterSleep))
+	enough, err = stor.EnoughStorageResource(token, 0, time.Now())
+	assert.NoError(t, err)
+	assert.False(t, enough)
 }

@@ -9,6 +9,7 @@ import (
 
 // HandlerHTTPapi api interface.
 type HandlerHTTPapi interface {
+	Health(ctx context.Context, req *HealthRequest) (*HealthResponse, error)
 	TokenResources(ctx context.Context, req *TokenResourcesRequest) (*TokenResourcesResponse, error)
 	ListSectorIDs(ctx context.Context, req *ListSectorIDsRequest) (*ListSectorIDsResponse, error)
 	RemoveSectors(ctx context.Context, req *RemoveSectorsRequest) (*RemoveSectorsResponse, error)
@@ -29,6 +30,7 @@ func GetRoutes(ol HandlerHTTPapi) []api2.Route {
 	}
 
 	return []api2.Route{
+		{Method: http.MethodGet, Path: "/health", Handler: api2.Method(&ol, "Health"), Transport: t},
 		{Method: http.MethodGet, Path: "/resources", Handler: api2.Method(&ol, "TokenResources"), Transport: t},
 		{Method: http.MethodGet, Path: "/list-sector-ids", Handler: api2.Method(&ol, "ListSectorIDs"), Transport: t},
 		{Method: http.MethodPost, Path: "/remove-sectors", Handler: api2.Method(&ol, "RemoveSectors"), Transport: t},

@@ -3,16 +3,20 @@ package api
 import (
 	"bytes"
 	"text/template"
+	"time"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules/host/tokenstorage"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
+//go:generate go run ./gen/...
+
 // TokenStorageInfo represent info about token storage resource.
 type TokenStorageInfo struct {
-	Storage    int64  `json:"storage"` // sectors * second.
-	SectorsNum uint64 `json:"sectors_num"`
+	Storage        int64     `json:"storage"` // sectors * second.
+	SectorsNum     uint64    `json:"sectors_num"`
+	LastChangeTime time.Time `json:"last_change_time"`
 }
 
 // TokenRecord include information about token record.
@@ -29,8 +33,9 @@ func toTokenRecord(record tokenstorage.TokenRecord) *TokenRecord {
 		UploadBytes:    record.UploadBytes,
 		SectorAccesses: record.SectorAccesses,
 		TokenInfo: TokenStorageInfo{
-			Storage:    record.TokenStorageInfo.Storage,
-			SectorsNum: record.TokenStorageInfo.SectorsNum,
+			Storage:        record.TokenStorageInfo.Storage,
+			SectorsNum:     record.TokenStorageInfo.SectorsNum,
+			LastChangeTime: record.TokenStorageInfo.LastChangeTime,
 		},
 	}
 }
@@ -63,10 +68,11 @@ type TokenResourcesRequest struct {
 
 // TokenResourcesResponse represents response.
 type TokenResourcesResponse struct {
-	UploadBytes    int64 `json:"upload_bytes,omitempty"`
-	DownloadBytes  int64 `json:"download_bytes,omitempty"`
-	SectorAccesses int64 `json:"sector_accesses,omitempty"`
-	Storage        int64 `json:"storage,omitempty"`
+	UploadBytes    int64     `json:"upload_bytes,omitempty"`
+	DownloadBytes  int64     `json:"download_bytes,omitempty"`
+	SectorAccesses int64     `json:"sector_accesses,omitempty"`
+	Storage        int64     `json:"storage,omitempty"`
+	LastChangeTime time.Time `json:"last_change_time,omitempty"`
 }
 
 // DownloadWithTokenError represent error message.
@@ -201,4 +207,18 @@ func (e AttachSectorsError) Error() string {
 	var tpl bytes.Buffer
 	_ = attachSectorsErrorTemplate.Execute(&tpl, e)
 	return tpl.String()
+}
+
+// HealthRequest is a request for /health endpoint.
+type HealthRequest struct {
+}
+
+// HealthResponse is a response for /health endpoint.
+type HealthResponse struct {
+	Alive       bool              `json:"alive"`
+	OS          string            `json:"os"`
+	Arch        string            `json:"arch"`
+	Commit      string            `json:"commit"`
+	BuildTime   string            `json:"build_time"`
+	BlockHeight types.BlockHeight `json:"block_height"`
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -13,6 +14,27 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/host/api"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
+
+func updateRevisionOutputs(rev *types.FileContractRevision, cost, collateral types.Currency) {
+	rev.NewValidProofOutputs = append([]types.SiacoinOutput(nil), rev.NewValidProofOutputs...)
+	rev.NewMissedProofOutputs = append([]types.SiacoinOutput(nil), rev.NewMissedProofOutputs...)
+	rev.NewValidProofOutputs[0].Value = rev.NewValidProofOutputs[0].Value.Sub(cost)
+	rev.NewValidProofOutputs[1].Value = rev.NewValidProofOutputs[1].Value.Add(cost)
+	rev.NewMissedProofOutputs[0].Value = rev.NewMissedProofOutputs[0].Value.Sub(cost)
+	rev.NewMissedProofOutputs[2].Value = rev.NewMissedProofOutputs[2].Value.Add(cost)
+	rev.NewMissedProofOutputs[1].Value = rev.NewMissedProofOutputs[1].Value.Sub(collateral)
+	rev.NewMissedProofOutputs[2].Value = rev.NewMissedProofOutputs[2].Value.Add(collateral)
+}
+
+func calculateRevisionOutputs(settings modules.HostExternalSettings, duration types.BlockHeight, bytesAdded uint64) (types.Currency, types.Currency) {
+	blockBytesCurrency := types.NewCurrency64(uint64(duration)).Mul64(bytesAdded)
+	var storageRevenue, collateral, bandwidthRevenue types.Currency
+	storageRevenue = settings.StoragePrice.Mul(blockBytesCurrency)
+	collateral = collateral.Add(settings.Collateral.Mul(blockBytesCurrency))
+	bandwidthRevenue = bandwidthRevenue.Add(settings.UploadBandwidthPrice.Mul64(bytesAdded))
+	cost := settings.BaseRPCPrice.Add(storageRevenue).Add(bandwidthRevenue)
+	return cost, collateral
+}
 
 func TestAPI_DownloadWithToken(t *testing.T) {
 	if testing.Short() {
@@ -60,7 +82,7 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	}
 
 	// remove DownloadBytes, add SectorAccesses, error not enough bytes
-	_ = host.host.tokenStor.RecordDownload(tokenID, 5000, 0)
+	_, _ = host.host.tokenStor.RecordDownload(tokenID, 5000, 0, time.Now())
 	err = host.host.tokenStor.AddResources(tokenID, modules.SectorAccesses, 1)
 	_, err = hostApi.DownloadWithToken(context.Background(), req)
 	cErr = err.(*api.DownloadWithTokenError)
@@ -105,7 +127,7 @@ func TestAPI_DownloadWithToken(t *testing.T) {
 	}
 }
 
-func TestApi_UploadWithToken(t *testing.T) {
+func TestAPI_UploadWithToken(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -182,6 +204,9 @@ func TestAPI_CircleIntegration(t *testing.T) {
 	}
 	t.Parallel()
 	rhp, err := newRenterHostPair(t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer rhp.Close()
 	hostApi := api.NewAPI(rhp.staticHT.host.tokenStor, rhp.staticHT.host.secretKey, rhp.staticHT.host)
 
@@ -237,47 +262,57 @@ func TestAPI_CircleIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//	attach to contract call
+	// attach to contract call
 	so, err := rhp.staticHT.host.managedGetStorageObligation(rhp.staticFCID)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create new revision.
+	attachSectorRoots := []crypto.Hash{sectorIDs[0], sectorIDs[3], sectorIDs[5], sectorIDs[7], sectorIDs[9]}
 	currentRevision := so.RevisionTransactionSet[len(so.RevisionTransactionSet)-1].FileContractRevisions[0]
 	revision := types.FileContractRevision{
 		ParentID:              rhp.staticFCID,
 		UnlockConditions:      currentRevision.UnlockConditions,
 		NewRevisionNumber:     currentRevision.NewRevisionNumber + 1,
 		NewFileSize:           modules.SectorSize * uint64(5), // move 5 sectors to contract
-		NewFileMerkleRoot:     currentRevision.NewFileMerkleRoot,
+		NewFileMerkleRoot:     cachedMerkleRoot(attachSectorRoots),
 		NewWindowStart:        currentRevision.NewWindowStart,
 		NewWindowEnd:          currentRevision.NewWindowEnd,
 		NewValidProofOutputs:  currentRevision.NewValidProofOutputs,
 		NewMissedProofOutputs: currentRevision.NewMissedProofOutputs,
 		NewUnlockHash:         currentRevision.NewUnlockHash,
 	}
+	blocksRemaining := so.proofDeadline() - rhp.staticHT.host.blockHeight
+	bytesAdded := modules.SectorSize * uint64(len(attachSectorRoots))
+	settings := rhp.staticHT.host.ExternalSettings()
+	cost, collateral := calculateRevisionOutputs(settings, blocksRemaining, bytesAdded)
+	updateRevisionOutputs(&revision, cost, collateral)
 	sig := rhp.managedSign(revision)
+
+	// Create attach request.
 	attachReq := &api.AttachSectorsRequest{
 		ContractID: rhp.staticFCID,
 		Sectors: []api.TokenAndSector{
 			{
 				Authorization: tokenID.String(),
-				SectorID:      sectorIDs[0],
+				SectorID:      attachSectorRoots[0],
 			},
 			{
 				Authorization: tokenID.String(),
-				SectorID:      sectorIDs[3],
+				SectorID:      attachSectorRoots[1],
 			},
 			{
 				Authorization: tokenID.String(),
-				SectorID:      sectorIDs[5],
+				SectorID:      attachSectorRoots[2],
 			},
 			{
 				Authorization: tokenID.String(),
-				SectorID:      sectorIDs[7],
+				SectorID:      attachSectorRoots[3],
 			},
 			{
 				Authorization: tokenID.String(),
-				SectorID:      sectorIDs[9],
+				SectorID:      attachSectorRoots[4],
 			},
 		},
 		Revision:        revision,
