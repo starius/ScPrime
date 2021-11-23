@@ -1166,7 +1166,7 @@ func TestLowAllowanceAlert(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	//t.Parallel()
+	t.Parallel()
 
 	// Create a group for testing
 	groupParams := siatest.GroupParams{
@@ -1186,7 +1186,7 @@ func TestLowAllowanceAlert(t *testing.T) {
 	// Add a renter which won't be able to renew a contract due to low funds.
 	renterParams := node.Renter(filepath.Join(testDir, "renter_renew"))
 	renterParams.Allowance = siatest.DefaultAllowance
-	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(100)
+	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(120)
 	renterParams.Allowance.Period = 12
 	renterParams.Allowance.RenewWindow = 8
 	renterParams.ContractorDeps = &dependencies.DependencyLowFundsRenewalFail{}
@@ -1203,7 +1203,7 @@ func TestLowAllowanceAlert(t *testing.T) {
 	}
 	// Mine blocks and wait for the alert to be registered.
 	numRetries := 0
-	err = build.Retry(200, 200*time.Millisecond, func() error {
+	err = build.Retry(200, 100*time.Millisecond, func() error {
 		if numRetries%10 == 0 {
 			if err := tg.Miners()[0].MineBlock(); err != nil {
 				t.Fatal(err)
@@ -1215,12 +1215,16 @@ func TestLowAllowanceAlert(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	err = tg.RemoveNode(renter)
+	if err != nil {
+		t.Fatalf("Error closing first renter: %v", err)
+	}
 
 	// Add a renter which won't be able to refresh a contract due to low funds.
 	renterParams = node.Renter(filepath.Join(testDir, "renter_refresh"))
 	renterParams.Allowance = siatest.DefaultAllowance
 	renterParams.Allowance.Hosts = 2
-	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(120)
+	renterParams.Allowance.Funds = siatest.DefaultAllowance.Funds.Div64(200)
 	renterParams.RenterDeps = &dependencies.DependencyDisableUploadGougingCheck{}
 	renterParams.ContractorDeps = &dependencies.DependencyLowFundsRefreshFail{}
 	nodes, err = tg.AddNodes(renterParams)
@@ -1235,7 +1239,7 @@ func TestLowAllowanceAlert(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Wait for the alert to be registered.
-	err = build.Retry(100, 300*time.Millisecond, func() error {
+	err = build.Retry(200, 100*time.Millisecond, func() error {
 		if numRetries%10 == 0 {
 			if err := tg.Miners()[0].MineBlock(); err != nil {
 				t.Fatal(err)
@@ -1246,6 +1250,10 @@ func TestLowAllowanceAlert(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	err = tg.RemoveNode(renter)
+	if err != nil {
+		t.Fatalf("Error closing second renter: %v", err)
 	}
 
 	// Add a renter which won't be able to form a contract due to low funds.
@@ -1263,7 +1271,7 @@ func TestLowAllowanceAlert(t *testing.T) {
 	}
 	// Wait for the alert to be registered.
 	numRetries = 0
-	err = build.Retry(100, 300*time.Millisecond, func() error {
+	err = build.Retry(200, 100*time.Millisecond, func() error {
 		if numRetries%10 == 0 {
 			if err := tg.Miners()[0].MineBlock(); err != nil {
 				t.Fatal(err)

@@ -377,7 +377,7 @@ func TestHostContract(t *testing.T) {
 	}
 
 	if cmp := hcg.Contract.MissedProofOutputs[1].Value.Cmp(prevMissPayout); cmp != 1 {
-		t.Fatal("missed payout should be more than old missed payout", cmp)
+		t.Fatalf("missed payout %v should be more than old missed payout %v", hcg.Contract.MissedProofOutputs[1].Value, prevMissPayout)
 	}
 }
 
