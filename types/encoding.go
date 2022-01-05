@@ -435,6 +435,16 @@ func (oid OutputID) MarshalJSON() ([]byte, error) {
 	return json.Marshal(oid.String())
 }
 
+// UnmarshalText decodes the hex string of the id.
+func (fcid *FileContractID) UnmarshalText(text []byte) error {
+	return (*crypto.Hash)(fcid).UnmarshalText(text)
+}
+
+// MarshalText marshals an id as a hex string.
+func (fcid FileContractID) MarshalText() ([]byte, error) {
+	return (crypto.Hash)(fcid).MarshalText()
+}
+
 // String prints the id in hex.
 func (oid OutputID) String() string {
 	return fmt.Sprintf("%x", oid[:])

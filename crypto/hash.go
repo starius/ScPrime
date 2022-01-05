@@ -73,6 +73,11 @@ func (hs HashSlice) Len() int           { return len(hs) }
 func (hs HashSlice) Less(i, j int) bool { return bytes.Compare(hs[i][:], hs[j][:]) < 0 }
 func (hs HashSlice) Swap(i, j int)      { hs[i], hs[j] = hs[j], hs[i] }
 
+// String prints the hash in hex.
+func (h Hash) String() string {
+	return hex.EncodeToString(h[:])
+}
+
 // LoadString takes a string, parses the hash value of the string, and sets the
 // value of the hash equal to the hash value of the string.
 func (h *Hash) LoadString(s string) error {
@@ -88,14 +93,19 @@ func (h *Hash) LoadString(s string) error {
 	return nil
 }
 
+// MarshalText returns the hex string of the hash.
+func (h Hash) MarshalText() ([]byte, error) {
+	return []byte(h.String()), nil
+}
+
+// UnmarshalText decodes the hex string of the hash.
+func (h *Hash) UnmarshalText(text []byte) error {
+	return h.LoadString(string(text))
+}
+
 // MarshalJSON marshals a hash as a hex string.
 func (h Hash) MarshalJSON() ([]byte, error) {
 	return json.Marshal(h.String())
-}
-
-// String prints the hash in hex.
-func (h Hash) String() string {
-	return hex.EncodeToString(h[:])
 }
 
 // UnmarshalJSON decodes the json hex string of the hash.
@@ -106,13 +116,11 @@ func (h *Hash) UnmarshalJSON(b []byte) error {
 		return ErrHashWrongLen
 	}
 
-	// b[1 : len(b)-1] cuts off the leading and trailing `"` in the JSON string.
-	hBytes, err := hex.DecodeString(string(b[1 : len(b)-1]))
-	if err != nil {
-		return errors.New("could not unmarshal hash: " + err.Error())
+	var bstr string
+	if err := json.Unmarshal(b, &bstr); err != nil {
+		return err
 	}
-	copy(h[:], hBytes)
-	return nil
+	return h.LoadString(bstr)
 }
 
 // Bytes convert Hash type to slice bytes

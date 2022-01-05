@@ -160,6 +160,25 @@ func TestHashMarshalling(t *testing.T) {
 	}
 }
 
+// TestHashMarshalUnmarshalText checks Hash's MarshalText and UnmarshalText methods.
+func TestHashMarshalUnmarshalText(t *testing.T) {
+	h := HashObject("an object")
+	hBytes, err := h.MarshalText()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var uMarH Hash
+	err = uMarH.UnmarshalText(hBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if h != uMarH {
+		t.Error("encoded and decoded hash do not match!")
+	}
+}
+
 // TestHashLoadString checks that the LoadString method of the hash function is
 // working properly.
 func TestHashLoadString(t *testing.T) {
