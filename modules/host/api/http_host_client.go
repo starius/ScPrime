@@ -59,7 +59,7 @@ type HostClienter struct {
 }
 
 // NewClienter creates HostClienter.
-func NewClienter(opts ...Option) (*HostClienter, error) {
+func NewClienter(opts ...Option) *HostClienter {
 	config := NewDefaultHostClienterConfig()
 	for _, opt := range opts {
 		opt(config)
@@ -67,15 +67,15 @@ func NewClienter(opts ...Option) (*HostClienter, error) {
 	if config.lruSize == 0 {
 		return &HostClienter{
 			clients: make(map[string]*http.Client),
-		}, nil
+		}
 	}
 	lruCache, err := newLruCache(config.lruSize)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create LRU cache: %w", err)
+		panic(fmt.Errorf("failed to create LRU cache: %w", err))
 	}
 	return &HostClienter{
 		cache: lruCache,
-	}, nil
+	}
 }
 
 type lruCacheKey struct {
