@@ -79,12 +79,11 @@ func NewClienter(opts ...Option) *HostClienter {
 }
 
 type lruCacheKey struct {
-	host, port string
-	hostPk     types.SiaPublicKey
+	host, port, hostPk string
 }
 
 func (hc *HostClienter) clientFromLRU(host, port string, hostPk types.SiaPublicKey) (*Client, error) {
-	key := lruCacheKey{host: host, port: port, hostPk: hostPk}
+	key := lruCacheKey{host: host, port: port, hostPk: hostPk.String()}
 	if val, ok := hc.cache.Get(key); ok {
 		cli, ok := val.(*Client)
 		if !ok {
