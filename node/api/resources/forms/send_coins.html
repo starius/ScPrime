@@ -1,0 +1,20 @@
+<form action='/gui/sendCoins?&CACHE_BUSTER;' method='post'>
+  <input type="hidden" name="session_id" value="&SESSION_ID;">
+  <div class='pad'>Amount: <input class='input-wide' type='text' name='amount'></div>
+  <div class='pad'>Destination: <input class='input-wide' type='text' name='destination'></div>
+  <div class='pad'>
+    Type: 
+    <select class='input-wide' name='coin_type'>
+      <option value='SCP'>SCP</option>
+      <option value='SPF'>SPF</option>
+    </select>
+  </div>
+  <div class='pad blue-dashed'>
+    <div class="inline-block">
+      <button type="submit">Send Coins</button>
+    </div>
+    <div class="inline-block">
+      <button name="cancel" value="true" type="submit">Cancel</button>
+    </div>
+  </div>
+</form>

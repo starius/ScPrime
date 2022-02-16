@@ -116,6 +116,8 @@ type (
 		renter              modules.Renter
 		tpool               modules.TransactionPool
 		wallet              modules.Wallet
+		downloader          modules.Downloader
+		gui                 modules.Gui
 		pool                modules.Pool
 		stratumminer        modules.StratumMiner
 		index               modules.Index
@@ -148,6 +150,8 @@ type (
 		Renter          bool `json:"renter"`
 		TransactionPool bool `json:"transactionpool"`
 		Wallet          bool `json:"wallet"`
+		Downloader      bool `json:"downloader"`
+		Gui             bool `json:"gui"`
 		Pool            bool `json:"pool"`
 		Stratumminer    bool `json:"stratumminer"`
 	}
@@ -161,7 +165,7 @@ func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // SetModules allows for replacing the modules in the API at runtime.
-func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner) {
+func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, d modules.Downloader, u modules.Gui, p modules.Pool, sm modules.StratumMiner) {
 	if api.modulesSet {
 		build.Critical("can't call SetModules more than once")
 	}
@@ -173,6 +177,8 @@ func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, g module
 	api.renter = r
 	api.tpool = tp
 	api.wallet = w
+	api.gui = u
+	api.downloader = d
 	api.stratumminer = sm
 	api.pool = p
 	api.staticConfigModules = configModules{
@@ -184,6 +190,8 @@ func (api *API) SetModules(cs modules.ConsensusSet, e modules.Explorer, g module
 		Renter:          api.renter != nil,
 		TransactionPool: api.tpool != nil,
 		Wallet:          api.wallet != nil,
+		Downloader:      api.downloader != nil,
+		Gui:             api.gui != nil,
 		Pool:            api.pool != nil,
 		Stratumminer:    api.stratumminer != nil,
 	}
@@ -199,8 +207,8 @@ func (api *API) StartTime() time.Time {
 // New creates a new ScPrime API from the provided modules.  The API will require
 // authentication using HTTP basic auth for certain endpoints of the supplied
 // password is not the empty string.  Usernames are ignored for authentication.
-func New(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner, index modules.Index) *API {
-	return NewCustom(cfg, requiredUserAgent, requiredPassword, cs, e, g, h, m, r, tp, w, p, sm, index, modules.ProdDependencies)
+func New(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, d modules.Downloader, u modules.Gui, p modules.Pool, sm modules.StratumMiner, index modules.Index) *API {
+	return NewCustom(cfg, requiredUserAgent, requiredPassword, cs, e, g, h, m, r, tp, w, d, u, p, sm, index, modules.ProdDependencies)
 }
 
 // NewCustom creates a new Sia API from the provided modules. The API will
@@ -208,7 +216,7 @@ func New(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword stri
 // supplied password is not the empty string. Usernames are ignored for
 // authentication. It is custom because it allows to inject custom dependencies
 // into the API.
-func NewCustom(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, p modules.Pool, sm modules.StratumMiner, index modules.Index, a modules.Dependencies) *API {
+func NewCustom(cfg *modules.SpdConfig, requiredUserAgent string, requiredPassword string, cs modules.ConsensusSet, e modules.Explorer, g modules.Gateway, h modules.Host, m modules.Miner, r modules.Renter, tp modules.TransactionPool, w modules.Wallet, d modules.Downloader, u modules.Gui, p modules.Pool, sm modules.StratumMiner, index modules.Index, a modules.Dependencies) *API {
 	api := &API{
 		cs:                cs,
 		explorer:          e,
@@ -218,6 +226,8 @@ func NewCustom(cfg *modules.SpdConfig, requiredUserAgent string, requiredPasswor
 		renter:            r,
 		tpool:             tp,
 		wallet:            w,
+		downloader:        d,
+		gui:               u,
 		pool:              p,
 		stratumminer:      sm,
 		index:             index,

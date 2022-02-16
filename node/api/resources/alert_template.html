@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ScPrime Wallet</title>
+    <link rel="stylesheet" href="/gui/styles.css">
+    <script type="text/javascript" src="/gui/scripts.js"></script>
+    <meta http-equiv="PRAGMA" content="NO-CACHE">
+    <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
+  </head>
+  <body>
+    <div>
+      <div class="grid">
+        <div class="row">
+          <div class="col-5 left top no-wrap">
+            <div class="scprime-logo"></div>
+            <div>
+              <font class="status &STATUS_COLOR;">&STATUS;</font>
+              Block Height:
+              <font class="block_height">&BLOCK_HEIGHT;</font>
+            </div>
+            <div id="balance">
+              <div>
+                Confirmed Balance:
+                <font class="confirmed">&SCP_BALANCE;</font> SCP
+              </div>
+              <div>
+                Unconfirmed Delta:
+                <font class="unconfirmed">&UNCONFIRMED_DELTA;</font> SCP
+              </div>
+              <div>
+                ScPrime Funds:
+                <font class="spf_funds">&SPF_BALANCE;</font> SPF
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="popup" class="popup center">
+      <h2 class="uppercase">&POPUP_TITLE;</h2>
+      <div class="middle pad blue-dashed" id="popup_content">&POPUP_CONTENT;</div>
+      &POPUP_CLOSE;
+    </div>
+    <div id="fade" class="fade"></div>
+  </body>
+</html>

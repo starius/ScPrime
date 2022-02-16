@@ -1,0 +1,14 @@
+<form action="/gui/changeLock?&CACHE_BUSTER;" method="post">
+  <input type="hidden" name="session_id" value="&SESSION_ID;">
+  <div class="pad">Original Password: <input class="input-wide" type="password" name="orig_password"></div>
+  <div class="pad">New Password: <input class="input-wide" type="password" name="new_password"></div>
+  <div class="pad">Confirm Password: <input class="input-wide" type="password" name="confirm_password"></div>
+  <div class="pad blue-dashed">
+    <div class="inline-block">
+      <button type="submit">Change Password</button>
+    </div>
+    <div class="inline-block">
+      <button name="cancel" value="true" type="submit">Cancel</button>
+    </div>
+  </div>
+</form>

@@ -1,0 +1,15 @@
+<h2>Information</h2>
+<h3>&TXN_TYPE;</h3>
+<div>
+  <div>&TXN_ID;</div>
+  <div>&TXN_TIME;</div>
+</div>
+<div>Block &TXN_BLOCK;</div>
+<h2>Inputs</h2>
+&TXN_INPUTS;
+<h2>Outputs</h2>
+&TXN_OUTPUTS;
+<form class="inline-block" action="/gui?&CACHE_BUSTER;" method="post">
+  <input type="hidden" name="session_id" value="&SESSION_ID;">
+  <button type="submit">Back</button>
+</form>
