@@ -660,7 +660,7 @@ func walletunlockcmd() {
 	// interactive method. Also allow overriding auto-unlock via -p
 	password := build.WalletPassword()
 	if password != "" && !initPassword {
-		fmt.Printf("Using %v environment variable", build.EnvvarAPIPassword)
+		fmt.Printf("Using %v environment variable", build.EnvvarWalletPassword)
 		err := httpClient.WalletUnlockPost(password)
 		if err != nil {
 			fmt.Println("Automatic unlock failed!")
