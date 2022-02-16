@@ -1,0 +1,14 @@
+<div class="pad">
+  <div class="pad">
+    <font class="status &STATUS_COLOR;">&STATUS;</font> block <font class="block_height">&BLOCK_HEIGHT;</font>.
+  </div>
+  <div class="pad">
+    (Note: This may take some time.)
+  </div>
+</div>
+<div class="middle pad blue-dashed">
+  <form id="refreshScanner" action="/gui/scanning?&CACHE_BUSTER;" method="post">
+    <input type="hidden" name="session_id" value="&SESSION_ID;">
+    <button type="submit">Refresh</button>
+  </form>
+</div>

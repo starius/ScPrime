@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ScPrime Wallet</title>
+    <link rel="stylesheet" href="/gui/styles.css">
+    <meta http-equiv="REFRESH" content="1">
+    <meta http-equiv="PRAGMA" content="NO-CACHE">
+    <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
+  </head>
+  <body>
+    <div class="col-5 left top no-wrap">
+      <div>
+        <img class="scprime-logo" alt="ScPrime Wallet" src="/gui/logo.png"/>
+      </div>
+    </div>
+    <div id="popup" class="popup center">
+      <h2 class="uppercase">LOADING</h2>
+      <div class="middle pad blue-dashed" id="popup_content">Wallet is currently loading. This may take some time.</div>
+      <form class="inline-block" action="/?&CACHE_BUSTER;" method="get">
+        <button type="submit">Refresh</button>
+      </form>
+    </div>
+    <div id="fade" class="fade"></div>
+  </body>
+</html>

@@ -236,6 +236,65 @@ func (api *API) buildHTTPRoutes() {
 		router.POST("/wallet/watch", RequirePassword(api.walletWatchHandlerPOST, requiredPassword))
 	}
 
+	// GUI Calls
+	router.GET("/favicon.ico", api.guiFaviconHandler)
+	router.GET("/gui/balance", api.guiBalanceHandler)
+	router.GET("/gui/blockHeight", api.guiBlockHeightHandler)
+	router.GET("/gui/downloaderProgress", api.guiDownloaderProgressHandler)
+	router.GET("/gui/heartbeat", api.guiHeartbeatHandler)
+	router.GET("/gui/logo.png", api.guiLogoHandler)
+	router.GET("/gui/scripts.js", api.guiScriptHandler)
+	router.GET("/gui/styles.css", api.guiStyleHandler)
+	router.GET("/gui/fonts/open-sans-v27-latin-regular.woff2", api.guiOpenSansLatinRegularWoff2Handler)
+	router.GET("/gui/fonts/open-sans-v27-latin-700.woff2", api.guiOpenSansLatin700Woff2Handler)
+	if api.downloader == nil && api.gateway == nil {
+		router.GET("/", api.guiDownloadingHandler)
+	} else if api.gui == nil && api.gateway != nil {
+		router.GET("/", api.guiNotLoadedHandler)
+	} else if api.gui == nil {
+		router.GET("/", api.guiLoadingHandler)
+	} else {
+		router.GET("/", api.guiHandler)
+		router.GET("/gui", api.guiHandler)
+		router.GET("/gui/export", api.redirect)
+		router.GET("/gui/alert/changeLock", api.redirect)
+		router.GET("/gui/alert/initializeSeed", api.redirect)
+		router.GET("/gui/alert/sendCoins", api.redirect)
+		router.GET("/gui/alert/receiveCoins", api.redirect)
+		router.GET("/gui/alert/recoverSeed", api.redirect)
+		router.GET("/gui/alert/restoreFromSeed", api.redirect)
+		router.GET("/gui/changeLock", api.redirect)
+		router.GET("/gui/collapseMenu", api.redirect)
+		router.GET("/gui/expandMenu", api.redirect)
+		router.GET("/gui/initializeSeed", api.redirect)
+		router.GET("/gui/lockWallet", api.redirect)
+		router.GET("/gui/restoreSeed", api.redirect)
+		router.GET("/gui/scanning", api.redirect)
+		router.GET("/gui/sendCoins", api.redirect)
+		router.GET("/gui/setTxHistoryPage", api.redirect)
+		router.GET("/gui/unlockWallet", api.redirect)
+		router.GET("/gui/explorer", api.redirect)
+		router.POST("/gui", api.guiHandler)
+		router.POST("/gui/export", api.guiTransactionHistoryCsvExport)
+		router.POST("/gui/alert/changeLock", api.guiAlertChangeLockHandler)
+		router.POST("/gui/alert/initializeSeed", api.guiAlertInitializeSeedHandler)
+		router.POST("/gui/alert/sendCoins", api.guiAlertSendCoinsHandler)
+		router.POST("/gui/alert/receiveCoins", api.guiAlertReceiveCoinsHandler)
+		router.POST("/gui/alert/recoverSeed", api.guiAlertRecoverSeedHandler)
+		router.POST("/gui/alert/restoreFromSeed", api.guiAlertRestoreFromSeedHandler)
+		router.POST("/gui/changeLock", api.guiChangeLockHandler)
+		router.POST("/gui/collapseMenu", api.guiCollapseMenuHandler)
+		router.POST("/gui/expandMenu", api.guiExpandMenuHandler)
+		router.POST("/gui/initializeSeed", api.guiInitializeSeedHandler)
+		router.POST("/gui/lockWallet", api.guiLockWalletHandler)
+		router.POST("/gui/restoreSeed", api.guiRestoreSeedHandler)
+		router.POST("/gui/scanning", api.guiScanningHandler)
+		router.POST("/gui/sendCoins", api.guiSendCoinsHandler)
+		router.POST("/gui/setTxHistoryPage", api.guiSetTxHistoyPage)
+		router.POST("/gui/unlockWallet", api.guiUnlockWalletHandler)
+		router.POST("/gui/explorer", api.guiExplorerHandler)
+	}
+
 	// Apply UserAgent middleware and return the Router
 	api.routerMu.Lock()
 	api.router = http.TimeoutHandler(RequireUserAgent(router, requiredUserAgent), httpServerTimeout, fmt.Sprintf("HTTP call exceeded the timeout of %v", httpServerTimeout))
@@ -276,5 +335,9 @@ func RequirePassword(h httprouter.Handle, password string) httprouter.Handle {
 
 // isUnrestricted checks if a request may bypass the useragent check.
 func isUnrestricted(req *http.Request) bool {
-	return strings.HasPrefix(req.URL.Path, "/renter/stream/") || strings.HasPrefix(req.URL.Path, "/pubaccess/publink")
+	return strings.HasPrefix(req.URL.Path, "/renter/stream/") ||
+		strings.HasPrefix(req.URL.Path, "/pubaccess/publink") ||
+		strings.HasPrefix(req.URL.Path, "/gui") ||
+		req.URL.Path == "/favicon.ico" ||
+		req.URL.Path == "/"
 }

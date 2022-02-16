@@ -89,10 +89,23 @@ This is equivalent to:
 	spd -M cghmrtw
 Below is a list of all the modules available.
 
+GUI (u):
+	The GUI provides a web HTML page to assist with managing the wallet.
+	It is also fully functional through terminal browsers such as Lynx.
+	The GUI does not require any other modules.
+	Example:
+		spd -M u
+Downloader (d):
+	The downloader will downlownload remote resources such as the 
+	consensus database.
+	The downloader does not require any other modules.
+	Example:
+		spd -M d
 Gateway (g):
 	The gateway maintains a peer to peer connection to the network and
 	enables other modules to perform RPC calls on peers.
-	The gateway is required by all other modules.
+	The gateway is required by all modules other than the GUI and the 
+	downloader.
 	Example:
 		spd -M g
 Consensus Set (c):
@@ -188,7 +201,7 @@ func main() {
 	root.Flags().StringVarP(&globalConfig.Spd.SiaMuxTCPAddr, "siamux-addr", "", ":4283", "which port the SiaMux listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.SiaMuxWSAddr, "siamux-addr-ws", "", ":4284", "which port the SiaMux websocket listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.HostApiAddr, "host-api-addr", "", ":4285", "which port the Host API listens on")
-	root.Flags().StringVarP(&globalConfig.Spd.Modules, "modules", "M", "gctwrh", "enabled modules, see 'spd modules' for more info")
+	root.Flags().StringVarP(&globalConfig.Spd.Modules, "modules", "M", "ugctwrh", "enabled modules, see 'spd modules' for more info")
 	root.Flags().BoolVarP(&globalConfig.Spd.AuthenticateAPI, "authenticate-api", "", true, "enable API password protection")
 	root.Flags().BoolVarP(&globalConfig.Spd.TempPassword, "temp-password", "", false, "enter a temporary API password during startup")
 	root.Flags().BoolVarP(&globalConfig.Spd.AllowAPIBind, "disable-api-security", "", false, "allow spd to listen on a non-localhost address (DANGEROUS)")
