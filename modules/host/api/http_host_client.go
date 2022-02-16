@@ -2,32 +2,109 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"sync"
 
+	"github.com/hashicorp/golang-lru"
 	"github.com/starius/api2"
+	"github.com/starius/api2/closingclient"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 	"gitlab.com/zer0main/checkport"
 )
 
-// HostClienter stores and provides clients for host API.
-type HostClienter struct {
-	clientsMu sync.RWMutex
-	clients   map[string]*http.Client
+// HostClienterConfig represents HostClienter settings.
+type HostClienterConfig struct {
+	lruSize int
 }
 
-// NewClienter creates HostClienter.
-func NewClienter() *HostClienter {
-	return &HostClienter{
-		clients: make(map[string]*http.Client),
+// NewDefaultHostClienterConfig creates default HostClienterConfig.
+func NewDefaultHostClienterConfig() *HostClienterConfig {
+	return &HostClienterConfig{}
+}
+
+// Option is option callback for NewHostClienter.
+type Option func(*HostClienterConfig)
+
+// WithLRU is an option for LRU.
+func WithLRU(lruSize int) Option {
+	return func(config *HostClienterConfig) {
+		config.lruSize = lruSize
 	}
 }
 
-// Client returns client by public key.
-func (hc *HostClienter) Client(host, port string, hostPk types.SiaPublicKey) (*Client, error) {
+func newLruCache(size int) (*lru.Cache, error) {
+	return lru.NewWithEvict(size, func(key interface{}, value interface{}) {
+		cli, ok := value.(*Client)
+		if !ok {
+			panic("failed to convert value to client type")
+		}
+		if err := cli.Close(); err != nil {
+			log.Printf("Failed to close client on eviction: %v.", err)
+		}
+	})
+}
+
+// HostClienter stores and provides clients for host API.
+type HostClienter struct {
+	// If without LRU.
+	clientsMu sync.RWMutex
+	clients   map[string]*http.Client
+
+	// If with LRU.
+	cache *lru.Cache
+}
+
+// NewClienter creates HostClienter.
+func NewClienter(opts ...Option) *HostClienter {
+	config := NewDefaultHostClienterConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	if config.lruSize == 0 {
+		return &HostClienter{
+			clients: make(map[string]*http.Client),
+		}
+	}
+	lruCache, err := newLruCache(config.lruSize)
+	if err != nil {
+		panic(fmt.Errorf("failed to create LRU cache: %w", err))
+	}
+	return &HostClienter{
+		cache: lruCache,
+	}
+}
+
+type lruCacheKey struct {
+	host, port, hostPk string
+}
+
+func (hc *HostClienter) clientFromLRU(host, port string, hostPk types.SiaPublicKey) (*Client, error) {
+	key := lruCacheKey{host: host, port: port, hostPk: hostPk.String()}
+	if val, ok := hc.cache.Get(key); ok {
+		cli, ok := val.(*Client)
+		if !ok {
+			panic("failed to convert value to client type")
+		}
+		return cli, nil
+	}
+
+	closingClient, err := closingclient.New(modules.GetHostApiClient(hostPk))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create closing wrapper for client: %w", err)
+	}
+	cli, err := HostClientFromHttpClient(host, port, closingClient)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create api2 client: %w", err)
+	}
+	hc.cache.ContainsOrAdd(key, cli)
+	return cli, nil
+}
+
+func (hc *HostClienter) client(host, port string, hostPk types.SiaPublicKey) (*Client, error) {
 	hostPkStr := hostPk.String()
 	hc.clientsMu.RLock()
 	client, ok := hc.clients[hostPkStr]
@@ -41,8 +118,16 @@ func (hc *HostClienter) Client(host, port string, hostPk types.SiaPublicKey) (*C
 	return HostClientFromHttpClient(host, port, client)
 }
 
+// Client returns client by public key.
+func (hc *HostClienter) Client(host, port string, hostPk types.SiaPublicKey) (*Client, error) {
+	if hc.cache != nil {
+		return hc.clientFromLRU(host, port, hostPk)
+	}
+	return hc.client(host, port, hostPk)
+}
+
 // HostClientFromHttpClient creates host API client initialized with provided http.Client.
-func HostClientFromHttpClient(host, port string, client *http.Client) (*Client, error) {
+func HostClientFromHttpClient(host, port string, client api2.HttpClient) (*Client, error) {
 	if host == "" {
 		return nil, fmt.Errorf("empty address")
 	}

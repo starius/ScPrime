@@ -11,6 +11,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
+	"golang.org/x/net/http2"
 )
 
 const (
@@ -540,7 +541,7 @@ func GetHostApiClient(pk types.SiaPublicKey) *http.Client {
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
-		Transport: &http.Transport{
+		Transport: &http2.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true, //nolint:gosec // Not to require root CA signature.
 				VerifyConnection: func(state tls.ConnectionState) error {

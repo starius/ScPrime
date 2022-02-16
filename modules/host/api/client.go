@@ -26,6 +26,10 @@ func NewClient(baseURL string, opts ...api2.Option) (*Client, error) {
 	}, nil
 }
 
+func (c *Client) Close() error {
+	return c.api2client.Close()
+}
+
 func (c *Client) Health(ctx context.Context, req *HealthRequest) (res *HealthResponse, err error) {
 	res = &HealthResponse{}
 	err = c.api2client.Call(ctx, res, req)

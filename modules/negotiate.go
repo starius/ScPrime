@@ -453,6 +453,23 @@ var (
 	Storage        = types.NewSpecifier("Storage")
 )
 
+// ResourcesTypes is the list of all token resources.
+var ResourcesTypes = []types.Specifier{
+	DownloadBytes,
+	UploadBytes,
+	SectorAccesses,
+	Storage,
+}
+
+// ResourcesType2Index is the map from a token resources to position in ResourcesTypes.
+var ResourcesType2Index = func() map[types.Specifier]int {
+	m := make(map[types.Specifier]int, len(ResourcesTypes))
+	for index, rt := range ResourcesTypes {
+		m[rt] = index
+	}
+	return m
+}()
+
 // New RPC request and response types
 type (
 	// An RPCError may be sent instead of a Response to any RPC.
