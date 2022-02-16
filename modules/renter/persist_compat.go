@@ -2,6 +2,7 @@ package renter
 
 import (
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -10,7 +11,6 @@ import (
 	"strconv"
 
 	"gitlab.com/NebulousLabs/encoding"
-	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -241,14 +241,19 @@ func (r *Renter) compatV137ConvertSiaFiles(tracking map[string]v137TrackedFile, 
 		// Open the file.
 		file, err := os.Open(path)
 		if err != nil {
-			return errors.AddContext(err, "unable to open file for conversion"+path)
+			return fmt.Errorf("unable to open %v for conversion: %w", path, err)
 		}
 
 		// Load the file contents into the renter.
 		_, err = r.compatV137loadSiaFilesFromReader(file, tracking, oldContracts)
 		if err != nil {
-			err = errors.AddContext(err, "unable to load v137 siafiles from reader")
-			return errors.Compose(err, file.Close())
+			cerr := file.Close()
+			if cerr != nil {
+				err = fmt.Errorf("error %v closing file after conversion error: %w", cerr.Error(), err)
+			} else {
+				err = fmt.Errorf("unable to load v137 siafiles from reader: %w", err)
+			}
+			return err
 		}
 
 		// Close the file and delete it since it was converted.
@@ -356,17 +361,17 @@ func (r *Renter) compatV137loadSiaFilesFromReader(reader io.Reader, tracking map
 		&numFiles,
 	)
 	if err != nil {
-		return nil, errors.AddContext(err, "unable to read header")
+		return nil, fmt.Errorf("unable to read header: %w", err)
 	} else if header != shareHeader {
-		return nil, ErrBadFile
+		return nil, persist.ErrBadHeader
 	} else if version != shareVersion {
-		return nil, ErrIncompatible
+		return nil, persist.ErrBadVersion
 	}
 
 	// Create decompressor.
 	unzip, err := gzip.NewReader(reader)
 	if err != nil {
-		return nil, errors.AddContext(err, "unable to create gzip decompressor")
+		return nil, fmt.Errorf("error creating gzip decompressor: %w", err)
 	}
 	dec := encoding.NewDecoder(unzip, 100e6)
 
@@ -376,7 +381,7 @@ func (r *Renter) compatV137loadSiaFilesFromReader(reader io.Reader, tracking map
 		files[i] = new(file)
 		err := dec.Decode(files[i])
 		if err != nil {
-			return nil, errors.AddContext(err, "unable to decode file")
+			return nil, fmt.Errorf("unable to decode file: %w", err)
 		}
 
 		// Make sure the file's name does not conflict with existing files.
@@ -409,10 +414,10 @@ func (r *Renter) compatV137loadSiaFilesFromReader(reader io.Reader, tracking map
 		// be returned here
 		entry, err := r.v137FileToSiaFile(f, repairPath, oldContracts)
 		if err != nil {
-			return nil, errors.AddContext(err, fmt.Sprintf("unable to transform old file %v to new file", repairPath))
+			return nil, fmt.Errorf("unable to transform old file %v to new file: %w", repairPath, err)
 		}
 		if entry.NumChunks() < 1 {
-			return nil, errors.AddContext(err, "new file has invalid number of chunks")
+			return nil, fmt.Errorf("new file has invalid number of chunks (<1)")
 		}
 		names[i] = f.name
 		entry.Close()
@@ -430,8 +435,8 @@ func (r *Renter) convertPersistVersionFrom140To142(path string) error {
 	var p persistence
 	err := persist.LoadJSON(metadata, &p, path)
 	if err != nil {
-		r.log.Printf("Error loading persistence from %v : %v\n", path, err)
-		return errors.AddContext(err, "could not load json")
+		r.log.Debugf("Error loading persistence from %v : %v", path, err.Error())
+		return fmt.Errorf("could not load json: %w", err)
 	}
 	// Rename siafiles folder to fs/home/user and snapshots to fs/snapshots.
 	fsRoot := filepath.Join(r.persistDir, modules.FileSystemRoot)
@@ -439,19 +444,19 @@ func (r *Renter) convertPersistVersionFrom140To142(path string) error {
 	newSiaFilesPath := modules.UserFolder.SiaDirSysPath(fsRoot)
 	newSnapshotsPath := modules.BackupFolder.SiaDirSysPath(fsRoot)
 	if err := os.MkdirAll(newHomePath, 0700); err != nil {
-		return errors.AddContext(err, "failed to create new home dir")
+		return fmt.Errorf("failed to create new home dir: %w", err)
 	}
 	if err := os.Rename(filepath.Join(r.persistDir, "siafiles"), newSiaFilesPath); err != nil && !os.IsNotExist(err) {
-		return errors.AddContext(err, "failed to rename legacy siafiles folder")
+		return fmt.Errorf("failed to rename legacy siafiles folder: %w", err)
 	}
 	if err := os.Rename(filepath.Join(r.persistDir, "snapshots"), newSnapshotsPath); err != nil && !os.IsNotExist(err) {
-		return errors.AddContext(err, "failed to rename legacy snapshots dir")
+		return fmt.Errorf("failed to rename legacy snapshots dir: %w", err)
 	}
 	// Save metadata with updated version
 	metadata.Version = persistVersion142
 	err = persist.SaveJSON(metadata, p, path)
 	if err != nil {
-		return errors.AddContext(err, "could not save json")
+		return fmt.Errorf("error saving json: %w", err)
 	}
 	return nil
 }
@@ -469,16 +474,16 @@ func (r *Renter) convertPersistVersionFrom133To140(path string, oldContracts []m
 
 	err := persist.LoadJSON(metadata, &p, path)
 	if err != nil {
-		return errors.AddContext(err, "could not load json")
+		return fmt.Errorf("error loading json: %w", err)
 	}
 	metadata.Version = persistVersion140
 	// Load potential legacy SiaFiles.
 	if err := r.compatV137ConvertSiaFiles(p.Tracking, oldContracts); err != nil {
-		return errors.AddContext(err, "conversion from v137 failed")
+		return fmt.Errorf("conversion from v137 failed: %w", err)
 	}
 	err = persist.SaveJSON(metadata, p, path)
 	if err != nil {
-		return errors.AddContext(err, "could not save json")
+		return fmt.Errorf("error saving json: %w", err)
 	}
 	return nil
 }

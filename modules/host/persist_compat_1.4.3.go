@@ -2,11 +2,9 @@ package host
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 
-	"gitlab.com/NebulousLabs/errors"
-
-	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
 )
@@ -23,7 +21,7 @@ func (h *Host) upgradeFromV120ToV143() error {
 	p := new(persistence)
 	err := h.dependencies.LoadFile(modules.Hostv120PersistMetadata, p, filepath.Join(h.persistDir, settingsFile))
 	if err != nil {
-		return build.ExtendErr("could not load persistence object", err)
+		return fmt.Errorf("could not load persistence object: %w", err)
 	}
 
 	// Add the ephemeral account defaults
@@ -38,16 +36,16 @@ func (h *Host) upgradeFromV120ToV143() error {
 	smsk := h.staticMux.PrivateKey()
 	smpk := h.staticMux.PublicKey()
 	if !bytes.Equal(h.secretKey[:], smsk[:]) {
-		return errors.New("expected host private key to equal the siamux's private key")
+		return fmt.Errorf("expected host private key to equal the siamux's private key")
 	}
 	if !bytes.Equal(h.publicKey.Key[:], smpk[:]) {
-		return errors.New("expected host public key to equal the siamux's public key")
+		return fmt.Errorf("expected host public key to equal the siamux's public key")
 	}
 
 	// Save the updated persist so that the upgrade is not triggered again.
 	err = persist.SaveJSON(modules.Hostv143PersistMetadata, h.persistData(), filepath.Join(h.persistDir, settingsFile))
 	if err != nil {
-		return errors.AddContext(err, "could not save persistence object")
+		return fmt.Errorf("could not save persistence object: %w", err)
 	}
 
 	return nil

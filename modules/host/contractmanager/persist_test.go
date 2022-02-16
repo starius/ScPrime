@@ -2,14 +2,15 @@ package contractmanager
 
 import (
 	"bytes"
+	"crypto/rand"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
-
+	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 )
@@ -305,7 +306,7 @@ func TestLoadMissingStorageFolder(t *testing.T) {
 			datas[i] = dataI
 			err := cmt.cm.AddSector(rootI, dataI)
 			if err != nil {
-				t.Error(errors.AddContext(err, "Could not add sector"))
+				t.Error(fmt.Errorf("could not add sector: %w", err))
 				return
 			}
 		}(i)
@@ -655,5 +656,65 @@ func TestFolderRechecker(t *testing.T) {
 	}
 	if sfs[0].Capacity != modules.SectorSize*storageFolderGranularity*4 {
 		t.Error("the storage folder growth does not seem to have worked")
+	}
+}
+
+// TestUpgradeSettingsFile verifies that the old settings file with slice of
+// shared folders is properly loaded and converted to map based list of shared folders
+func TestUpgradeSettingsFile(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+
+	// Create a contract manager.
+	parentDir := build.TempDir(modules.ContractManagerDir, "TestUpgradeSettingsFile")
+	cmDir := filepath.Join(parentDir, modules.ContractManagerDir)
+	cm, err := New(cmDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Close the contract manager.
+	err = cm.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//Put old version of settings
+	var ss120 savedSettings120
+	rand.Read(ss120.SectorSalt[:])
+	//add 2 storage folders to check if recognized after upgrade
+	ss120.StorageFolders = append(ss120.StorageFolders, savedStorageFolder{Index: 35})
+	ss120.StorageFolders = append(ss120.StorageFolders, savedStorageFolder{Index: 350})
+	err = cm.dependencies.SaveFileSync(settingsMetadata120, &ss120, filepath.Join(cmDir, settingsFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a new contract manager using the same directory, should upgrade the setting to new version
+	cm, err = New(cmDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//Test if the old settings are read
+	if cm.sectorSalt != ss120.SectorSalt {
+		t.Error("sectorsalt not matching after upgrade")
+	}
+	if len(cm.storageFolders) != 2 {
+		t.Errorf("Expected 2 storage folders, got %v", len(cm.storageFolders))
+	}
+	_, ok := cm.storageFolders[35]
+	if !ok {
+		t.Error("Expected to see storage folder with index 35 but not found")
+	}
+	_, ok = cm.storageFolders[350]
+	if !ok {
+		t.Error("Expected to see storage folder with index 350 but not found")
+	}
+
+	// Close it again.
+	err = cm.Close()
+	if err != nil {
+		t.Fatal(err)
 	}
 }

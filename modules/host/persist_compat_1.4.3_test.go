@@ -2,6 +2,7 @@ package host
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -127,40 +128,40 @@ func loadExistingHostWithNewDeps(modulesDir, siaMuxDir, hostDir string) (closeFn
 	// Create the siamux
 	mux, err := modules.NewSiaMux(siaMuxDir, modulesDir, "localhost:0", "localhost:0")
 	if err != nil {
-		return nil, nil, errors.AddContext(err, "Cannot create new SiaMux")
+		return nil, nil, fmt.Errorf("error creating SiaMux: %w", err)
 	}
 
 	// Create the host dependencies.
 	g, err := gateway.New("localhost:0", false, filepath.Join(modulesDir, modules.GatewayDir))
 	if err != nil {
-		return nil, nil, errors.AddContext(err, "Error creating gateway")
+		return nil, nil, fmt.Errorf("error creating gateway: %w", err)
 	}
 	cs, errChan := consensus.New(g, false, filepath.Join(modulesDir, modules.ConsensusDir))
 	if err := <-errChan; err != nil {
-		return nil, nil, errors.AddContext(err, "Error creating consensus")
+		return nil, nil, fmt.Errorf("error creating consensus: %w", err)
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(modulesDir, modules.TransactionPoolDir))
 	if err != nil {
-		return nil, nil, errors.AddContext(err, "Error creating transactionpool")
+		return nil, nil, fmt.Errorf("error creating transactionpool: %w", err)
 	}
 	w, err := wallet.New(cs, tp, filepath.Join(modulesDir, modules.WalletDir))
 	if err != nil {
-		return nil, nil, errors.AddContext(err, "Error creating wallet")
+		return nil, nil, fmt.Errorf("error creating wallet: %w", err)
 	}
 
 	// Create the host.
 	h, err := NewCustomHost(modules.ProdDependencies, cs, g, tp, w, mux, "localhost:0", hostDir, nil, 5*time.Second)
 	if err != nil {
-		return nil, nil, errors.AddContext(err, "Error creating host")
+		return nil, nil, fmt.Errorf("error creating host: %w", err)
 	}
 
 	pubKey := mux.PublicKey()
 	if !bytes.Equal(h.publicKey.Key, pubKey[:]) {
-		return nil, nil, errors.New("host and siamux pubkeys don't match")
+		return nil, nil, fmt.Errorf("host and siamux pubkeys don't match")
 	}
 	privKey := mux.PrivateKey()
 	if !bytes.Equal(h.secretKey[:], privKey[:]) {
-		return nil, nil, errors.New("host and siamux privkeys don't match")
+		return nil, nil, fmt.Errorf("host and siamux privkeys don't match")
 	}
 
 	closefn := func() error {

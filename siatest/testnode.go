@@ -1,6 +1,8 @@
 package siatest
 
 import (
+	"errors"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -10,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/node"
@@ -93,7 +94,7 @@ func NewNode(nodeParams node.NodeParams) (*TestNode, error) {
 	// Create clean node
 	tn, err := NewCleanNodeAsync(nodeParams)
 	if err != nil {
-		return nil, errors.AddContext(err, "Could not create new clean node")
+		return nil, fmt.Errorf("error creating new clean node, %w", err)
 	}
 	// Fund the node
 	for i := types.BlockHeight(0); i <= types.MaturityDelay+types.TaxHardforkHeight; i++ {
@@ -126,7 +127,7 @@ func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error)
 	if nodeParams.RPCAddress == "" {
 		addr, err := testNodeAddressCounter.managedNextNodeAddress()
 		if err != nil {
-			return nil, errors.AddContext(err, "error getting next node address")
+			return nil, fmt.Errorf("error getting next node address: %w", err)
 		}
 		nodeParams.RPCAddress = addr + ":0"
 	}
@@ -147,11 +148,14 @@ func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error)
 	if asyncSync {
 		var errChan <-chan error
 		s, errChan = server.NewAsync("127.0.0.1:0", userAgent, password, nodeParams, time.Now())
-		err = errors.AddContext(modules.PeekErr(errChan), "Can not create NewAsync server")
+		e := modules.PeekErr(errChan)
+		if e != nil {
+			err = fmt.Errorf("error creating NewAsync server: %w", e)
+		}
 	} else {
 		s, err = server.New("127.0.0.1:0", userAgent, password, nodeParams, time.Now())
 		if err != nil {
-			err = errors.AddContext(err, "Can not create new server")
+			err = fmt.Errorf("error creating new server: %w", err)
 		}
 	}
 	if err != nil {
@@ -174,7 +178,7 @@ func newCleanNode(nodeParams node.NodeParams, asyncSync bool) (*TestNode, error)
 		primarySeed: "",
 	}
 	if err = tn.initRootDirs(); err != nil {
-		return nil, errors.AddContext(err, "failed to create root directories")
+		return nil, fmt.Errorf("failed to create root directories: %w", err)
 	}
 
 	// If there is no wallet we are done.
@@ -370,11 +374,11 @@ func (tn *TestNode) PrintDebugInfo(t *testing.T, contractInfo, hostInfo, renterI
 func (tn *TestNode) RestartNode() error {
 	err := tn.StopNode()
 	if err != nil {
-		return errors.AddContext(err, "Could not stop node")
+		return fmt.Errorf("error stopping node: %w", err)
 	}
 	err = tn.StartNode()
 	if err != nil {
-		return errors.AddContext(err, "Could not start node")
+		return fmt.Errorf("error starting node: %w", err)
 	}
 	return nil
 }
@@ -395,7 +399,7 @@ func (tn *TestNode) StartNode() error {
 	// Create server
 	s, err := server.New(":0", tn.UserAgent, tn.Password, tn.params, time.Now())
 	if err != nil {
-		return errors.AddContext(err, "Error starting testnode")
+		return fmt.Errorf("error starting testnode: %w", err)
 	}
 	tn.Server = s
 	tn.Client.Address = s.APIAddress()
@@ -422,7 +426,10 @@ func (tn *TestNode) StartNodeCleanDeps() error {
 
 // StopNode stops a TestNode
 func (tn *TestNode) StopNode() error {
-	return errors.AddContext(tn.Close(), "failed to stop node")
+	if err := tn.Close(); err != nil {
+		return fmt.Errorf("failed to stop node: %w", err)
+	}
+	return nil
 }
 
 // initRootDirs creates the download and upload directories for the TestNode

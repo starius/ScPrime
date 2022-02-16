@@ -2,6 +2,7 @@ package renter
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -16,7 +17,6 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -60,6 +60,8 @@ func TestRenterOne(t *testing.T) {
 		{Name: "TestDirectories", Test: testDirectories},
 		{Name: "TestAlertsSorted", Test: testAlertsSorted},
 		{Name: "TestPriceTablesUpdated", Test: testPriceTablesUpdated},
+		{Name: "TestReceivedFieldEqualsFileSize", Test: testReceivedFieldEqualsFileSize},
+		{Name: "TestFileAvailableAndRecoverable", Test: testFileAvailableAndRecoverable},
 	}
 
 	// Run tests
@@ -78,7 +80,7 @@ func TestRenterTwo(t *testing.T) {
 
 	// Create a group for the subtests
 	groupParams := siatest.GroupParams{
-		Hosts:   5,
+		Hosts:   3,
 		Renters: 1,
 		Miners:  1,
 	}
@@ -86,7 +88,6 @@ func TestRenterTwo(t *testing.T) {
 
 	// Specify subtests to run
 	subTests := []siatest.SubTest{
-		{Name: "TestReceivedFieldEqualsFileSize", Test: testReceivedFieldEqualsFileSize},
 		{Name: "TestRemoteRepair", Test: testRemoteRepair},
 		{Name: "TestSingleFileGet", Test: testSingleFileGet},
 		{Name: "TestSiaFileTimestamps", Test: testSiafileTimestamps},
@@ -235,7 +236,7 @@ func TestRenterThree(t *testing.T) {
 
 	// Create a group for the subtests
 	groupParams := siatest.GroupParams{
-		Hosts:   5,
+		Hosts:   3,
 		Renters: 1,
 		Miners:  1,
 	}
@@ -244,7 +245,6 @@ func TestRenterThree(t *testing.T) {
 	// Specify subtests to run
 	subTests := []siatest.SubTest{
 		{Name: "TestAllowanceDefaultSet", Test: testAllowanceDefaultSet},
-		{Name: "TestFileAvailableAndRecoverable", Test: testFileAvailableAndRecoverable},
 		{Name: "TestSetFileStuck", Test: testSetFileStuck},
 		{Name: "TestCancelAsyncDownload", Test: testCancelAsyncDownload},
 		{Name: "TestUploadDownload", Test: testUploadDownload}, // Needs to be last as it impacts hosts
@@ -266,7 +266,7 @@ func TestRenterFour(t *testing.T) {
 
 	// Create a group for the subtests
 	groupParams := siatest.GroupParams{
-		Hosts:   5,
+		Hosts:   2,
 		Renters: 1,
 		Miners:  1,
 	}
@@ -926,7 +926,7 @@ func testLocalRepair(t *testing.T, tg *siatest.TestGroup) {
 	err = build.Retry(100, 100*time.Millisecond, func() error {
 		dag, err := renterNode.DaemonAlertsGet()
 		if err != nil {
-			return errors.AddContext(err, "Failed to get alerts")
+			return fmt.Errorf("failed to get alerts: %w", err)
 		}
 		f, err := renterNode.File(remoteFile)
 		if err != nil {
@@ -1905,7 +1905,7 @@ func TestRenterAddNodes2(t *testing.T) {
 
 	// Create a group for testing
 	groupParams := siatest.GroupParams{
-		Hosts:   5,
+		Hosts:   4,
 		Renters: 1,
 		Miners:  1,
 	}
@@ -2107,7 +2107,7 @@ func TestRenewFailing(t *testing.T) {
 	expiryHeight := rcg.ActiveContracts[0].EndHeight
 	renterSettings, err := renter.RenterSettings()
 	if err != nil {
-		t.Fatal(errors.AddContext(err, "could not read renter settings"))
+		t.Fatal(fmt.Errorf("error reading renter settings: %w", err))
 	}
 	renewWindow = renterSettings.Allowance.RenewWindow
 
@@ -2117,7 +2117,7 @@ func TestRenewFailing(t *testing.T) {
 		}
 		blockHeight, err = miner.BlockHeight()
 		if err != nil {
-			t.Fatal(errors.AddContext(err, "Error getting blockgeight"))
+			t.Fatal(fmt.Errorf("error getting blockgeight: %w", err))
 		}
 	}
 
@@ -3204,7 +3204,7 @@ func TestSetFileTrackingPath(t *testing.T) {
 
 	// Create a testgroup.
 	gp := siatest.GroupParams{
-		Hosts:   5,
+		Hosts:   3,
 		Renters: 1,
 		Miners:  1,
 	}
@@ -3227,7 +3227,7 @@ func TestSetFileTrackingPath(t *testing.T) {
 	//increase allowance
 	rs, rserr := renter.RenterSettings()
 	if rserr != nil {
-		t.Fatal(errors.AddContext(rserr, "Could not get RenterSettings"))
+		t.Fatal(fmt.Errorf("error getting RenterSettings: %w", rserr))
 	}
 	allowance := rs.Allowance
 	allowance.Funds = rs.Allowance.Funds.Mul64(3)
