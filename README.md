@@ -1,4 +1,4 @@
-# [![ScPrime Logo](https://scpri.me/imagestore/SPRho_256x256.png)](http://scpri.me) v1.6.0
+# [![ScPrime Logo](https://scpri.me/imagestore/SPRho_256x256.png)](http://scpri.me) v1.6.1
 
 [![Build Status](https://gitlab.com/scpcorp/ScPrime/badges/master/pipeline.svg)](https://gitlab.com/scpcorp/ScPrime/commits/master)
 [![Coverage Report](https://gitlab.com/scpcorp/ScPrime/badges/master/coverage.svg)](https://gitlab.com/scpcorp/ScPrime/commits/master)
