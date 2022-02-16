@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -164,6 +165,18 @@ A dynamic transaction fee is applied depending on the size of the transaction an
 		Long: `Send scprimefunds to an address, and transfer the claim scprimecoins to your wallet.
 Run 'wallet send --help' to see a list of available units.`,
 		Run: wrap(walletsendsiafundscmd),
+	}
+
+	walletSendScpFromCsvCmd = &cobra.Command{
+		Use:   "scp_from_csv [/path/to/file.csv]",
+		Short: "Send scprimecoins to multiple addresses",
+		Long: `Send scprimecoins to multiple addresses in the same transaction as defined in the supplied CSV file.
+  The first column must be the amount of scprimecoin to send specified in units, e.g. 1.23KS.  Run 'wallet --help' 
+  for a list of units. If no unit is supplied, hastings will be assumed. The second column must be the 76-byte
+  hexadecimal address.
+
+  A dynamic transaction fee is applied depending on the size of the transaction and how busy the network is.`,
+		Run: wrap(walletsendscpfromcsvcmd),
 	}
 
 	walletSignCmd = &cobra.Command{
@@ -440,6 +453,47 @@ func walletsendsiafundscmd(amount, dest string) {
 		die("Could not send scprimefunds:", err)
 	}
 	fmt.Printf("Sent %s scprimefunds to %s\n", amount, dest)
+}
+
+// walletsendscpfromcsvcmd sends siacoins to multiple destinations as defined from a supplied CSV files
+func walletsendscpfromcsvcmd(path string) {
+	fmt.Println("Scanning", path)
+	f, err := os.Open(path)
+	if err != nil {
+		die("Failed to open CSV file:", err)
+	}
+	defer f.Close()
+	lines, err := csv.NewReader(f).ReadAll()
+	if err != nil {
+		die("Failed to read CSV lines:", err)
+	}
+	outputs := []types.SiacoinOutput{}
+	for _, line := range lines {
+		amount := line[0]
+		dest := line[1]
+		hastings, err := parseCurrency(amount)
+		if err != nil {
+			die("Could not parse amount:", err)
+		}
+		var value types.Currency
+		if _, err := fmt.Sscan(hastings, &value); err != nil {
+			die("Failed to parse amount", err)
+		}
+		var hash types.UnlockHash
+		if _, err := fmt.Sscan(dest, &hash); err != nil {
+			die("Failed to parse destination address", err)
+		}
+		fmt.Printf("Please send %s to %s\n", amount, dest)
+		var output types.SiacoinOutput
+		output.Value = value
+		output.UnlockHash = hash
+		outputs = append(outputs, output)
+	}
+	_, err = httpClient.WalletSiacoinsMultiPost(outputs)
+	if err != nil {
+		die("Could not send scprimecoins:", err)
+	}
+	fmt.Println("Sent scprimecoins.")
 }
 
 // walletbalancecmd retrieves and displays information about the wallet.
