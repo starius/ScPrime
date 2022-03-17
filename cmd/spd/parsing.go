@@ -12,12 +12,6 @@ import (
 func parseModules(config Config) node.NodeParams {
 	params := node.NodeParams{}
 	// Parse the modules.
-	if strings.Contains(config.Spd.Modules, "u") {
-		params.CreateGui = true
-	}
-	if strings.Contains(config.Spd.Modules, "d") {
-		params.CreateDownloader = true
-	}
 	if strings.Contains(config.Spd.Modules, "g") {
 		params.CreateGateway = true
 	}
@@ -55,9 +49,7 @@ func parseModules(config Config) node.NodeParams {
 	params.SiaMuxTCPAddress = config.Spd.SiaMuxTCPAddr
 	params.SiaMuxWSAddress = config.Spd.SiaMuxWSAddr
 	params.Dir = config.Spd.DataDir
-	params.APIaddr = config.Spd.APIaddr
 	params.HostAPIAddr = config.Spd.HostApiAddr
 	params.CheckTokenExpirationFrequency = 1 * time.Hour // default
-	params.Headless = true
 	return params
 }

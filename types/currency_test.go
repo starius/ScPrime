@@ -15,53 +15,6 @@ func TestNewCurrency(t *testing.T) {
 	}
 }
 
-// TestNewCurrencyStr
-func TestNewCurrencyStr(t *testing.T) {
-	tests := []struct {
-		in, out string
-		err     error
-	}{
-		{"x", "0", ErrParseCurrencyUnits},
-		{"1", "0", ErrParseCurrencyUnits},
-		{"pS", "0", ErrParseCurrencyAmount},
-		{"1pS", "1000000000000000", nil},
-		{"1 pS", "1000000000000000", nil},
-		{"2nS ", "2000000000000000000", nil},
-		{"2 nS", "2000000000000000000", nil},
-		{"0uS", "0", nil},
-		{"0 uS", "0", nil},
-		{"10mS", "10000000000000000000000000", nil},
-		{"10 mS", "10000000000000000000000000", nil},
-		{"2SCP", "2000000000000000000000000000", nil},
-		{"2 SCP", "2000000000000000000000000000", nil},
-		{" 1KS ", "1000000000000000000000000000000", nil},
-		{"1 KS", "1000000000000000000000000000000", nil},
-		{"4MS", "4000000000000000000000000000000000", nil},
-		{"4 MS", "4000000000000000000000000000000000", nil},
-		{"2GS", "2000000000000000000000000000000000000", nil},
-		{" 2 GS ", "2000000000000000000000000000000000000", nil},
-		{"1TS", "1000000000000000000000000000000000000000", nil},
-		{"1 TS", "1000000000000000000000000000000000000000", nil},
-		{"0.5TS", "500000000000000000000000000000000000000", nil},
-		{"0.5 TS", "500000000000000000000000000000000000000", nil},
-		{"x SCP", "0", ErrParseCurrencyAmount},
-		{"0SPF", "0", nil},
-		{"0 SPF", "0", nil},
-		{"10SPF", "10", nil},
-		{"10 SPF", "10", nil},
-		{"0.5SPF", "0", ErrParseCurrencyInteger},
-		{"0.5 SPF", "0", ErrParseCurrencyInteger},
-		{"10.5SPF", "0", ErrParseCurrencyInteger},
-		{"10.5 SPF", "0", ErrParseCurrencyInteger},
-	}
-	for _, test := range tests {
-		res, err := NewCurrencyStr(test.in)
-		if res.String() != test.out || err != test.err {
-			t.Errorf("parseCurrency(%v): expected %v %v, got %v %v", test.in, test.out, test.err, res, err)
-		}
-	}
-}
-
 // TestCurrencyAdd probes the addition function of the currency type.
 func TestCurrencyAdd(t *testing.T) {
 	c7 := NewCurrency64(7)

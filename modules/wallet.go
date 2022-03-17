@@ -120,17 +120,6 @@ type (
 		ConfirmedOutgoingValue types.Currency `json:"confirmedoutgoingvalue"`
 	}
 
-	// SummarizedTransaction is a transaction that has been formatted for·
-	// humans to read.
-	SummarizedTransaction struct {
-		TxnId     string `json:"txn_id"`
-		Type      string `json:"type"`
-		Time      string `json:"time"`
-		Confirmed string `json:"confirmed"`
-		Scp       string `json:"scp"`
-		Spf       string `json:"spf"`
-	}
-
 	// A UnspentOutput is a SiacoinOutput or SiafundOutput that the wallet
 	// is tracking.
 	UnspentOutput struct {

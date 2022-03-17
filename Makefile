@@ -27,7 +27,6 @@ pkgs = \
 	./cmd/node-scanner \
 	./cmd/spc \
 	./cmd/spd \
-	./cmd/scp-ui \
 	./cmd/pubaccess-benchmark \
 	./compatibility \
 	./crypto \
@@ -78,7 +77,7 @@ pkgs = \
 
 # release-pkgs determine which packages are built for release and distrubtion
 # when running a 'make release' command.
-release-pkgs = ./cmd/spc ./cmd/spd ./cmd/scp-ui
+release-pkgs = ./cmd/spc ./cmd/spd
 
 # lockcheckpkgs are the packages that are checked for locking violations.
 lockcheckpkgs = \
@@ -87,7 +86,6 @@ lockcheckpkgs = \
 	./cmd/node-scanner \
 	./cmd/spc \
 	./cmd/spd \
-	./cmd/scp-ui \
 	./cmd/pubaccess-benchmark \
 	./node \
 	./node/api \

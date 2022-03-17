@@ -23,10 +23,8 @@ import (
 	"gitlab.com/scpcorp/ScPrime/config"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/consensus"
-	"gitlab.com/scpcorp/ScPrime/modules/downloader"
 	"gitlab.com/scpcorp/ScPrime/modules/explorer"
 	"gitlab.com/scpcorp/ScPrime/modules/gateway"
-	"gitlab.com/scpcorp/ScPrime/modules/gui"
 	"gitlab.com/scpcorp/ScPrime/modules/host"
 	"gitlab.com/scpcorp/ScPrime/modules/miner"
 	pool "gitlab.com/scpcorp/ScPrime/modules/miningpool"
@@ -75,8 +73,6 @@ type NodeParams struct {
 	CreateRenter          bool
 	CreateTransactionPool bool
 	CreateWallet          bool
-	CreateDownloader      bool
-	CreateGui             bool
 
 	// Custom modules - if the modules is provided directly, the provided
 	// module will be used instead of creating a new one. If a custom module is
@@ -92,8 +88,6 @@ type NodeParams struct {
 	Renter          modules.Renter
 	TransactionPool modules.TransactionPool
 	Wallet          modules.Wallet
-	Downloader      modules.Downloader
-	Gui             modules.Gui
 
 	// Dependencies for each module supporting dependency injection.
 	ConsensusSetDeps modules.Dependencies
@@ -128,7 +122,6 @@ type NodeParams struct {
 	SkipHostDiscovery    bool
 	SkipHostAnnouncement bool
 	SkipWalletInit       bool
-	Headless             bool
 
 	// The high level directory where all the persistence gets stored for the
 	// modules.
@@ -137,7 +130,6 @@ type NodeParams struct {
 	// Configuration settings for the Mining pool.
 	PoolConfig config.MiningPoolConfig
 
-	APIaddr                       string
 	HostAPIAddr                   string
 	CheckTokenExpirationFrequency time.Duration
 }
@@ -158,8 +150,6 @@ type Node struct {
 	Renter          modules.Renter
 	TransactionPool modules.TransactionPool
 	Wallet          modules.Wallet
-	Downloader      modules.Downloader
-	Gui             modules.Gui
 
 	// The high level directory where all the persistence gets stored for the
 	// modules.
@@ -179,12 +169,6 @@ func (np NodeParams) NumModules() (n int) {
 		n++
 	}
 	if np.CreateWallet || np.Wallet != nil {
-		n++
-	}
-	if np.CreateDownloader || np.Downloader != nil {
-		n++
-	}
-	if np.CreateGui || np.Gui != nil {
 		n++
 	}
 	if np.CreateHost || np.Host != nil {
@@ -263,14 +247,6 @@ func (n *Node) Close() (err error) {
 		printlnRelease("Closing consensusset...")
 		err = errors.Compose(n.ConsensusSet.Close())
 	}
-	if n.Downloader != nil {
-		printlnRelease("Closing downloader...")
-		err = errors.Compose(n.Downloader.Close())
-	}
-	if n.Gui != nil {
-		printlnRelease("Closing gui...")
-		err = errors.Compose(n.Gui.Close())
-	}
 	if n.Gateway != nil {
 		printlnRelease("Closing gateway...")
 		err = errors.Compose(n.Gateway.Close())
@@ -307,59 +283,8 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		return nil, errChan
 	}
 
-	loadStart := time.Now()
-	// GUI.
-	u := func() modules.Gui {
-		if params.CreateGui && params.Gui != nil {
-			return nil
-		}
-		if params.Gui != nil {
-			return params.Gui
-		}
-		if !params.CreateGui {
-			return nil
-		}
-		i++
-		printfRelease("(%d/%d) Loading gui...", i, numModules)
-		if !params.Headless {
-			gui.AddHead()
-		}
-		return gui.New(params.APIaddr)
-	}()
-	if u != nil {
-		loadTime := time.Since(loadStart).Seconds()
-		if loadTime < .0001 {
-			loadTime = .0001
-		}
-		printlnRelease(" done in", loadTime, "seconds.")
-	}
-
-	loadStart = time.Now()
-	// Downloader
-	d := func() modules.Downloader {
-		if params.CreateDownloader && params.Downloader != nil {
-			return nil
-		}
-		if params.Downloader != nil {
-			return params.Downloader
-		}
-		if !params.CreateDownloader {
-			return nil
-		}
-		i++
-		printfRelease("(%d/%d) Downloading consensus...", i, numModules)
-		return downloader.New(params.Dir)
-	}()
-	if d != nil {
-		loadTime := time.Since(loadStart).Seconds()
-		if loadTime < .0001 {
-			loadTime = .0001
-		}
-		printlnRelease(" done in", loadTime, "seconds.")
-	}
-
 	// Gateway.
-	loadStart = time.Now()
+	loadStart := time.Now()
 	g, err := func() (modules.Gateway, error) {
 		if params.CreateGateway && params.Gateway != nil {
 			return nil, errors.New("cannot both create a gateway and use a passed in gateway")
@@ -386,7 +311,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		return nil, errChan
 	}
 	if g != nil {
-		printlnRelease(" done in", time.Since(loadStart).Seconds(), "seconds.")
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
 	loadStart = time.Now()
@@ -417,7 +342,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		return nil, errChan
 	}
 	if cs != nil {
-		printlnRelease(" done in", time.Since(loadStart).Seconds(), "seconds.")
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
 	loadStart = time.Now()
@@ -445,7 +370,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		return nil, errChan
 	}
 	if e != nil {
-		printlnRelease(" done in", time.Since(loadStart).Seconds(), "seconds.")
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
 	loadStart = time.Now()
@@ -473,7 +398,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		return nil, errChan
 	}
 	if tp != nil {
-		printlnRelease(" done in", time.Since(loadStart).Seconds(), "seconds.")
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
 	loadStart = time.Now()
@@ -501,7 +426,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		return nil, errChan
 	}
 	if w != nil {
-		printlnRelease(" done in", time.Since(loadStart).Seconds(), "seconds.")
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
 	loadStart = time.Now()
@@ -529,7 +454,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		return nil, errChan
 	}
 	if m != nil {
-		printlnRelease(" done in", time.Since(loadStart).Seconds(), "seconds.")
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
 	loadStart = time.Now()
@@ -571,7 +496,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		return nil, errChan
 	}
 	if h != nil {
-		printlnRelease(" done in", time.Since(loadStart).Seconds(), "seconds.")
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
 	loadStart = time.Now()
@@ -658,7 +583,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		return nil, errChan
 	}
 	if r != nil {
-		printlnRelease(" done in", time.Since(loadStart).Seconds(), "seconds.")
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
 	// Mining Pool.
@@ -687,7 +612,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		return nil, errChan
 	}
 	if p != nil {
-		printlnRelease(" done in", time.Since(loadStart).Seconds(), "seconds.")
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 	loadStart = time.Now()
 
@@ -715,15 +640,10 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		return nil, errChan
 	}
 	if sm != nil {
-		printlnRelease(" done in", time.Since(loadStart).Seconds(), "seconds.")
+		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
 	}
 
-	if w == nil || u == nil || params.Headless {
-		printfRelease("API is now available, module loading completed in %.3f seconds\n", time.Since(loadStartTime).Seconds())
-	}
-	if w != nil && u != nil && params.Headless {
-		printfRelease("Wallet GUI is available at http://%s\n", params.APIaddr)
-	}
+	printfRelease("API is now available, module loading completed in %.3f seconds\n", time.Since(loadStartTime).Seconds())
 	go func() {
 		errChan <- errors.Compose(<-errChanCS, <-errChanRenter)
 		close(errChan)
@@ -742,8 +662,6 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		Renter:          r,
 		TransactionPool: tp,
 		Wallet:          w,
-		Gui:             u,
-		Downloader:      d,
 
 		Dir: dir,
 	}, errChan
