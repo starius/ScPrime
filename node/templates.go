@@ -17,7 +17,6 @@ var (
 		CreateRenter:                  true,
 		CreateTransactionPool:         true,
 		CreateWallet:                  true,
-		CreateGui:                     true,
 		CheckTokenExpirationFrequency: 5 * time.Second,
 	}
 	// FeeManagerTemplate is a template for a ScPrime node that has a functioning
@@ -32,7 +31,6 @@ var (
 		CreateRenter:                  false,
 		CreateTransactionPool:         true,
 		CreateWallet:                  true,
-		CreateGui:                     true,
 		CheckTokenExpirationFrequency: 5 * time.Second,
 	}
 	// GatewayTemplate is a template for a ScPrime node that has a functioning
@@ -46,7 +44,6 @@ var (
 		CreateRenter:                  false,
 		CreateTransactionPool:         false,
 		CreateWallet:                  false,
-		CreateGui:                     false,
 		CheckTokenExpirationFrequency: 5 * time.Second,
 	}
 	// HostTemplate is a template for a ScPrime node that has a functioning host.
@@ -60,7 +57,6 @@ var (
 		CreateRenter:                  false,
 		CreateTransactionPool:         true,
 		CreateWallet:                  true,
-		CreateGui:                     true,
 		CheckTokenExpirationFrequency: 5 * time.Second,
 	}
 	// MinerTemplate is a template for a ScPrime node that has a functioning miner.
@@ -74,7 +70,6 @@ var (
 		CreateRenter:                  false,
 		CreateTransactionPool:         true,
 		CreateWallet:                  true,
-		CreateGui:                     true,
 		CheckTokenExpirationFrequency: 5 * time.Second,
 	}
 	// RenterTemplate is a template for a ScPrime node that has a functioning
@@ -89,7 +84,6 @@ var (
 		CreateRenter:                  true,
 		CreateTransactionPool:         true,
 		CreateWallet:                  true,
-		CreateGui:                     true,
 		CheckTokenExpirationFrequency: 5 * time.Second,
 	}
 	// WalletTemplate is a template for a ScPrime node that has a functioning
@@ -104,7 +98,6 @@ var (
 		CreateRenter:                  false,
 		CreateTransactionPool:         true,
 		CreateWallet:                  true,
-		CreateGui:                     true,
 		CheckTokenExpirationFrequency: 5 * time.Second,
 	}
 )

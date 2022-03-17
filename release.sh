@@ -44,7 +44,7 @@ for arch in amd64 arm; do
 		rm -rf $folder
 		mkdir -p $folder
 		# compile and sign binaries
-		for pkg in spc spd scp-ui; do
+		for pkg in spc spd; do
 			bin=$pkg
 			if [ "$os" == "windows" ]; then
 				bin=${pkg}.exe
