@@ -462,15 +462,27 @@ func walletsendscpfromcsvcmd(path string) {
 	if err != nil {
 		die("Failed to open CSV file:", err)
 	}
-	defer f.Close()
 	lines, err := csv.NewReader(f).ReadAll()
+	f.Close()
 	if err != nil {
 		die("Failed to read CSV lines:", err)
 	}
 	outputs := []types.SiacoinOutput{}
-	for _, line := range lines {
+	for i, line := range lines {
+		if line == nil {
+			fmt.Printf("Skipping line %d because it was empty.\n", i)
+			continue
+		}
 		amount := line[0]
+		if amount == "" {
+			fmt.Printf("Skipping line %d because the first column was empty. The first column must be the amount of scprimecoin to send specified in units, e.g. 1.23KS\n", i)
+			continue
+		}
 		dest := line[1]
+		if dest == "" {
+			fmt.Printf("Skipping line %d because the second column was empty. The second column must be the 76-byte hexadecimal address.\n", i)
+			continue
+		}
 		hastings, err := parseCurrency(amount)
 		if err != nil {
 			die("Could not parse amount:", err)
@@ -488,6 +500,9 @@ func walletsendscpfromcsvcmd(path string) {
 		output.Value = value
 		output.UnlockHash = hash
 		outputs = append(outputs, output)
+	}
+	if len(outputs) == 0 {
+		die("No scprime outputs were supplied.")
 	}
 	_, err = httpClient.WalletSiacoinsMultiPost(outputs)
 	if err != nil {
