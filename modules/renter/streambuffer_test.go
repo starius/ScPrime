@@ -52,11 +52,6 @@ func (mds *mockDataSource) ID() modules.DataSourceID {
 	return modules.DataSourceID(crypto.HashObject(mds.data))
 }
 
-// Metadata implements streamBufferDataSource
-func (mds *mockDataSource) Metadata() modules.PubfileMetadata {
-	return modules.PubfileMetadata{}
-}
-
 // RequestSize implements streamBufferDataSource.
 func (mds *mockDataSource) RequestSize() uint64 {
 	return mds.staticRequestSize

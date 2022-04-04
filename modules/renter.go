@@ -9,7 +9,6 @@ import (
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
-	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 	"gitlab.com/scpcorp/ScPrime/types"
 
 	"gitlab.com/NebulousLabs/errors"
@@ -236,13 +235,6 @@ type Allowance struct {
 	Hosts       uint64            `json:"hosts"`
 	Period      types.BlockHeight `json:"period"`
 	RenewWindow types.BlockHeight `json:"renewwindow"`
-
-	// PaymentContractInitialFunding establishes the amount of money that the a
-	// Pubaccess portal will put into a brand new payment contract. If this value
-	// is set to zero, this node will not act as a Pubaccess portal. When this
-	// value is non-zero, this node will act as a Pubaccess portal, and form
-	// contracts with every reasonably priced host.
-	PaymentContractInitialFunding types.Currency `json:"paymentcontractinitialfunding"`
 
 	// ExpectedStorage is the amount of data that we expect to have in a contract.
 	ExpectedStorage uint64 `json:"expectedstorage"`
@@ -1056,70 +1048,6 @@ type Renter interface {
 
 	// DirList lists the directories in a siadir
 	DirList(siaPath SiaPath) ([]DirectoryInfo, error)
-
-	// AddSkykey adds the pubaccesskey to the renter's pubaccesskey manager.
-	AddSkykey(pubaccesskey.Pubaccesskey) error
-
-	// CreateSkykey creates a new Pubaccesskey with the given name and ciphertype.
-	CreateSkykey(string, pubaccesskey.PubaccesskeyType) (pubaccesskey.Pubaccesskey, error)
-
-	// DeleteSkykeyByID deletes the Pubaccesskey with the given name from the renter's
-	// pubaccesskey manager if it exists.
-	DeleteSkykeyByID(pubaccesskey.PubaccesskeyID) error
-
-	// DeleteSkykeyByName deletes the Pubaccesskey with the given name from the renter's
-	// pubaccesskey manager if it exists.
-	DeleteSkykeyByName(string) error
-
-	// SkykeyByName gets the Pubaccesskey with the given name from the renter's pubaccesskey
-	// manager if it exists.
-	SkykeyByName(string) (pubaccesskey.Pubaccesskey, error)
-
-	// SkykeyByID gets the Pubaccesskey with the given ID from the renter's pubaccesskey
-	// manager if it exists.
-	SkykeyByID(pubaccesskey.PubaccesskeyID) (pubaccesskey.Pubaccesskey, error)
-
-	// SkykeyIDByName gets the PubaccesskeyID of the key with the given name if it
-	// exists.
-	SkykeyIDByName(string) (pubaccesskey.PubaccesskeyID, error)
-
-	// Skykeys returns a slice containing each Pubaccesskey being stored by the renter.
-	Skykeys() ([]pubaccesskey.Pubaccesskey, error)
-
-	// CreatePublinkFromSiafile will create a publink from a siafile. This will
-	// result in some uploading - the base sector pubfile needs to be uploaded
-	// separately, and if there is a fanout expansion that needs to be uploaded
-	// separately as well.
-	CreatePublinkFromSiafile(PubfileUploadParameters, SiaPath) (Publink, error)
-
-	// DownloadPublink will fetch a file from the ScPrime network using the publink.
-	DownloadPublink(Publink, time.Duration) (PubfileMetadata, Streamer, error)
-
-	// UploadSkyfile will upload data to the ScPrime network from a reader and
-	// create a pubfile, returning the publink that can be used to access the
-	// file.
-	//
-	// NOTE: A pubfile is a file that is tracked and repaired by the renter.  A
-	// pubfile contains more than just the file data, it also contains metadata
-	// about the file and other information which is useful in fetching the
-	// file.
-	UploadSkyfile(PubfileUploadParameters) (Publink, error)
-
-	// Blacklist returns the merkleroots that are blacklisted
-	Blacklist() ([]crypto.Hash, error)
-
-	// UpdateSkynetBlacklist updates the list of publinks that are blacklisted
-	UpdateSkynetBlacklist(additions, removals []Publink) error
-
-	// PinPublink re-uploads the data stored at the file under that publink with
-	// the given parameters.
-	PinPublink(Publink, PubfileUploadParameters, time.Duration) error
-
-	// Portals returns the list of known pubaccess portals.
-	Portals() ([]SkynetPortal, error)
-
-	// UpdateSkynetPortals updates the list of known pubaccess portals.
-	UpdateSkynetPortals(additions []SkynetPortal, removals []NetAddress) error
 
 	// WorkerPoolStatus returns the current status of the Renter's worker pool
 	WorkerPoolStatus() (WorkerPoolStatus, error)

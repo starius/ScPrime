@@ -219,6 +219,13 @@ func (h *Host) initNetworking(address string) (err error) {
 			h.log.Println("ERROR: failed to forward port:", err)
 		}
 
+		//try upnp forward http api port
+		rport := h.ManagedExternalSettings().RelayerPort
+		err = h.g.ForwardPort(rport)
+		if err != nil {
+			h.log.Printf("Info: unable to forward port %v : %v", rport, err.Error())
+		}
+
 		threadedUpdateHostnameClosedChan := make(chan struct{})
 		go h.threadedUpdateHostname(threadedUpdateHostnameClosedChan)
 		h.tg.OnStop(func() {

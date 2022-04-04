@@ -27,7 +27,6 @@ pkgs = \
 	./cmd/node-scanner \
 	./cmd/spc \
 	./cmd/spd \
-	./cmd/pubaccess-benchmark \
 	./compatibility \
 	./crypto \
 	./modules \
@@ -47,8 +46,6 @@ pkgs = \
 	./modules/renter/hostdb \
 	./modules/renter/hostdb/hosttree \
 	./modules/renter/proto \
-	./modules/renter/pubaccessblacklist \
-	./modules/renter/pubaccessportals \
 	./modules/transactionpool \
 	./modules/wallet \
 	./node \
@@ -70,7 +67,6 @@ pkgs = \
 	./siatest/renterhost \
 	./siatest/transactionpool \
 	./siatest/wallet \
-	./pubaccesskey \
 	./sync \
 	./types \
 	./types/typesutil
@@ -86,7 +82,6 @@ lockcheckpkgs = \
 	./cmd/node-scanner \
 	./cmd/spc \
 	./cmd/spd \
-	./cmd/pubaccess-benchmark \
 	./node \
 	./node/api \
 	./node/api/client \
@@ -94,9 +89,6 @@ lockcheckpkgs = \
 	./modules/host/mdm \
 	./modules/renter/hostdb \
 	./modules/renter/proto \
-	./modules/renter/pubaccessblacklist \
-	./modules/renter/pubaccessportals \
-	./pubaccesskeykey \
 	./types \
 	./types/typesutil 
 
@@ -105,7 +97,7 @@ run = .
 
 # util-pkgs determine the set of packages that are built when running
 # 'make utils'
-util-pkgs = ./cmd/node-scanner ./cmd/pubaccess-benchmark
+util-pkgs = ./cmd/node-scanner
 
 # dependencies list all packages needed to run make commands used to build, test
 # and lint spc/spd locally and in CI systems.

@@ -45,10 +45,6 @@ var (
 )
 
 var (
-	// SkynetFolder is the ScPrime folder where all of the pubfiles are stored by
-	// default.
-	SkynetFolder = NewGlobalSiaPath("/var/pubaccess")
-
 	// BackupFolder is the Sia folder where all of the renter's snapshot
 	// siafiles are stored by default.
 	BackupFolder = NewGlobalSiaPath("/snapshots")

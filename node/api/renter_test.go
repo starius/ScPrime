@@ -1355,7 +1355,7 @@ func TestRenterPricesHandlerPricey(t *testing.T) {
 	vals.Set("mindownloadbandwidthprice", modules.DefaultDownloadBandwidthPrice.Mul64(10000).String())
 	vals.Set("mincontractprice", modules.DefaultContractPrice.Mul64(1125).Div64(10000).String())
 	vals.Set("minstorageprice", modules.DefaultStoragePrice.Mul64(50).String())
-	vals.Set("minuploadbandwidthprice", modules.DefaultUploadBandwidthPrice.Mul64(10000).String())
+	vals.Set("minuploadbandwidthprice", modules.DefaultUploadBandwidthPrice.Add64(10000).String())
 	err = stHost2.stdPostAPI("/host", vals)
 	if err != nil {
 		t.Fatal(err)

@@ -30,14 +30,11 @@ variables:
     ./modules/renter/hostdb
     ./modules/renter/hostdb/hosttree
     ./modules/renter/proto
-    ./modules/renter/pubaccessblacklist
-    ./modules/renter/pubaccessportals
     ./modules/miner
     ./modules/wallet
     ./modules/transactionpool
     ./persist
     ./sync
-    ./pubaccesskey
     ./types
   siatest_pkgs: >-
     ./siatest

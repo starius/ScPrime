@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -44,7 +45,7 @@ func TestRenterOne(t *testing.T) {
 
 	// Create a group for the subtests
 	groupParams := siatest.GroupParams{
-		Hosts:   5,
+		Hosts:   4,
 		Renters: 1,
 		Miners:  1,
 	}
@@ -316,7 +317,7 @@ func testAllowanceDefaultSet(t *testing.T, tg *siatest.TestGroup) {
 func testReceivedFieldEqualsFileSize(t *testing.T, tg *siatest.TestGroup) {
 	// Make sure the test has enough hosts.
 	if len(tg.Hosts()) < 4 {
-		t.Fatal("testReceivedFieldEqualsFileSize requires at least 4 hosts")
+		t.Fatal(fmt.Sprintf("testReceivedFieldEqualsFileSize requires at least 4 hosts but have %v", len(tg.Hosts())))
 	}
 	// Grab the first of the group's renters
 	r := tg.Renters()[0]
@@ -1417,9 +1418,9 @@ func testCancelAsyncDownload(t *testing.T, tg *siatest.TestGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Sometimes wait a second to not always cancel the download right
-	// away.
-	time.Sleep(time.Second * time.Duration(fastrand.Intn(2)))
+	// Wait a little to not always cancel the download right away.
+	// time.Sleep(time.Second / 10) //+ time.Second*time.Duration(fastrand.Intn(2)))
+	runtime.Gosched()
 	// Cancel the download.
 	if err := renter.RenterCancelDownloadPost(cancelID); err != nil {
 		t.Fatal(err)
@@ -1874,7 +1875,7 @@ func TestRenterAddNodes(t *testing.T) {
 
 	// Create a group for testing
 	groupParams := siatest.GroupParams{
-		Hosts:   5,
+		Hosts:   3,
 		Renters: 1,
 		Miners:  1,
 	}
@@ -2410,9 +2411,9 @@ func testOverspendAllowance(t *testing.T, tg *siatest.TestGroup) {
 	}
 	renter := nodes[0]
 
-	// Set the allowance with only 1SCP
+	// Set the allowance with  500mSCP
 	allowance := siatest.DefaultAllowance
-	allowance.Funds = types.ScPrimecoinPrecision.Mul64(1)
+	allowance.Funds = types.ScPrimecoinPrecision.Div64(2)
 	if err := renter.RenterPostAllowance(allowance); err != nil {
 		t.Fatal(err)
 	}
@@ -3762,15 +3763,15 @@ func testFileAvailableAndRecoverable(t *testing.T, tg *siatest.TestGroup) {
 	// Grab the first of the group's renters
 	r := tg.Renters()[0]
 
-	// Check that we have 5 hosts for this test so that the redundancy
+	// Check that we have 4 hosts for this test so that the redundancy
 	// assumptions work for the test
-	if len(tg.Hosts()) != 5 {
-		t.Fatal("This test requires 5 hosts")
+	if len(tg.Hosts()) < 4 {
+		t.Fatal("This test requires 4 hosts")
 	}
 
 	// Set fileSize and redundancy for upload
 	fileSize := int(modules.SectorSize)
-	dataPieces := uint64(4)
+	dataPieces := uint64(3)
 	parityPieces := uint64(len(tg.Hosts())) - dataPieces
 
 	// Upload file
@@ -5078,36 +5079,7 @@ func TestReadSectorOutputCorrupted(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Upload a file.
-	renter := tg.Renters()[0]
-	publink, _, _, err := renter.UploadNewSkyfileBlocking("test", 100, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Download the file.
-	_, _, err = renter.SkynetPublinkGet(publink)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Enable the dependencies and download again.
-	deps1.Fail()
-	deps2.Fail()
-	_, _, err = renter.SkynetPublinkGet(publink)
-	if err == nil || !strings.Contains(err.Error(), "all workers failed") {
-		t.Fatal(err)
-	}
-
-	// Download one more time. It should work again. Do it in a loop since the
-	// workers might be on a cooldown.
-	err = build.Retry(100, 100*time.Millisecond, func() error {
-		_, _, err = renter.SkynetPublinkGet(publink)
-		return err
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Skip("TestReadSectorOutputCorrupted not performed due to removal of pubaccess")
 }
 
 // TestRenterPricesVolatility verifies that the renter caches its price

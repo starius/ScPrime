@@ -232,9 +232,9 @@ func TestRenterListDirectory(t *testing.T) {
 		root := directories[0]
 		// Check the aggregate and siadir fields.
 		//
-		// Expecting /home, /home/user, /var, /var/pubaccess, /snapshots, /foo
-		if root.AggregateNumSubDirs != 6 {
-			return fmt.Errorf("Expected 6 subdirs in aggregate but got %v", root.AggregateNumSubDirs)
+		// Expecting /home, /home/user, /var, /snapshots, /foo
+		if root.AggregateNumSubDirs != 5 {
+			return fmt.Errorf("Expected 5 subdirs in aggregate but got %v", root.AggregateNumSubDirs)
 		}
 		if root.NumSubDirs != 4 {
 			return fmt.Errorf("Expected 4 subdirs but got %v", root.NumSubDirs)

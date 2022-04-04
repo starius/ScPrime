@@ -281,8 +281,9 @@ func TestPushSubDirectories(t *testing.T) {
 	}
 
 	// Heap should have a length of 5
-	if rt.renter.directoryHeap.managedLen() != 5 {
-		t.Fatal("Heap should have length of 5 but was", rt.renter.directoryHeap.managedLen())
+	// actually 4 after removal of pubaccess
+	if rt.renter.directoryHeap.managedLen() != 4 {
+		t.Fatal("Heap should have length of 4 but was", rt.renter.directoryHeap.managedLen())
 	}
 
 	// Pop off elements and confirm the are correct

@@ -58,11 +58,6 @@ func SiaDir() string {
 	return dataDir
 }
 
-// SkynetDir returns the Pubaccess data directory.
-func SkynetDir() string {
-	return defaultSkynetDir()
-}
-
 // WalletPassword returns the SiaWalletPassword environment variable.
 func WalletPassword() string {
 	return os.Getenv(EnvvarWalletPassword)
@@ -112,23 +107,6 @@ func DefaultMetadataDir() string {
 		return filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "ScPrime")
 	default:
 		return filepath.Join(os.Getenv("HOME"), ".scprime")
-	}
-}
-
-// DefaultSkynetDir returns default data directory for miscellaneous Pubaccess data,
-// e.g. pubaccesskeys. The values for supported operating systems are:
-//
-// Linux:   $HOME/.pubaccess
-// MacOS:   $HOME/Library/Application Support/Pubaccess
-// Windows: %LOCALAPPDATA%\Pubaccess
-func defaultSkynetDir() string {
-	switch runtime.GOOS {
-	case "windows":
-		return filepath.Join(os.Getenv("LOCALAPPDATA"), "Pubaccess")
-	case "darwin":
-		return filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "Pubaccess")
-	default:
-		return filepath.Join(os.Getenv("HOME"), ".pubaccess")
 	}
 }
 

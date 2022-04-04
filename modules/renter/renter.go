@@ -44,10 +44,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/renter/contractor"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/pubaccessblacklist"
-	"gitlab.com/scpcorp/ScPrime/modules/renter/pubaccessportals"
 	"gitlab.com/scpcorp/ScPrime/persist"
-	"gitlab.com/scpcorp/ScPrime/pubaccesskey"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
@@ -166,10 +163,6 @@ type renterFuseManager interface {
 // A Renter is responsible for tracking all of the files that a user has
 // uploaded to ScPrime, as well as the locations and health of these files.
 type Renter struct {
-	// Pubaccess Management
-	staticSkynetBlacklist *pubaccessblacklist.SkynetBlacklist
-	staticSkynetPortals   *pubaccessportals.SkynetPortals
-
 	// Download management. The heap has a separate mutex because it is always
 	// accessed in isolation.
 	downloadHeapMu sync.Mutex         // Used to protect the downloadHeap.
@@ -227,7 +220,6 @@ type Renter struct {
 	staticAlerter         *modules.GenericAlerter
 	staticFileSystem      *filesystem.FileSystem
 	staticFuseManager     renterFuseManager
-	staticSkykeyManager   *pubaccesskey.SkykeyManager
 	staticStreamBufferSet *streamBufferSet
 	tg                    threadgroup.ThreadGroup
 	tpool                 modules.TransactionPool
@@ -239,7 +231,7 @@ type Renter struct {
 // Close closes the Renter and its dependencies
 func (r *Renter) Close() error {
 	if r != nil {
-		return errors.Compose(r.tg.Stop(), r.hostDB.Close(), r.hostContractor.Close(), r.staticSkynetBlacklist.Close(), r.staticSkynetPortals.Close())
+		return errors.Compose(r.tg.Stop(), r.hostDB.Close(), r.hostContractor.Close())
 	}
 	return nil
 }
@@ -808,85 +800,6 @@ func (r *Renter) Unmount(mountPoint string) error {
 	return r.staticFuseManager.Unmount(mountPoint)
 }
 
-// AddSkykey adds the pubaccesskey with the given name, cipher type, and entropy to
-// the renter's pubaccesskey manager.
-func (r *Renter) AddSkykey(sk pubaccesskey.Pubaccesskey) error {
-	if err := r.tg.Add(); err != nil {
-		return err
-	}
-	defer r.tg.Done()
-	return r.staticSkykeyManager.AddKey(sk)
-}
-
-// DeleteSkykeyByID deletes the Pubaccesskey with the given ID from the renter's pubaccesskey
-// manager if it exists.
-func (r *Renter) DeleteSkykeyByID(id pubaccesskey.PubaccesskeyID) error {
-	if err := r.tg.Add(); err != nil {
-		return err
-	}
-	defer r.tg.Done()
-	return r.staticSkykeyManager.DeleteKeyByID(id)
-}
-
-// DeleteSkykeyByName deletes the Pubaccesskey with the given name from the renter's pubaccesskey
-// manager if it exists.
-func (r *Renter) DeleteSkykeyByName(name string) error {
-	if err := r.tg.Add(); err != nil {
-		return err
-	}
-	defer r.tg.Done()
-	return r.staticSkykeyManager.DeleteKeyByName(name)
-}
-
-// SkykeyByName gets the Pubaccesskey with the given name from the renter's pubaccesskey
-// manager if it exists.
-func (r *Renter) SkykeyByName(name string) (pubaccesskey.Pubaccesskey, error) {
-	if err := r.tg.Add(); err != nil {
-		return pubaccesskey.Pubaccesskey{}, err
-	}
-	defer r.tg.Done()
-	return r.staticSkykeyManager.KeyByName(name)
-}
-
-// CreateSkykey creates a new Pubaccesskey with the given name and ciphertype.
-func (r *Renter) CreateSkykey(name string, skType pubaccesskey.PubaccesskeyType) (pubaccesskey.Pubaccesskey, error) {
-	if err := r.tg.Add(); err != nil {
-		return pubaccesskey.Pubaccesskey{}, err
-	}
-	defer r.tg.Done()
-	return r.staticSkykeyManager.CreateKey(name, skType)
-}
-
-// SkykeyByID gets the Pubaccesskey with the given ID from the renter's pubaccesskey
-// manager if it exists.
-func (r *Renter) SkykeyByID(id pubaccesskey.PubaccesskeyID) (pubaccesskey.Pubaccesskey, error) {
-	if err := r.tg.Add(); err != nil {
-		return pubaccesskey.Pubaccesskey{}, err
-	}
-	defer r.tg.Done()
-	return r.staticSkykeyManager.KeyByID(id)
-}
-
-// SkykeyIDByName gets the PubaccesskeyID of the key with the given name if it
-// exists.
-func (r *Renter) SkykeyIDByName(name string) (pubaccesskey.PubaccesskeyID, error) {
-	if err := r.tg.Add(); err != nil {
-		return pubaccesskey.PubaccesskeyID{}, err
-	}
-	defer r.tg.Done()
-	return r.staticSkykeyManager.IDByName(name)
-}
-
-// Skykeys returns a slice containing each Pubaccesskey being stored by the renter.
-func (r *Renter) Skykeys() ([]pubaccesskey.Pubaccesskey, error) {
-	if err := r.tg.Add(); err != nil {
-		return nil, err
-	}
-	defer r.tg.Done()
-
-	return r.staticSkykeyManager.Skykeys(), nil
-}
-
 // Enforce that Renter satisfies the modules.Renter interface.
 var _ modules.Renter = (*Renter)(nil)
 
@@ -984,20 +897,6 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	r.staticFuseManager = newFuseManager(r)
 	r.stuckStack = callNewStuckStack()
 
-	// Add SkynetBlacklist
-	sb, err := pubaccessblacklist.New(r.persistDir)
-	if err != nil {
-		return nil, errors.AddContext(err, "unable to create new pubaccess blacklist")
-	}
-	r.staticSkynetBlacklist = sb
-
-	// Add SkynetPortals
-	sp, err := pubaccessportals.New(r.persistDir)
-	if err != nil {
-		return nil, errors.AddContext(err, "unable to create new pubaccess portal list")
-	}
-	r.staticSkynetPortals = sp
-
 	// Load all saved data.
 	err = r.managedInitPersist()
 	if err != nil {
@@ -1009,17 +908,6 @@ func renterBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	r.managedPushUnexploredDirectory(modules.RootSiaPath())
 	// After persist is initialized, create the worker pool.
 	r.staticWorkerPool = r.newWorkerPool()
-
-	// Create the pubaccesskey manager.
-	// In testing, keep the pubaccesskeys with the rest of the renter data.
-	skykeyManDir := build.SkynetDir()
-	if build.Release == "testing" {
-		skykeyManDir = persistDir
-	}
-	r.staticSkykeyManager, err = pubaccesskey.NewSkykeyManager(skykeyManDir)
-	if err != nil {
-		return nil, err
-	}
 
 	// Spin up background threads which are not depending on the renter being
 	// up-to-date with consensus.
