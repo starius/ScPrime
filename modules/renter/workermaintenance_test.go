@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/scpcorp/ScPrime/modules/renter/filesystem/siafile"
+
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -136,12 +138,16 @@ func TestRHP2DownloadOnMaintenanceCoolDown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fup, err := fileUploadParamsFromLUP(modules.PubfileUploadParameters{
+
+	ec, err := siafile.NewRSSubCode(1, 1, crypto.SegmentSize)
+	fup := modules.FileUploadParams{
 		SiaPath:             sp,
-		DryRun:              false,
+		ErasureCode:         ec,
 		Force:               false,
-		BaseChunkRedundancy: 2,
-	})
+		DisablePartialChunk: true,  // must be set to true - partial chunks change, content addressed files must not change.
+		Repair:              false, // indicates whether this is a repair operation
+	}
+
 	fup.CipherType = crypto.TypePlain // don't care about encryption
 	if err != nil {
 		t.Fatal(err)

@@ -101,9 +101,6 @@ type streamBufferDataSource interface {
 	// identical data and be fully interchangeable.
 	ID() modules.DataSourceID
 
-	// Metadata returns the Pubfile metadata of a data source.
-	Metadata() modules.PubfileMetadata
-
 	// RequestSize should return the request size that the dataSource expects
 	// the streamBuffer to use. The streamBuffer will always make ReadAt calls
 	// that are of the suggested request size and byte aligned.
@@ -270,12 +267,7 @@ func (ds *dataSection) managedData() ([]byte, error) {
 // Before removing the stream, this function will sleep for some time. This is
 // specifically to address the use case where an application may be using the
 // same file or resource continuously, but doing so by repeatedly opening new
-// connections to siad rather than keeping a single stable connection. Some
-// video players do this. On Pubaccess, most javascript applications do this, as
-// the javascript application does not realize that multiple files within the
-// app are all part of the same resource. This sleep here to delay the release
-// of a resource substantially improves performance in practice, in many cases
-// causing a 4x reduction in response latency.
+// connections to spd rather than keeping a single stable connection.
 func (s *stream) Close() error {
 	s.staticStreamBuffer.staticStreamBufferSet.staticTG.Launch(func() {
 		// Convenience variables.
@@ -291,11 +283,6 @@ func (s *stream) Close() error {
 		sbs.managedRemoveStream(sb)
 	})
 	return nil
-}
-
-// Metadata returns the pubfile metadata associated with this stream.
-func (s *stream) Metadata() modules.PubfileMetadata {
-	return s.staticStreamBuffer.staticDataSource.Metadata()
 }
 
 // Read will read data into 'b', returning the number of bytes read and any

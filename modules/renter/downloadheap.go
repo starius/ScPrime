@@ -17,8 +17,6 @@ import (
 	"os"
 	"sync/atomic"
 	"time"
-
-	"gitlab.com/NebulousLabs/errors"
 )
 
 // downloadChunkHeap is a heap that is sorted first by file priority, then by
@@ -217,7 +215,9 @@ func (r *Renter) managedTryFetchChunkFromDisk(chunk *unfinishedDownloadChunk) bo
 	go func() (err error, success bool) {
 		defer r.tg.Done()
 		defer func() {
-			err = errors.AddContext(errors.Compose(err, file.Close()), "Error saving Pubaccesskey")
+			if ferr := file.Close(); ferr != nil {
+				r.log.Println("WARN: error closing file after download served from disk:", err)
+			}
 		}()
 
 		// Try downloading if serving from disk failed.

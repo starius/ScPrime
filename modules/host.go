@@ -115,7 +115,8 @@ var (
 	// the storage price for renters as it reduces the funding flow to the
 	// storage provider by increasing the SPF contract fee.
 	// DefaultCollateral = types.ScPrimecoinPrecision.Mul64(20).Div(BlockBytesPerMonthTerabyte) // 20 SCP / TB / Month
-	DefaultCollateral = DefaultStoragePrice.Mul64(1125).Div64(1000)
+	// Now essentially same as storage price
+	DefaultCollateral = DefaultStoragePrice.Add64(1)
 
 	// DefaultMaxCollateral defines the maximum amount of collateral that the
 	// host is comfortable putting into a single file contract.
@@ -153,7 +154,7 @@ var (
 	// DefaultStoragePrice defines the starting price for hosts selling
 	// storage. We try to match a number that is both reasonably profitable and
 	// reasonably competitive.
-	DefaultStoragePrice = types.ScPrimecoinPrecision.Mul64(10).Div(BlockBytesPerMonthTerabyte) // 10 SCP / TB / Month
+	DefaultStoragePrice = types.ScPrimecoinPrecision.Mul64(5).Div(BlockBytesPerMonthTerabyte) // 5 SCP / TB / Month
 
 	// DefaultUploadBandwidthPrice defines the default price of upload
 	// bandwidth. The default is set to 2 SCP per TB, because the host is
@@ -161,7 +162,7 @@ var (
 	// the host is typically only downloading data if it is planning to store
 	// the data, meaning that the host serves to profit from accepting the
 	// data.
-	DefaultUploadBandwidthPrice = types.ScPrimecoinPrecision.Mul64(2).Div(BytesPerTerabyte) // 2 SCP / TB
+	DefaultUploadBandwidthPrice = types.NewCurrency64(0) // ScPrimecoinPrecision.Mul64(2).Div(BytesPerTerabyte) // 2 SCP / TB
 
 	// CompatV1412DefaultEphemeralAccountExpiry defines the default account
 	// expiry used up until v1.4.12. This constant is added to ensure changing

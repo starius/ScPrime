@@ -126,6 +126,8 @@ func TestEstimateWeight(t *testing.T) {
 	for i, tester := range sts {
 		is = tester.host.InternalSettings()
 		is.MinContractPrice = types.SiacoinPrecision.Mul64(1000 + (1000 * uint64(i)))
+		is.MinUploadBandwidthPrice = types.ScPrimecoinPrecision
+		is.MinStoragePrice = types.ScPrimecoinPrecision
 		err = tester.host.SetInternalSettings(is)
 		if err != nil {
 			t.Fatal(err)

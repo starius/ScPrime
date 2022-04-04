@@ -153,22 +153,6 @@ func (api *API) buildHTTPRoutes() {
 		router.POST("/renter/validatesiapath/*siapath", RequirePassword(api.renterValidateSiaPathHandler, requiredPassword))
 		router.GET("/renter/workers", api.renterWorkersHandler)
 
-		// Pubaccess endpoints
-		router.GET("/pubaccess/blacklist", api.skynetBlacklistHandlerGET)
-		router.POST("/pubaccess/blacklist", RequirePassword(api.skynetBlacklistHandlerPOST, requiredPassword))
-		router.POST("/pubaccess/pin/:publink", RequirePassword(api.skynetPublinkPinHandlerPOST, requiredPassword))
-		router.GET("/pubaccess/portals", api.skynetPortalsHandlerGET)
-		router.POST("/pubaccess/portals", RequirePassword(api.skynetPortalsHandlerPOST, requiredPassword))
-		router.GET("/pubaccess/publink/*publink", api.skynetPublinkHandlerGET)
-		router.HEAD("/pubaccess/publink/*publink", api.skynetPublinkHandlerGET)
-		router.POST("/pubaccess/pubfile/*siapath", RequirePassword(api.skynetSkyfileHandlerPOST, requiredPassword))
-		router.GET("/pubaccess/stats", api.skynetStatsHandlerGET)
-		router.GET("/pubaccess/pubaccesskey", RequirePassword(api.skykeyHandlerGET, requiredPassword))
-		router.POST("/pubaccess/createpubaccesskey", RequirePassword(api.skykeyCreateKeyHandlerPOST, requiredPassword))
-		router.POST("/pubaccess/addpubaccesskey", RequirePassword(api.skykeyAddKeyHandlerPOST, requiredPassword))
-		router.POST("/pubaccess/deletepubaccesskey", RequirePassword(api.skykeyDeleteHandlerPOST, requiredPassword))
-		router.GET("/pubaccess/pubaccesskeys", RequirePassword(api.skykeysHandlerGET, requiredPassword))
-
 		// Directory endpoints
 		router.POST("/renter/dir/*siapath", RequirePassword(api.renterDirHandlerPOST, requiredPassword))
 		router.GET("/renter/dir/*siapath", api.renterDirHandlerGET)
@@ -276,5 +260,5 @@ func RequirePassword(h httprouter.Handle, password string) httprouter.Handle {
 
 // isUnrestricted checks if a request may bypass the useragent check.
 func isUnrestricted(req *http.Request) bool {
-	return strings.HasPrefix(req.URL.Path, "/renter/stream/") || strings.HasPrefix(req.URL.Path, "/pubaccess/publink")
+	return strings.HasPrefix(req.URL.Path, "/renter/stream/")
 }

@@ -44,7 +44,7 @@ var (
 	DefaultParityPieces = build.Select(build.Var{
 		Dev:      1,
 		Standard: 20,
-		Testing:  4,
+		Testing:  2,
 	}).(int)
 
 	// RepairThreshold defines the threshold at which the renter decides to

@@ -234,12 +234,15 @@ func testUpdatePriceTableBasic(t *testing.T, rhp *renterHostPair) {
 // after the host updates its internal settings
 func testUpdatePriceTableAfterSettingsUpdate(t *testing.T, rhp *renterHostPair) {
 	// ensure the price table has valid upload and download bandwidth costs
+	rhp.staticHT.host.settings.MinUploadBandwidthPrice = types.ScPrimecoinPrecision
+	rhp.staticHT.host.settings.MinDownloadBandwidthPrice = types.ScPrimecoinPrecision
+	rhp.staticHT.host.managedUpdatePriceTable()
 	pt := rhp.staticHT.host.staticPriceTables.managedCurrent()
 	if pt.DownloadBandwidthCost.IsZero() {
 		t.Fatal("Expected DownloadBandwidthCost to be non zero")
 	}
 	if pt.UploadBandwidthCost.IsZero() {
-		t.Fatal("Expected DownloadBandwidthCost to be non zero")
+		t.Fatal("Expected UploadBandwidthCost to be non zero")
 	}
 
 	// update the host's internal settings

@@ -57,13 +57,6 @@ func (a *AllowanceRequestPost) WithRenewWindow(renewWindow types.BlockHeight) *A
 	return a
 }
 
-// WithPaymentContractInitialFunding adds the paymentcontractinitialfunding
-// field to the request.
-func (a *AllowanceRequestPost) WithPaymentContractInitialFunding(price types.Currency) *AllowanceRequestPost {
-	a.values.Set("paymentcontractinitialfunding", price.String())
-	return a
-}
-
 // WithExpectedStorage adds the expected storage field to the request.
 func (a *AllowanceRequestPost) WithExpectedStorage(expectedStorage uint64) *AllowanceRequestPost {
 	a.values.Set("expectedstorage", fmt.Sprint(expectedStorage))

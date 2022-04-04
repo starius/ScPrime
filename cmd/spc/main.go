@@ -52,8 +52,6 @@ var (
 	allowancePeriod      string // length of period
 	allowanceRenewWindow string // renew window of allowance
 
-	allowancePaymentContractInitialFunding string // initial price to pay to create a payment contract
-
 	allowanceExpectedDownload   string // expected data downloaded within period
 	allowanceExpectedRedundancy string // expected redundancy of most uploaded files
 	allowanceExpectedStorage    string // expected storage stored on hosts before redundancy
@@ -65,23 +63,6 @@ var (
 	allowanceMaxSectorAccessPrice      string // max allowed price to access a sector on a host
 	allowanceMaxStoragePrice           string // max allowed price to store data on a host
 	allowanceMaxUploadBandwidthPrice   string // max allowed price to upload data to a host
-
-	// Pubaccesskey Flags
-	skykeyID              string // ID used to identify a Pubaccesskey.
-	skykeyName            string // Name used to identify a Pubaccesskey.
-	skykeyRenameAs        string // Optional parameter to rename a Pubaccesskey while adding it.
-	skykeyShowPrivateKeys bool   // Set to true to show private key data.
-	skykeyType            string // Type used to create a new Pubaccesskey.
-
-	// Pubaccess Flags
-	skynetDownloadPortal string // Portal to use when trying to download a publink.
-	skynetLsRecursive    bool   // List files of folder recursively.
-	skynetLsRoot         bool   // Use root as the base instead of the Public access folder.
-	skynetPinPortal      string // Portal to use when trying to pin a publink.
-	skynetUnpinRoot      bool   // Use root as the base instead of the Public access folder.
-	skynetUploadDryRun   bool   // Perform a dry-run of the upload. This returns the publink without actually uploading the file to the network.
-	skynetUploadRoot     bool   // Use root as the base instead of the Public access folder.
-	skynetUploadSilent   bool   // Don't report progress while uploading
 
 	// Utils Flags
 	dictionaryLanguage      string // dictionary for seed utils
@@ -352,7 +333,6 @@ func initCmds() *cobra.Command {
 	renterSetAllowanceCmd.Flags().StringVar(&allowancePeriod, "period", "", "period of allowance in blocks (b), hours (h), days (d) or weeks (w)")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceHosts, "hosts", "", "number of hosts the renter will spread the uploaded data across")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceRenewWindow, "renew-window", "", "renew window in blocks (b), hours (h), days (d) or weeks (w)")
-	renterSetAllowanceCmd.Flags().StringVar(&allowancePaymentContractInitialFunding, "payment-contract-initial-funding", "", "Setting this will cause the renter to form payment contracts, making it a Pubaccess portal.")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceExpectedStorage, "expected-storage", "", "expected storage in bytes (B), kilobytes (KB), megabytes (MB) etc. up to yottabytes (YB)")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceExpectedUpload, "expected-upload", "", "expected upload in period in bytes (B), kilobytes (KB), megabytes (MB) etc. up to yottabytes (YB)")
 	renterSetAllowanceCmd.Flags().StringVar(&allowanceExpectedDownload, "expected-download", "", "expected download in period in bytes (B), kilobytes (KB), megabytes (MB) etc. up to yottabytes (YB)")
@@ -366,30 +346,6 @@ func initCmds() *cobra.Command {
 
 	renterFuseCmd.AddCommand(renterFuseMountCmd, renterFuseUnmountCmd)
 	renterFuseMountCmd.Flags().BoolVarP(&renterFuseMountAllowOther, "allow-other", "", false, "Allow users other than the user that mounted the fuse directory to access and use the fuse directory")
-
-	root.AddCommand(skynetCmd)
-	skynetCmd.AddCommand(skynetBlacklistCmd, skynetConvertCmd, skynetDownloadCmd, skynetLsCmd, skynetPinCmd, skynetUnpinCmd, skynetUploadCmd)
-	skynetUploadCmd.Flags().BoolVar(&skynetUploadRoot, "root", false, "Use the root folder as the base instead of the Pubaccess folder")
-	skynetUploadCmd.Flags().BoolVar(&skynetUploadDryRun, "dry-run", false, "Perform a dry-run of the upload, returning the publink without actually uploading the file")
-	skynetUploadCmd.Flags().BoolVarP(&skynetUploadSilent, "silent", "s", false, "Don't report progress while uploading")
-	skynetUploadCmd.Flags().StringVar(&skykeyName, "pubaccesskeyname", "", "Specify the pubaccesskey to be used by name.")
-	skynetUploadCmd.Flags().StringVar(&skykeyID, "pubaccesskeyid", "", "Specify the pubaccesskey to be used by its key identifier.")
-	skynetUnpinCmd.Flags().BoolVar(&skynetUnpinRoot, "root", false, "Use the root folder as the base instead of the pubaccess folder")
-	skynetDownloadCmd.Flags().StringVar(&skynetDownloadPortal, "portal", "", "Use a Public access portal to complete the download")
-	skynetLsCmd.Flags().BoolVarP(&skynetLsRecursive, "recursive", "R", false, "Recursively list pubfiles and folders")
-	skynetLsCmd.Flags().BoolVar(&skynetLsRoot, "root", false, "Use the root folder as the base instead of the pubaccess folder")
-	skynetPinCmd.Flags().StringVar(&skynetPinPortal, "portal", "", "Use specified Pubaccess portal to download the publink in order to pin the pubfile")
-	skynetBlacklistCmd.AddCommand(skynetBlacklistAddCmd, skynetBlacklistRemoveCmd)
-
-	root.AddCommand(skykeyCmd)
-	skykeyCmd.AddCommand(skykeyAddCmd, skykeyCreateCmd, skykeyDeleteCmd, skykeyGetCmd, skykeyGetIDCmd, skykeyListCmd)
-	skykeyAddCmd.Flags().StringVar(&skykeyRenameAs, "rename-as", "", "The new name for the pubaccesskey being added")
-	skykeyCreateCmd.Flags().StringVar(&skykeyType, "type", "", "The type of the pubaccesskey")
-	skykeyDeleteCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the pubaccesskey")
-	skykeyDeleteCmd.Flags().StringVar(&skykeyID, "id", "", "The base-64 encoded pubaccesskey ID")
-	skykeyGetCmd.Flags().StringVar(&skykeyName, "name", "", "The name of the pubaccesskey")
-	skykeyGetCmd.Flags().StringVar(&skykeyID, "id", "", "The base-64 encoded pubaccesskey ID")
-	skykeyListCmd.Flags().BoolVar(&skykeyShowPrivateKeys, "show-priv-keys", false, "Show private key data.")
 
 	// Daemon Commands
 	root.AddCommand(alertsCmd, globalRatelimitCmd, stackCmd, stopCmd, updateCmd, versionCmd)

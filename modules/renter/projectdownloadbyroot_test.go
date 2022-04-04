@@ -15,6 +15,9 @@ func TestPDBRGouging(t *testing.T) {
 
 	// allowance contains only the fields necessary to test the price gouging
 	hes := modules.DefaultHostExternalSettings()
+	if hes.UploadBandwidthPrice.IsZero() {
+		hes.UploadBandwidthPrice = types.ScPrimecoinPrecision.Div64(2) //set to 0.5 SCP
+	}
 	allowance := modules.Allowance{
 		Funds:                     types.SiacoinPrecision.Mul64(1e3),
 		MaxDownloadBandwidthPrice: hes.DownloadBandwidthPrice.Mul64(10),

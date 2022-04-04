@@ -1,3 +1,4 @@
+//go:build !pool
 // +build !pool
 
 package build

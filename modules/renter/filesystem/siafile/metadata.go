@@ -189,27 +189,6 @@ func (sf *SiaFile) AccessTime() time.Time {
 	return sf.staticMetadata.AccessTime
 }
 
-// AddPublink will add a publink to the SiaFile.
-func (sf *SiaFile) AddPublink(s modules.Publink) (err error) {
-	sf.mu.Lock()
-	defer sf.mu.Unlock()
-	// backup the changed metadata before changing it. Revert the change on
-	// error.
-	defer func(backup Metadata) {
-		if err != nil {
-			sf.staticMetadata.restore(backup)
-		}
-	}(sf.staticMetadata.backup())
-	sf.staticMetadata.Publinks = append(sf.staticMetadata.Publinks, s.String())
-
-	// Save changes to metadata to disk.
-	updates, err := sf.saveMetadataUpdates()
-	if err != nil {
-		return err
-	}
-	return sf.createAndApplyTransaction(updates...)
-}
-
 // ChangeTime returns the ChangeTime timestamp of the file.
 func (sf *SiaFile) ChangeTime() time.Time {
 	sf.mu.RLock()

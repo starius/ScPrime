@@ -128,7 +128,7 @@ func TestAddUniqueRefreshPaths(t *testing.T) {
 		// Check that AggregateNumSubDirs equals the length of `paths`, minus
 		// the root directory, plus the standard directories `home`,
 		// `snapshots`, and `var`.
-		numSubDirs := len(paths) - 1 + 3
+		numSubDirs := len(paths) - 1 + 2
 		if int(di[0].AggregateNumSubDirs) != numSubDirs {
 			return fmt.Errorf("Expected AggregateNumSubDirs to be %v but got %v", numSubDirs, di[0].AggregateNumSubDirs)
 		}
