@@ -53,9 +53,6 @@ for arch in amd64 arm; do
 
 		done
 
-		# add other artifacts
-		cp -r doc LICENSE README.md $folder
-		# zip
 		(
 			cd release
 			zip -rq ScPrime-$version-$os-$arch.zip ScPrime-$version-$os-$arch
