@@ -71,6 +71,10 @@ func (wal *writeAheadLog) syncResources() {
 		if atomic.LoadUint64(&sf.atomicUnavailable) == 1 {
 			continue
 		}
+		// Skip operation if nothing has changed.
+		if atomic.LoadInt32(&sf.atomicNeedSync) <= 0 {
+			continue
+		}
 
 		wg.Add(2)
 		go func(sf *storageFolder) {
@@ -115,6 +119,13 @@ func (wal *writeAheadLog) syncResources() {
 
 	// Wait for all of the sync calls to finish.
 	wg.Wait()
+
+	// Decrement number of syncs needed.
+	for _, sf := range wal.cm.storageFolders {
+		if atomic.LoadInt32(&sf.atomicNeedSync) > 0 {
+			atomic.AddInt32(&sf.atomicNeedSync, -1)
+		}
+	}
 
 	// Now that all the Sync calls have completed, rename the WAL tmp file to
 	// update the WAL.
