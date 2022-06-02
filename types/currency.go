@@ -9,8 +9,10 @@ package types
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
+	"strings"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 )
@@ -28,6 +30,15 @@ type (
 )
 
 var (
+	// ErrParseCurrencyAmount is returned when the input is unable to be parsed
+	// into a currency unit due to a malformed amount.
+	ErrParseCurrencyAmount = errors.New("malformed amount")
+	// ErrParseCurrencyInteger is returned when the input is unable to be parsed
+	// into a currency unit due to a non-integer value.
+	ErrParseCurrencyInteger = errors.New("non-integer number of hastings")
+	// ErrParseCurrencyUnits is returned when the input is unable to be parsed
+	// into a currency unit due to missing units.
+	ErrParseCurrencyUnits = errors.New("amount is missing currency units. Currency units are case sensitive")
 	// ErrNegativeCurrency is the error that is returned if performing an
 	// operation results in a negative currency.
 	ErrNegativeCurrency = errors.New("negative currency not allowed")
@@ -55,6 +66,63 @@ func NewCurrency(b *big.Int) (c Currency) {
 func NewCurrency64(x uint64) (c Currency) {
 	c.i.SetUint64(x)
 	return
+}
+
+// NewCurrencyStr creates a Currency value from a supplied string with unit suffix.
+// Valid unit suffixes are: H, pS, nS, uS, mS, SCP, KS, MS, GS, TS, SPF
+// Unit Suffixes are case sensitive.
+func NewCurrencyStr(amount string) (Currency, error) {
+	base := ""
+	units := []string{"pS", "nS", "uS", "mS", "SCP", "KS", "MS", "GS", "TS"}
+	amount = strings.TrimSpace(amount)
+	for i, unit := range units {
+		if strings.HasSuffix(amount, unit) {
+			// Trim spaces after removing the suffix to allow spaces between the
+			// value and the unit.
+			value := strings.TrimSpace(strings.TrimSuffix(amount, unit))
+			// scan into big.Rat
+			r, ok := new(big.Rat).SetString(value)
+			if !ok {
+				return Currency{}, ErrParseCurrencyAmount
+			}
+			// convert units
+			exp := 27 + 3*(int64(i)-4)
+			mag := new(big.Int).Exp(big.NewInt(10), big.NewInt(exp), nil)
+			r.Mul(r, new(big.Rat).SetInt(mag))
+			// r must be an integer at this point
+			if !r.IsInt() {
+				return Currency{}, ErrParseCurrencyInteger
+			}
+			base = r.RatString()
+		}
+	}
+	// check for hastings separately
+	if strings.HasSuffix(amount, "H") {
+		base = strings.TrimSpace(strings.TrimSuffix(amount, "H"))
+	}
+	// check for SPF separately
+	if strings.HasSuffix(amount, "SPF") {
+		value := strings.TrimSpace(strings.TrimSuffix(amount, "SPF"))
+		// scan into big.Rat
+		r, ok := new(big.Rat).SetString(value)
+		if !ok {
+			return Currency{}, ErrParseCurrencyAmount
+		}
+		// r must be an integer at this point
+		if !r.IsInt() {
+			return Currency{}, ErrParseCurrencyInteger
+		}
+		base = r.RatString()
+	}
+	if base == "" {
+		return Currency{}, ErrParseCurrencyUnits
+	}
+	var currency Currency
+	_, err := fmt.Sscan(base, &currency)
+	if err != nil {
+		return Currency{}, ErrParseCurrencyAmount
+	}
+	return currency, nil
 }
 
 // Add returns a new Currency value c = x + y

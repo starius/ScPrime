@@ -129,6 +129,24 @@ func (c *Client) WalletSeedsGet() (wsg api.WalletSeedsGET, err error) {
 	return
 }
 
+// WalletScPrimeMultiPost uses the /wallet/siacoin api endpoint to send money
+// to multiple addresses at once
+func (c *Client) WalletScPrimeMultiPost(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput) (wsp api.WalletBatchTransactionPOST, err error) {
+	values := url.Values{}
+	marshaledCoinOutputs, err := json.Marshal(coinOutputs)
+	if err != nil {
+		return api.WalletBatchTransactionPOST{}, err
+	}
+	values.Set("coinOutputs", string(marshaledCoinOutputs))
+	marshaledFundOutputs, err := json.Marshal(fundOutputs)
+	if err != nil {
+		return api.WalletBatchTransactionPOST{}, err
+	}
+	values.Set("fundOutputs", string(marshaledFundOutputs))
+	err = c.post("/wallet/batchtransaction", values.Encode(), &wsp)
+	return
+}
+
 // WalletSiacoinsMultiPost uses the /wallet/siacoin api endpoint to send money
 // to multiple addresses at once
 func (c *Client) WalletSiacoinsMultiPost(outputs []types.SiacoinOutput) (wsp api.WalletSiacoinsPOST, err error) {

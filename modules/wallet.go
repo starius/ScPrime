@@ -511,6 +511,22 @@ type (
 		// SendSiacoinsMulti sends coins to multiple addresses.
 		SendSiacoinsMulti(outputs []types.SiacoinOutput) ([]types.Transaction, error)
 
+		// SendSiafundsMulti sends funds to multiple addresses.
+		SendSiafundsMulti(outputs []types.SiafundOutput) ([]types.Transaction, error)
+
+		// SendBatchTransaction sends coins and funds to multiple addresses.
+		//
+		// NOTE: The ScPrime.info blockchain explorer does not currently correctly·
+		// display transactions that contain both SPF and SCP outputs. Specifically,·
+		// the explorer displays all SCP outputs as miner fees when an SPF output·
+		// is specified. Since it is important that the general public has confidence·
+		// in the blockchain explorer the SendBatchTransaction function is artificially·
+		// limited to not allowing a user to define both coin and fund outputs.·
+		SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput) ([]types.Transaction, error)
+
+		// BuildUnsignedBatchTransaction builds and returns an unsigned transaction.
+		BuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput) (TransactionBuilder, error)
+
 		// SendSiafunds is a tool for sending siafunds from the wallet to an
 		// address. Sending money usually results in multiple transactions. The
 		// transactions are automatically given to the transaction pool, and
