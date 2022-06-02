@@ -1,6 +1,8 @@
 package wallet
 
 import (
+	"fmt"
+
 	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -202,22 +204,13 @@ func (w *Wallet) managedSendSiacoins(amount, fee types.Currency, dest types.Unlo
 	return txnSet, nil
 }
 
-// SendSiacoinsMulti creates a transaction that includes the specified
-// outputs. The transaction is submitted to the transaction pool and is also
-// returned.
-func (w *Wallet) SendSiacoinsMulti(outputs []types.SiacoinOutput) (txns []types.Transaction, err error) {
-	if err := w.tg.Add(); err != nil {
-		err = modules.ErrWalletShutdown
-		return nil, err
-	}
-	defer w.tg.Done()
-	w.log.Println("Beginning call to SendSiacoinsMulti")
-
+// BuildUnsignedBatchTransaction builds and returns an unsigned transaction.
+func (w *Wallet) BuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput) (modules.TransactionBuilder, error) {
 	// Check if consensus is synced
 	if !w.cs.Synced() || w.deps.Disrupt("UnsyncedConsensus") {
-		return nil, errors.New("cannot send scprimecoin until fully synced")
+		return nil, errors.New("cannot build batch transaction until fully synced")
 	}
-
+	// Check if wallet is locked
 	w.mu.RLock()
 	unlocked := w.unlocked
 	w.mu.RUnlock()
@@ -225,95 +218,87 @@ func (w *Wallet) SendSiacoinsMulti(outputs []types.SiacoinOutput) (txns []types.
 		w.log.Println("Attempt to send coins has failed - wallet is locked")
 		return nil, modules.ErrLockedWallet
 	}
-
 	txnBuilder, err := w.StartTransaction()
-	if err != nil {
-		return nil, err
-	}
 	defer func() {
 		if err != nil {
 			txnBuilder.Drop()
 		}
 	}()
-
 	// Add estimated transaction fee.
-	_, tpoolFee := w.tpool.FeeEstimation()
-	tpoolFee = tpoolFee.Mul64(2)                              // We don't want send-to-many transactions to fail.
-	tpoolFee = tpoolFee.Mul64(1000 + 60*uint64(len(outputs))) // Estimated transaction size in bytes
-	txnBuilder.AddMinerFee(tpoolFee)
+	_, estTpoolFee := w.tpool.FeeEstimation()
+	tPoolFee := types.NewCurrency64(0)
+	if len(coinOutputs) != 0 {
+		coinTpoolFee := estTpoolFee.Mul64(2)                                  // We don't want send-to-many transactions to fail.
+		coinTpoolFee = coinTpoolFee.Mul64(1000 + 60*uint64(len(coinOutputs))) // Estimated transaction size in bytes
+		tPoolFee = tPoolFee.Add(coinTpoolFee)
+	}
+	if len(fundOutputs) != 0 {
+		fundTpoolFee := estTpoolFee.Mul64(5)                                 // use large fee to ensure siafund transactions are selected by minerstopcmd
+		fundTpoolFee = fundTpoolFee.Mul64(690 + 60*uint64(len(fundOutputs))) // Estimated transaction size in bytes
+		tPoolFee = tPoolFee.Add(fundTpoolFee)
+	}
+	txnBuilder.AddMinerFee(tPoolFee)
 
 	// Calculate total cost to wallet.
 	//
-	// NOTE: we only want to call FundSiacoins once; that way, it will
-	// (ideally) fund the entire transaction with a single input, instead of
-	// many smaller ones.
-	totalCost := tpoolFee
-	for _, sco := range outputs {
-		totalCost = totalCost.Add(sco.Value)
+	// NOTE: we only want to call FundSiacoins and FundSiafunds once; that way,
+	// it will (ideally) fund the entire transaction with a single input,
+	// instead of many smaller ones.
+	totalCoinCost := tPoolFee
+	for _, coinOutput := range coinOutputs {
+		totalCoinCost = totalCoinCost.Add(coinOutput.Value)
 	}
-	err = txnBuilder.FundSiacoins(totalCost)
+	err = txnBuilder.FundSiacoins(totalCoinCost)
 	if err != nil {
-		return nil, build.ExtendErr("unable to fund transaction", err)
+		return nil, build.ExtendErr("not enoutgh SCP to fund transaction", err)
 	}
-
-	for _, sco := range outputs {
-		txnBuilder.AddSiacoinOutput(sco)
+	for _, coinOutput := range coinOutputs {
+		txnBuilder.AddSiacoinOutput(coinOutput)
 	}
-
-	txnSet, err := txnBuilder.Sign(true)
-	if err != nil {
-		w.log.Println("Attempt to send coins has failed - failed to sign transaction:", err)
-		return nil, build.ExtendErr("unable to sign transaction", err)
+	if len(fundOutputs) != 0 {
+		totalFundCost := types.NewCurrency64(0)
+		for _, fundOutput := range fundOutputs {
+			totalFundCost = totalFundCost.Add(fundOutput.Value)
+		}
+		err = txnBuilder.FundSiafunds(totalFundCost)
+		if err != nil {
+			return nil, build.ExtendErr("not enough SPF to fund transaction", err)
+		}
+		for _, fundOutput := range fundOutputs {
+			txnBuilder.AddSiafundOutput(fundOutput)
+		}
 	}
-	if w.deps.Disrupt("SendSiacoinsInterrupted") {
-		return nil, errors.New("failed to accept transaction set (SendSiacoinsInterrupted)")
-	}
-	w.log.Println("Attempting to broadcast a multi-send over the network")
-	err = w.tpool.AcceptTransactionSet(txnSet)
-	if err != nil {
-		w.log.Println("Attempt to send coins has failed - transaction pool rejected transaction:", err)
-		return nil, build.ExtendErr("unable to get transaction accepted", err)
-	}
-
-	// Log the success.
-	var outputList string
-	for _, output := range outputs {
-		outputList = outputList + "\n\tAddress: " + output.UnlockHash.String() + "\n\tValue: " + output.Value.HumanString() + "\n"
-	}
-	w.log.Printf("Successfully broadcast transaction with id %v, fee %v, and the following outputs: %v", txnSet[len(txnSet)-1].ID(), tpoolFee.HumanString(), outputList)
-	return txnSet, nil
+	return txnBuilder, nil
 }
 
-// SendSiafunds creates a transaction sending 'amount' to 'dest'. The transaction
-// is submitted to the transaction pool and is also returned.
-func (w *Wallet) SendSiafunds(amount types.Currency, dest types.UnlockHash) (txns []types.Transaction, err error) {
+// SendBatchTransaction creates a transaction that includes the specified
+// coin or fund outputs. The transaction is submitted to the transaction
+// pool and is also returned.
+//
+// NOTE: The ScPrime.info blockchain explorer does not currently correctly
+// display transactions that contain both SPF and SCP outputs. Specifically,
+// the explorer displays all SCP outputs as miner fees when an SPF output
+// is specified. Since it is important that the general public has confidence
+// in the blockchain explorer the SendBatchTransaction function is artificially
+// limited to not allowing a user to define both coin and fund outputs.
+// Ideally the blockchain explorer will someday be fixed to correctly display
+// these types of transactions. After this happens the check to prevent both coin
+// and fund outputs from being supplied can be removed.
+func (w *Wallet) SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput) (txns []types.Transaction, err error) {
+	// TODO: Fix the ScPrime.info blockchain explorer to correctly display
+	// transactions with both SPF and SCP outputs. Afterwhich, this check
+	// should be removed.
+	if len(coinOutputs) != 0 && len(fundOutputs) != 0 {
+		return nil, errors.New("cannot supply both coin and fund outputs")
+	}
 	if err := w.tg.Add(); err != nil {
 		err = modules.ErrWalletShutdown
 		return nil, err
 	}
 	defer w.tg.Done()
+	w.log.Println("Beginning call to SendBatchTransaction")
 
-	// Check if consensus is synced
-	if !w.cs.Synced() || w.deps.Disrupt("UnsyncedConsensus") {
-		return nil, errors.New("cannot send scprimefunds until fully synced")
-	}
-
-	w.mu.RLock()
-	unlocked := w.unlocked
-	w.mu.RUnlock()
-	if !unlocked {
-		return nil, modules.ErrLockedWallet
-	}
-
-	_, tpoolFee := w.tpool.FeeEstimation()
-	tpoolFee = tpoolFee.Mul64(750) // Estimated transaction size in bytes
-	tpoolFee = tpoolFee.Mul64(5)   // use large fee to ensure siafund transactions are selected by miners
-	output := types.SiafundOutput{
-		Value:      amount,
-		UnlockHash: dest,
-	}
-
-	txnBuilder, err := w.StartTransaction()
+	txnBuilder, err := w.BuildUnsignedBatchTransaction(coinOutputs, fundOutputs)
 	if err != nil {
 		return nil, err
 	}
@@ -322,29 +307,65 @@ func (w *Wallet) SendSiafunds(amount types.Currency, dest types.UnlockHash) (txn
 			txnBuilder.Drop()
 		}
 	}()
-	err = txnBuilder.FundSiacoins(tpoolFee)
-	if err != nil {
-		return nil, err
-	}
-	err = txnBuilder.FundSiafunds(amount)
-	if err != nil {
-		return nil, err
-	}
-	txnBuilder.AddMinerFee(tpoolFee)
-	txnBuilder.AddSiafundOutput(output)
 	txnSet, err := txnBuilder.Sign(true)
 	if err != nil {
-		return nil, err
+		w.log.Println("Attempt to send transaction has failed - failed to sign transaction:", err)
+		return nil, build.ExtendErr("unable to sign transaction", err)
 	}
+	if w.deps.Disrupt("SendSiacoinsInterrupted") {
+		return nil, errors.New("failed to accept transaction set (SendSiacoinsInterrupted)")
+	}
+	if w.deps.Disrupt("SendBatchTransaction") {
+		return nil, errors.New("failed to accept transaction set (SendBatchTransaction)")
+	}
+	w.log.Println("Attempting to broadcast a batch transaction over the network")
 	err = w.tpool.AcceptTransactionSet(txnSet)
 	if err != nil {
-		return nil, err
+		w.log.Println("Attempt to send coins has failed - transaction pool rejected transaction:", err)
+		return nil, build.ExtendErr("unable to get transaction accepted", err)
 	}
-	w.log.Println("Submitted a scprimefund transfer transaction set for value", amount.HumanString(), "with fees", tpoolFee.HumanString(), "IDs:")
-	for _, txn := range txnSet {
-		w.log.Println("\t", txn.ID())
+	// Log the success.
+	var outputList string
+	for _, coinOutput := range coinOutputs {
+		outputList = outputList + "\n\tAddress: " + coinOutput.UnlockHash.String() + "\n\tValue: " + coinOutput.Value.HumanString() + "\n"
 	}
+	for _, fundOutput := range fundOutputs {
+		fmtSpf := fmt.Sprintf("%14v SPF", fundOutput.Value)
+		outputList = outputList + "\n\tAddress: " + fundOutput.UnlockHash.String() + "\n\tValue: " + fmtSpf + "\n"
+	}
+	txn, _ := txnBuilder.View()
+	tPoolFee := types.NewCurrency64(0)
+	for _, minerFee := range txn.MinerFees {
+		tPoolFee = tPoolFee.Add(minerFee)
+	}
+	w.log.Printf("Successfully broadcast transaction with id %v, fee %v, and the following outputs: %v", txnSet[len(txnSet)-1].ID(), tPoolFee.HumanString(), outputList)
 	return txnSet, nil
+}
+
+// SendSiacoinsMulti creates a transaction that includes the specified
+// outputs. The transaction is submitted to the transaction pool and is also
+// returned.
+func (w *Wallet) SendSiacoinsMulti(coinOutputs []types.SiacoinOutput) (txns []types.Transaction, err error) {
+	return w.SendBatchTransaction(coinOutputs, nil)
+}
+
+// SendSiafundsMulti creates a transaction that includes the specified
+// outputs. The transaction is submitted to the transaction pool and is also
+// returned.
+func (w *Wallet) SendSiafundsMulti(fundOutputs []types.SiafundOutput) (txns []types.Transaction, err error) {
+	return w.SendBatchTransaction(nil, fundOutputs)
+}
+
+// SendSiafunds creates a transaction sending 'amount' to 'dest'. The transaction
+// is submitted to the transaction pool and is also returned.
+func (w *Wallet) SendSiafunds(amount types.Currency, dest types.UnlockHash) (txns []types.Transaction, err error) {
+	var fundOutputs []types.SiafundOutput
+	fundOutput := types.SiafundOutput{
+		Value:      amount,
+		UnlockHash: dest,
+	}
+	fundOutputs = append(fundOutputs, fundOutput)
+	return w.SendBatchTransaction(nil, fundOutputs)
 }
 
 // Len returns the number of elements in the sortedOutputs struct.

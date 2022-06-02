@@ -69,6 +69,13 @@ type (
 		TransactionIDs []types.TransactionID `json:"transactionids"`
 	}
 
+	// WalletBatchTransactionPOST contains the transaction sent in the POST
+	// call to /wallet/batchtransaction
+	WalletBatchTransactionPOST struct {
+		Transactions   []types.Transaction   `json:"transactions"`
+		TransactionIDs []types.TransactionID `json:"transactionids"`
+	}
+
 	// WalletSignPOSTParams contains the unsigned transaction and a set of
 	// inputs to sign.
 	WalletSignPOSTParams struct {
@@ -490,6 +497,65 @@ func (api *API) walletSeedsHandler(w http.ResponseWriter, req *http.Request, _ h
 		PrimarySeed:        primarySeedStr,
 		AddressesRemaining: int(addrsRemaining),
 		AllSeeds:           allSeedsStrs,
+	})
+}
+
+// walletBatchTransaction handles API calls to /wallet/batchtransaction
+func (api *API) walletBatchTransaction(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	var coinOutputs []types.SiacoinOutput
+	var fundOutputs []types.SiafundOutput
+	if req.FormValue("coinOutputs") != "" {
+		err := json.Unmarshal([]byte(req.FormValue("coinOutputs")), &coinOutputs)
+		if err != nil {
+			WriteError(w, Error{"could not decode outputs: " + err.Error()}, http.StatusInternalServerError)
+			return
+		}
+	}
+	if req.FormValue("fundOutputs") != "" {
+		err := json.Unmarshal([]byte(req.FormValue("fundOutputs")), &fundOutputs)
+		if err != nil {
+			WriteError(w, Error{"could not decode outputs: " + err.Error()}, http.StatusInternalServerError)
+			return
+		}
+	}
+	// Mock the transaction to verify that the wallet is able to fund both transactions.
+	txnBuilder, err := api.wallet.BuildUnsignedBatchTransaction(coinOutputs, fundOutputs)
+	if err != nil {
+		WriteError(w, Error{"error when calling /wallet/batchtransaction: " + err.Error()}, http.StatusInternalServerError)
+		return
+	}
+	txnBuilder.Drop()
+	// Send the transactions
+	var coinTxns []types.Transaction
+	if len(coinOutputs) != 0 {
+		coinTxns, err = api.wallet.SendBatchTransaction(coinOutputs, nil)
+		if err != nil {
+			WriteError(w, Error{"error when calling /wallet/batchtransaction: " + err.Error()}, http.StatusInternalServerError)
+			return
+		}
+	}
+	var fundTxns []types.Transaction
+	if len(fundOutputs) != 0 {
+		fundTxns, err = api.wallet.SendBatchTransaction(nil, fundOutputs)
+		if err != nil {
+			WriteError(w, Error{"error when calling /wallet/batchtransaction: " + err.Error()}, http.StatusInternalServerError)
+			return
+		}
+	}
+	// Collect and return the results
+	var txns []types.Transaction
+	var txids []types.TransactionID
+	for _, coinTxn := range coinTxns {
+		txns = append(txns, coinTxn)
+		txids = append(txids, coinTxn.ID())
+	}
+	for _, fundTxn := range fundTxns {
+		txns = append(txns, fundTxn)
+		txids = append(txids, fundTxn.ID())
+	}
+	WriteJSON(w, WalletBatchTransactionPOST{
+		Transactions:   txns,
+		TransactionIDs: txids,
 	})
 }
 

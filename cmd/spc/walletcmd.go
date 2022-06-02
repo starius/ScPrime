@@ -167,16 +167,16 @@ Run 'wallet send --help' to see a list of available units.`,
 		Run: wrap(walletsendsiafundscmd),
 	}
 
-	walletSendScpFromCsvCmd = &cobra.Command{
-		Use:   "scp_from_csv [/path/to/file.csv]",
-		Short: "Send scprimecoins to multiple addresses",
-		Long: `Send scprimecoins to multiple addresses in the same transaction as defined in the supplied CSV file.
-  The first column must be the amount of scprimecoin to send specified in units, e.g. 1.23KS.  Run 'wallet --help' 
-  for a list of units. If no unit is supplied, hastings will be assumed. The second column must be the 76-byte
+	walletSendScprimeBatchCmd = &cobra.Command{
+		Use:   "scprimebatch [/path/to/file.csv]",
+		Short: "Batch send ScPrime coins and funds",
+		Long: `Send ScPrime coins and funds to multiple addresses in the same transaction as defined in the supplied CSV file.
+  The first column must be the amount of ScPrime coins or funds to send specified in units, e.g. 1.23KS or 30SPF.  Run 'wallet --help' 
+  for a list of other units. If an unit is supplied, hastinds will be assumed. The second column must be the 76-byte
   hexadecimal address.
 
   A dynamic transaction fee is applied depending on the size of the transaction and how busy the network is.`,
-		Run: wrap(walletsendscpfromcsvcmd),
+		Run: wrap(walletsendscpbatchcmd),
 	}
 
 	walletSignCmd = &cobra.Command{
@@ -455,8 +455,8 @@ func walletsendsiafundscmd(amount, dest string) {
 	fmt.Printf("Sent %s scprimefunds to %s\n", amount, dest)
 }
 
-// walletsendscpfromcsvcmd sends siacoins to multiple destinations as defined from a supplied CSV files
-func walletsendscpfromcsvcmd(path string) {
+// walletsendscpbatchcmd batch sends scprime coins and funds to multiple destinations as defined from a supplied CSV files
+func walletsendscpbatchcmd(path string) {
 	fmt.Println("Scanning", path)
 	f, err := os.Open(path)
 	if err != nil {
@@ -467,7 +467,8 @@ func walletsendscpfromcsvcmd(path string) {
 	if err != nil {
 		die("Failed to read CSV lines:", err)
 	}
-	outputs := []types.SiacoinOutput{}
+	var coinOutputs []types.SiacoinOutput
+	var fundOutputs []types.SiafundOutput
 	for i, line := range lines {
 		if line == nil {
 			fmt.Printf("Skipping line %d because it was empty.\n", i)
@@ -475,7 +476,7 @@ func walletsendscpfromcsvcmd(path string) {
 		}
 		amount := line[0]
 		if amount == "" {
-			fmt.Printf("Skipping line %d because the first column was empty. The first column must be the amount of scprimecoin to send specified in units, e.g. 1.23KS\n", i)
+			fmt.Printf("Skipping line %d because the first column was empty. The first column must be the amount of ScPrime coins or funds to send specified in units, e.g. 1.23KS or 30SPF\n", i)
 			continue
 		}
 		dest := line[1]
@@ -483,32 +484,35 @@ func walletsendscpfromcsvcmd(path string) {
 			fmt.Printf("Skipping line %d because the second column was empty. The second column must be the 76-byte hexadecimal address.\n", i)
 			continue
 		}
-		hastings, err := parseCurrency(amount)
+		value, err := types.NewCurrencyStr(amount)
 		if err != nil {
 			die("Could not parse amount:", err)
-		}
-		var value types.Currency
-		if _, err := fmt.Sscan(hastings, &value); err != nil {
-			die("Failed to parse amount", err)
 		}
 		var hash types.UnlockHash
 		if _, err := fmt.Sscan(dest, &hash); err != nil {
 			die("Failed to parse destination address", err)
 		}
 		fmt.Printf("Please send %s to %s\n", amount, dest)
-		var output types.SiacoinOutput
-		output.Value = value
-		output.UnlockHash = hash
-		outputs = append(outputs, output)
+		if strings.HasSuffix(amount, "SPF") {
+			var output types.SiafundOutput
+			output.Value = value
+			output.UnlockHash = hash
+			fundOutputs = append(fundOutputs, output)
+		} else {
+			var output types.SiacoinOutput
+			output.Value = value
+			output.UnlockHash = hash
+			coinOutputs = append(coinOutputs, output)
+		}
 	}
-	if len(outputs) == 0 {
-		die("No scprime outputs were supplied.")
+	if len(coinOutputs) == 0 && len(fundOutputs) == 0 {
+		die("No ScPrime outputs were supplied.")
 	}
-	_, err = httpClient.WalletSiacoinsMultiPost(outputs)
+	_, err = httpClient.WalletScPrimeMultiPost(coinOutputs, fundOutputs)
 	if err != nil {
-		die("Could not send scprimecoins:", err)
+		die("Could not send batch transaction:", err)
 	}
-	fmt.Println("Sent scprimecoins.")
+	fmt.Println("Sent batch transaction.")
 }
 
 // walletbalancecmd retrieves and displays information about the wallet.

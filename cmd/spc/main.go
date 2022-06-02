@@ -415,7 +415,7 @@ func initCmds() *cobra.Command {
 	//These do not exist in ScPrime
 	//walletLoadCmd.AddCommand(walletLoad033xCmd, walletLoadSeedCmd, walletLoadSiagCmd)
 
-	walletSendCmd.AddCommand(walletSendSiacoinsCmd, walletSendSiafundsCmd, walletSendScpFromCsvCmd)
+	walletSendCmd.AddCommand(walletSendSiacoinsCmd, walletSendSiafundsCmd, walletSendScprimeBatchCmd)
 	walletSendSiacoinsCmd.Flags().BoolVarP(&walletTxnFeeIncluded, "fee-included", "", false, "Take the transaction fee out of the balance being submitted instead of the fee being additional")
 	walletUnlockCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Display interactive password prompt even if SCPRIME_WALLET_PASSWORD is set")
 	walletBroadcastCmd.Flags().BoolVarP(&walletRawTxn, "raw", "", false, "Decode transaction as base64 instead of JSON")
