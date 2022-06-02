@@ -89,6 +89,11 @@ type storageFolder struct {
 	atomicSuccessfulReads  uint64
 	atomicSuccessfulWrites uint64
 
+	// Flag to prevent excessive Sync calls. Set to 2 when data has updated,
+	// decremented by 1 after storage files are synced. You need two syncs
+	// to avoid race condition.
+	atomicNeedSync int32
+
 	// Atomic bool indicating whether or not the storage folder is available. If
 	// the storage folder is not available, it will still be loaded but return
 	// an error if it is queried.

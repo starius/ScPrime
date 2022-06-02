@@ -363,6 +363,7 @@ func (wal *writeAheadLog) writeSectorMetadata(sf *storageFolder, su sectorUpdate
 		return err
 	}
 	atomic.AddUint64(&sf.atomicSuccessfulWrites, 1)
+	atomic.StoreInt32(&sf.atomicNeedSync, 2)
 	return nil
 }
 
