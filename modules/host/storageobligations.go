@@ -1585,23 +1585,31 @@ func (h *Host) auditStorageObligations() error {
 				h.log.Printf("Audit: check transaction failed with error %v\n", errors.AddContext(err, "unable to get transaction ID"))
 			}
 			if !confirmed {
-				h.log.Printf("Deleting non existing (stale) contract ID %v\n", so.id())
-				if len(so.SectorRoots) > 0 {
-					err = h.RemoveSectorBatch(so.SectorRoots)
-					if err != nil {
-						h.log.Printf("Audit: removing stale contract data sectors error %v\n",
-							errors.AddContext(err, "RemoveSectorBatch failed"))
+				// TODO: enable GC of stale contracts here.
+				// Make sure we do not remove sectors of active contracts (check MerkleRoot before removing).
+				// There was a bug here caused by failed renewal attempts which then succeed.
+				// Failed attempts produce stale contracts with the same sectors, and this code used to remove
+				// sectors of renewed contracts.
+				h.log.Printf("Found non existing (stale) contract ID %v\n", so.id())
+				h.log.Print("Do not remove it for now\n")
+				/*
+					if len(so.SectorRoots) > 0 {
+						err = h.RemoveSectorBatch(so.SectorRoots)
+						if err != nil {
+							h.log.Printf("Audit: removing stale contract data sectors error %v\n",
+								errors.AddContext(err, "RemoveSectorBatch failed"))
+						}
 					}
-				}
-				err = h.db.Update(func(tx *bolt.Tx) error {
-					bucket := tx.Bucket(bucketStorageObligations)
-					h.log.Printf("Deleting %v as stale contract from database.\n", id)
-					e := bucket.Delete([]byte(id[:]))
-					return errors.AddContext(e, "Error deleting contract from database")
-				})
-				if err != nil {
-					h.log.Println(errors.AddContext(err, "Audit: database failed to delete storage obligations"))
-				}
+					err = h.db.Update(func(tx *bolt.Tx) error {
+						bucket := tx.Bucket(bucketStorageObligations)
+						h.log.Printf("Deleting %v as stale contract from database.\n", id)
+						e := bucket.Delete([]byte(id[:]))
+						return errors.AddContext(e, "Error deleting contract from database")
+					})
+					if err != nil {
+						h.log.Println(errors.AddContext(err, "Audit: database failed to delete storage obligations"))
+					}
+				*/
 			}
 		}
 		return true
