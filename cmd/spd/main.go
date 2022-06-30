@@ -50,6 +50,8 @@ type Config struct {
 		Profile    string
 		ProfileDir string
 		DataDir    string
+
+		OnlyFirstDir bool
 	}
 
 	MiningPoolConfig config.MiningPoolConfig
@@ -192,6 +194,7 @@ func main() {
 	root.Flags().BoolVarP(&globalConfig.Spd.AuthenticateAPI, "authenticate-api", "", true, "enable API password protection")
 	root.Flags().BoolVarP(&globalConfig.Spd.TempPassword, "temp-password", "", false, "enter a temporary API password during startup")
 	root.Flags().BoolVarP(&globalConfig.Spd.AllowAPIBind, "disable-api-security", "", false, "allow spd to listen on a non-localhost address (DANGEROUS)")
+	root.Flags().BoolVarP(&globalConfig.Spd.OnlyFirstDir, "only-first-dir", "", false, "ignore all storage directories except first")
 
 	// If globalConfig.Spd.DataDir is not set, use the environment variable provided.
 	if globalConfig.Spd.DataDir == "" {

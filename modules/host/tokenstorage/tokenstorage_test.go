@@ -22,7 +22,8 @@ func createTokenStorage(t *testing.T) *TokenStorage {
 		err = os.RemoveAll(stDir)
 		assert.NoError(t, err, "failed to remove test dir")
 	})
-	stManager, err := contractmanager.NewCustomContractManager(new(modules.ProductionDependencies), stDir)
+	const onlyFirstDir = false
+	stManager, err := contractmanager.NewCustomContractManager(new(modules.ProductionDependencies), stDir, onlyFirstDir)
 	assert.NoError(t, err, "NewCustomContractManager failed")
 	t.Cleanup(func() {
 		err = stManager.Close()

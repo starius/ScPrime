@@ -132,6 +132,7 @@ type NodeParams struct {
 
 	HostAPIAddr                   string
 	CheckTokenExpirationFrequency time.Duration
+	OnlyFirstDir                  bool
 }
 
 // Node is a collection of ScPrime modules operating together as a ScPrime node.
@@ -488,7 +489,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 
 		i++
 		printfRelease("(%d/%d) Loading host...", i, numModules)
-		host, err := host.NewCustomTestHost(hostDeps, smDeps, cs, g, tp, w, mux, params.HostAddress, filepath.Join(dir, modules.HostDir), ln, params.CheckTokenExpirationFrequency)
+		host, err := host.NewCustomTestHost(hostDeps, smDeps, cs, g, tp, w, mux, params.HostAddress, filepath.Join(dir, modules.HostDir), ln, params.CheckTokenExpirationFrequency, params.OnlyFirstDir)
 		return host, err
 	}()
 	if err != nil {
