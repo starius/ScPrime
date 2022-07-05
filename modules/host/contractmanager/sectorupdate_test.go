@@ -13,6 +13,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -1678,6 +1679,119 @@ func TestSectorBalancing(t *testing.T) {
 		if sl.index > 64*2 {
 			t.Error("sector index within storage folder also being reported incorrectly")
 		}
+	}
+}
+
+// TestOnlyFirstDir checks that sectors are being added to first dir when
+// contract manager has onlyFirstDir set to true.
+func TestOnlyFirstDir(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	t.Parallel()
+	cmt, err := newContractManagerTester("TestSectorsAddedToOnlyFirstDir")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cmt.panicClose()
+
+	// Add 2 storage folders.
+	dir1 := filepath.Join(cmt.persistDir, "storageFolder1")
+	err = os.MkdirAll(dir1, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmt.cm.AddStorageFolder(dir1, modules.SectorSize*64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir2 := filepath.Join(cmt.persistDir, "storageFolder2")
+	err = os.MkdirAll(dir2, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmt.cm.AddStorageFolder(dir2, modules.SectorSize*64)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Add 20 sectors. They should be evenly distributed as we don't have
+	// onlyFirstDir flag set to true.
+	var wg sync.WaitGroup
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := cmt.cm.AddSector(randSector())
+			if err != nil {
+				t.Error(err)
+			}
+		}()
+	}
+	wg.Wait()
+
+	// Reload contract manager.
+	err = cmt.cm.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmt.cm, err = New(filepath.Join(cmt.persistDir, modules.ContractManagerDir))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify that each folder has 10 sectors.
+	sfs := cmt.cm.StorageFolders()
+	sort.Slice(sfs, func(i, j int) bool {
+		return sfs[i].Path < sfs[j].Path
+	})
+	if len(sfs) != 2 {
+		t.Fatal("There should be two storage folders in the contract manager", len(sfs))
+	}
+	// Check that every folder has at least one sector added.
+	if sfs[0].CapacityRemaining == sfs[0].Capacity {
+		t.Fatal("There should be at least one sector added to first dir")
+	}
+	if sfs[1].CapacityRemaining == sfs[1].Capacity {
+		t.Fatal("There should be at least one sector added to second dir")
+	}
+	remaining0 := sfs[0].CapacityRemaining
+	remaining1 := sfs[1].CapacityRemaining
+
+	// Reload contract manager with onlyFirstDir flag set to true.
+	err = cmt.cm.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmt.cm, err = New(filepath.Join(cmt.persistDir, modules.ContractManagerDir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmt.cm.onlyFirstDir = true
+
+	// Add 20 sectors. They should be added to first dir only.
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := cmt.cm.AddSector(randSector())
+			if err != nil {
+				t.Error(err)
+			}
+		}()
+	}
+	wg.Wait()
+
+	// Verify that sectors were added to first dir.
+	sfs = cmt.cm.StorageFolders()
+	sort.Slice(sfs, func(i, j int) bool {
+		return sfs[i].Path < sfs[j].Path
+	})
+	if sfs[1].CapacityRemaining != remaining1 {
+		t.Fatal("Second dir should not have new sectors added", (remaining1-sfs[1].CapacityRemaining)/modules.SectorSize)
+	}
+	if sfs[0].CapacityRemaining != remaining0-20*modules.SectorSize {
+		t.Fatal("First dir should have all new sectors added", (remaining0-sfs[0].CapacityRemaining)/modules.SectorSize)
 	}
 }
 

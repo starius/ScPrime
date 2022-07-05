@@ -294,6 +294,20 @@ func (cm *ContractManager) availableStorageFolders() []*storageFolder {
 		}
 		sfs = append(sfs, sf)
 	}
+	if cm.onlyFirstDir && len(sfs) > 0 {
+		// Keep only one directory. Choose the directory first if
+		// ordered by path to make deterministic.
+		best := sfs[0]
+		for _, sf := range sfs[1:] {
+			if sf.path == best.path {
+				panic("the same path in two directories: " + sf.path)
+			}
+			if sf.path < best.path {
+				best = sf
+			}
+		}
+		return []*storageFolder{best}
+	}
 	return sfs
 }
 

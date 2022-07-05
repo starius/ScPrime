@@ -414,7 +414,7 @@ func (h *Host) threadedPruneExpiredPriceTables() {
 // the Host.
 func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway,
 	tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, listenerAddress, persistDir string,
-	hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration) (*Host, error) {
+	hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration, onlyFirstDir bool) (*Host, error) {
 	// Check that all the dependencies were provided.
 	if cs == nil {
 		return nil, errNilCS
@@ -501,7 +501,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	}
 	// Add the storage manager to the host, and set up the stop call that will
 	// close the storage manager.
-	stManager, err := contractmanager.NewCustomContractManager(smDeps, filepath.Join(persistDir, "contractmanager"))
+	stManager, err := contractmanager.NewCustomContractManager(smDeps, filepath.Join(persistDir, "contractmanager"), onlyFirstDir)
 	if err != nil {
 		h.log.Println("Could not open the storage manager:", err)
 		return nil, fmt.Errorf("error creating contract manager: %w", err)
@@ -600,19 +600,21 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 
 // New returns an initialized Host.
 func New(cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir string, hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration) (*Host, error) {
-	return newHost(modules.ProdDependencies, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIListener, checkTokenExpirationFrequency)
+	const onlyFirstDir = false
+	return newHost(modules.ProdDependencies, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIListener, checkTokenExpirationFrequency, onlyFirstDir)
 }
 
 // NewCustomHost returns an initialized Host using the provided dependencies.
 func NewCustomHost(deps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir string, hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration) (*Host, error) {
-	return newHost(deps, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIListener, checkTokenExpirationFrequency)
+	const onlyFirstDir = false
+	return newHost(deps, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIListener, checkTokenExpirationFrequency, onlyFirstDir)
 }
 
 // NewCustomTestHost allows passing in both host dependencies and storage
 // manager dependencies. Used solely for testing purposes, to allow dependency
 // injection into the host's submodules.
-func NewCustomTestHost(deps modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir string, hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration) (*Host, error) {
-	return newHost(deps, smDeps, cs, g, tpool, wallet, mux, address, persistDir, hostAPIListener, checkTokenExpirationFrequency)
+func NewCustomTestHost(deps modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir string, hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration, onlyFirstDir bool) (*Host, error) {
+	return newHost(deps, smDeps, cs, g, tpool, wallet, mux, address, persistDir, hostAPIListener, checkTokenExpirationFrequency, onlyFirstDir)
 }
 
 // Close shuts down the host.

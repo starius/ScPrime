@@ -89,6 +89,10 @@ type ContractManager struct {
 	sectorLocations map[sectorID]sectorLocation
 	storageFolders  map[uint16]*storageFolder
 
+	// If onlyFirstDir is set, ignore all directories but the first one,
+	// when choosing place for new sector.
+	onlyFirstDir bool
+
 	// lockedSectors contains a list of sectors that are currently being read
 	// or modified.
 	lockedSectors map[sectorID]*sectorLock
@@ -229,8 +233,14 @@ func New(persistDir string) (*ContractManager, error) {
 }
 
 // NewCustomContractManager returns a ContractManager with custom dependencies.
-func NewCustomContractManager(dependencies modules.Dependencies, persistDir string) (*ContractManager, error) {
-	return newContractManager(dependencies, persistDir)
+// If onlyFirstDir is set, ignore all directories except the first choosing place for new sector.
+func NewCustomContractManager(dependencies modules.Dependencies, persistDir string, onlyFirstDir bool) (*ContractManager, error) {
+	cm, err := newContractManager(dependencies, persistDir)
+	if err != nil {
+		return nil, err
+	}
+	cm.onlyFirstDir = onlyFirstDir
+	return cm, nil
 }
 
 // Alerts implements the modules.Alerter interface for the contract manager
