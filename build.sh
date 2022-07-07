@@ -13,7 +13,7 @@ for arch in amd64 arm; do
 	        for pkg in spc spd; do
 			# Ignore unsupported arch/os combinations.
 			if [ "$arch" == "arm" ]; then
-				if [ "$os" == "windows" ] || [ "$os" == "darwin" ]; then
+				if [ "$os" == "windows" ] || [ "$os" == "darwin" ] || [ "$os" == "freebsd" ]; then
 					continue
 				fi
 			fi

@@ -32,7 +32,7 @@ for arch in amd64 arm; do
 
 		# We don't need ARM versions for windows or mac (just linux)
 		if [ "$arch" == "arm" ]; then
-			if [ "$os" == "windows" ] || [ "$os" == "darwin" ]; then
+			if [ "$os" == "windows" ] || [ "$os" == "darwin" ] || [ "$os" == "freebsd" ]; then
 				continue
 			fi
 		fi
