@@ -7,6 +7,7 @@ package types
 
 import (
 	"errors"
+	"fmt"
 )
 
 var (
@@ -54,10 +55,10 @@ func (t Transaction) correctFileContracts(currentHeight BlockHeight) error {
 	for _, fc := range t.FileContracts {
 		// Check that start and expiration are reasonable values.
 		if fc.WindowStart <= currentHeight {
-			return ErrFileContractWindowStartViolation
+			return fmt.Errorf("%w: file contract window start is %d; current height is %d", ErrFileContractWindowStartViolation, fc.WindowStart, currentHeight)
 		}
 		if fc.WindowEnd <= fc.WindowStart {
-			return ErrFileContractWindowEndViolation
+			return fmt.Errorf("%w: file contract window end is %d; file contract window start is %d", ErrFileContractWindowEndViolation, fc.WindowEnd, fc.WindowStart)
 		}
 
 		// Check that the proof outputs sum to the payout after the
@@ -96,10 +97,10 @@ func (t Transaction) correctFileContractRevisions(currentHeight BlockHeight) err
 	for _, fcr := range t.FileContractRevisions {
 		// Check that start and expiration are reasonable values.
 		if fcr.NewWindowStart <= currentHeight {
-			return ErrFileContractWindowStartViolation
+			return fmt.Errorf("%w: file contract window start is %d; current height is %d", ErrFileContractWindowStartViolation, fcr.NewWindowStart, currentHeight)
 		}
 		if fcr.NewWindowEnd <= fcr.NewWindowStart {
-			return ErrFileContractWindowEndViolation
+			return fmt.Errorf("%w: new file contract window end is %d; new file contract window start is %d", ErrFileContractWindowEndViolation, fcr.NewWindowEnd, fcr.NewWindowStart)
 		}
 
 		// Check that the valid outputs and missed outputs sum to the same
