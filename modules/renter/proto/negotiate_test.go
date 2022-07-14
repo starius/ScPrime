@@ -1,6 +1,7 @@
 package proto
 
 import (
+	errs "errors"
 	"net"
 	"testing"
 
@@ -38,7 +39,7 @@ func TestNegotiateRevisionStopResponse(t *testing.T) {
 	// transaction. This will return a known error because we are supplying an
 	// empty revision.
 	_, err := negotiateRevision(rConn, types.FileContractRevision{}, crypto.SecretKey{}, 0)
-	if err != types.ErrFileContractWindowStartViolation {
+	if !errs.Is(err, types.ErrFileContractWindowStartViolation) {
 		t.Fatalf("expected %q, got \"%v\"", types.ErrFileContractWindowStartViolation, err)
 	}
 	rConn.Close()

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -32,23 +33,23 @@ func TestTransactionCorrectFileContracts(t *testing.T) {
 
 	// Try when the start height was missed.
 	err = txn.correctFileContracts(35)
-	if err != ErrFileContractWindowStartViolation {
+	if !errors.Is(err, ErrFileContractWindowStartViolation) {
 		t.Error(err)
 	}
 	err = txn.correctFileContracts(135)
-	if err != ErrFileContractWindowStartViolation {
+	if !errors.Is(err, ErrFileContractWindowStartViolation) {
 		t.Error(err)
 	}
 
 	// Try when the expiration equal to and less than the start.
 	txn.FileContracts[0].WindowEnd = 35
 	err = txn.correctFileContracts(30)
-	if err != ErrFileContractWindowEndViolation {
+	if !errors.Is(err, ErrFileContractWindowEndViolation) {
 		t.Error(err)
 	}
 	txn.FileContracts[0].WindowEnd = 35
 	err = txn.correctFileContracts(30)
-	if err != ErrFileContractWindowEndViolation {
+	if !errors.Is(err, ErrFileContractWindowEndViolation) {
 		t.Error(err)
 	}
 	txn.FileContracts[0].WindowEnd = 40
@@ -105,7 +106,7 @@ func TestCorrectFileContractRevisions(t *testing.T) {
 		FileContractRevisions: []FileContractRevision{{}},
 	}
 	err := txn.correctFileContractRevisions(0)
-	if err != ErrFileContractWindowStartViolation {
+	if !errors.Is(err, ErrFileContractWindowStartViolation) {
 		t.Error(err)
 	}
 
@@ -116,7 +117,7 @@ func TestCorrectFileContractRevisions(t *testing.T) {
 		},
 	}
 	err = txn.correctFileContractRevisions(0)
-	if err != ErrFileContractWindowEndViolation {
+	if !errors.Is(err, ErrFileContractWindowEndViolation) {
 		t.Error(err)
 	}
 
