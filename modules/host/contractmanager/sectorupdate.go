@@ -512,6 +512,8 @@ func (cm *ContractManager) RemoveSectorBatch(sectorRoots []crypto.Hash) error {
 	}
 	defer cm.tg.Done()
 
+	cm.log.Printf("RemoveSectorBatch: removing %d sectors\n", len(sectorRoots))
+
 	// Add each sector in a separate goroutine.
 	var wg sync.WaitGroup
 	// Ensure only 'maxSectorBatchThreads' goroutines are running at a time.
