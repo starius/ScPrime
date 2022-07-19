@@ -1558,21 +1558,26 @@ func (h *Host) auditStorageObligations() error {
 		status := so.ObligationStatus
 
 		//Clear expired contracts
-		if status == 0 && (h.blockHeight > so.proofDeadline()+types.BlocksPerDay) { //status 0 means unresolved, let it stay for a day after the deadline has passed
+		bh := h.blockHeight
+		soh := so.proofDeadline() + types.BlocksPerDay
+		h.log.Printf("AUDIT DEBUG: h.blockHeight: %d; storageObligation's proof deadline + BlocksPerDay: %d\n", bh, soh)
+		if status == 0 && (bh > soh) { //status 0 means unresolved, let it stay for a day after the deadline has passed
 			//TODO: Check the correct state of contract!
 			//If it was renewed without storage proof, then it should get
 			//marked as success if still as unresolved fro correct accounting.
 			if len(so.SectorRoots) == 0 { //empty or renewed by renewAndClear
-				h.log.Printf("Audit: Empty storage obligation %v, removing as Succeeded\n", id)
-				h.removeStorageObligation(so, obligationSucceeded)
+				h.log.Printf("Audit: Empty storage obligation %v, should be removed as Succeeded\n", id)
+				h.log.Printf("Do not remove it for now. Current height: %d; so height: %d\n", bh, soh)
+				// h.removeStorageObligation(so, obligationSucceeded)
 				return true
 			}
 			h.log.Printf("Audit: Marking storage obligation %v as Failed and closing it\n", id)
-			err = h.removeStorageObligation(so, obligationFailed)
+			h.log.Printf("Do not remove it for now. Current height: %d; so height: %d\n", bh, soh)
+			/* err = h.removeStorageObligation(so, obligationFailed)
 			if err != nil {
 				h.log.Printf("Audit: Error clearing storage obligation %v as Failed and closing it: %v\n", id, err.Error())
 				return false
-			}
+			} */
 			return true
 		}
 
