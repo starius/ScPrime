@@ -31,7 +31,7 @@ type stratumJob struct {
 	ExtraNonce2  types.ExtraNonce2
 }
 
-//StratumClient is a sia client using the stratum protocol
+// StratumClient is a sia client using the stratum protocol
 type StratumClient struct {
 	connectionstring string
 	User             string
@@ -369,7 +369,7 @@ func (sc *StratumClient) setDifficulty(difficulty float64) {
 	//fmt.Printf("difficulty set to: %d\n", difficulty)
 }
 
-//GetHeaderForWork fetches new work from the SIA daemon
+// GetHeaderForWork fetches new work from the SIA daemon
 func (sc *StratumClient) GetHeaderForWork() (target, header []byte, deprecationChannel chan bool, job interface{}, err error) {
 	sc.mutex.Lock()
 	defer sc.mutex.Unlock()
@@ -413,7 +413,7 @@ func (sc *StratumClient) GetHeaderForWork() (target, header []byte, deprecationC
 	return
 }
 
-//SubmitHeader reports a solution to the stratum server
+// SubmitHeader reports a solution to the stratum server
 func (sc *StratumClient) SubmitHeader(header []byte, job interface{}) (err error) {
 	sj, _ := job.(stratumJob)
 	nonce := encoding.BytesToHexString(header[32:40])

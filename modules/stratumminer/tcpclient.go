@@ -18,11 +18,11 @@ import (
 	"gitlab.com/NebulousLabs/threadgroup"
 )
 
-//ErrorCallback is the type of function that be registered to be notified of errors requiring a client
+// ErrorCallback is the type of function that be registered to be notified of errors requiring a client
 // to be dropped and a new one to be created
 type ErrorCallback func(err error)
 
-//NotificationHandler is the signature for a function that handles notifications
+// NotificationHandler is the signature for a function that handles notifications
 type NotificationHandler func(args []interface{})
 
 // TcpClient maintains a connection to the stratum server and (de)serializes requests/reponses/notifications
@@ -169,7 +169,7 @@ func (c *TcpClient) dispatchError(err error) {
 	}
 }
 
-//Listen reads data from the open connection, deserializes it and dispatches the reponses and notifications
+// Listen reads data from the open connection, deserializes it and dispatches the reponses and notifications
 // This is a blocking function and will continue to listen until an error occurs (io or deserialization)
 func (c *TcpClient) Listen() {
 	/*
@@ -233,7 +233,7 @@ func (c *TcpClient) cancelAllRequests() {
 	}
 }
 
-//Call invokes the named function, waits for it to complete, and returns its error status.
+// Call invokes the named function, waits for it to complete, and returns its error status.
 func (c *TcpClient) Call(serviceMethod string, args []string) (reply interface{}, err error) {
 	//jsonargs, _ := json.Marshal(args)
 	//rawargs := json.RawMessage(jsonargs)

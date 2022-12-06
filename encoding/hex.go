@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-//HexStringToBytes converts a hex encoded string (but as go type interface{}) to a byteslice
+// HexStringToBytes converts a hex encoded string (but as go type interface{}) to a byteslice
 // If v is no valid string or the string contains invalid characters, an error is returned
 func HexStringToBytes(v interface{}) (result []byte, err error) {
 	var ok bool

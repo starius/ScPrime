@@ -27,19 +27,19 @@ func decodeMessage(resp *http.Response) (msg string, err error) {
 	return
 }
 
-//Start does nothing
+// Start does nothing
 func (sc *SiadClient) Start() {}
 
-//Stop does nothing
+// Stop does nothing
 func (sc *SiadClient) Stop() {}
 
 // Connected is always true if we're using a local node
 func (sc *SiadClient) Connected() bool { return true }
 
-//SetDeprecatedJobCall does nothing
+// SetDeprecatedJobCall does nothing
 func (sc *SiadClient) SetDeprecatedJobCall(call DeprecatedJobCall) {}
 
-//GetHeaderForWork fetches new work from the SIA daemon
+// GetHeaderForWork fetches new work from the SIA daemon
 func (sc *SiadClient) GetHeaderForWork() (target []byte, header []byte, deprecationChannel chan bool, job interface{}, err error) {
 	//the deprecationChannel is not used but return a valid channel anyway
 	deprecationChannel = make(chan bool)
@@ -87,7 +87,7 @@ func (sc *SiadClient) GetHeaderForWork() (target []byte, header []byte, deprecat
 	return
 }
 
-//SubmitHeader reports a solved header to the SIA daemon
+// SubmitHeader reports a solved header to the SIA daemon
 func (sc *SiadClient) SubmitHeader(header []byte, job interface{}) (err error) {
 	req, err := http.NewRequest("POST", sc.siadurl, bytes.NewReader(header))
 	if err != nil {

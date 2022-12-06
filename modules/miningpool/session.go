@@ -31,10 +31,8 @@ var (
 	}).(float64) // change from 6.0 to 1.0
 )
 
-//
 // A Session captures the interaction with a miner client from when they connect until the connection is
 // closed.  A session is tied to a single client and has many jobs associated with it
-//
 type Session struct {
 	mu               deadlock.RWMutex
 	authorized       bool
@@ -288,9 +286,9 @@ func (s *Session) HighestDifficulty() float64 {
 
 // DetectDisconnected checks to see if we haven't heard from a client for too
 // long of a time. It does this via 2 mechanisms:
-// 1) how long ago was the last share submitted? (the hearbeat)
-// 2) how low has the difficulty dropped from the highest difficulty the client
-//    ever faced?
+//  1. how long ago was the last share submitted? (the hearbeat)
+//  2. how low has the difficulty dropped from the highest difficulty the client
+//     ever faced?
 func (s *Session) DetectDisconnected() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()

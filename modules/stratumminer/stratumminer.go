@@ -15,7 +15,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
-//miningWork is sent to the mining routines and defines what ranges should be searched for a matching nonce
+// miningWork is sent to the mining routines and defines what ranges should be searched for a matching nonce
 type miningWork struct {
 	Header []byte
 	Offset uint64
@@ -23,7 +23,7 @@ type miningWork struct {
 	Job    interface{}
 }
 
-//const maxUint32 = int64(^uint32(0))
+// const maxUint32 = int64(^uint32(0))
 const maxUint64 = ^uint64(0)
 
 // StratumMiner does the actual stratum mining
@@ -262,9 +262,12 @@ func (sm *StratumMiner) createWork() {
 }
 
 // header structure: 80 bytes
-//       32 bytes             8 bytes      8 bytes           32 bytes
+//
+//	32 bytes             8 bytes      8 bytes           32 bytes
+//
 // ----------------------- | ---------- | ---------- | ----------------------- |
-//       Parent ID             Nonce       Timestamp        Merkle Root
+//
+//	Parent ID             Nonce       Timestamp        Merkle Root
 func (sm *StratumMiner) mine() {
 	if err := sm.tg.Add(); err != nil {
 		return

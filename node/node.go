@@ -46,13 +46,13 @@ import (
 // though not all methods are currently available for each module. You should
 // only use one method for creating a module, using multiple methods will cause
 // an error.
-//		+ Indicate with the 'CreateModule' bool that a module should be created
-//		  automatically. To create the module with custom dependencies, pass the
-//		  custom dependencies in using the 'ModuleDependencies' field.
-//		+ Pass an existing module in directly.
-//		+ Set 'CreateModule' to false and do not pass in an existing module.
-//		  This will result in a 'nil' module, meaning the node will not have
-//		  that module.
+//   - Indicate with the 'CreateModule' bool that a module should be created
+//     automatically. To create the module with custom dependencies, pass the
+//     custom dependencies in using the 'ModuleDependencies' field.
+//   - Pass an existing module in directly.
+//   - Set 'CreateModule' to false and do not pass in an existing module.
+//     This will result in a 'nil' module, meaning the node will not have
+//     that module.
 type NodeParams struct {
 	// Flags to indicate which modules should be created automatically by the
 	// server. If you are providing a pre-existing module, do not set the flag

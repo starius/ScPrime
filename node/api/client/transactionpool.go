@@ -34,7 +34,7 @@ func (c *Client) TransactionPoolTransactionsGet() (tptg api.TpoolTxnsGET, err er
 }
 
 // TransactionPoolTransactionConfirmed uses the /tpool/confirmed/:id endpoint for checking
-//if transaction has already verified on the blockchain
+// if transaction has already verified on the blockchain
 func (c *Client) TransactionPoolTransactionConfirmed(id types.TransactionID) (tptg api.TpoolConfirmedGET, err error) {
 	err = c.get("/tpool/confirmed/"+id.String(), &tptg)
 	return
