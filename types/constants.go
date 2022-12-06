@@ -38,6 +38,11 @@ var (
 	// against replay attacks.
 	ASICHardforkReplayProtectionPrefix = []byte(nil)
 
+	// Fork2022 specifies whether to activate the hardfork of Dec 2022.
+	// It includes:
+	//  * spending burnt coins using UnburnAddressUnlockHash
+	Fork2022 = false
+
 	// BlockFrequency is the desired number of seconds that
 	// should elapse, on average, between successive Blocks.
 	BlockFrequency BlockHeight
@@ -60,6 +65,8 @@ var (
 	BurnAddressBlockHeight = BlockHeight(105000)
 	// BurnAddressUnlockHash is the unlock hash for where to send coins to burn.
 	BurnAddressUnlockHash = UnlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69")
+	// UnburnAddressUnlockHash is the address used to spend coins from BurnAddressUnlockHash. Activated in Fork2022.
+	UnburnAddressUnlockHash = UnlockHashFromAddrStr("64c682831d977974380ad988787644fd23adeddcc0fe9f155519f5bbb9a8c61273faef5f72c7")
 	// DevFundEnabled is a boolean that when set to true will enable the ability to
 	// configure a dev fund
 	DevFundEnabled = true
