@@ -13,83 +13,106 @@ import (
 )
 
 func TestUnburn(t *testing.T) {
-	ht, err := newMockHostTester(modules.ProdDependencies, t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := ht.Close(); err != nil {
-			t.Fatal(err)
-		}
-	})
-
-	encryptionKey := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
-
-	unburnwallet, err := wallet.New(ht.cs, ht.tpool, filepath.Join(ht.persistDir, modules.WalletDir+"unburnwallet"))
-	require.NoError(t, err)
-
-	unburnSeed, err := unburnwallet.Encrypt(encryptionKey)
-	require.NoError(t, err)
-	require.NoError(t, unburnwallet.Unlock(encryptionKey))
-
-	// Make some of wallet's addresses UnburnAddressUnlockHash and activate Fork2022.
-	addr, err := unburnwallet.NextAddress()
-	require.NoError(t, err)
-	originalUnburnAddressUnlockHash := types.UnburnAddressUnlockHash
-	originalFork2022 := types.Fork2022
-	types.UnburnAddressUnlockHash = addr.UnlockHash()
-	types.Fork2022 = true
-	defer func() {
-		types.UnburnAddressUnlockHash = originalUnburnAddressUnlockHash
-		types.Fork2022 = originalFork2022
-	}()
-
-	// Recreate the wallet with the same seed.
-	unburnwallet2, err := wallet.New(ht.cs, ht.tpool, filepath.Join(ht.persistDir, modules.WalletDir+"unburnwallet2"))
-	require.NoError(t, err)
-	require.NoError(t, unburnwallet2.InitFromSeed(encryptionKey, unburnSeed))
-	require.NoError(t, unburnwallet2.Unlock(encryptionKey))
-
-	// Wait for the block to propagate to unburnwallet2.
-	wantHeight := ht.cs.Height()
-	for {
-		gotHeight, err := unburnwallet2.Height()
-		require.NoError(t, err)
-		if gotHeight >= wantHeight {
-			break
-		}
-		t.Logf("Waiting, height %d < %d", gotHeight, wantHeight)
-		time.Sleep(time.Second)
+	cases := []struct {
+		name         string
+		sendAddress  types.UnlockHash
+		spendAddress *types.UnlockHash
+		wantBalance  string
+	}{
+		{
+			name:         "unburn",
+			sendAddress:  types.BurnAddressUnlockHash,
+			spendAddress: &types.UnburnAddressUnlockHash,
+			wantBalance:  "301000000000000000000000000000",
+		},
+		{
+			name:         "ungift",
+			sendAddress:  types.AirdropNebulousLabsUnlockHash,
+			spendAddress: &types.UngiftUnlockHash,
+			wantBalance:  "300001000000000000000000000000000",
+		},
 	}
 
-	balance1, _, _, err := unburnwallet2.ConfirmedBalance()
-	require.NoError(t, err)
-	t.Logf("Confirmed balance 1: %s", balance1)
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			ht, err := newMockHostTester(modules.ProdDependencies, t.Name())
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				require.NoError(t, ht.Close())
+			})
 
-	burntAmount := types.NewCurrency64(10000000000000000000).Mul(types.NewCurrency64(100000000))
+			encryptionKey := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
 
-	_, err = ht.wallet.SendSiacoins(burntAmount, types.BurnAddressUnlockHash)
-	require.NoError(t, err)
+			wallet1, err := wallet.New(ht.cs, ht.tpool, filepath.Join(ht.persistDir, modules.WalletDir+"wallet1"))
+			require.NoError(t, err)
 
-	_, err = ht.miner.AddBlock()
-	require.NoError(t, err)
+			seed, err := wallet1.Encrypt(encryptionKey)
+			require.NoError(t, err)
+			require.NoError(t, wallet1.Unlock(encryptionKey))
 
-	// Wait for the block to propagate to unburnwallet2.
-	wantHeight = ht.cs.Height()
-	for {
-		gotHeight, err := unburnwallet2.Height()
-		require.NoError(t, err)
-		if gotHeight >= wantHeight {
-			break
-		}
-		t.Logf("Waiting, height %d < %d", gotHeight, wantHeight)
-		time.Sleep(time.Second)
+			// Make some of wallet's addresses spendAddress and activate Fork2022.
+			addr, err := wallet1.NextAddress()
+			require.NoError(t, err)
+			originalSpendAddress := *tc.spendAddress
+			originalFork2022 := types.Fork2022
+			*tc.spendAddress = addr.UnlockHash()
+			types.Fork2022 = true
+			defer func() {
+				*tc.spendAddress = originalSpendAddress
+				types.Fork2022 = originalFork2022
+			}()
+
+			// Recreate the wallet with the same seed.
+			wallet2, err := wallet.New(ht.cs, ht.tpool, filepath.Join(ht.persistDir, modules.WalletDir+"wallet2"))
+			require.NoError(t, err)
+			require.NoError(t, wallet2.InitFromSeed(encryptionKey, seed))
+			require.NoError(t, wallet2.Unlock(encryptionKey))
+
+			// Wait for the block to propagate to wallet2.
+			wantHeight := ht.cs.Height()
+			for {
+				gotHeight, err := wallet2.Height()
+				require.NoError(t, err)
+				if gotHeight >= wantHeight {
+					break
+				}
+				t.Logf("Waiting, height %d < %d", gotHeight, wantHeight)
+				time.Sleep(time.Second)
+			}
+
+			balance1, _, _, err := wallet2.ConfirmedBalance()
+			require.NoError(t, err)
+			t.Logf("Confirmed balance 1: %s", balance1)
+
+			burntAmount := types.NewCurrency64(10000000000000000000).Mul(types.NewCurrency64(100000000))
+
+			_, err = ht.wallet.SendSiacoins(burntAmount, tc.sendAddress)
+			require.NoError(t, err)
+
+			_, err = ht.miner.AddBlock()
+			require.NoError(t, err)
+
+			// Wait for the block to propagate to wallet2.
+			wantHeight = ht.cs.Height()
+			for {
+				gotHeight, err := wallet2.Height()
+				require.NoError(t, err)
+				if gotHeight >= wantHeight {
+					break
+				}
+				t.Logf("Waiting, height %d < %d", gotHeight, wantHeight)
+				time.Sleep(time.Second)
+			}
+
+			balance2, _, _, err := wallet2.ConfirmedBalance()
+			require.NoError(t, err)
+			t.Logf("Confirmed balance 2: %s", balance2)
+
+			require.Equal(t, tc.wantBalance, balance2.String())
+
+			diff := balance2.Sub(balance1)
+			require.Equal(t, burntAmount.String(), diff.String())
+		})
 	}
-
-	balance2, _, _, err := unburnwallet2.ConfirmedBalance()
-	require.NoError(t, err)
-	t.Logf("Confirmed balance 2: %s", balance2)
-
-	diff := balance2.Sub(balance1)
-	require.Equal(t, burntAmount.String(), diff.String())
 }

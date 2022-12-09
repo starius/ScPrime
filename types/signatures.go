@@ -197,6 +197,9 @@ func (uc UnlockConditions) UnlockHash() UnlockHash {
 		if uh == UnburnAddressUnlockHash {
 			uh = BurnAddressUnlockHash
 		}
+		if uh == UngiftUnlockHash {
+			uh = AirdropNebulousLabsUnlockHash
+		}
 	}
 	return uh
 }
