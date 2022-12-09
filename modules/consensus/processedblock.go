@@ -45,7 +45,7 @@ type processedBlock struct {
 // that the weight of 'bn' exceeds the weight of 'cmp' by:
 //
 //	(the target of 'cmp' * 'Surpass Threshold')
-func (pb *processedBlock) heavierThan(cmp *processedBlock) bool {
+func (pb *processedBlock) heavierThan(cmp *processedBlockV2) bool {
 	requirement := cmp.Depth.AddDifficulties(cmp.ChildTarget.MulDifficulty(SurpassThreshold))
 	return requirement.Cmp(pb.Depth) > 0 // Inversed, because the smaller target is actually heavier.
 }
@@ -57,9 +57,22 @@ func (pb *processedBlock) childDepth() types.Target {
 	return pb.Depth.AddDifficulties(pb.ChildTarget)
 }
 
+type processedBlockV2Diffs struct {
+	FileContractOwnerDiffs []modules.FileContractOwnerDiff
+	SiafundBDiffs          []modules.SiafundBDiff
+}
+
+// processedBlockV2 is a version 2 of processedBlock structure introduced for SPF-B hardfork (2022).
+// It is needed to store new diffs in a separate database bucket, since we can't change any
+// existing types.
+type processedBlockV2 struct {
+	processedBlock
+	processedBlockV2Diffs
+}
+
 // targetAdjustmentBase returns the magnitude that the target should be
 // adjusted by before a clamp is applied.
-func (cs *ConsensusSet) targetAdjustmentBase(blockMap *bolt.Bucket, pb *processedBlock) *big.Rat {
+func (cs *ConsensusSet) targetAdjustmentBase(blockMap *bolt.Bucket, pb *processedBlockV2) *big.Rat {
 	// Grab the block that was generated 'TargetWindow' blocks prior to the
 	// parent. If there are not 'TargetWindow' blocks yet, stop at the genesis
 	// block.
@@ -102,7 +115,7 @@ func clampTargetAdjustment(base *big.Rat) *big.Rat {
 
 // setChildTarget computes the target of a blockNode's child. All children of a node
 // have the same target.
-func (cs *ConsensusSet) setChildTarget(blockMap *bolt.Bucket, pb *processedBlock) {
+func (cs *ConsensusSet) setChildTarget(blockMap *bolt.Bucket, pb *processedBlockV2) {
 	// Fetch the parent block.
 	var parent processedBlock
 	parentBytes := blockMap.Get(pb.Block.ParentID[:])
@@ -122,13 +135,15 @@ func (cs *ConsensusSet) setChildTarget(blockMap *bolt.Bucket, pb *processedBlock
 
 // newChild creates a blockNode from a block and adds it to the parent's set of
 // children. The new node is also returned. It necessarily modifies the database
-func (cs *ConsensusSet) newChild(tx *bolt.Tx, pb *processedBlock, b types.Block) *processedBlock {
+func (cs *ConsensusSet) newChild(tx *bolt.Tx, pb *processedBlockV2, b types.Block) *processedBlockV2 {
 	// Create the child node.
 	childID := b.ID()
-	child := &processedBlock{
-		Block:  b,
-		Height: pb.Height + 1,
-		Depth:  pb.childDepth(),
+	child := &processedBlockV2{
+		processedBlock: processedBlock{
+			Block:  b,
+			Height: pb.Height + 1,
+			Depth:  pb.childDepth(),
+		},
 	}
 
 	// Push the total values for this block into the oak difficulty adjustment
@@ -147,9 +162,6 @@ func (cs *ConsensusSet) newChild(tx *bolt.Tx, pb *processedBlock, b types.Block)
 	} else {
 		child.ChildTarget = cs.childTargetOak(prevTotalTime, prevTotalTarget, pb.ChildTarget, pb.Height, pb.Block.Timestamp)
 	}
-	err = blockMap.Put(childID[:], encoding.Marshal(*child))
-	if build.DEBUG && err != nil {
-		panic(err)
-	}
+	addBlockMap(tx, child)
 	return child
 }

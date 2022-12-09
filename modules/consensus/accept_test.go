@@ -161,7 +161,7 @@ func (m *mockBlockMarshaler) AddPredefinedUnmarshal(u predefinedBlockUnmarshal) 
 
 // minimumValidChildTimestamp returns the minimum timestamp of pb that can be
 // considered a valid block.
-func (brh mockBlockRuleHelper) minimumValidChildTimestamp(blockMap dbBucket, pb *processedBlock) types.Timestamp {
+func (brh mockBlockRuleHelper) minimumValidChildTimestamp(blockMap dbBucket, pb *processedBlockV2) types.Timestamp {
 	return brh.minTimestamp
 }
 
@@ -281,8 +281,10 @@ func TestUnitValidateHeaderAndBlock(t *testing.T) {
 		dbBucketMap := map[string]dbBucket{}
 		if tt.useNilBlockMap {
 			dbBucketMap[string(BlockMap)] = nil
+			dbBucketMap[string(BlockMapV2)] = nil
 		} else {
 			dbBucketMap[string(BlockMap)] = bucket
+			dbBucketMap[string(BlockMapV2)] = mockDbBucket{map[string][]byte{}}
 		}
 		tx := mockDbTx{dbBucketMap}
 
@@ -471,8 +473,10 @@ func TestUnitValidateHeader(t *testing.T) {
 		dbBucketMap := map[string]dbBucket{}
 		if tt.useNilBlockMap {
 			dbBucketMap[string(BlockMap)] = nil
+			dbBucketMap[string(BlockMapV2)] = nil
 		} else {
 			dbBucketMap[string(BlockMap)] = bucket
+			dbBucketMap[string(BlockMapV2)] = mockDbBucket{map[string][]byte{}}
 		}
 		tx := mockDbTx{dbBucketMap}
 

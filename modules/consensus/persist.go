@@ -13,6 +13,19 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+var (
+	// DatabaseBucketsMayNotExist contains buckets which did not exist
+	// in previous versions.
+	DatabaseBucketsMayNotExist = [][]byte{
+		SiafundHardforkPool,
+		SiafundPoolHistory,
+		FileContractsOwnership,
+		FileContractRanges,
+		SiafundBOutputs,
+		BlockMapV2,
+	}
+)
+
 const (
 	// DatabaseFilename contains the filename of the database that will be used
 	// when managing consensus.
@@ -37,12 +50,12 @@ func (cs *ConsensusSet) loadDB() error {
 			return err
 		}
 
-		// For backward storage compatibility, we create bucket SiafundHardforkPool
-		// here, if it does not yet exist.
-		// This is the case when the database was already present before the SPF Emission Hardfork.
-		_, err := tx.CreateBucketIfNotExists(SiafundHardforkPool)
-		if err != nil {
-			return err
+		// For backward storage compatibility, we create some buckets here, if they do not yet exist.
+		for _, bucket := range DatabaseBucketsMayNotExist {
+			_, err := tx.CreateBucketIfNotExists(bucket)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Check the initialization of the oak difficulty adjustment fields, and

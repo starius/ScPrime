@@ -18,8 +18,8 @@ var (
 // in the ConsensusSet's current path (the "common parent"). It returns the
 // (inclusive) set of blocks between the common parent and 'pb', starting from
 // the former.
-func backtrackToCurrentPath(tx *bolt.Tx, pb *processedBlock) []*processedBlock {
-	path := []*processedBlock{pb}
+func backtrackToCurrentPath(tx *bolt.Tx, pb *processedBlockV2) []*processedBlockV2 {
+	path := []*processedBlockV2{pb}
 	for {
 		// Error is not checked in production code - an error can only indicate
 		// that pb.Height > blockHeight(tx).
@@ -39,7 +39,7 @@ func backtrackToCurrentPath(tx *bolt.Tx, pb *processedBlock) []*processedBlock {
 		if build.DEBUG && err != nil {
 			panic(err)
 		}
-		path = append([]*processedBlock{pb}, path...)
+		path = append([]*processedBlockV2{pb}, path...)
 	}
 	return path
 }
@@ -47,7 +47,7 @@ func backtrackToCurrentPath(tx *bolt.Tx, pb *processedBlock) []*processedBlock {
 // revertToBlock will revert blocks from the ConsensusSet's current path until
 // 'pb' is the current block. Blocks are returned in the order that they were
 // reverted.  'pb' is not reverted.
-func (cs *ConsensusSet) revertToBlock(tx *bolt.Tx, pb *processedBlock) (revertedBlocks []*processedBlock) {
+func (cs *ConsensusSet) revertToBlock(tx *bolt.Tx, pb *processedBlockV2) (revertedBlocks []*processedBlockV2) {
 	// Sanity check - make sure that pb is in the current path.
 	currentPathID, err := getPath(tx, pb.Height)
 	if err != nil || currentPathID != pb.Block.ID() {
@@ -83,7 +83,7 @@ func (cs *ConsensusSet) revertToBlock(tx *bolt.Tx, pb *processedBlock) (reverted
 
 // applyUntilBlock will successively apply the blocks between the consensus
 // set's current path and 'pb'.
-func (cs *ConsensusSet) applyUntilBlock(tx *bolt.Tx, pb *processedBlock) (appliedBlocks []*processedBlock, err error) {
+func (cs *ConsensusSet) applyUntilBlock(tx *bolt.Tx, pb *processedBlockV2) (appliedBlocks []*processedBlockV2, err error) {
 	// Backtrack to the common parent of 'bn' and current path and then apply the new blocks.
 	newPath := backtrackToCurrentPath(tx, pb)
 	for _, block := range newPath[1:] {
@@ -116,7 +116,7 @@ func (cs *ConsensusSet) applyUntilBlock(tx *bolt.Tx, pb *processedBlock) (applie
 // error will be returned if any of the blocks applied in the transition are
 // found to be invalid. forkBlockchain is atomic; the ConsensusSet is only
 // updated if the function returns nil.
-func (cs *ConsensusSet) forkBlockchain(tx *bolt.Tx, newBlock *processedBlock) (revertedBlocks, appliedBlocks []*processedBlock, err error) {
+func (cs *ConsensusSet) forkBlockchain(tx *bolt.Tx, newBlock *processedBlockV2) (revertedBlocks, appliedBlocks []*processedBlockV2, err error) {
 	commonParent := backtrackToCurrentPath(tx, newBlock)[0]
 	revertedBlocks = cs.revertToBlock(tx, commonParent)
 	appliedBlocks, err = cs.applyUntilBlock(tx, newBlock)

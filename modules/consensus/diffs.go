@@ -3,7 +3,6 @@ package consensus
 import (
 	"errors"
 
-	"gitlab.com/NebulousLabs/encoding"
 	bolt "go.etcd.io/bbolt"
 
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -24,7 +23,7 @@ var (
 
 // commitDiffSetSanity performs a series of sanity checks before committing a
 // diff set.
-func commitDiffSetSanity(tx *bolt.Tx, pb *processedBlock, dir modules.DiffDirection) {
+func commitDiffSetSanity(tx *bolt.Tx, pb *processedBlockV2, dir modules.DiffDirection) {
 	// This function is purely sanity checks.
 	if !build.DEBUG {
 		return
@@ -70,6 +69,17 @@ func commitFileContractDiff(tx *bolt.Tx, fcd modules.FileContractDiff, dir modul
 	}
 }
 
+// commitFileContractOwnerDiff applies or reverts a FileContractOwnerDiff.
+func commitFileContractOwnerDiff(tx *bolt.Tx, fcod modules.FileContractOwnerDiff, dir modules.DiffDirection) {
+	if fcod.Direction == dir {
+		addFileContractRange(tx, fcod.Owners, FileContractRange{Start: fcod.StartHeight, End: fcod.EndHeight})
+		addFileContractOwnership(tx, fcod.ID, FileContractOwnership{Owners: fcod.Owners, Start: fcod.StartHeight})
+	} else {
+		removeFileContractRange(tx, fcod.Owners, FileContractRange{Start: fcod.StartHeight, End: fcod.EndHeight})
+		removeFileContractOwnership(tx, fcod.ID)
+	}
+}
+
 // commitSiafundOutputDiff applies or reverts a Siafund output diff.
 func commitSiafundOutputDiff(tx *bolt.Tx, sfod modules.SiafundOutputDiff, dir modules.DiffDirection) {
 	if sfod.Direction == dir {
@@ -100,24 +110,38 @@ func commitSiafundPoolDiff(tx *bolt.Tx, sfpd modules.SiafundPoolDiff, dir module
 		}
 	}
 
+	// Get current block height.
+	blockchainHeight := blockHeight(tx)
+
 	if dir == modules.DiffApply {
 		// Sanity check - sfpd.Previous should equal the current siafund pool.
 		if build.DEBUG && !getSiafundPool(tx).Equals(sfpd.Previous) {
 			panic(errApplySiafundPoolDiffMismatch)
 		}
 		setSiafundPool(tx, sfpd.Adjusted)
+		setSiafundHistoricalPool(tx, sfpd.Adjusted, blockchainHeight+1)
 	} else {
 		// Sanity check - sfpd.Adjusted should equal the current siafund pool.
 		if build.DEBUG && !getSiafundPool(tx).Equals(sfpd.Adjusted) {
 			panic(errRevertSiafundPoolDiffMismatch)
 		}
 		setSiafundPool(tx, sfpd.Previous)
+		removeSiafundHistoricalPool(tx, blockchainHeight)
+	}
+}
+
+// commitSiafundBDiff applies or reverts a SiafundBDiff.
+func commitSiafundBDiff(tx *bolt.Tx, sfbd modules.SiafundBDiff, dir modules.DiffDirection) {
+	if sfbd.Direction == dir {
+		addSiafundBOutput(tx, sfbd.ID)
+	} else {
+		removeSiafundBOutput(tx, sfbd.ID)
 	}
 }
 
 // createUpcomingDelayeOutputdMaps creates the delayed siacoin output maps that
 // will be used when applying delayed siacoin outputs in the diff set.
-func createUpcomingDelayedOutputMaps(tx *bolt.Tx, pb *processedBlock, dir modules.DiffDirection) {
+func createUpcomingDelayedOutputMaps(tx *bolt.Tx, pb *processedBlockV2, dir modules.DiffDirection) {
 	if dir == modules.DiffApply {
 		createDSCOBucket(tx, pb.Height+types.MaturityDelay)
 	} else if pb.Height >= types.MaturityDelay {
@@ -126,13 +150,16 @@ func createUpcomingDelayedOutputMaps(tx *bolt.Tx, pb *processedBlock, dir module
 }
 
 // commitNodeDiffs commits all of the diffs in a block node.
-func commitNodeDiffs(tx *bolt.Tx, pb *processedBlock, dir modules.DiffDirection) {
+func commitNodeDiffs(tx *bolt.Tx, pb *processedBlockV2, dir modules.DiffDirection) {
 	if dir == modules.DiffApply {
 		for _, scod := range pb.SiacoinOutputDiffs {
 			commitSiacoinOutputDiff(tx, scod, dir)
 		}
 		for _, fcd := range pb.FileContractDiffs {
 			commitFileContractDiff(tx, fcd, dir)
+		}
+		for _, fcd := range pb.FileContractOwnerDiffs {
+			commitFileContractOwnerDiff(tx, fcd, dir)
 		}
 		for _, sfod := range pb.SiafundOutputDiffs {
 			commitSiafundOutputDiff(tx, sfod, dir)
@@ -143,12 +170,18 @@ func commitNodeDiffs(tx *bolt.Tx, pb *processedBlock, dir modules.DiffDirection)
 		for _, sfpd := range pb.SiafundPoolDiffs {
 			commitSiafundPoolDiff(tx, sfpd, dir)
 		}
+		for _, sfbd := range pb.SiafundBDiffs {
+			commitSiafundBDiff(tx, sfbd, dir)
+		}
 	} else {
 		for i := len(pb.SiacoinOutputDiffs) - 1; i >= 0; i-- {
 			commitSiacoinOutputDiff(tx, pb.SiacoinOutputDiffs[i], dir)
 		}
 		for i := len(pb.FileContractDiffs) - 1; i >= 0; i-- {
 			commitFileContractDiff(tx, pb.FileContractDiffs[i], dir)
+		}
+		for i := len(pb.FileContractOwnerDiffs) - 1; i >= 0; i-- {
+			commitFileContractOwnerDiff(tx, pb.FileContractOwnerDiffs[i], dir)
 		}
 		for i := len(pb.SiafundOutputDiffs) - 1; i >= 0; i-- {
 			commitSiafundOutputDiff(tx, pb.SiafundOutputDiffs[i], dir)
@@ -159,12 +192,15 @@ func commitNodeDiffs(tx *bolt.Tx, pb *processedBlock, dir modules.DiffDirection)
 		for i := len(pb.SiafundPoolDiffs) - 1; i >= 0; i-- {
 			commitSiafundPoolDiff(tx, pb.SiafundPoolDiffs[i], dir)
 		}
+		for i := len(pb.SiafundBDiffs) - 1; i >= 0; i-- {
+			commitSiafundBDiff(tx, pb.SiafundBDiffs[i], dir)
+		}
 	}
 }
 
 // deleteObsoleteDelayedOutputMaps deletes the delayed siacoin output maps that
 // are no longer in use.
-func deleteObsoleteDelayedOutputMaps(tx *bolt.Tx, pb *processedBlock, dir modules.DiffDirection) {
+func deleteObsoleteDelayedOutputMaps(tx *bolt.Tx, pb *processedBlockV2, dir modules.DiffDirection) {
 	// There are no outputs that mature in the first MaturityDelay blocks.
 	if dir == modules.DiffApply && pb.Height >= types.MaturityDelay {
 		deleteDSCOBucket(tx, pb.Height)
@@ -174,7 +210,7 @@ func deleteObsoleteDelayedOutputMaps(tx *bolt.Tx, pb *processedBlock, dir module
 }
 
 // updateCurrentPath updates the current path after applying a diff set.
-func updateCurrentPath(tx *bolt.Tx, pb *processedBlock, dir modules.DiffDirection) {
+func updateCurrentPath(tx *bolt.Tx, pb *processedBlockV2, dir modules.DiffDirection) {
 	// Update the current path.
 	if dir == modules.DiffApply {
 		pushPath(tx, pb.Block.ID())
@@ -184,7 +220,7 @@ func updateCurrentPath(tx *bolt.Tx, pb *processedBlock, dir modules.DiffDirectio
 }
 
 // commitDiffSet applies or reverts the diffs in a blockNode.
-func commitDiffSet(tx *bolt.Tx, pb *processedBlock, dir modules.DiffDirection) {
+func commitDiffSet(tx *bolt.Tx, pb *processedBlockV2, dir modules.DiffDirection) {
 	// Sanity checks - there are a few so they were moved to another function.
 	if build.DEBUG {
 		commitDiffSetSanity(tx, pb, dir)
@@ -201,7 +237,7 @@ func commitDiffSet(tx *bolt.Tx, pb *processedBlock, dir modules.DiffDirection) {
 // transactions are allowed to depend on each other. We can't be sure that a
 // transaction is valid unless we have applied all of the previous transactions
 // in the block, which means we need to apply while we verify.
-func generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) error {
+func generateAndApplyDiff(tx *bolt.Tx, pb *processedBlockV2) error {
 	// Sanity check - the block being applied should have the current block as
 	// a parent.
 	if build.DEBUG && pb.Block.ParentID != currentBlockID(tx) {
@@ -279,6 +315,15 @@ func generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) error {
 			}
 			pb.SiafundOutputDiffs = append(pb.SiafundOutputDiffs, sfod)
 			commitSiafundOutputDiff(tx, sfod, modules.DiffApply)
+			// If we're at Fork2022, mark all new siafund outputs as SPF-B.
+			if pb.Height == types.Fork2022Height {
+				sfbd := modules.SiafundBDiff{
+					Direction: modules.DiffApply,
+					ID:        sfid,
+				}
+				pb.SiafundBDiffs = append(pb.SiafundBDiffs, sfbd)
+				commitSiafundBDiff(tx, sfbd, modules.DiffApply)
+			}
 		}
 	}
 
@@ -292,8 +337,6 @@ func generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) error {
 	pb.DiffsGenerated = true
 
 	// Add the block to the current path and block map.
-	bid := pb.Block.ID()
-	blockMap := tx.Bucket(BlockMap)
 	updateCurrentPath(tx, pb, modules.DiffApply)
 
 	// Sanity check preparation - set the consensus hash at this height so that
@@ -304,5 +347,6 @@ func generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) error {
 		pb.ConsensusChecksum = consensusChecksum(tx)
 	}
 
-	return blockMap.Put(bid[:], encoding.Marshal(*pb))
+	addBlockMap(tx, pb)
+	return nil
 }

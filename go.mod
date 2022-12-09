@@ -6,6 +6,7 @@ require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
 	github.com/dchest/threefish v0.0.0-20120919164726-3ecf4c494abf
 	github.com/go-sql-driver/mysql v1.6.0
+	github.com/google/gofuzz v1.0.0
 	github.com/hanwen/go-fuse/v2 v2.1.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
@@ -15,6 +16,7 @@ require (
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.10.1
 	github.com/starius/api2 v0.0.0-20220207151416-38e011ef2fc5
+	github.com/starius/unifynil v0.0.0-20220116024101-fb5f67afeb8e // indirect
 	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/xtaci/smux v1.5.16
