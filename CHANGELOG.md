@@ -149,7 +149,7 @@ pubfile.
    spd/spc
  - Made build process deterministic. Moved related scripts into `release-scripts`
  - Add directory support to Publinks.
- - Enabled Lockcheck code anaylzer
+ - Enabled Lockcheck code analyzer
  - Added Bandwidth monitoring to the host module
 
 - Add a delay when modifying large contracts on hosts to prevent hosts from
@@ -225,7 +225,7 @@ pubfile.
   spd/spc
 - Made build process deterministic. Moved related scripts into `release-scripts`
 - Add directory support to Publinks.
-- Enabled Lockcheck code anaylzer
+- Enabled Lockcheck code analyzer
 - Added Bandwidth monitoring to the host module
  
 **Bugs Fixed**
