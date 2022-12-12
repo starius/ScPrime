@@ -155,6 +155,11 @@ func TestUnburn(t *testing.T) {
 
 				require.Equal(t, amount.String(), balance3.String())
 			})
+
+			t.Run("make sure it is impossible to send coins to replaced address", func(t *testing.T) {
+				_, err = ht.wallet.SendSiacoins(thresholdAmount, *tc.spendAddress)
+				require.ErrorContains(t, err, types.ErrBadOutput.Error())
+			})
 		})
 	}
 }

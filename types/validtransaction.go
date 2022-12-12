@@ -46,6 +46,9 @@ var (
 	// ErrZeroRevision is an error when a transaction has a file contract
 	// revision with RevisionNumber=0
 	ErrZeroRevision = errors.New("transaction has a file contract revision with RevisionNumber=0")
+	// ErrBadOutput is an error when a transaction has output UnlockHash
+	// which is an address which spends coins from another address.
+	ErrBadOutput = errors.New("transaction cannot have an output to a replaced address")
 )
 
 // correctFileContracts checks that the file contracts adhere to the file
@@ -173,6 +176,53 @@ func (t Transaction) followsMinimumValues() error {
 	for _, fee := range t.MinerFees {
 		if fee.IsZero() {
 			return ErrZeroMinerFee
+		}
+	}
+	return nil
+}
+
+var replacedAddresses = []*UnlockHash{
+	&UnburnAddressUnlockHash,
+	&UngiftUnlockHash,
+}
+
+// noReplacedAddressesInOutputs checks that all outputs do not contain
+// addresses replaced in UnlockConditions.UnlockHash().
+func (t Transaction) noReplacedAddressesInOutputs() error {
+	for _, sa := range replacedAddresses {
+		for _, sco := range t.SiacoinOutputs {
+			if sco.UnlockHash == *sa {
+				return ErrBadOutput
+			}
+		}
+		for _, sfo := range t.SiafundOutputs {
+			if sfo.UnlockHash == *sa {
+				return ErrBadOutput
+			}
+		}
+		for _, fc := range t.FileContracts {
+			for _, output := range fc.ValidProofOutputs {
+				if output.UnlockHash == *sa {
+					return ErrBadOutput
+				}
+			}
+			for _, output := range fc.MissedProofOutputs {
+				if output.UnlockHash == *sa {
+					return ErrBadOutput
+				}
+			}
+		}
+		for _, fcr := range t.FileContractRevisions {
+			for _, output := range fcr.NewValidProofOutputs {
+				if output.UnlockHash == *sa {
+					return ErrBadOutput
+				}
+			}
+			for _, output := range fcr.NewMissedProofOutputs {
+				if output.UnlockHash == *sa {
+					return ErrBadOutput
+				}
+			}
 		}
 	}
 	return nil
@@ -306,6 +356,10 @@ func (t Transaction) StandaloneValid(currentHeight BlockHeight) (err error) {
 		return
 	}
 	err = t.followsMinimumValues()
+	if err != nil {
+		return
+	}
+	err = t.noReplacedAddressesInOutputs()
 	if err != nil {
 		return
 	}
