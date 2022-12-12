@@ -15,7 +15,7 @@ require (
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.10.1
 	github.com/starius/api2 v0.0.0-20220207151416-38e011ef2fc5
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/xtaci/smux v1.5.16
 	gitlab.com/NebulousLabs/demotemutex v0.0.0-20151003192217-235395f71c40
