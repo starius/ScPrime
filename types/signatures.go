@@ -192,7 +192,16 @@ func (uc UnlockConditions) UnlockHash() UnlockHash {
 	}
 	e.WriteUint64(uc.SignaturesRequired)
 	tree.Push(buf.Bytes())
-	return UnlockHash(tree.Root())
+	uh := UnlockHash(tree.Root())
+	if Fork2022 {
+		if uh == UnburnAddressUnlockHash {
+			uh = BurnAddressUnlockHash
+		}
+		if uh == UngiftUnlockHash {
+			uh = AirdropNebulousLabsUnlockHash
+		}
+	}
+	return uh
 }
 
 // SigHash returns the hash of the fields in a transaction covered by a given

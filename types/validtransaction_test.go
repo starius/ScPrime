@@ -3,6 +3,8 @@ package types
 import (
 	"errors"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // TestTransactionCorrectFileContracts probes the correctFileContracts function
@@ -215,6 +217,85 @@ func TestTransactionFollowsMinimumValues(t *testing.T) {
 		t.Error(err)
 	}
 	txn.SiafundOutputs[0].ClaimStart = ZeroCurrency
+}
+
+// TestTransactionFollowsNoReplacedAddressesInOutputs probes
+// the noReplacedAddressesInOutputs method of the Transaction type.
+func TestTransactionFollowsNoReplacedAddressesInOutputs(t *testing.T) {
+	// Start with a transaction that follows all of minimum-values rules.
+	txn := Transaction{
+		SiacoinOutputs: []SiacoinOutput{{UnlockHash: BurnAddressUnlockHash}},
+		SiafundOutputs: []SiafundOutput{{UnlockHash: BurnAddressUnlockHash}},
+		FileContracts: []FileContract{
+			{
+				ValidProofOutputs:  []SiacoinOutput{{UnlockHash: BurnAddressUnlockHash}},
+				MissedProofOutputs: []SiacoinOutput{{UnlockHash: BurnAddressUnlockHash}},
+			},
+		},
+		FileContractRevisions: []FileContractRevision{
+			{
+				NewValidProofOutputs:  []SiacoinOutput{{UnlockHash: BurnAddressUnlockHash}},
+				NewMissedProofOutputs: []SiacoinOutput{{UnlockHash: BurnAddressUnlockHash}},
+			},
+		},
+	}
+	require.NoError(t, txn.noReplacedAddressesInOutputs())
+
+	t.Run("SiacoinOutputs", func(t *testing.T) {
+		txn1 := txn
+		txn1.SiacoinOutputs = []SiacoinOutput{{UnlockHash: UnburnAddressUnlockHash}}
+		require.Error(t, txn1.noReplacedAddressesInOutputs())
+	})
+
+	t.Run("SiafundOutputs", func(t *testing.T) {
+		txn1 := txn
+		txn1.SiafundOutputs = []SiafundOutput{{UnlockHash: UngiftUnlockHash}}
+		require.Error(t, txn1.noReplacedAddressesInOutputs())
+	})
+
+	t.Run("FileContracts.ValidProofOutputs", func(t *testing.T) {
+		txn1 := txn
+		txn1.FileContracts = []FileContract{
+			{
+				ValidProofOutputs:  []SiacoinOutput{{UnlockHash: UnburnAddressUnlockHash}},
+				MissedProofOutputs: []SiacoinOutput{{UnlockHash: BurnAddressUnlockHash}},
+			},
+		}
+		require.Error(t, txn1.noReplacedAddressesInOutputs())
+	})
+
+	t.Run("FileContracts.MissedProofOutputs", func(t *testing.T) {
+		txn1 := txn
+		txn1.FileContracts = []FileContract{
+			{
+				ValidProofOutputs:  []SiacoinOutput{{UnlockHash: BurnAddressUnlockHash}},
+				MissedProofOutputs: []SiacoinOutput{{UnlockHash: UngiftUnlockHash}},
+			},
+		}
+		require.Error(t, txn1.noReplacedAddressesInOutputs())
+	})
+
+	t.Run("FileContractRevisions.NewValidProofOutputs", func(t *testing.T) {
+		txn1 := txn
+		txn1.FileContractRevisions = []FileContractRevision{
+			{
+				NewValidProofOutputs:  []SiacoinOutput{{UnlockHash: UnburnAddressUnlockHash}},
+				NewMissedProofOutputs: []SiacoinOutput{{UnlockHash: BurnAddressUnlockHash}},
+			},
+		}
+		require.Error(t, txn1.noReplacedAddressesInOutputs())
+	})
+
+	t.Run("FileContractRevisions.NewMissedProofOutputs", func(t *testing.T) {
+		txn1 := txn
+		txn1.FileContractRevisions = []FileContractRevision{
+			{
+				NewValidProofOutputs:  []SiacoinOutput{{UnlockHash: BurnAddressUnlockHash}},
+				NewMissedProofOutputs: []SiacoinOutput{{UnlockHash: UngiftUnlockHash}},
+			},
+		}
+		require.Error(t, txn1.noReplacedAddressesInOutputs())
+	})
 }
 
 // TestTransactionFollowsStorageProofRules probes the followsStorageProofRules

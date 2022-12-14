@@ -1,12 +1,12 @@
 package types
 
-//ExtraNonce2 is the nonce modified by the miner
+// ExtraNonce2 is the nonce modified by the miner
 type ExtraNonce2 struct {
 	Value uint64
 	Size  uint
 }
 
-//Bytes is a bigendian representation of the extranonce2
+// Bytes is a bigendian representation of the extranonce2
 func (en *ExtraNonce2) Bytes() (b []byte) {
 	b = make([]byte, en.Size, en.Size)
 	for i := uint(0); i < en.Size; i++ {
@@ -15,7 +15,7 @@ func (en *ExtraNonce2) Bytes() (b []byte) {
 	return
 }
 
-//Increment increases the nonce with 1, an error is returned if the resulting is value is bigger than possible given the size
+// Increment increases the nonce with 1, an error is returned if the resulting is value is bigger than possible given the size
 func (en *ExtraNonce2) Increment() (err error) {
 	en.Value++
 	//TODO: check if does not overflow compared to the allowed size

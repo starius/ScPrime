@@ -174,7 +174,7 @@ Finally, one extra cap is applied to the difficulty adjustment - the difficulty
 of finding a block is not allowed to change more than 0.4% every block. This
 maps to a total possible difficulty change of 55x across 1008 blocks. This clamp
 helps to prevent wild swings when the hashrate increases or decreases rapidly on
-the network, and it also limits the amount of damange that a malicious attacker
+the network, and it also limits the amount of damage that a malicious attacker
 can do if performing a difficulty raising attack.
 
 It should be noted that the timestamp of a block does not impact the difficulty

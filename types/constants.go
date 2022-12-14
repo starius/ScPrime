@@ -38,6 +38,12 @@ var (
 	// against replay attacks.
 	ASICHardforkReplayProtectionPrefix = []byte(nil)
 
+	// Fork2022 specifies whether to activate the hardfork of Dec 2022.
+	// It includes:
+	//  * spending burnt coins from BurnAddressUnlockHash using UnburnAddressUnlockHash
+	//  * spending coins from AirdropNebulousLabsUnlockHash using UngiftUnlockHash
+	Fork2022 = false
+
 	// BlockFrequency is the desired number of seconds that
 	// should elapse, on average, between successive Blocks.
 	BlockFrequency BlockHeight
@@ -60,6 +66,8 @@ var (
 	BurnAddressBlockHeight = BlockHeight(105000)
 	// BurnAddressUnlockHash is the unlock hash for where to send coins to burn.
 	BurnAddressUnlockHash = UnlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69")
+	// UnburnAddressUnlockHash is the address used to spend coins from BurnAddressUnlockHash. Activated in Fork2022.
+	UnburnAddressUnlockHash = UnlockHashFromAddrStr("64c682831d977974380ad988787644fd23adeddcc0fe9f155519f5bbb9a8c61273faef5f72c7")
 	// DevFundEnabled is a boolean that when set to true will enable the ability to
 	// configure a dev fund
 	DevFundEnabled = true
@@ -133,6 +141,10 @@ var (
 	// AirdropNebulousLabsValue is a gift to the NebulousLabs Team to acknowledge all their
 	// effort and hard work. THANK YOU!
 	AirdropNebulousLabsValue = NewCurrency64(300000000).Mul(SiacoinPrecision)
+	// AirdropNebulousLabsUnlockHash is the address of NebulousLabs Team gift.
+	AirdropNebulousLabsUnlockHash = UnlockHashFromAddrStr("7d0c44f7664e2d34e53efde0661a6f628ec9264785ae8e3cd7c973e8d190c3c97b5e3ecbc567")
+	// UngiftUnlockHash is the address used to spend coins from AirdropNebulousLabsUnlockHash. Activated in Fork2022.
+	UngiftUnlockHash = UnlockHashFromAddrStr("23e3564f335bf2aad01f8b06363547392db54f375025f402a604c60c7a9879d1f8186bcd1e88")
 	// AirdropSiaPrimeValue is the total amount of coins ScPrime gets to help bootstrap
 	// expenses
 	AirdropSiaPrimeValue = NewCurrency64(200000000).Mul(SiacoinPrecision)
@@ -394,7 +406,7 @@ func init() {
 			},
 			{
 				Value:      AirdropNebulousLabsValue,
-				UnlockHash: UnlockHashFromAddrStr("7d0c44f7664e2d34e53efde0661a6f628ec9264785ae8e3cd7c973e8d190c3c97b5e3ecbc567"),
+				UnlockHash: AirdropNebulousLabsUnlockHash,
 			},
 			{
 				Value:      AirdropSiaPrimeValue,
@@ -482,7 +494,7 @@ func init() {
 			},
 			{
 				Value:      AirdropNebulousLabsValue,
-				UnlockHash: UnlockHashFromAddrStr("7d0c44f7664e2d34e53efde0661a6f628ec9264785ae8e3cd7c973e8d190c3c97b5e3ecbc567"),
+				UnlockHash: AirdropNebulousLabsUnlockHash,
 			},
 			{
 				Value:      AirdropSiaPrimeValue,
@@ -648,7 +660,7 @@ func init() {
 			},
 			{
 				Value:      AirdropNebulousLabsValue,
-				UnlockHash: UnlockHashFromAddrStr("7d0c44f7664e2d34e53efde0661a6f628ec9264785ae8e3cd7c973e8d190c3c97b5e3ecbc567"),
+				UnlockHash: AirdropNebulousLabsUnlockHash,
 			},
 			{
 				Value:      AirdropSiaPrimeValue,

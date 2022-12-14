@@ -9,19 +9,15 @@ import (
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
-//
 // A ClientRecord represents the persistent data portion of the Client record
-//
 type ClientRecord struct {
 	clientID int64
 	name     string
 	wallet   types.UnlockHash
 }
 
-//
 // A Client represents a user and may have one or more workers associated with it.  It is primarily used for
 // accounting and statistics.
-//
 type Client struct {
 	cr   ClientRecord
 	mu   deadlock.RWMutex

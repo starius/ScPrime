@@ -444,7 +444,7 @@ func (c *Contractor) managedNewContract(host modules.HostDBEntry, contractFundin
 
 // managedPrunedRedundantAddressRange uses the hostdb to find hosts that
 // violate the rules about address ranges and cancels them.
-//TODO: adjust for IPRestriction > 1
+// TODO: adjust for IPRestriction > 1
 func (c *Contractor) managedPrunedRedundantAddressRange() {
 	// Get all contracts which are not canceled.
 	allContracts := c.staticContracts.ViewAll()

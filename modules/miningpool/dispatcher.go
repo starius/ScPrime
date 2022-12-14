@@ -48,7 +48,7 @@ func (d *Dispatcher) IncrementConnectionsOpened() {
 	*/
 }
 
-//AddHandler connects the incoming connection to the handler which will handle it
+// AddHandler connects the incoming connection to the handler which will handle it
 func (d *Dispatcher) AddHandler(conn net.Conn) {
 	addr := conn.RemoteAddr().String()
 	handler := &Handler{

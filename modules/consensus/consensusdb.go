@@ -171,10 +171,12 @@ type hardforkInfo struct {
 }
 
 /*
-             1st hf           2nd hf
-  --------------|----------------|--------------------------------
-   10,000 funds    30,0000 funds          200,000,000 funds
-     overall           overall                 overall
+	1st hf           2nd hf
+
+--------------|----------------|--------------------------------
+
+	10,000 funds    30,0000 funds          200,000,000 funds
+	  overall           overall                 overall
 */
 func claimPerFund(startPool, currentPool types.Currency, firstHf, secondHf hardforkInfo) types.Currency {
 	// Calculate claim before the first hardfork.

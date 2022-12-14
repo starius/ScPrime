@@ -10,11 +10,11 @@ import (
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
-//TXType is the type of transaction determined by the contents
+// TXType is the type of transaction determined by the contents
 // has String() and JSON marshalling functions
 type TXType int
 
-//TXType constants for recognized transaction types
+// TXType constants for recognized transaction types
 const (
 	TXTypeSetup TXType = iota
 	TXTypeMiner

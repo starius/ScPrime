@@ -2366,9 +2366,9 @@ func renterfuseunmountcmd(path string) {
 	fmt.Printf("Unmounted %s successfully\n", path)
 }
 
-//rentersetlocalpathcmd is the handler for the command `spc renter setlocalpath [siapath] [newlocalpath]`
-//Changes the trackingpath of the file
-//through API Endpoint
+// rentersetlocalpathcmd is the handler for the command `spc renter setlocalpath [siapath] [newlocalpath]`
+// Changes the trackingpath of the file
+// through API Endpoint
 func rentersetlocalpathcmd(siapath, newlocalpath string) {
 	//Parse Siapath
 	siaPath, err := modules.NewSiaPath(siapath)
