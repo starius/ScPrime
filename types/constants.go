@@ -41,6 +41,7 @@ var (
 	// Fork2022 specifies whether to activate the hardfork of Dec 2022.
 	// It includes:
 	//  * spending burnt coins from BurnAddressUnlockHash using UnburnAddressUnlockHash
+	//    from UnburnStartBlockHeight until UnburnStopBlockHeight
 	//  * spending coins from AirdropNebulousLabsUnlockHash using UngiftUnlockHash
 	Fork2022 = false
 
@@ -68,6 +69,10 @@ var (
 	BurnAddressUnlockHash = UnlockHashFromAddrStr("000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69")
 	// UnburnAddressUnlockHash is the address used to spend coins from BurnAddressUnlockHash. Activated in Fork2022.
 	UnburnAddressUnlockHash = UnlockHashFromAddrStr("64c682831d977974380ad988787644fd23adeddcc0fe9f155519f5bbb9a8c61273faef5f72c7")
+	// UnburnStartBlockHeight is the height at which unburn address starts working.
+	UnburnStartBlockHeight = BlockHeight(250000)
+	// UnburnStopBlockHeight is the height at which unburn address stops working.
+	UnburnStopBlockHeight = BlockHeight(300000)
 	// DevFundEnabled is a boolean that when set to true will enable the ability to
 	// configure a dev fund
 	DevFundEnabled = true

@@ -14,16 +14,20 @@ import (
 
 func TestUnburn(t *testing.T) {
 	cases := []struct {
-		name         string
-		sendAddress  types.UnlockHash
-		spendAddress *types.UnlockHash
-		wantBalance  string
+		name           string
+		enabledHeight  *types.BlockHeight
+		sendAddress    types.UnlockHash
+		spendAddress   *types.UnlockHash
+		wantBalance    string
+		disabledHeight *types.BlockHeight
 	}{
 		{
-			name:         "unburn",
-			sendAddress:  types.BurnAddressUnlockHash,
-			spendAddress: &types.UnburnAddressUnlockHash,
-			wantBalance:  "301000000000000000000000000000",
+			name:           "unburn",
+			enabledHeight:  &types.UnburnStartBlockHeight,
+			sendAddress:    types.BurnAddressUnlockHash,
+			spendAddress:   &types.UnburnAddressUnlockHash,
+			wantBalance:    "301000000000000000000000000000",
+			disabledHeight: &types.UnburnStopBlockHeight,
 		},
 		{
 			name:         "ungift",
@@ -46,6 +50,7 @@ func TestUnburn(t *testing.T) {
 				seed          modules.Seed
 				addr          types.UnlockConditions
 				wallet2       *wallet.Wallet
+				wallet3       *wallet.Wallet
 				balance2      types.Currency
 			)
 
@@ -93,6 +98,15 @@ func TestUnburn(t *testing.T) {
 				types.Fork2022 = originalFork2022
 			})
 
+			if tc.disabledHeight != nil {
+				// Set enabledHeight to current height to enable spending.
+				originalEnabledHeight := *tc.enabledHeight
+				*tc.enabledHeight = ht.cs.Height()
+				t.Cleanup(func() {
+					*tc.enabledHeight = originalEnabledHeight
+				})
+			}
+
 			t.Run("recreate the wallet with the same seed", func(t *testing.T) {
 				wallet2, err = wallet.New(ht.cs, ht.tpool, filepath.Join(ht.persistDir, modules.WalletDir+"wallet2"))
 				require.NoError(t, err)
@@ -128,7 +142,7 @@ func TestUnburn(t *testing.T) {
 			})
 
 			t.Run("send coins from special address", func(t *testing.T) {
-				wallet3, err := wallet.New(ht.cs, ht.tpool, filepath.Join(ht.persistDir, modules.WalletDir+"wallet3"))
+				wallet3, err = wallet.New(ht.cs, ht.tpool, filepath.Join(ht.persistDir, modules.WalletDir+"wallet3"))
 				require.NoError(t, err)
 				encryptionKey2 := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
 				_, err = wallet3.Encrypt(encryptionKey2)
@@ -138,7 +152,7 @@ func TestUnburn(t *testing.T) {
 				addr, err = wallet3.NextAddress()
 				require.NoError(t, err)
 
-				amount := balance2.Sub(thresholdAmount)
+				amount := balance2.Div(types.NewCurrency64(10))
 
 				_, err = wallet2.SendSiacoins(amount, addr.UnlockHash())
 				require.NoError(t, err)
@@ -160,6 +174,41 @@ func TestUnburn(t *testing.T) {
 				_, err = ht.wallet.SendSiacoins(thresholdAmount, *tc.spendAddress)
 				require.ErrorContains(t, err, types.ErrBadOutput.Error())
 			})
+
+			if tc.disabledHeight != nil {
+				t.Run("make sure it stops working after disabledHeight", func(t *testing.T) {
+					// First, assemble all the coins in wallet2 on the sendAddress.
+					// They can now be on a change address after the sending subtest.
+					balance2a, _, _, err := wallet2.ConfirmedBalance()
+					require.NoError(t, err)
+					amount := balance2a.Sub(thresholdAmount)
+					_, err = wallet2.SendSiacoins(amount, tc.sendAddress)
+					require.NoError(t, err)
+					_, err = ht.miner.AddBlock()
+					require.NoError(t, err)
+
+					// Disable the effect at the next block height.
+					// The coins should be locked on sendAddress.
+					originalDisabledHeight := *tc.disabledHeight
+					*tc.disabledHeight = ht.cs.Height() + 1
+					t.Cleanup(func() {
+						*tc.disabledHeight = originalDisabledHeight
+					})
+
+					_, err = ht.miner.AddBlock()
+					require.NoError(t, err)
+
+					sync(wallet2)
+
+					// Make sure that coins can not be spent.
+					amount = balance2.Div(types.NewCurrency64(10))
+					addr, err = wallet3.NextAddress()
+					require.NoError(t, err)
+
+					_, err = wallet2.SendSiacoins(amount, addr.UnlockHash())
+					require.ErrorContains(t, err, types.ErrBadInput.Error())
+				})
+			}
 		})
 	}
 }
