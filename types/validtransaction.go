@@ -49,6 +49,9 @@ var (
 	// ErrBadOutput is an error when a transaction has output UnlockHash
 	// which is an address which spends coins from another address.
 	ErrBadOutput = errors.New("transaction cannot have an output to a replaced address")
+	// ErrBadInput is an error when a transaction tries to spend from BurnAddressUnlockHash
+	// outside of [UnburnStartBlockHeight, UnburnStopBlockHeight).
+	ErrBadInput = errors.New("transaction spend from burn address at this block height")
 )
 
 // correctFileContracts checks that the file contracts adhere to the file

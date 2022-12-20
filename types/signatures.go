@@ -412,6 +412,15 @@ func (t *Transaction) validSignatures(currentHeight BlockHeight) error {
 		return err
 	}
 
+	// Check that burnt coins are not spent outside of [UnburnStartBlockHeight, UnburnStopBlockHeight).
+	if currentHeight < UnburnStartBlockHeight || currentHeight >= UnburnStopBlockHeight {
+		for _, input := range t.SiacoinInputs {
+			if input.UnlockConditions.UnlockHash() == BurnAddressUnlockHash {
+				return ErrBadInput
+			}
+		}
+	}
+
 	// Create the inputSignatures object for each input.
 	sigMap := make(map[crypto.Hash]*inputSignatures)
 	for i, input := range t.SiacoinInputs {
