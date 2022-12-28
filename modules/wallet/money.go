@@ -35,16 +35,16 @@ func (w *Wallet) DustThreshold() (types.Currency, error) {
 
 // ConfirmedBalance returns the balance of the wallet according to all of the
 // confirmed transactions.
-func (w *Wallet) ConfirmedBalance() (siacoinBalance types.Currency, siafundBalance types.Currency, siafundClaimBalance types.Currency, err error) {
+func (w *Wallet) ConfirmedBalance() (balance modules.ConfirmedBalance, err error) {
 	if err := w.tg.Add(); err != nil {
-		return types.ZeroCurrency, types.ZeroCurrency, types.ZeroCurrency, modules.ErrWalletShutdown
+		return modules.ConfirmedBalance{}, modules.ErrWalletShutdown
 	}
 	defer w.tg.Done()
 
 	// dustThreshold has to be obtained separate from the lock
 	dustThreshold, err := w.DustThreshold()
 	if err != nil {
-		return types.ZeroCurrency, types.ZeroCurrency, types.ZeroCurrency, modules.ErrWalletShutdown
+		return modules.ConfirmedBalance{}, modules.ErrWalletShutdown
 	}
 
 	w.mu.Lock()
@@ -57,7 +57,7 @@ func (w *Wallet) ConfirmedBalance() (siacoinBalance types.Currency, siafundBalan
 
 	dbForEachSiacoinOutput(w.dbTx, func(_ types.SiacoinOutputID, sco types.SiacoinOutput) {
 		if sco.Value.Cmp(dustThreshold) > 0 {
-			siacoinBalance = siacoinBalance.Add(sco.Value)
+			balance.CoinBalance = balance.CoinBalance.Add(sco.Value)
 		}
 	})
 
@@ -66,7 +66,15 @@ func (w *Wallet) ConfirmedBalance() (siacoinBalance types.Currency, siafundBalan
 		return
 	}
 	dbForEachSiafundOutput(w.dbTx, func(sfoid types.SiafundOutputID, sfo types.SiafundOutput) {
-		siafundBalance = siafundBalance.Add(sfo.Value)
+		isSiafundBOutput, err := w.cs.IsSiafundBOutput(sfoid)
+		if err != nil {
+			return
+		}
+		if isSiafundBOutput {
+			balance.FundbBalance = balance.FundbBalance.Add(sfo.Value)
+		} else {
+			balance.FundBalance = balance.FundBalance.Add(sfo.Value)
+		}
 		if sfo.ClaimStart.Cmp(siafundPool) > 0 {
 			// Skip claims larger than the siafund pool. This should only
 			// occur if the siafund pool has not been initialized yet.
@@ -77,7 +85,12 @@ func (w *Wallet) ConfirmedBalance() (siacoinBalance types.Currency, siafundBalan
 		if err != nil {
 			return
 		}
-		siafundClaimBalance = siafundClaimBalance.Add(claim.ByOwner)
+		if isSiafundBOutput {
+			balance.ClaimbBalance = balance.ClaimbBalance.Add(claim.ByOwner)
+			balance.UnclaimbBalance = balance.UnclaimbBalance.Add(claim.Total.Sub(claim.ByOwner))
+		} else {
+			balance.ClaimBalance = balance.ClaimBalance.Add(claim.ByOwner)
+		}
 	})
 	return
 }
@@ -209,7 +222,10 @@ func (w *Wallet) managedSendSiacoins(amount, fee types.Currency, dest types.Unlo
 }
 
 // BuildUnsignedBatchTransaction builds and returns an unsigned transaction.
-func (w *Wallet) BuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput) (modules.TransactionBuilder, error) {
+func (w *Wallet) BuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput, fundbOutputs []types.SiafundOutput) (modules.TransactionBuilder, error) {
+	if len(fundOutputs) > 0 && len(fundbOutputs) > 0 {
+		return nil, errors.New("cannot send both spf-a & spf-b in one transaction")
+	}
 	// Check if consensus is synced
 	if !w.cs.Synced() || w.deps.Disrupt("UnsyncedConsensus") {
 		return nil, errors.New("cannot build batch transaction until fully synced")
@@ -241,6 +257,11 @@ func (w *Wallet) BuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput
 		fundTpoolFee = fundTpoolFee.Mul64(690 + 60*uint64(len(fundOutputs))) // Estimated transaction size in bytes
 		tPoolFee = tPoolFee.Add(fundTpoolFee)
 	}
+	if len(fundbOutputs) != 0 {
+		fundTpoolFee := estTpoolFee.Mul64(5)                                  // use large fee to ensure siafund transactions are selected by minerstopcmd
+		fundTpoolFee = fundTpoolFee.Mul64(690 + 60*uint64(len(fundbOutputs))) // Estimated transaction size in bytes
+		tPoolFee = tPoolFee.Add(fundTpoolFee)
+	}
 	txnBuilder.AddMinerFee(tPoolFee)
 
 	// Calculate total cost to wallet.
@@ -264,12 +285,25 @@ func (w *Wallet) BuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput
 		for _, fundOutput := range fundOutputs {
 			totalFundCost = totalFundCost.Add(fundOutput.Value)
 		}
-		err = txnBuilder.FundSiafunds(totalFundCost)
+		err = txnBuilder.FundSiafunds(totalFundCost, false)
 		if err != nil {
 			return nil, build.ExtendErr("not enough SPF to fund transaction", err)
 		}
 		for _, fundOutput := range fundOutputs {
 			txnBuilder.AddSiafundOutput(fundOutput)
+		}
+	}
+	if len(fundbOutputs) != 0 {
+		totalFundCost := types.NewCurrency64(0)
+		for _, fundbOutput := range fundbOutputs {
+			totalFundCost = totalFundCost.Add(fundbOutput.Value)
+		}
+		err = txnBuilder.FundSiafunds(totalFundCost, true)
+		if err != nil {
+			return nil, build.ExtendErr("not enough SPF-B to fund transaction", err)
+		}
+		for _, fundbOutput := range fundbOutputs {
+			txnBuilder.AddSiafundOutput(fundbOutput)
 		}
 	}
 	return txnBuilder, nil
@@ -288,12 +322,14 @@ func (w *Wallet) BuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput
 // Ideally the blockchain explorer will someday be fixed to correctly display
 // these types of transactions. After this happens the check to prevent both coin
 // and fund outputs from being supplied can be removed.
-func (w *Wallet) SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput) (txns []types.Transaction, err error) {
+func (w *Wallet) SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput, fundbOutputs []types.SiafundOutput) (txns []types.Transaction, err error) {
 	// TODO: Fix the ScPrime.info blockchain explorer to correctly display
 	// transactions with both SPF and SCP outputs. Afterwhich, this check
 	// should be removed.
-	if len(coinOutputs) != 0 && len(fundOutputs) != 0 {
-		return nil, errors.New("cannot supply both coin and fund outputs")
+	if (len(coinOutputs) != 0 && len(fundOutputs) != 0) ||
+		(len(coinOutputs) != 0 && len(fundbOutputs) != 0) ||
+		(len(fundOutputs) != 0 && len(fundbOutputs) != 0) {
+		return nil, errors.New("cannot supply different kind of outputs in one transaction")
 	}
 	if err := w.tg.Add(); err != nil {
 		err = modules.ErrWalletShutdown
@@ -302,7 +338,7 @@ func (w *Wallet) SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOut
 	defer w.tg.Done()
 	w.log.Println("Beginning call to SendBatchTransaction")
 
-	txnBuilder, err := w.BuildUnsignedBatchTransaction(coinOutputs, fundOutputs)
+	txnBuilder, err := w.BuildUnsignedBatchTransaction(coinOutputs, fundOutputs, fundbOutputs)
 	if err != nil {
 		return nil, err
 	}
@@ -350,14 +386,14 @@ func (w *Wallet) SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOut
 // outputs. The transaction is submitted to the transaction pool and is also
 // returned.
 func (w *Wallet) SendSiacoinsMulti(coinOutputs []types.SiacoinOutput) (txns []types.Transaction, err error) {
-	return w.SendBatchTransaction(coinOutputs, nil)
+	return w.SendBatchTransaction(coinOutputs, nil, nil)
 }
 
 // SendSiafundsMulti creates a transaction that includes the specified
 // outputs. The transaction is submitted to the transaction pool and is also
 // returned.
 func (w *Wallet) SendSiafundsMulti(fundOutputs []types.SiafundOutput) (txns []types.Transaction, err error) {
-	return w.SendBatchTransaction(nil, fundOutputs)
+	return w.SendBatchTransaction(nil, fundOutputs, nil)
 }
 
 // SendSiafunds creates a transaction sending 'amount' to 'dest'. The transaction
@@ -369,7 +405,19 @@ func (w *Wallet) SendSiafunds(amount types.Currency, dest types.UnlockHash) (txn
 		UnlockHash: dest,
 	}
 	fundOutputs = append(fundOutputs, fundOutput)
-	return w.SendBatchTransaction(nil, fundOutputs)
+	return w.SendBatchTransaction(nil, fundOutputs, nil)
+}
+
+// SendSiafundbs creates a transaction sending 'amount' to 'dest'. The transaction
+// is submitted to the transaction pool and is also returned.
+func (w *Wallet) SendSiafundbs(amount types.Currency, dest types.UnlockHash) (txns []types.Transaction, err error) {
+	fundbOutputs := []types.SiafundOutput{
+		{
+			Value:      amount,
+			UnlockHash: dest,
+		},
+	}
+	return w.SendBatchTransaction(nil, nil, fundbOutputs)
 }
 
 // Len returns the number of elements in the sortedOutputs struct.

@@ -52,12 +52,12 @@ func (h *Host) externalSettings(maxFeeEstimation types.Currency) modules.HostExt
 	// If the host's wallet cannot afford to put MaxCollateral coins into a
 	// contract, reduce its advertised MaxCollateral.
 	maxCollateral := h.settings.MaxCollateral
-	balance, _, _, err := h.wallet.ConfirmedBalance()
+	balance, err := h.wallet.ConfirmedBalance()
 	if err != nil {
 		maxCollateral = types.ZeroCurrency
 	}
-	if balance.Cmp(maxCollateral) < 0 {
-		maxCollateral = balance
+	if balance.CoinBalance.Cmp(maxCollateral) < 0 {
+		maxCollateral = balance.CoinBalance
 	}
 	if h.settings.CollateralBudget.Cmp(h.financialMetrics.LockedStorageCollateral) < 0 {
 		maxCollateral = types.ZeroCurrency

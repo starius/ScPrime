@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 
 	"gitlab.com/NebulousLabs/encoding"
@@ -347,8 +348,9 @@ func (tb *transactionBuilder) FundSiacoinsFixedAddress(amount types.Currency, pa
 // FundSiafunds will add a siafund input of exactly 'amount' to the
 // transaction. A parent transaction may be needed to achieve an input with the
 // correct value. The siafund input will not be signed until 'Sign' is called
-// on the transaction builder.
-func (tb *transactionBuilder) FundSiafunds(amount types.Currency) error {
+// on the transaction builder. If b is True, then it tries to find inputs
+// of siafundbs (SPF-B's).
+func (tb *transactionBuilder) FundSiafunds(amount types.Currency, needb bool) error {
 	tb.wallet.mu.Lock()
 	defer tb.wallet.mu.Unlock()
 
@@ -371,6 +373,15 @@ func (tb *transactionBuilder) FundSiafunds(amount types.Currency) error {
 			return err
 		} else if err := encoding.Unmarshal(sfoBytes, &sfo); err != nil {
 			return err
+		}
+
+		// Check that we have required type of output.
+		isb, err := tb.wallet.cs.IsSiafundBOutput(sfoid)
+		if err != nil {
+			return fmt.Errorf("IsSiafundBOutput: %w", err)
+		}
+		if needb != isb {
+			continue
 		}
 
 		// Check that this output has not recently been spent by the wallet.

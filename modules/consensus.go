@@ -281,6 +281,10 @@ type (
 		// SiafundClaim returns number of siacoins claimed by given SiafundOutput.
 		// It takes into account height and hardfork changes.
 		SiafundClaim(types.SiafundOutputID) (types.SiafundClaim, error)
+
+		// IsSiafundBOutput returns true if given output id is SPF-B output,
+		// rather than SPF-A.
+		IsSiafundBOutput(id types.SiafundOutputID) (bool, error)
 	}
 )
 

@@ -219,6 +219,61 @@ func TestIntegrationTransaction(t *testing.T) {
 	} else if exp := txn.Inputs[0].Value.Sub(sentValue); !txn.Outputs[2].Value.Equals(exp) {
 		t.Errorf("expected first output to equal %v, got %v", exp, txn.Outputs[2].Value)
 	}
+
+	// test sending siafundsb
+	sentValue = types.NewCurrency64(123)
+	sendTxns, err = wt.wallet.SendSiafundbs(sentValue, types.UnlockHash{})
+	if err == nil || err.Error() != "not enough SPF-B to fund transaction: insufficient balance" {
+		t.Fatal("expected error: not enough SPF-B to fund transaction: insufficient balance")
+	}
+
+	outputs, err := wt.wallet.UnspentOutputs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var outputID types.OutputID
+	ok := false
+	for _, output := range outputs {
+		if output.FundType == types.SpecifierSiafundOutput {
+			outputID = output.ID
+			ok = true
+		}
+	}
+	if !ok {
+		t.Fatal("cannot find siafund output to convert to spf-b")
+	}
+	if cst, ok := wt.cs.(interface {
+		AddSiafundBOutput(id types.SiafundOutputID) error
+	}); ok {
+		err = cst.AddSiafundBOutput(types.SiafundOutputID(outputID))
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	sentValue = types.NewCurrency64(123)
+	sendTxns, err = wt.wallet.SendSiafundbs(sentValue, types.UnlockHash{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = wt.miner.AddBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	txn, exists, err = wt.wallet.Transaction(sendTxns[1].ID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !exists {
+		t.Fatal("unable to query transaction")
+	}
+	if len(txn.Inputs) != 1 || len(txn.Outputs) != 3 {
+		t.Error("expected 1 input and 3 outputs, got", len(txn.Inputs), len(txn.Outputs))
+	} else if !txn.Outputs[1].Value.Equals(sentValue) {
+		t.Errorf("expected first output to equal %v, got %v", sentValue, txn.Outputs[1].Value)
+	} else if exp := txn.Inputs[0].Value.Sub(sentValue); !txn.Outputs[2].Value.Equals(exp) {
+		t.Errorf("expected first output to equal %v, got %v", exp, txn.Outputs[2].Value)
+	}
 }
 
 // TestProcessedTxnIndexCompatCode checks if the compatibility code for the

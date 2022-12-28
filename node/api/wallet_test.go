@@ -539,12 +539,12 @@ func TestIntegrationWalletLoadSeedPOST(t *testing.T) {
 	}
 
 	// Record starting balances.
-	oldBal, _, _, err1 := st.wallet.ConfirmedBalance()
-	w2bal, _, _, err2 := w2.ConfirmedBalance()
+	oldBal, err1 := st.wallet.ConfirmedBalance()
+	w2bal, err2 := w2.ConfirmedBalance()
 	if errs := errors.Compose(err1, err2); errs != nil {
 		t.Fatal(errs)
 	}
-	if w2bal.IsZero() {
+	if w2bal.CoinBalance.IsZero() {
 		t.Fatal("second wallet's balance should not be zero")
 	}
 
@@ -559,11 +559,11 @@ func TestIntegrationWalletLoadSeedPOST(t *testing.T) {
 		t.Fatal(err)
 	}
 	// First wallet should now have balance of both wallets
-	bal, _, _, err := st.wallet.ConfirmedBalance()
+	bal, err := st.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if exp := oldBal.Add(w2bal); !bal.Equals(exp) {
+	if exp := oldBal.CoinBalance.Add(w2bal.CoinBalance); !bal.CoinBalance.Equals(exp) {
 		t.Fatalf("wallet did not load seed correctly: expected %v coins, got %v", exp, bal)
 	}
 }

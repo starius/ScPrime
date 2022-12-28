@@ -349,6 +349,45 @@ func (cs *ConsensusSet) SiafundClaim(sfoid types.SiafundOutputID) (types.Siafund
 	return claim, nil
 }
 
+// IsSiafundBOutput checks if `id` is an SPF-B output.
+func (cs *ConsensusSet) IsSiafundBOutput(id types.SiafundOutputID) (bool, error) {
+	err := cs.tg.Add()
+	if err != nil {
+		return false, err
+	}
+	defer cs.tg.Done()
+
+	var is bool
+	err = cs.db.View(func(tx *bolt.Tx) error {
+		is = isSiafundBOutput(tx, id)
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	return is, nil
+}
+
+// AddSiafundBOutput marks `id` as SPF-B. For tests only!
+func (cs *ConsensusSet) AddSiafundBOutput(id types.SiafundOutputID) error {
+	err := cs.tg.Add()
+	if err != nil {
+		return err
+	}
+	defer cs.tg.Done()
+
+	err = cs.db.Update(func(tx *bolt.Tx) error {
+		addSiafundBOutput(tx, id)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Height returns the height of the consensus set.
 func (cs *ConsensusSet) Height() (height types.BlockHeight) {
 	// A call to a closed database can cause undefined behavior.

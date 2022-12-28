@@ -51,7 +51,7 @@ func TestUnburn(t *testing.T) {
 				addr          types.UnlockConditions
 				wallet2       *wallet.Wallet
 				wallet3       *wallet.Wallet
-				balance2      types.Currency
+				balance2      modules.ConfirmedBalance
 			)
 
 			t.Run("initialize wallets", func(t *testing.T) {
@@ -118,7 +118,7 @@ func TestUnburn(t *testing.T) {
 				// Wait for the block to propagate to wallet2.
 				sync(wallet2)
 
-				balance1, _, _, err := wallet2.ConfirmedBalance()
+				balance1, err := wallet2.ConfirmedBalance()
 				require.NoError(t, err)
 				t.Logf("Confirmed balance 1: %s", balance1)
 
@@ -131,13 +131,13 @@ func TestUnburn(t *testing.T) {
 				// Wait for the block to propagate to wallet2.
 				sync(wallet2)
 
-				balance2, _, _, err = wallet2.ConfirmedBalance()
+				balance2, err = wallet2.ConfirmedBalance()
 				require.NoError(t, err)
 				t.Logf("Confirmed balance 2: %s", balance2)
 
-				require.Equal(t, tc.wantBalance, balance2.String())
+				require.Equal(t, tc.wantBalance, balance2.CoinBalance.String())
 
-				diff := balance2.Sub(balance1)
+				diff := balance2.CoinBalance.Sub(balance1.CoinBalance)
 				require.Equal(t, burntAmount.String(), diff.String())
 			})
 
@@ -152,7 +152,7 @@ func TestUnburn(t *testing.T) {
 				addr, err = wallet3.NextAddress()
 				require.NoError(t, err)
 
-				amount := balance2.Div(types.NewCurrency64(10))
+				amount := balance2.CoinBalance.Div(types.NewCurrency64(10))
 
 				_, err = wallet2.SendSiacoins(amount, addr.UnlockHash())
 				require.NoError(t, err)
@@ -163,11 +163,11 @@ func TestUnburn(t *testing.T) {
 				// Wait for the block to propagate to wallet2.
 				sync(wallet3)
 
-				balance3, _, _, err := wallet3.ConfirmedBalance()
+				balance3, err := wallet3.ConfirmedBalance()
 				require.NoError(t, err)
 				t.Logf("Confirmed balance 3: %s", balance3)
 
-				require.Equal(t, amount.String(), balance3.String())
+				require.Equal(t, amount.String(), balance3.CoinBalance.String())
 			})
 
 			t.Run("make sure it is impossible to send coins to replaced address", func(t *testing.T) {
@@ -179,9 +179,9 @@ func TestUnburn(t *testing.T) {
 				t.Run("make sure it stops working after disabledHeight", func(t *testing.T) {
 					// First, assemble all the coins in wallet2 on the sendAddress.
 					// They can now be on a change address after the sending subtest.
-					balance2a, _, _, err := wallet2.ConfirmedBalance()
+					balance2a, err := wallet2.ConfirmedBalance()
 					require.NoError(t, err)
-					amount := balance2a.Sub(thresholdAmount)
+					amount := balance2a.CoinBalance.Sub(thresholdAmount)
 					_, err = wallet2.SendSiacoins(amount, tc.sendAddress)
 					require.NoError(t, err)
 					_, err = ht.miner.AddBlock()
@@ -201,7 +201,7 @@ func TestUnburn(t *testing.T) {
 					sync(wallet2)
 
 					// Make sure that coins can not be spent.
-					amount = balance2.Div(types.NewCurrency64(10))
+					amount = balance2.CoinBalance.Div(types.NewCurrency64(10))
 					addr, err = wallet3.NextAddress()
 					require.NoError(t, err)
 

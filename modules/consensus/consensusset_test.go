@@ -75,11 +75,11 @@ func (cst *consensusSetTester) addSiafunds() {
 	}
 
 	// Check that the siafunds made it to the wallet.
-	_, siafundBalance, _, err := cst.wallet.ConfirmedBalance()
+	balance, err := cst.wallet.ConfirmedBalance()
 	if err != nil {
 		panic(err)
 	}
-	if !siafundBalance.Equals64(1e3) {
+	if !balance.FundBalance.Equals64(1e3) {
 		panic("wallet does not have the siafunds")
 	}
 }

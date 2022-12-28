@@ -204,6 +204,7 @@ func (api *API) buildHTTPRoutes() {
 		router.POST("/wallet/batchtransaction", RequirePassword(api.walletBatchTransaction, requiredPassword))
 		router.POST("/wallet/siacoins", RequirePassword(api.walletSiacoinsHandler, requiredPassword))
 		router.POST("/wallet/siafunds", RequirePassword(api.walletSiafundsHandler, requiredPassword))
+		router.POST("/wallet/siafundbs", RequirePassword(api.walletSiafundbsHandler, requiredPassword))
 		router.POST("/wallet/siagkey", RequirePassword(api.walletSiagkeyHandler, requiredPassword))
 		router.POST("/wallet/sweep/seed", RequirePassword(api.walletSweepSeedHandler, requiredPassword))
 		router.GET("/wallet/transaction/:id", api.walletTransactionHandler)

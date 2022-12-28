@@ -585,7 +585,7 @@ func (cst *consensusSetTester) testSpendSiafunds() {
 	if err != nil {
 		panic(err)
 	}
-	err = txnBuilder.FundSiafunds(txnValue)
+	err = txnBuilder.FundSiafunds(txnValue, false)
 	if err != nil {
 		panic(err)
 	}
