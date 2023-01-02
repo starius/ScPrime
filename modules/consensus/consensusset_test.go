@@ -556,10 +556,22 @@ func TestNonOverlappingRanges(t *testing.T) {
 		ranges []FileContractRange
 		result []FileContractRange
 	}{
-		{ranges: []FileContractRange{{types.BlockHeight(1), types.BlockHeight(101)}, {types.BlockHeight(50), types.BlockHeight(101)}, {types.BlockHeight(150), types.BlockHeight(250)}}, result: []FileContractRange{{types.BlockHeight(1), types.BlockHeight(101)}, {types.BlockHeight(150), types.BlockHeight(250)}}},
-		{ranges: []FileContractRange{{types.BlockHeight(1), types.BlockHeight(101)}, {types.BlockHeight(50), types.BlockHeight(151)}, {types.BlockHeight(150), types.BlockHeight(250)}}, result: []FileContractRange{{types.BlockHeight(1), types.BlockHeight(250)}}},
-		{ranges: []FileContractRange{{types.BlockHeight(1000), types.BlockHeight(6000)}, {types.BlockHeight(200500), types.BlockHeight(204500)}, {types.BlockHeight(201000), types.BlockHeight(202000)}, {types.BlockHeight(1), types.BlockHeight(5000)}}, result: []FileContractRange{{types.BlockHeight(1), types.BlockHeight(6000)}, {types.BlockHeight(200500), types.BlockHeight(204500)}}},
-		{ranges: []FileContractRange{{types.BlockHeight(1000), types.BlockHeight(6000)}, {types.BlockHeight(200500), types.BlockHeight(204500)}, {types.BlockHeight(204500), types.BlockHeight(208000)}, {types.BlockHeight(6000), types.BlockHeight(7000)}}, result: []FileContractRange{{types.BlockHeight(1000), types.BlockHeight(7000)}, {types.BlockHeight(200500), types.BlockHeight(208000)}}},
+		{
+			ranges: []FileContractRange{{1, 101}, {50, 101}, {150, 250}},
+			result: []FileContractRange{{1, 101}, {150, 250}},
+		},
+		{
+			ranges: []FileContractRange{{1, 101}, {50, 151}, {150, 250}},
+			result: []FileContractRange{{1, 250}},
+		},
+		{
+			ranges: []FileContractRange{{1000, 6000}, {200500, 204500}, {201000, 202000}, {1, 5000}},
+			result: []FileContractRange{{1, 6000}, {200500, 204500}},
+		},
+		{
+			ranges: []FileContractRange{{1000, 6000}, {200500, 204500}, {204500, 208000}, {6000, 7000}},
+			result: []FileContractRange{{1000, 7000}, {200500, 208000}},
+		},
 	}
 	for _, tc := range tests {
 		require.Equal(t, tc.result, nonOverlappingRanges(tc.ranges))
