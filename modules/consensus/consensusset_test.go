@@ -561,6 +561,14 @@ func TestNonOverlappingRanges(t *testing.T) {
 			result: []FileContractRange{{1, 101}, {150, 250}},
 		},
 		{
+			ranges: []FileContractRange{{1, 101}, {102, 250}},
+			result: []FileContractRange{{1, 101}, {102, 250}},
+		},
+		{
+			ranges: []FileContractRange{{1, 101}, {101, 250}},
+			result: []FileContractRange{{1, 250}},
+		},
+		{
 			ranges: []FileContractRange{{1, 101}, {50, 151}, {150, 250}},
 			result: []FileContractRange{{1, 250}},
 		},
