@@ -200,14 +200,10 @@ type hardforkInfo struct {
 	siafundCount types.Currency
 }
 
-/*
-	        1st hf          2nd hf                          fork 2022
-
---------------|----------------|--------------------------------|-----------------------------
-
-	10,000 funds    30,0000 funds          200,000,000 funds           400,000,000 funds
-	  overall           overall                 overall                      overall
-*/
+// ========== 1st hf ======== 2nd hf ======================== fork 2022
+// -------------|----------------|--------------------------------|-----------------------------
+// 10,000 funds    30,0000 funds          200,000,000 funds           400,000,000 funds
+// overall           overall                 overall                      overall
 func claimPerFund(startPool, currentPool types.Currency, hardforks []hardforkInfo, ownersClaimRanges []claimRange) types.SiafundClaim {
 	totalClaim := types.SiafundClaim{}
 	rangeStart := startPool
