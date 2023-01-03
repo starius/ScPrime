@@ -73,9 +73,9 @@ var (
 	// UnburnAddressUnlockHash is the address used to spend coins from BurnAddressUnlockHash. Activated in Fork2022.
 	UnburnAddressUnlockHash = UnlockHashFromAddrStr("64c682831d977974380ad988787644fd23adeddcc0fe9f155519f5bbb9a8c61273faef5f72c7")
 	// UnburnStartBlockHeight is the height at which unburn address starts working.
-	UnburnStartBlockHeight = BlockHeight(250000)
+	UnburnStartBlockHeight = Fork2022Height
 	// UnburnStopBlockHeight is the height at which unburn address stops working.
-	UnburnStopBlockHeight = BlockHeight(300000)
+	UnburnStopBlockHeight = Fork2022Height + BlockHeight(10000)
 	// DevFundEnabled is a boolean that when set to true will enable the ability to
 	// configure a dev fund
 	DevFundEnabled = true
@@ -277,9 +277,9 @@ var (
 
 	// SiafundStates is a list of all SPF states in historical order.
 	SiafundStates = []SiafundState{
-		{At: BlockHeight(0), TotalSupply: OldSiafundCount, Mul: FirstSiafundMul, Div: FirstSiafundDiv, Portion: *FirstSiafundPortion},
-		{At: SpfHardforkHeight, TotalSupply: NewSiafundCount, Mul: SecondSiafundMul, Div: SecondSiafundDiv, Portion: *SecondSiafundPortion},
-		{At: SpfSecondHardforkHeight, TotalSupply: NewerSiafundCount, Mul: ThirdSiafundMul, Div: ThirdSiafundDiv, Portion: *ThirdSiafundPortion},
+		{ActivationHeight: BlockHeight(0), TotalSupply: OldSiafundCount, Mul: FirstSiafundMul, Div: FirstSiafundDiv, Portion: *FirstSiafundPortion},
+		{ActivationHeight: SpfHardforkHeight, TotalSupply: NewSiafundCount, Mul: SecondSiafundMul, Div: SecondSiafundDiv, Portion: *SecondSiafundPortion},
+		{ActivationHeight: SpfSecondHardforkHeight, TotalSupply: NewerSiafundCount, Mul: ThirdSiafundMul, Div: ThirdSiafundDiv, Portion: *ThirdSiafundPortion},
 	}
 )
 
@@ -322,17 +322,17 @@ var (
 
 // SiafundState describes total amount of SPF and tax percentage.
 type SiafundState struct {
-	At          BlockHeight
-	TotalSupply Currency
-	Mul         int64
-	Div         int64
-	Portion     big.Rat
+	ActivationHeight BlockHeight
+	TotalSupply      Currency
+	Mul              int64
+	Div              int64
+	Portion          big.Rat
 }
 
 // IsSpfHardfork returns true when one of Spf hardforks happens at given height.
 func IsSpfHardfork(height BlockHeight) bool {
 	for _, st := range SiafundStates[1:] {
-		if height == st.At {
+		if height == st.ActivationHeight {
 			return true
 		}
 	}
@@ -343,7 +343,7 @@ func IsSpfHardfork(height BlockHeight) bool {
 func SiafundStateByHeight(height BlockHeight) SiafundState {
 	for i := len(SiafundStates) - 1; i >= 0; i-- {
 		state := SiafundStates[i]
-		if height > state.At {
+		if height > state.ActivationHeight {
 			return state
 		}
 	}
@@ -398,11 +398,11 @@ func UnlockHashFromAddrStr(addrStr string) (addr UnlockHash) {
 func init() {
 	if Fork2022 {
 		SiafundStates = append(SiafundStates, SiafundState{
-			At:          Fork2022Height,
-			TotalSupply: NewestSiafundCount,
-			Mul:         FourthSiafundMul,
-			Div:         FourthSiafundDiv,
-			Portion:     *FourthSiafundPortion,
+			ActivationHeight: Fork2022Height,
+			TotalSupply:      NewestSiafundCount,
+			Mul:              FourthSiafundMul,
+			Div:              FourthSiafundDiv,
+			Portion:          *FourthSiafundPortion,
 		})
 	}
 	if build.Release == "dev" {
@@ -583,6 +583,12 @@ func init() {
 					UnlockHash: UnlockHashFromAddrStr("f3f512b45c24b531e571d59d99b804b19244cecf1da8117217101fa722e40a18917c91ebb080"),
 				},
 			},
+			Fork2022Height: {
+				{
+					Value:      NewCurrency64(200000000),
+					UnlockHash: UnlockHashFromAddrStr("e1e90a2a9db091e886bde165a185868737ea97437bba540c7ca77b3dc7962e18ac1db7354f08"),
+				},
+			},
 		}
 	} else if build.Release == "standard" {
 		// 'standard' settings are for the full network. They are slow enough
@@ -732,6 +738,12 @@ func init() {
 				{
 					Value:      NewCurrency64(200000000 - 30000),
 					UnlockHash: UnlockHashFromAddrStr("f3f512b45c24b531e571d59d99b804b19244cecf1da8117217101fa722e40a18917c91ebb080"),
+				},
+			},
+			Fork2022Height: {
+				{
+					Value:      NewCurrency64(200000000),
+					UnlockHash: UnlockHashFromAddrStr("e1e90a2a9db091e886bde165a185868737ea97437bba540c7ca77b3dc7962e18ac1db7354f08"),
 				},
 			},
 		}

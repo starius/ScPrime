@@ -42,7 +42,7 @@ var (
 
 	// BlockMapV2 is a database bucket containing additional information, including
 	// new diff types introduced for SPF-B, for processed blocks, keyed by their id.
-	BlockMapV2 = []byte("BlockMapV2")
+	BlockMapV2 = []byte("V2BlockMap")
 
 	// BlockPath is a database bucket containing a mapping from the height of a
 	// block to the id of the block at that height. BlockPath only includes
@@ -208,29 +208,29 @@ func claimPerFund(startPool, currentPool types.Currency, hardforks []hardforkInf
 	totalClaim := types.SiafundClaim{}
 	rangeStart := startPool
 	count := types.SiafundStates[0].TotalSupply
+
 	for _, hf := range hardforks {
 		if !hf.isActivated {
-			totalClaim.Add(claimPerFundInRange(startPool, rangeStart, currentPool, count, ownersClaimRanges))
-			return totalClaim
+			break
 		}
 		totalClaim.Add(claimPerFundInRange(startPool, rangeStart, hf.pool, count, ownersClaimRanges))
 		rangeStart = hf.pool
 		count = hf.siafundCount
 	}
-	totalClaim.Add(claimPerFundInRange(startPool, rangeStart, currentPool, count, ownersClaimRanges))
 
+	totalClaim.Add(claimPerFundInRange(startPool, rangeStart, currentPool, count, ownersClaimRanges))
 	return totalClaim
 }
 
 // siafundClaim returns claim by SiafundOutput taking hardforks into account.
 func siafundClaim(tx *bolt.Tx, sfoid types.SiafundOutputID, sfo types.SiafundOutput) types.SiafundClaim {
 	height := blockHeight(tx)
-	var hardforks []hardforkInfo
+	hardforks := make([]hardforkInfo, 0, len(types.SiafundStates)-1)
 	for _, st := range types.SiafundStates[1:] {
 		hf := hardforkInfo{siafundCount: st.TotalSupply}
-		if height > st.At {
+		if height > st.ActivationHeight {
 			hf.isActivated = true
-			hf.pool = getSiafundHardforkPool(tx, st.At)
+			hf.pool = getSiafundHardforkPool(tx, st.ActivationHeight)
 		}
 		hardforks = append(hardforks, hf)
 	}
@@ -891,7 +891,7 @@ func nonOverlappingRanges(ranges []FileContractRange) []FileContractRange {
 		point types.BlockHeight
 		pointInfo
 	}
-	var bounds []rangeBound
+	bounds := make([]rangeBound, 0, len(boundsMap))
 	for height, pi := range boundsMap {
 		bounds = append(bounds, rangeBound{point: height, pointInfo: pi})
 	}
@@ -901,7 +901,7 @@ func nonOverlappingRanges(ranges []FileContractRange) []FileContractRange {
 
 	// Count open ranges and build final ranges.
 	openRanges := 0
-	var finalRanges []FileContractRange
+	finalRanges := make([]FileContractRange, 0, len(bounds))
 	var currentRange *FileContractRange
 	for _, p := range bounds {
 		if p.opening > 0 {
@@ -954,9 +954,9 @@ func claimRanges(tx *bolt.Tx, currentPool types.Currency, owner types.UnlockHash
 	return claims
 }
 
-func cutClaimRanges(ranges []claimRange, start, end types.Currency) []claimRange {
-	var res []claimRange
-	for _, r := range ranges {
+func cutClaimRanges(sortedRanges []claimRange, start, end types.Currency) []claimRange {
+	res := make([]claimRange, 0, len(sortedRanges))
+	for _, r := range sortedRanges {
 		curRange := claimRange{start: r.start, end: r.end}
 		if curRange.end.Cmp(start) < 0 {
 			continue
@@ -996,36 +996,46 @@ func getFileContractRanges(tx *bolt.Tx, owner types.UnlockHash) []FileContractRa
 	return ranges
 }
 
+// cutRangeInplace removes range `r` from rangesBytes and returns updated rangesBytes.
+// If r is not in rangesBytes, slice is returned unchanged.
+func cutRangeInplace(rangesBytes []byte, r FileContractRange) (bool, []byte) {
+	ranges, layouts, err := unmarshalRanges(rangesBytes)
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+	// Find and remove range `r` from ranges.
+	foundAt := -1
+	for i, dbRange := range ranges {
+		if r.Equals(dbRange) {
+			foundAt = i
+			break
+		}
+	}
+	if foundAt == -1 {
+		// Not found.
+		return false, rangesBytes
+	}
+	removedStart := layouts[foundAt]
+	var removedEnd int
+	if foundAt == len(layouts)-1 {
+		removedEnd = len(rangesBytes)
+	} else {
+		removedEnd = layouts[foundAt+1]
+	}
+	rangesBytes = append(rangesBytes[:removedStart], rangesBytes[removedEnd:]...)
+	return true, rangesBytes
+}
+
 // removeFileContractRange removes file contract range `r` from each owner.
 func removeFileContractRange(tx *bolt.Tx, owners []types.UnlockHash, r FileContractRange) {
 	for _, owner := range owners {
 		rangesBytes := tx.Bucket(FileContractRanges).Get(owner[:])
-		ranges, layouts, err := unmarshalRanges(rangesBytes)
-		if build.DEBUG && err != nil {
-			panic(err)
-		}
-		// Find and remove range `r` from ranges.
-		foundAt := -1
-		for i, dbRange := range ranges {
-			if r.Equals(dbRange) {
-				foundAt = i
-				break
-			}
-		}
-		if foundAt == -1 {
-			// Not found.
+		// Optimisation: do not encode ranges back, remove chunk directly from `rangesBytes`.
+		found, rangesBytes := cutRangeInplace(rangesBytes, r)
+		if !found {
 			continue
 		}
-		// Optimisation: do not encode ranges back, remove chunk directly from `rangesBytes`.
-		removedStart := layouts[foundAt]
-		var removedEnd int
-		if foundAt == len(layouts)-1 {
-			removedEnd = len(rangesBytes)
-		} else {
-			removedEnd = layouts[foundAt+1]
-		}
-		rangesBytes = append(rangesBytes[:removedStart], rangesBytes[removedEnd:]...)
-		err = tx.Bucket(FileContractRanges).Put(owner[:], rangesBytes)
+		err := tx.Bucket(FileContractRanges).Put(owner[:], rangesBytes)
 		if build.DEBUG && err != nil {
 			panic(err)
 		}

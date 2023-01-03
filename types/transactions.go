@@ -239,8 +239,8 @@ func (t Transaction) RenterSignature() TransactionSignature {
 
 // SponsorAddresses returns a list of unique unlock hashes from transaction's inputs.
 func (t Transaction) SponsorAddresses() []UnlockHash {
-	var inputUnlockHahes []UnlockHash
-	uniqueUnlockHashes := make(map[UnlockHash]bool)
+	inputUnlockHahes := make([]UnlockHash, 0, len(t.SiacoinInputs))
+	uniqueUnlockHashes := make(map[UnlockHash]bool, len(t.SiacoinInputs))
 	for _, in := range t.SiacoinInputs {
 		uh := in.UnlockConditions.UnlockHash()
 		if _, ok := uniqueUnlockHashes[uh]; ok {

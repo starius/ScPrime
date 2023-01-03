@@ -329,6 +329,7 @@ func TestSiafundClaim(t *testing.T) {
 		sfoid          types.SiafundOutputID
 		sfo            types.SiafundOutput
 		correctClaim   types.SiafundClaim
+		onlyFork2022   bool
 		description    string
 	}{
 		{
@@ -343,6 +344,7 @@ func TestSiafundClaim(t *testing.T) {
 			types.SiafundOutputID(crypto.Hash{1}),
 			types.SiafundOutput{Value: types.NewCurrency64(156), ClaimStart: types.ZeroCurrency, UnlockHash: types.UnlockHash(crypto.Hash{111})},
 			types.SiafundClaim{Total: types.NewCurrency64(15600), ByOwner: types.NewCurrency64(15600)},
+			false,
 			"Test before the first hardfork",
 		},
 		{
@@ -357,6 +359,7 @@ func TestSiafundClaim(t *testing.T) {
 			types.SiafundOutputID(crypto.Hash{2}),
 			types.SiafundOutput{Value: types.NewCurrency64(1200), ClaimStart: types.NewCurrency64(10000000), UnlockHash: types.UnlockHash(crypto.Hash{112})},
 			types.SiafundClaim{Total: types.NewCurrency64(2400000), ByOwner: types.NewCurrency64(2400000)},
+			false,
 			"Test SFO with ClaimStart from before the first hardfork and now is after the first hardfork",
 		},
 		{
@@ -371,6 +374,7 @@ func TestSiafundClaim(t *testing.T) {
 			types.SiafundOutputID(crypto.Hash{3}),
 			types.SiafundOutput{Value: types.NewCurrency64(20000), ClaimStart: types.NewCurrency64(50000000), UnlockHash: types.UnlockHash(crypto.Hash{113})},
 			types.SiafundClaim{Total: types.NewCurrency64(20000000), ByOwner: types.NewCurrency64(20000000)},
+			false,
 			"Test new SFO with ClaimStart after the first hardfork and now is after the first hardfork",
 		},
 		{
@@ -385,6 +389,7 @@ func TestSiafundClaim(t *testing.T) {
 			types.SiafundOutputID(crypto.Hash{4}),
 			types.SiafundOutput{Value: types.NewCurrency64(100000000), ClaimStart: types.NewCurrency64(600000000), UnlockHash: types.UnlockHash(crypto.Hash{114})},
 			types.SiafundClaim{Total: types.NewCurrency64(100000000), ByOwner: types.NewCurrency64(100000000)},
+			false,
 			"Test new SFO with ClaimStart after the second hardfork and now is after the second hardfork",
 		},
 		{
@@ -399,6 +404,7 @@ func TestSiafundClaim(t *testing.T) {
 			types.SiafundOutputID(crypto.Hash{5}),
 			types.SiafundOutput{Value: types.NewCurrency64(15000), ClaimStart: types.NewCurrency64(200000000), UnlockHash: types.UnlockHash(crypto.Hash{115})},
 			types.SiafundClaim{Total: types.NewCurrency64(50025000), ByOwner: types.NewCurrency64(50025000)},
+			false,
 			"Test new SFO with ClaimStart between hardforks and now is after the second hardfork",
 		},
 		{
@@ -413,6 +419,7 @@ func TestSiafundClaim(t *testing.T) {
 			types.SiafundOutputID(crypto.Hash{6}),
 			types.SiafundOutput{Value: types.NewCurrency64(10000), ClaimStart: types.NewCurrency64(0), UnlockHash: types.UnlockHash(crypto.Hash{116})},
 			types.SiafundClaim{Total: types.NewCurrency64(166680000), ByOwner: types.NewCurrency64(166680000)},
+			false,
 			"Test new SFO with ClaimStart before the first hardfork and now is after the second hardfork",
 		},
 		{
@@ -428,6 +435,7 @@ func TestSiafundClaim(t *testing.T) {
 			types.SiafundOutputID(crypto.Hash{7}),
 			types.SiafundOutput{Value: types.NewCurrency64(10000), ClaimStart: types.NewCurrency64(0), UnlockHash: types.UnlockHash(crypto.Hash{117})},
 			types.SiafundClaim{Total: types.NewCurrency64(200030000), ByOwner: types.NewCurrency64(200030000)},
+			true,
 			"Test SPF-A with ClaimStart before the first hardfork and now is after the Fork2022",
 		},
 		{
@@ -447,6 +455,7 @@ func TestSiafundClaim(t *testing.T) {
 			types.SiafundOutputID(crypto.Hash{8}),
 			types.SiafundOutput{Value: types.NewCurrency64(25000), ClaimStart: types.NewCurrency64(800000000), UnlockHash: types.UnlockHash(crypto.Hash{118})},
 			types.SiafundClaim{Total: types.NewCurrency64(100000), ByOwner: types.NewCurrency64(75000)},
+			true,
 			"Test SPF-B with ClaimStart after the Fork2022 and now is after the Fork2022",
 		},
 		{
@@ -466,6 +475,7 @@ func TestSiafundClaim(t *testing.T) {
 			types.SiafundOutputID(crypto.Hash{9}),
 			types.SiafundOutput{Value: types.NewCurrency64(25000), ClaimStart: types.NewCurrency64(800000000), UnlockHash: types.UnlockHash(crypto.Hash{119})},
 			types.SiafundClaim{Total: types.NewCurrency64(125000), ByOwner: types.NewCurrency64(100000)},
+			true,
 			"Test SPF-B with ClaimStart after the Fork2022 and now is after the Fork2022",
 		},
 		{
@@ -484,6 +494,7 @@ func TestSiafundClaim(t *testing.T) {
 			types.SiafundOutputID(crypto.Hash{10}),
 			types.SiafundOutput{Value: types.NewCurrency64(20000), ClaimStart: types.NewCurrency64(100000000), UnlockHash: types.UnlockHash(crypto.Hash{120})},
 			types.SiafundClaim{Total: types.NewCurrency64(200160000), ByOwner: types.NewCurrency64(200080000)},
+			true,
 			"Test SPF-B with contracts covering hardfork points",
 		},
 		{
@@ -499,15 +510,19 @@ func TestSiafundClaim(t *testing.T) {
 			types.SiafundOutputID(crypto.Hash{11}),
 			types.SiafundOutput{Value: types.NewCurrency64(25000), ClaimStart: types.NewCurrency64(800000000), UnlockHash: types.UnlockHash(crypto.Hash{130})},
 			types.SiafundClaim{Total: types.NewCurrency64(125000), ByOwner: types.NewCurrency64(0)},
+			true,
 			"Test SPF-B without contracts; after Fork2022",
 		},
 	}
 
 	for _, tc := range tests {
+		if !types.Fork2022 && tc.onlyFork2022 {
+			continue
+		}
 		err = cs.db.Update(func(tx *bolt.Tx) error {
 			for _, state := range types.SiafundStates {
-				if tc.height >= state.At {
-					setSiafundHardforkPool(tx, tc.hardforkPools[state.At], state.At)
+				if tc.height >= state.ActivationHeight {
+					setSiafundHardforkPool(tx, tc.hardforkPools[state.ActivationHeight], state.ActivationHeight)
 				}
 			}
 			setSiafundPool(tx, tc.currentPool)
@@ -608,7 +623,10 @@ func TestCutClaimRanges(t *testing.T) {
 		{ranges: []claimRange{{start: types.NewCurrency64(100), end: types.NewCurrency64(101)}}, start: types.NewCurrency64(0), end: types.NewCurrency64(100), result: []claimRange{{start: types.NewCurrency64(100), end: types.NewCurrency64(100)}}},
 	}
 	for _, tc := range tests {
-		require.Equal(t, tc.result, cutClaimRanges(tc.ranges, tc.start, tc.end))
+		claimRanges := cutClaimRanges(tc.ranges, tc.start, tc.end)
+		unifynil.Unify(&tc.result, unifynil.SliceToEmpty())
+		unifynil.Unify(&claimRanges, unifynil.SliceToEmpty())
+		require.Equal(t, tc.result, claimRanges)
 	}
 }
 
@@ -794,6 +812,34 @@ func TestRemoveFileContractRange(t *testing.T) {
 		return nil
 	})
 	require.NoError(t, err)
+}
+
+// TestCutRangeInplace checks cutRangeInplace() function.
+func TestCutRangeInplace(t *testing.T) {
+	ranges := []FileContractRange{
+		{Start: types.BlockHeight(1), End: types.BlockHeight(20)},
+		{Start: types.BlockHeight(999), End: types.BlockHeight(2999)},
+		{Start: types.BlockHeight(100500), End: types.BlockHeight(100600)},
+	}
+	var rangesBytes []byte
+	var rangesWithoutMiddle []byte
+	for i, r := range ranges {
+		rBytes := r.Marshal()
+		rangesBytes = append(rangesBytes, rBytes...)
+		if i != 1 {
+			rangesWithoutMiddle = append(rangesWithoutMiddle, rBytes...)
+		}
+	}
+
+	// Try removing nonexistent range.
+	nonExistent := FileContractRange{Start: types.BlockHeight(1), End: types.BlockHeight(21)}
+	ok, gotRangesBytes := cutRangeInplace(rangesBytes, nonExistent)
+	require.False(t, ok)
+	require.Equal(t, rangesBytes, gotRangesBytes)
+
+	ok, gotRangesBytes = cutRangeInplace(rangesBytes, ranges[1])
+	require.True(t, ok)
+	require.Equal(t, rangesWithoutMiddle, gotRangesBytes)
 }
 
 // TestClosing tries to close a consenuss set.
