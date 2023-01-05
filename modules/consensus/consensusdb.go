@@ -7,8 +7,10 @@ package consensus
 // ignored otherwise, which is suboptimal.
 
 import (
+	"encoding/binary"
 	"gitlab.com/NebulousLabs/encoding"
 	bolt "go.etcd.io/bbolt"
+	"sort"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -37,6 +39,10 @@ var (
 	// keyed by their id. This includes blocks that are not currently in the
 	// consensus set, and blocks that may not have been fully validated yet.
 	BlockMap = []byte("BlockMap")
+
+	// BlockMapV2 is a database bucket containing additional information, including
+	// new diff types introduced for SPF-B, for processed blocks, keyed by their id.
+	BlockMapV2 = []byte("V2BlockMap")
 
 	// BlockPath is a database bucket containing a mapping from the height of a
 	// block to the id of the block at that height. BlockPath only includes
@@ -73,6 +79,22 @@ var (
 	// SiafundHardforkPool is a database bucket storing the value of the
 	// siafund pool at the moment of SPF hardfork.
 	SiafundHardforkPool = []byte("SiafundHardforkPool")
+
+	// SiafundPoolHistory is a database bucket that stores values of the
+	// siafund pool for each block height.
+	SiafundPoolHistory = []byte("SiafundPoolHistory")
+
+	// FileContractsOwnership is a database bucket that stores a list of owners
+	// for each contract.
+	FileContractsOwnership = []byte("FileContractsOwnership")
+
+	// FileContractRanges is a database bucket that stores start and end
+	// heights of each contract by its owner.
+	FileContractRanges = []byte("FileContractRanges")
+
+	// SiafundBOutputs is a database bucket that stores all existing SPF-B
+	// output IDs (only keys are used).
+	SiafundBOutputs = []byte("SiafundBOutputs")
 )
 
 var (
@@ -100,6 +122,11 @@ func (cs *ConsensusSet) createConsensusDB(tx *bolt.Tx) error {
 		SiafundOutputs,
 		SiafundPool,
 		SiafundHardforkPool,
+		SiafundPoolHistory,
+		BlockMapV2,
+		FileContractsOwnership,
+		FileContractRanges,
+		SiafundBOutputs,
 	}
 	for _, bucket := range buckets {
 		_, err := tx.CreateBucket(bucket)
@@ -147,75 +174,77 @@ func (cs *ConsensusSet) createConsensusDB(tx *bolt.Tx) error {
 	if build.DEBUG {
 		cs.blockRoot.ConsensusChecksum = consensusChecksum(tx)
 	}
-	addBlockMap(tx, &cs.blockRoot)
+	addBlockMap(tx, &processedBlockV2{processedBlock: cs.blockRoot})
 	return nil
 }
 
-func claimPerFundInRange(claimStart, startPool, endPool, siafundCount types.Currency) types.Currency {
+func claimPerFundInRange(claimStart, startPool, endPool, siafundCount types.Currency, ownersClaimRanges []claimRange) (claim types.SiafundClaim) {
 	if claimStart.Cmp(endPool) >= 0 {
 		// The claim starts after upper bound, nothing is earned before it.
-		return types.ZeroCurrency
+		return types.SiafundClaim{Total: types.ZeroCurrency, ByOwner: types.ZeroCurrency}
 	}
 	if claimStart.Cmp(startPool) >= 0 {
 		// The claim starts after startPool point, need to truncate.
 		startPool = claimStart
 	}
 	totalEarned := endPool.Sub(startPool)
-	perFund := totalEarned.Div(siafundCount)
-	return perFund
+	ownerTotal := sumClaimRanges(cutClaimRanges(ownersClaimRanges, startPool, endPool))
+	claim.Total = totalEarned.Div(siafundCount)
+	claim.ByOwner = ownerTotal.Div(siafundCount)
+	return claim
 }
 
 type hardforkInfo struct {
-	pool        types.Currency
-	isActivated bool
+	pool         types.Currency
+	isActivated  bool
+	siafundCount types.Currency
 }
 
-/*
-	1st hf           2nd hf
+// ========== 1st hf ======== 2nd hf ======================== fork 2022
+// -------------|----------------|--------------------------------|-----------------------------
+// 10,000 funds    30,0000 funds          200,000,000 funds           400,000,000 funds
+// overall           overall                 overall                      overall
+func claimPerFund(startPool, currentPool types.Currency, hardforks []hardforkInfo, ownersClaimRanges []claimRange) types.SiafundClaim {
+	totalClaim := types.SiafundClaim{}
+	rangeStart := startPool
+	count := types.SiafundStates[0].TotalSupply
 
---------------|----------------|--------------------------------
+	for _, hf := range hardforks {
+		if !hf.isActivated {
+			break
+		}
+		totalClaim.Add(claimPerFundInRange(startPool, rangeStart, hf.pool, count, ownersClaimRanges))
+		rangeStart = hf.pool
+		count = hf.siafundCount
+	}
 
-	10,000 funds    30,0000 funds          200,000,000 funds
-	  overall           overall                 overall
-*/
-func claimPerFund(startPool, currentPool types.Currency, firstHf, secondHf hardforkInfo) types.Currency {
-	// Calculate claim before the first hardfork.
-	if !firstHf.isActivated {
-		// The first hardfork isn't yet activated, don't need to continue.
-		return claimPerFundInRange(startPool, startPool, currentPool, types.OldSiafundCount)
-	}
-	totalClaim := types.ZeroCurrency
-	claimBeforeFirstHf := claimPerFundInRange(startPool, startPool, firstHf.pool, types.OldSiafundCount)
-	totalClaim = totalClaim.Add(claimBeforeFirstHf)
-	// Calculate claim between hardforks.
-	if !secondHf.isActivated {
-		// The second hardfork isn't yet activated, don't need to continue.
-		claimAfterFirstHf := claimPerFundInRange(startPool, firstHf.pool, currentPool, types.NewSiafundCount)
-		return totalClaim.Add(claimAfterFirstHf)
-	}
-	claimBetweenHardforks := claimPerFundInRange(startPool, firstHf.pool, secondHf.pool, types.NewSiafundCount)
-	totalClaim = totalClaim.Add(claimBetweenHardforks)
-	// Calculate claim after the second hardfork.
-	claimAfterSecondHf := claimPerFundInRange(startPool, secondHf.pool, currentPool, types.NewerSiafundCount)
-	totalClaim = totalClaim.Add(claimAfterSecondHf)
+	totalClaim.Add(claimPerFundInRange(startPool, rangeStart, currentPool, count, ownersClaimRanges))
 	return totalClaim
 }
 
 // siafundClaim returns claim by SiafundOutput taking hardforks into account.
-func siafundClaim(tx *bolt.Tx, sfo types.SiafundOutput) types.Currency {
+func siafundClaim(tx *bolt.Tx, sfoid types.SiafundOutputID, sfo types.SiafundOutput) types.SiafundClaim {
 	height := blockHeight(tx)
-	var firstHf, secondHf hardforkInfo
-	if height > types.SpfHardforkHeight {
-		firstHf.isActivated = true
-		firstHf.pool = getSiafundHardforkPool(tx, types.SpfHardforkHeight)
+	hardforks := make([]hardforkInfo, 0, len(types.SiafundStates)-1)
+	for _, st := range types.SiafundStates[1:] {
+		hf := hardforkInfo{siafundCount: st.TotalSupply}
+		if height > st.ActivationHeight {
+			hf.isActivated = true
+			hf.pool = getSiafundHardforkPool(tx, st.ActivationHeight)
+		}
+		hardforks = append(hardforks, hf)
 	}
-	if height > types.SpfSecondHardforkHeight {
-		secondHf.isActivated = true
-		secondHf.pool = getSiafundHardforkPool(tx, types.SpfSecondHardforkHeight)
-	}
+
 	currentPool := getSiafundPool(tx)
-	claimPerFund := claimPerFund(sfo.ClaimStart, currentPool, firstHf, secondHf)
-	return claimPerFund.Mul(sfo.Value)
+	// For SPF-A, we create claim range covering 100% between ClaimStart and now.
+	ownersClaimRanges := []claimRange{{start: sfo.ClaimStart, end: currentPool}}
+	if isSiafundBOutput(tx, sfoid) {
+		// For SPF-B, we replace ownersClaimRanges with actual ranges from consensus.db.
+		ownersClaimRanges = claimRanges(tx, currentPool, sfo.UnlockHash)
+	}
+	claim := claimPerFund(sfo.ClaimStart, currentPool, hardforks, ownersClaimRanges)
+	claim.MulCurrency(sfo.Value)
+	return claim
 }
 
 // blockHeight returns the height of the blockchain.
@@ -252,7 +281,7 @@ func (cs *ConsensusSet) dbCurrentBlockID() (id types.BlockID) {
 }
 
 // currentProcessedBlock returns the most recent block in the consensus set.
-func currentProcessedBlock(tx *bolt.Tx) *processedBlock {
+func currentProcessedBlock(tx *bolt.Tx) *processedBlockV2 {
 	pb, err := getBlockMap(tx, currentBlockID(tx))
 	if build.DEBUG && err != nil {
 		panic(err)
@@ -261,7 +290,18 @@ func currentProcessedBlock(tx *bolt.Tx) *processedBlock {
 }
 
 // getBlockMap returns a processed block with the input id.
-func getBlockMap(tx *bolt.Tx, id types.BlockID) (*processedBlock, error) {
+func getBlockMap(tx *bolt.Tx, id types.BlockID) (*processedBlockV2, error) {
+	return getBlockMapWithTx(boltTxWrapper{tx}, id, nil)
+}
+
+func unmarshal(marshaler marshaler, data []byte, obj interface{}) error {
+	if marshaler != nil {
+		return marshaler.Unmarshal(data, obj)
+	}
+	return encoding.Unmarshal(data, obj)
+}
+
+func getBlockMapWithTx(tx dbTx, id types.BlockID, marshaler marshaler) (*processedBlockV2, error) {
 	// Look up the encoded block.
 	pbBytes := tx.Bucket(BlockMap).Get(id[:])
 	if pbBytes == nil {
@@ -270,17 +310,34 @@ func getBlockMap(tx *bolt.Tx, id types.BlockID) (*processedBlock, error) {
 
 	// Decode the block - should never fail.
 	var pb processedBlock
-	err := encoding.Unmarshal(pbBytes, &pb)
+	err := unmarshal(marshaler, pbBytes, &pb)
 	if build.DEBUG && err != nil {
-		panic(err)
+		return nil, err
 	}
-	return &pb, nil
+
+	// Check if there is V2 part of processedBlock.
+	pbBytesV2 := tx.Bucket(BlockMapV2).Get(id[:])
+	if pbBytesV2 == nil {
+		return &processedBlockV2{processedBlock: pb}, nil
+	}
+
+	var pbd processedBlockV2Diffs
+	err = unmarshal(marshaler, pbBytesV2, &pbd)
+	if build.DEBUG && err != nil {
+		return nil, err
+	}
+
+	return &processedBlockV2{processedBlock: pb, processedBlockV2Diffs: pbd}, nil
 }
 
 // addBlockMap adds a processed block to the block map.
-func addBlockMap(tx *bolt.Tx, pb *processedBlock) {
+func addBlockMap(tx *bolt.Tx, pb *processedBlockV2) {
 	id := pb.Block.ID()
-	err := tx.Bucket(BlockMap).Put(id[:], encoding.Marshal(*pb))
+	err := tx.Bucket(BlockMap).Put(id[:], encoding.Marshal(pb.processedBlock))
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+	err = tx.Bucket(BlockMapV2).Put(id[:], encoding.Marshal(pb.processedBlockV2Diffs))
 	if build.DEBUG && err != nil {
 		panic(err)
 	}
@@ -508,6 +565,31 @@ func getSiafundOutput(tx *bolt.Tx, id types.SiafundOutputID) (types.SiafundOutpu
 	return sfo, nil
 }
 
+// addSiafundBOutput marks `id` as SPF-B output.
+func addSiafundBOutput(tx *bolt.Tx, id types.SiafundOutputID) {
+	err := tx.Bucket(SiafundBOutputs).Put(id[:], []byte{})
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+}
+
+// removeSiafundBOutput unmarks `id` as SPF-B output.
+func removeSiafundBOutput(tx *bolt.Tx, id types.SiafundOutputID) {
+	err := tx.Bucket(SiafundBOutputs).Delete(id[:])
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+}
+
+// isSiafundBOutput checks if SPF output specified by `id` is SPF-B.
+func isSiafundBOutput(tx *bolt.Tx, id types.SiafundOutputID) bool {
+	val := tx.Bucket(SiafundBOutputs).Get(id[:])
+	if val == nil {
+		return false
+	}
+	return true
+}
+
 // addSiafundOutput adds a siafund output to the database. An error is returned
 // if the siafund output is already in the database.
 func addSiafundOutput(tx *bolt.Tx, id types.SiafundOutputID, sfo types.SiafundOutput) {
@@ -601,6 +683,35 @@ func setSiafundPool(tx *bolt.Tx, c types.Currency) {
 	}
 }
 
+// getSiafundPoolAtHeight returns siafund pool value at specified height.
+func getSiafundPoolAtHeight(tx *bolt.Tx, height types.BlockHeight) (pool types.Currency, err error) {
+	poolBytes := tx.Bucket(SiafundPoolHistory).Get(encoding.Marshal(height))
+	if poolBytes == nil {
+		return types.ZeroCurrency, errNilItem
+	}
+	err = encoding.Unmarshal(poolBytes, &pool)
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+	return pool, nil
+}
+
+// setSiafundHistoricalPool sets historical siafund pool value.
+func setSiafundHistoricalPool(tx *bolt.Tx, c types.Currency, height types.BlockHeight) {
+	err := tx.Bucket(SiafundPoolHistory).Put(encoding.Marshal(height), encoding.Marshal(c))
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+}
+
+// removeSiafundHistoricalPool removes historical siafund pool value.
+func removeSiafundHistoricalPool(tx *bolt.Tx, height types.BlockHeight) {
+	err := tx.Bucket(SiafundPoolHistory).Delete(encoding.Marshal(height))
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+}
+
 // addDSCO adds a delayed siacoin output to the consnesus set.
 func addDSCO(tx *bolt.Tx, bh types.BlockHeight, id types.SiacoinOutputID, sco types.SiacoinOutput) {
 	// Sanity check - dsco should never have a value of zero.
@@ -667,5 +778,266 @@ func deleteDSCOBucket(tx *bolt.Tx, bh types.BlockHeight) {
 	err := tx.DeleteBucket(bucketID)
 	if build.DEBUG && err != nil {
 		panic(err)
+	}
+}
+
+// FileContractOwnership contains a list of contract's owners and its start height.
+type FileContractOwnership struct {
+	Start  types.BlockHeight
+	Owners []types.UnlockHash
+}
+
+// addFileContractOwnership adds ownership info by contractID.
+func addFileContractOwnership(tx *bolt.Tx, contractID types.FileContractID, ownership FileContractOwnership) {
+	err := tx.Bucket(FileContractsOwnership).Put(contractID[:], encoding.Marshal(ownership))
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+}
+
+// removeFileContractOwnership removes ownership info by contractID.
+func removeFileContractOwnership(tx *bolt.Tx, contractID types.FileContractID) {
+	err := tx.Bucket(FileContractsOwnership).Delete(contractID[:])
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+}
+
+// getFileContractOwnership returns ownership info by contractID.
+func getFileContractOwnership(tx *bolt.Tx, contractID types.FileContractID) (FileContractOwnership, error) {
+	var ownership FileContractOwnership
+	ownershipBytes := tx.Bucket(FileContractsOwnership).Get(contractID[:])
+	if ownershipBytes == nil {
+		return FileContractOwnership{}, errNilItem
+	}
+	err := encoding.Unmarshal(ownershipBytes, &ownership)
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+	return ownership, nil
+}
+
+// FileContractRange is a block height range specifying contract lifetime.
+type FileContractRange struct {
+	Start types.BlockHeight
+	End   types.BlockHeight
+}
+
+// Marshal implements serialisation for FileContractRange structure.
+func (fcr FileContractRange) Marshal() []byte {
+	fcrBytes := make([]byte, binary.MaxVarintLen64*2)
+	startLen := binary.PutUvarint(fcrBytes, uint64(fcr.Start))
+	endLen := binary.PutUvarint(fcrBytes[startLen:], uint64(fcr.End))
+	return fcrBytes[:startLen+endLen]
+}
+
+// Unmarshal implements parsing for FileContractRange structure.
+func (fcr *FileContractRange) Unmarshal(data []byte) int {
+	start, startLen := binary.Uvarint(data)
+	end, endLen := binary.Uvarint(data[startLen:])
+	fcr.Start = types.BlockHeight(start)
+	fcr.End = types.BlockHeight(end)
+	return startLen + endLen
+}
+
+// Equals checks if two file contract ranges are equal.
+func (fcr FileContractRange) Equals(fcr2 FileContractRange) bool {
+	return fcr.Start == fcr2.Start && fcr.End == fcr2.End
+}
+
+// addFileContractRange adds file contract range to each of `owners`.
+func addFileContractRange(tx *bolt.Tx, owners []types.UnlockHash, r FileContractRange) {
+	newRangeBytes := r.Marshal()
+	for _, owner := range owners {
+		rangesBytes := tx.Bucket(FileContractRanges).Get(owner[:])
+		err := tx.Bucket(FileContractRanges).Put(owner[:], append(rangesBytes, newRangeBytes...))
+		if build.DEBUG && err != nil {
+			panic(err)
+		}
+	}
+}
+
+func unmarshalRanges(data []byte) (res []FileContractRange, offsets []int, err error) {
+	bytesRead := 0
+	for bytesRead != len(data) {
+		offsets = append(offsets, bytesRead)
+		fcr := FileContractRange{}
+		bytesRead += fcr.Unmarshal(data[bytesRead:])
+		res = append(res, fcr)
+	}
+	return res, offsets, nil
+}
+
+// nonOverlappingRanges takes a list of ranges and combines them returning
+// non-overlapping ranges covering all the initial ranges.
+func nonOverlappingRanges(ranges []FileContractRange) []FileContractRange {
+	// Put all bound points from ranges into the map to merge duplicates.
+	type pointInfo struct {
+		closing int
+		opening int
+	}
+	boundsMap := make(map[types.BlockHeight]pointInfo)
+	for _, r := range ranges {
+		start := boundsMap[r.Start]
+		start.opening++
+		boundsMap[r.Start] = start
+		end := boundsMap[r.End]
+		end.closing++
+		boundsMap[r.End] = end
+	}
+
+	// Convert map into sorted list of points.
+	type rangeBound struct {
+		point types.BlockHeight
+		pointInfo
+	}
+	bounds := make([]rangeBound, 0, len(boundsMap))
+	for height, pi := range boundsMap {
+		bounds = append(bounds, rangeBound{point: height, pointInfo: pi})
+	}
+	sort.Slice(bounds, func(i, j int) bool {
+		return bounds[i].point < bounds[j].point
+	})
+
+	// Count open ranges and build final ranges.
+	openRanges := 0
+	finalRanges := make([]FileContractRange, 0, len(bounds))
+	var currentRange *FileContractRange
+	for _, p := range bounds {
+		if p.opening > 0 {
+			openRanges += p.opening
+		}
+		if p.closing > 0 {
+			openRanges -= p.closing
+		}
+		if openRanges > 0 && currentRange == nil {
+			currentRange = &FileContractRange{Start: p.point}
+		}
+		if openRanges == 0 && currentRange != nil {
+			currentRange.End = p.point
+			finalRanges = append(finalRanges, *currentRange)
+			currentRange = nil
+		}
+	}
+	return finalRanges
+}
+
+type claimRange struct {
+	start types.Currency
+	end   types.Currency
+}
+
+func (cr claimRange) diff() types.Currency {
+	return cr.end.Sub(cr.start)
+}
+
+func claimRanges(tx *bolt.Tx, currentPool types.Currency, owner types.UnlockHash) []claimRange {
+	contractRanges := nonOverlappingRanges(getFileContractRanges(tx, owner))
+	claims := make([]claimRange, 0, len(contractRanges))
+	for _, cr := range contractRanges {
+		startPool, err := getSiafundPoolAtHeight(tx, cr.Start)
+		if err == errNilItem {
+			startPool = currentPool
+		} else if build.DEBUG && err != nil {
+			panic(err)
+		}
+
+		endPool, err := getSiafundPoolAtHeight(tx, cr.End)
+		if err == errNilItem {
+			endPool = currentPool
+		} else if build.DEBUG && err != nil {
+			panic(err)
+		}
+
+		claims = append(claims, claimRange{start: startPool, end: endPool})
+	}
+	return claims
+}
+
+func cutClaimRanges(sortedRanges []claimRange, start, end types.Currency) []claimRange {
+	res := make([]claimRange, 0, len(sortedRanges))
+	for _, r := range sortedRanges {
+		curRange := claimRange{start: r.start, end: r.end}
+		if curRange.end.Cmp(start) < 0 {
+			continue
+		}
+		if curRange.start.Cmp(start) < 0 {
+			curRange.start = start
+		}
+		if curRange.start.Cmp(end) > 0 {
+			break
+		}
+		if curRange.end.Cmp(end) > 0 {
+			curRange.end = end
+		}
+		res = append(res, curRange)
+	}
+	return res
+}
+
+func sumClaimRanges(ranges []claimRange) types.Currency {
+	sum := types.ZeroCurrency
+	for _, r := range ranges {
+		sum = sum.Add(r.diff())
+	}
+	return sum
+}
+
+// getFileContractRanges retrieves all historical file contract ranges by owner.
+func getFileContractRanges(tx *bolt.Tx, owner types.UnlockHash) []FileContractRange {
+	rangesBytes := tx.Bucket(FileContractRanges).Get(owner[:])
+	if rangesBytes == nil {
+		return []FileContractRange{}
+	}
+	ranges, _, err := unmarshalRanges(rangesBytes)
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+	return ranges
+}
+
+// cutRangeInplace removes range `r` from rangesBytes and returns updated rangesBytes.
+// If r is not in rangesBytes, slice is returned unchanged.
+func cutRangeInplace(rangesBytes []byte, r FileContractRange) (bool, []byte) {
+	ranges, layouts, err := unmarshalRanges(rangesBytes)
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+	// Find and remove range `r` from ranges.
+	foundAt := -1
+	for i, dbRange := range ranges {
+		if r.Equals(dbRange) {
+			foundAt = i
+			break
+		}
+	}
+	if foundAt == -1 {
+		// Not found.
+		return false, rangesBytes
+	}
+	removedStart := layouts[foundAt]
+	var removedEnd int
+	if foundAt == len(layouts)-1 {
+		removedEnd = len(rangesBytes)
+	} else {
+		removedEnd = layouts[foundAt+1]
+	}
+	rangesBytes = append(rangesBytes[:removedStart], rangesBytes[removedEnd:]...)
+	return true, rangesBytes
+}
+
+// removeFileContractRange removes file contract range `r` from each owner.
+func removeFileContractRange(tx *bolt.Tx, owners []types.UnlockHash, r FileContractRange) {
+	for _, owner := range owners {
+		rangesBytes := tx.Bucket(FileContractRanges).Get(owner[:])
+		// Optimisation: do not encode ranges back, remove chunk directly from `rangesBytes`.
+		found, rangesBytes := cutRangeInplace(rangesBytes, r)
+		if !found {
+			continue
+		}
+		err := tx.Bucket(FileContractRanges).Put(owner[:], rangesBytes)
+		if build.DEBUG && err != nil {
+			panic(err)
+		}
 	}
 }

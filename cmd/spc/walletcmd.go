@@ -167,6 +167,14 @@ Run 'wallet send --help' to see a list of available units.`,
 		Run: wrap(walletsendsiafundscmd),
 	}
 
+	walletSendSiafundbsCmd = &cobra.Command{
+		Use:   "scprimefundbs [amount] [dest]",
+		Short: "Send scprimefundbs",
+		Long: `Send scprimefundbs (SPF-B) to an address, and transfer the claim scprimecoins to your wallet.
+Run 'wallet send --help' to see a list of available units.`,
+		Run: wrap(walletsendsiafundbscmd),
+	}
+
 	walletSendScprimeBatchCmd = &cobra.Command{
 		Use:   "scprimebatch [/path/to/file.csv]",
 		Short: "Batch send ScPrime coins and funds",
@@ -455,6 +463,23 @@ func walletsendsiafundscmd(amount, dest string) {
 	fmt.Printf("Sent %s scprimefunds to %s\n", amount, dest)
 }
 
+// walletsendsiafundbscmd sends siafundbs (SPF-B) to a destination address.
+func walletsendsiafundbscmd(amount, dest string) {
+	var value types.Currency
+	if _, err := fmt.Sscan(amount, &value); err != nil {
+		die("Failed to parse amount", err)
+	}
+	var hash types.UnlockHash
+	if _, err := fmt.Sscan(dest, &hash); err != nil {
+		die("Failed to parse destination address", err)
+	}
+	_, err := httpClient.WalletSiafundbsPost(value, hash)
+	if err != nil {
+		die("Could not send scprimefunds:", err)
+	}
+	fmt.Printf("Sent %s scprimefunds to %s\n", amount, dest)
+}
+
 // walletsendscpbatchcmd batch sends scprime coins and funds to multiple destinations as defined from a supplied CSV files
 func walletsendscpbatchcmd(path string) {
 	fmt.Println("Scanning", path)
@@ -556,12 +581,15 @@ Height:              %v
 Confirmed Balance:   %v
 Unconfirmed Delta:   %v
 Exact:               %v H
-Scprimefunds:        %v SPF
+Scprimefunds:        %v SPF-A, %v SPF-B
 Scprimefund Claims:  %v H
+SPF-B Claims:        %v H
+SPF-B Unclaimed:     %v H
 
 Estimated Fee:       %v / KB
 `, encStatus, status.Height, currencyUnits(status.ConfirmedSiacoinBalance), delta,
-		status.ConfirmedSiacoinBalance, status.SiafundBalance, status.SiacoinClaimBalance,
+		status.ConfirmedSiacoinBalance, status.SiafundBalance, status.SiafundBBalance,
+		status.SiacoinClaimBalance, status.SiacoinBClaimBalance, status.SiacoinBUnclaimBalance,
 		fees.Maximum.Mul64(1e3).HumanString())
 }
 

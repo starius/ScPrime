@@ -99,18 +99,18 @@ func TestIntegrationMinimumValidChildTimestamp(t *testing.T) {
 // TestUnitHeavierThan probes the heavierThan method of the processedBlock type.
 func TestUnitHeavierThan(t *testing.T) {
 	// Create a light node.
-	pbLight := new(processedBlock)
+	pbLight := new(processedBlockV2)
 	pbLight.Depth[0] = 64
 	pbLight.ChildTarget[0] = 200
 
 	// Create a node that's heavier, but not enough to beat the surpass
 	// threshold.
-	pbMiddle := new(processedBlock)
+	pbMiddle := new(processedBlockV2)
 	pbMiddle.Depth[0] = 60
 	pbMiddle.ChildTarget[0] = 200
 
 	// Create a node that's heavy enough to break the surpass threshold.
-	pbHeavy := new(processedBlock)
+	pbHeavy := new(processedBlockV2)
 	pbHeavy.Depth[0] = 16
 	pbHeavy.ChildTarget[0] = 200
 

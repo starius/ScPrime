@@ -59,6 +59,16 @@ type (
 	// WalletTransactionID is a unique identifier for a wallet transaction.
 	WalletTransactionID crypto.Hash
 
+	// ConfirmedBalance describes all types of wallet balances.
+	ConfirmedBalance struct {
+		CoinBalance     types.Currency
+		FundBalance     types.Currency
+		ClaimBalance    types.Currency
+		FundbBalance    types.Currency
+		ClaimbBalance   types.Currency
+		UnclaimbBalance types.Currency
+	}
+
 	// A ProcessedInput represents funding to a transaction. The input is
 	// coming from an address and going to the outputs. The fund types are
 	// 'SiacoinInput', 'SiafundInput'.
@@ -169,7 +179,7 @@ type (
 		// will be completed and broadcast within a few hours. Longer risks
 		// double-spends, because the wallet will assume the transaction
 		// failed.
-		FundSiafunds(amount types.Currency) error
+		FundSiafunds(amount types.Currency, needb bool) error
 
 		// AddParents adds a set of parents to the transaction.
 		AddParents([]types.Transaction)
@@ -440,7 +450,7 @@ type (
 		// ConfirmedBalance returns the confirmed balance of the wallet, minus
 		// any outgoing transactions. ConfirmedBalance will include unconfirmed
 		// refund transactions.
-		ConfirmedBalance() (siacoinBalance types.Currency, siafundBalance types.Currency, siacoinClaimBalance types.Currency, err error)
+		ConfirmedBalance() (balance ConfirmedBalance, err error)
 
 		// UnconfirmedBalance returns the unconfirmed balance of the wallet.
 		// Outgoing funds and incoming funds are reported separately. Refund
@@ -522,16 +532,18 @@ type (
 		// is specified. Since it is important that the general public has confidence·
 		// in the blockchain explorer the SendBatchTransaction function is artificially·
 		// limited to not allowing a user to define both coin and fund outputs.·
-		SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput) ([]types.Transaction, error)
+		SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput, fundbOutputs []types.SiafundOutput) ([]types.Transaction, error)
 
 		// BuildUnsignedBatchTransaction builds and returns an unsigned transaction.
-		BuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput) (TransactionBuilder, error)
+		BuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput, fundbOutputs []types.SiafundOutput) (TransactionBuilder, error)
 
 		// SendSiafunds is a tool for sending siafunds from the wallet to an
 		// address. Sending money usually results in multiple transactions. The
 		// transactions are automatically given to the transaction pool, and
 		// are also returned to the caller.
 		SendSiafunds(amount types.Currency, dest types.UnlockHash) ([]types.Transaction, error)
+
+		SendSiafundbs(amount types.Currency, dest types.UnlockHash) ([]types.Transaction, error)
 
 		// DustThreshold returns the quantity per byte below which a Currency is
 		// considered to be Dust.

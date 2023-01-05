@@ -54,11 +54,11 @@ func postEncryptionTesting(m modules.TestMiner, w *Wallet, masterKey crypto.Ciph
 			panic(err)
 		}
 	}
-	siacoinBal, _, _, err := w.ConfirmedBalance()
+	bal, err := w.ConfirmedBalance()
 	if err != nil {
 		panic(err)
 	}
-	if siacoinBal.IsZero() {
+	if bal.CoinBalance.IsZero() {
 		panic("wallet balance reported as 0 after maturing some mined blocks")
 	}
 	err = w.Unlock(masterKey)
@@ -93,11 +93,11 @@ func postEncryptionTesting(m modules.TestMiner, w *Wallet, masterKey crypto.Ciph
 	if err != nil {
 		panic(err)
 	}
-	siacoinBal2, _, _, err := w.ConfirmedBalance()
+	bal2, err := w.ConfirmedBalance()
 	if err != nil {
 		panic(err)
 	}
-	if siacoinBal2.Cmp(siacoinBal) >= 0 {
+	if bal2.CoinBalance.Cmp(bal.CoinBalance) >= 0 {
 		panic("balance did not increase")
 	}
 }
@@ -237,7 +237,7 @@ func TestLock(t *testing.T) {
 	}
 
 	// Lock the wallet.
-	siacoinBalance, _, _, err := wt.wallet.ConfirmedBalance()
+	bal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Error(err)
 	}
@@ -246,11 +246,11 @@ func TestLock(t *testing.T) {
 		t.Error(err)
 	}
 	// Compare to the original balance.
-	siacoinBalance2, _, _, err := wt.wallet.ConfirmedBalance()
+	bal2, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Error(err)
 	}
-	if !siacoinBalance2.Equals(siacoinBalance) {
+	if !bal2.CoinBalance.Equals(bal.CoinBalance) {
 		t.Error("siacoin balance reporting changed upon closing the wallet")
 	}
 	// Check that the keys and seeds were wiped.
@@ -276,11 +276,11 @@ func TestLock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	siacoinBalance3, _, _, err := wt.wallet.ConfirmedBalance()
+	bal3, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Error(err)
 	}
-	if siacoinBalance3.Cmp(siacoinBalance2) <= 0 {
+	if bal3.CoinBalance.Cmp(bal2.CoinBalance) <= 0 {
 		t.Error("balance should increase after a block was mined")
 	}
 }
@@ -302,7 +302,7 @@ func TestInitFromSeedConcurrentUnlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	origBal, _, _, err := wt.wallet.ConfirmedBalance()
+	origBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,11 +336,11 @@ func TestInitFromSeedConcurrentUnlock(t *testing.T) {
 	}
 
 	// starting balance should match the original wallet
-	newBal, _, _, err := w.ConfirmedBalance()
+	newBal, err := w.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if newBal.Cmp(origBal) != 0 {
+	if newBal.CoinBalance.Cmp(origBal.CoinBalance) != 0 {
 		t.Log(w.UnconfirmedBalance())
 		t.Fatalf("wallet should have correct balance after loading seed: wanted %v, got %v", origBal, newBal)
 	}
@@ -401,7 +401,7 @@ func TestInitFromSeed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	origBal, _, _, err := wt.wallet.ConfirmedBalance()
+	origBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -422,11 +422,11 @@ func TestInitFromSeed(t *testing.T) {
 		t.Fatal(err)
 	}
 	// starting balance should match the original wallet
-	newBal, _, _, err := w.ConfirmedBalance()
+	newBal, err := w.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if newBal.Cmp(origBal) != 0 {
+	if newBal.CoinBalance.Cmp(origBal.CoinBalance) != 0 {
 		t.Log(w.UnconfirmedBalance())
 		t.Fatalf("wallet should have correct balance after loading seed: wanted %v, got %v", origBal, newBal)
 	}
@@ -494,7 +494,7 @@ func TestChangeKey(t *testing.T) {
 	defer wt.closeWt()
 
 	newKey := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
-	origBal, _, _, err := wt.wallet.ConfirmedBalance()
+	origBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -518,11 +518,11 @@ func TestChangeKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	newBal, _, _, err := wt.wallet.ConfirmedBalance()
+	newBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if newBal.Cmp(origBal) != 0 {
+	if newBal.CoinBalance.Cmp(origBal.CoinBalance) != 0 {
 		t.Fatal("wallet with changed key did not have the same balance")
 	}
 
@@ -573,7 +573,7 @@ func TestChangeKeyWithSeedCompatV141(t *testing.T) {
 	}
 
 	newKey := crypto.GenerateSiaKey(crypto.TypeDefaultWallet)
-	origBal, _, _, err := wt.wallet.ConfirmedBalance()
+	origBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -597,11 +597,11 @@ func TestChangeKeyWithSeedCompatV141(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	newBal, _, _, err := wt.wallet.ConfirmedBalance()
+	newBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if newBal.Cmp(origBal) != 0 {
+	if newBal.CoinBalance.Cmp(origBal.CoinBalance) != 0 {
 		t.Fatal("wallet with changed key did not have the same balance")
 	}
 }

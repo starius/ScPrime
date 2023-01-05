@@ -30,8 +30,11 @@ type (
 		UnconfirmedOutgoingSiacoins types.Currency `json:"unconfirmedoutgoingsiacoins"`
 		UnconfirmedIncomingSiacoins types.Currency `json:"unconfirmedincomingsiacoins"`
 
-		SiacoinClaimBalance types.Currency `json:"siacoinclaimbalance"`
-		SiafundBalance      types.Currency `json:"siafundbalance"`
+		SiacoinClaimBalance    types.Currency `json:"siacoinclaimbalance"`
+		SiafundBalance         types.Currency `json:"siafundbalance"`
+		SiafundBBalance        types.Currency `json:"siafundbbalance"`
+		SiacoinBClaimBalance   types.Currency `json:"siacoinbclaimbalance"`
+		SiacoinBUnclaimBalance types.Currency `json:"siacoinbunclaimbalance"`
 
 		DustThreshold types.Currency `json:"dustthreshold"`
 	}
@@ -186,7 +189,7 @@ func encryptionKeys(seedStr string) (validKeys []crypto.CipherKey, seeds []modul
 
 // walletHander handles API calls to /wallet.
 func (api *API) walletHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-	siacoinBal, siafundBal, siaclaimBal, err := api.wallet.ConfirmedBalance()
+	balance, err := api.wallet.ConfirmedBalance()
 	if err != nil {
 		WriteError(w, Error{fmt.Sprintf("Error when calling /wallet: %v", err)}, http.StatusBadRequest)
 		return
@@ -227,12 +230,15 @@ func (api *API) walletHandler(w http.ResponseWriter, _ *http.Request, _ httprout
 		Rescanning: rescanning,
 		Height:     height,
 
-		ConfirmedSiacoinBalance:     siacoinBal,
+		ConfirmedSiacoinBalance:     balance.CoinBalance,
 		UnconfirmedOutgoingSiacoins: siacoinsOut,
 		UnconfirmedIncomingSiacoins: siacoinsIn,
 
-		SiafundBalance:      siafundBal,
-		SiacoinClaimBalance: siaclaimBal,
+		SiafundBalance:         balance.FundBalance,
+		SiacoinClaimBalance:    balance.ClaimBalance,
+		SiafundBBalance:        balance.FundbBalance,
+		SiacoinBClaimBalance:   balance.ClaimbBalance,
+		SiacoinBUnclaimBalance: balance.UnclaimbBalance,
 
 		DustThreshold: dustThreshold,
 	})
@@ -504,6 +510,7 @@ func (api *API) walletSeedsHandler(w http.ResponseWriter, req *http.Request, _ h
 func (api *API) walletBatchTransaction(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	var coinOutputs []types.SiacoinOutput
 	var fundOutputs []types.SiafundOutput
+	var fundbOutputs []types.SiafundOutput
 	if req.FormValue("coinOutputs") != "" {
 		err := json.Unmarshal([]byte(req.FormValue("coinOutputs")), &coinOutputs)
 		if err != nil {
@@ -518,8 +525,15 @@ func (api *API) walletBatchTransaction(w http.ResponseWriter, req *http.Request,
 			return
 		}
 	}
+	if req.FormValue("fundbOutputs") != "" {
+		err := json.Unmarshal([]byte(req.FormValue("fundbOutputs")), &fundbOutputs)
+		if err != nil {
+			WriteError(w, Error{"could not decode outputs: " + err.Error()}, http.StatusInternalServerError)
+			return
+		}
+	}
 	// Mock the transaction to verify that the wallet is able to fund both transactions.
-	txnBuilder, err := api.wallet.BuildUnsignedBatchTransaction(coinOutputs, fundOutputs)
+	txnBuilder, err := api.wallet.BuildUnsignedBatchTransaction(coinOutputs, fundOutputs, fundbOutputs)
 	if err != nil {
 		WriteError(w, Error{"error when calling /wallet/batchtransaction: " + err.Error()}, http.StatusInternalServerError)
 		return
@@ -528,7 +542,7 @@ func (api *API) walletBatchTransaction(w http.ResponseWriter, req *http.Request,
 	// Send the transactions
 	var coinTxns []types.Transaction
 	if len(coinOutputs) != 0 {
-		coinTxns, err = api.wallet.SendBatchTransaction(coinOutputs, nil)
+		coinTxns, err = api.wallet.SendBatchTransaction(coinOutputs, nil, nil)
 		if err != nil {
 			WriteError(w, Error{"error when calling /wallet/batchtransaction: " + err.Error()}, http.StatusInternalServerError)
 			return
@@ -536,7 +550,15 @@ func (api *API) walletBatchTransaction(w http.ResponseWriter, req *http.Request,
 	}
 	var fundTxns []types.Transaction
 	if len(fundOutputs) != 0 {
-		fundTxns, err = api.wallet.SendBatchTransaction(nil, fundOutputs)
+		fundTxns, err = api.wallet.SendBatchTransaction(nil, fundOutputs, nil)
+		if err != nil {
+			WriteError(w, Error{"error when calling /wallet/batchtransaction: " + err.Error()}, http.StatusInternalServerError)
+			return
+		}
+	}
+	var fundbTxns []types.Transaction
+	if len(fundbOutputs) != 0 {
+		fundbTxns, err = api.wallet.SendBatchTransaction(nil, nil, fundbOutputs)
 		if err != nil {
 			WriteError(w, Error{"error when calling /wallet/batchtransaction: " + err.Error()}, http.StatusInternalServerError)
 			return
@@ -552,6 +574,10 @@ func (api *API) walletBatchTransaction(w http.ResponseWriter, req *http.Request,
 	for _, fundTxn := range fundTxns {
 		txns = append(txns, fundTxn)
 		txids = append(txids, fundTxn.ID())
+	}
+	for _, fundbTxn := range fundbTxns {
+		txns = append(txns, fundbTxn)
+		txids = append(txids, fundbTxn.ID())
 	}
 	WriteJSON(w, WalletBatchTransactionPOST{
 		Transactions:   txns,
@@ -635,6 +661,34 @@ func (api *API) walletSiafundsHandler(w http.ResponseWriter, req *http.Request, 
 	txns, err := api.wallet.SendSiafunds(amount, dest)
 	if err != nil {
 		WriteError(w, Error{"error when calling /wallet/siafunds: " + err.Error()}, http.StatusInternalServerError)
+		return
+	}
+	var txids []types.TransactionID
+	for _, txn := range txns {
+		txids = append(txids, txn.ID())
+	}
+	WriteJSON(w, WalletSiafundsPOST{
+		Transactions:   txns,
+		TransactionIDs: txids,
+	})
+}
+
+// walletSiafundbsHandler handles API calls to /wallet/siafundbs.
+func (api *API) walletSiafundbsHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	amount, ok := scanAmount(req.FormValue("amount"))
+	if !ok {
+		WriteError(w, Error{"could not read 'amount' from POST call to /wallet/siafundbs"}, http.StatusBadRequest)
+		return
+	}
+	dest, err := scanAddress(req.FormValue("destination"))
+	if err != nil {
+		WriteError(w, Error{"error when calling /wallet/siafundbs: " + err.Error()}, http.StatusBadRequest)
+		return
+	}
+
+	txns, err := api.wallet.SendSiafundbs(amount, dest)
+	if err != nil {
+		WriteError(w, Error{"error when calling /wallet/siafundbs: " + err.Error()}, http.StatusInternalServerError)
 		return
 	}
 	var txids []types.TransactionID

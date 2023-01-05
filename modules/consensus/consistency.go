@@ -143,15 +143,17 @@ func checkSiacoinCount(tx *bolt.Tx) {
 
 	// Add all of the siafund claims.
 	var claimSiacoins types.Currency
-	err = tx.Bucket(SiafundOutputs).ForEach(func(_, sfoBytes []byte) error {
+	err = tx.Bucket(SiafundOutputs).ForEach(func(sfoidBytes, sfoBytes []byte) error {
+		var sfoid types.SiafundOutputID
+		copy(sfoid[:], sfoidBytes)
 		var sfo types.SiafundOutput
 		err := encoding.Unmarshal(sfoBytes, &sfo)
 		if err != nil {
 			manageErr(tx, err)
 		}
 
-		claimCoins := siafundClaim(tx, sfo)
-		claimSiacoins = claimSiacoins.Add(claimCoins)
+		claimCoins := siafundClaim(tx, sfoid, sfo)
+		claimSiacoins = claimSiacoins.Add(claimCoins.Total)
 		return nil
 	})
 	if err != nil {

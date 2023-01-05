@@ -204,7 +204,7 @@ func TestConcurrentBuilders(t *testing.T) {
 	}
 
 	// Get a baseline balance for the wallet.
-	startingSCConfirmed, _, _, err := wt.wallet.ConfirmedBalance()
+	startingBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,12 +241,12 @@ func TestConcurrentBuilders(t *testing.T) {
 	}
 
 	// Get a second reading on the wallet's balance.
-	fundedSCConfirmed, _, _, err := wt.wallet.ConfirmedBalance()
+	fundedBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !startingSCConfirmed.Equals(fundedSCConfirmed) {
-		t.Fatal("confirmed siacoin balance changed when no blocks have been mined", startingSCConfirmed, fundedSCConfirmed)
+	if !startingBal.CoinBalance.Equals(fundedBal.CoinBalance) {
+		t.Fatal("confirmed siacoin balance changed when no blocks have been mined", startingBal.CoinBalance, fundedBal.CoinBalance)
 	}
 
 	// Spend the transaction funds on miner fees and the void output.
@@ -312,7 +312,7 @@ func TestConcurrentBuildersSingleOutput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scBal, _, _, err := wt.wallet.ConfirmedBalance()
+	bal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -321,12 +321,12 @@ func TestConcurrentBuildersSingleOutput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = builder.FundSiacoins(scBal)
+	err = builder.FundSiacoins(bal.CoinBalance)
 	if err != nil {
 		t.Fatal(err)
 	}
 	output := types.SiacoinOutput{
-		Value:      scBal,
+		Value:      bal.CoinBalance,
 		UnlockHash: unlockConditions.UnlockHash(),
 	}
 	builder.AddSiacoinOutput(output)
@@ -346,7 +346,7 @@ func TestConcurrentBuildersSingleOutput(t *testing.T) {
 	}
 
 	// Get a baseline balance for the wallet.
-	startingSCConfirmed, _, _, err := wt.wallet.ConfirmedBalance()
+	startingBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -383,12 +383,12 @@ func TestConcurrentBuildersSingleOutput(t *testing.T) {
 	}
 
 	// Get a second reading on the wallet's balance.
-	fundedSCConfirmed, _, _, err := wt.wallet.ConfirmedBalance()
+	fundedBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !startingSCConfirmed.Equals(fundedSCConfirmed) {
-		t.Fatal("confirmed siacoin balance changed when no blocks have been mined", startingSCConfirmed, fundedSCConfirmed)
+	if !startingBal.CoinBalance.Equals(fundedBal.CoinBalance) {
+		t.Fatal("confirmed siacoin balance changed when no blocks have been mined", startingBal.CoinBalance, fundedBal.CoinBalance)
 	}
 
 	// Spend the transaction funds on miner fees and the void output.
@@ -446,7 +446,7 @@ func TestParallelBuilders(t *testing.T) {
 	}
 
 	// Get a baseline balance for the wallet.
-	startingSCConfirmed, _, _, err := wt.wallet.ConfirmedBalance()
+	startingBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -508,13 +508,13 @@ func TestParallelBuilders(t *testing.T) {
 	}
 
 	// Check the final balance.
-	endingSCConfirmed, _, _, err := wt.wallet.ConfirmedBalance()
+	endingBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected := startingSCConfirmed.Sub(funding.Mul(types.NewCurrency64(uint64(outputsDesired))))
-	if !expected.Equals(endingSCConfirmed) {
-		t.Fatal("did not get the expected ending balance", expected, endingSCConfirmed, startingSCConfirmed)
+	expected := startingBal.CoinBalance.Sub(funding.Mul(types.NewCurrency64(uint64(outputsDesired))))
+	if !expected.Equals(endingBal.CoinBalance) {
+		t.Fatal("did not get the expected ending balance", expected, endingBal.CoinBalance, startingBal.ClaimBalance)
 	}
 }
 
@@ -535,11 +535,11 @@ func TestUnconfirmedParents(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to get address", err)
 	}
-	siacoins, _, _, err := wt.wallet.ConfirmedBalance()
+	bal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
-	tSet, err := wt.wallet.SendSiacoins(siacoins.Sub(types.SiacoinPrecision), uc.UnlockHash())
+	tSet, err := wt.wallet.SendSiacoins(bal.CoinBalance.Sub(types.SiacoinPrecision), uc.UnlockHash())
 	if err != nil {
 		t.Fatal("Failed to send coins", err)
 	}

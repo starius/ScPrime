@@ -30,7 +30,7 @@ func (cs *ConsensusSet) managedBroadcastBlock(b types.Block) {
 // validateHeaderAndBlock does some early, low computation verification on the
 // block. Callers should not assume that validation will happen in a particular
 // order.
-func (cs *ConsensusSet) validateHeaderAndBlock(tx dbTx, b types.Block, id types.BlockID) (parent *processedBlock, err error) {
+func (cs *ConsensusSet) validateHeaderAndBlock(tx dbTx, b types.Block, id types.BlockID) (parent *processedBlockV2, err error) {
 	// Check if the block is a DoS block - a known invalid block that is expensive
 	// to validate.
 	_, exists := cs.dosBlocks[id]
@@ -49,13 +49,10 @@ func (cs *ConsensusSet) validateHeaderAndBlock(tx dbTx, b types.Block, id types.
 
 	// Check for the parent.
 	parentID := b.ParentID
-	parentBytes := blockMap.Get(parentID[:])
-	if parentBytes == nil {
+	parent, err = getBlockMapWithTx(tx, parentID, cs.marshaler)
+	if err == errNilItem {
 		return nil, errOrphan
-	}
-	parent = new(processedBlock)
-	err = cs.marshaler.Unmarshal(parentBytes, parent)
-	if err != nil {
+	} else if err != nil {
 		return nil, err
 	}
 	// Check that the timestamp is not too far in the past to be acceptable.
@@ -108,13 +105,10 @@ func (cs *ConsensusSet) validateHeader(tx dbTx, h types.BlockHeader) error {
 
 	// Check for the parent.
 	parentID := h.ParentID
-	parentBytes := blockMap.Get(parentID[:])
-	if parentBytes == nil {
+	parent, err := getBlockMapWithTx(tx, parentID, cs.marshaler)
+	if err == errNilItem {
 		return errOrphan
-	}
-	var parent processedBlock
-	err := cs.marshaler.Unmarshal(parentBytes, &parent)
-	if err != nil {
+	} else if err != nil {
 		return err
 	}
 
@@ -131,7 +125,7 @@ func (cs *ConsensusSet) validateHeader(tx dbTx, h types.BlockHeader) error {
 	// downloads are implemented.
 
 	// Check that the timestamp is not too far in the past to be acceptable.
-	minTimestamp := cs.blockRuleHelper.minimumValidChildTimestamp(blockMap, &parent)
+	minTimestamp := cs.blockRuleHelper.minimumValidChildTimestamp(blockMap, parent)
 	if minTimestamp > h.Timestamp {
 		return ErrEarlyTimestamp
 	}
@@ -161,7 +155,7 @@ func (cs *ConsensusSet) validateHeader(tx dbTx, h types.BlockHeader) error {
 // on the block. Such errors are handled outside of the transaction by the
 // caller. Switching to a managed tx through bolt will make this complexity
 // unneeded.
-func (cs *ConsensusSet) addBlockToTree(tx *bolt.Tx, b types.Block, parent *processedBlock) (ce changeEntry, err error) {
+func (cs *ConsensusSet) addBlockToTree(tx *bolt.Tx, b types.Block, parent *processedBlockV2) (ce changeEntry, err error) {
 	// Prepare the child processed block associated with the parent block.
 	newNode := cs.newChild(tx, parent, b)
 
@@ -175,7 +169,7 @@ func (cs *ConsensusSet) addBlockToTree(tx *bolt.Tx, b types.Block, parent *proce
 
 	// Fork the blockchain and put the new heaviest block at the tip of the
 	// chain.
-	var revertedBlocks, appliedBlocks []*processedBlock
+	var revertedBlocks, appliedBlocks []*processedBlockV2
 	revertedBlocks, appliedBlocks, err = cs.forkBlockchain(tx, newNode)
 	if err != nil {
 		return changeEntry{}, err

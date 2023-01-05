@@ -23,7 +23,7 @@ func TestSendSiacoins(t *testing.T) {
 
 	// Get the initial balance - should be 1 block. The unconfirmed balances
 	// should be 0.
-	confirmedBal, _, _, err := wt.wallet.ConfirmedBalance()
+	confirmedBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestSendSiacoins(t *testing.T) {
 	devSubsidy := types.CalculateDevSubsidy(1)
 	expectedBalance := types.CalculateCoinbase(1).Sub(devSubsidy)
 
-	if !confirmedBal.Equals(expectedBalance) {
+	if !confirmedBal.CoinBalance.Equals(expectedBalance) {
 		t.Error("unexpected confirmed balance")
 	}
 	if !unconfirmedOut.IsZero() {
@@ -55,7 +55,7 @@ func TestSendSiacoins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	confirmedBal2, _, _, err := wt.wallet.ConfirmedBalance()
+	confirmedBal2, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestSendSiacoins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !confirmedBal2.Equals(confirmedBal) {
+	if !confirmedBal2.CoinBalance.Equals(confirmedBal.CoinBalance) {
 		t.Error("confirmed balance changed without introduction of blocks")
 	}
 	if !unconfirmedOut2.Equals(unconfirmedIn2.Add(sendValue).Add(tpoolFee)) {
@@ -76,7 +76,7 @@ func TestSendSiacoins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	confirmedBal3, _, _, err := wt.wallet.ConfirmedBalance()
+	confirmedBal3, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestSendSiacoins(t *testing.T) {
 	devSubsidy3 := types.CalculateDevSubsidy(2)
 	expectedBalance3 := types.CalculateCoinbase(2).Sub(devSubsidy3)
 
-	if !confirmedBal3.Equals(confirmedBal2.Add(expectedBalance3).Sub(sendValue).Sub(tpoolFee)) {
+	if !confirmedBal3.CoinBalance.Equals(confirmedBal2.CoinBalance.Add(expectedBalance3).Sub(sendValue).Sub(tpoolFee)) {
 		t.Error("confirmed balance did not adjust to the expected value")
 	}
 	if !unconfirmedOut3.IsZero() {
@@ -113,7 +113,7 @@ func TestSendSiacoinsFeeIncluded(t *testing.T) {
 
 	// Get the initial balance - should be 1 block. The unconfirmed balances
 	// should be 0.
-	confirmedBal, _, _, err := wt.wallet.ConfirmedBalance()
+	confirmedBal, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestSendSiacoinsFeeIncluded(t *testing.T) {
 		t.Fatal(err)
 	}
 	expectedBalance := types.CalculateCoinbase(1).Sub(types.CalculateDevSubsidy(1))
-	if !confirmedBal.Equals(expectedBalance) {
+	if !confirmedBal.CoinBalance.Equals(expectedBalance) {
 		t.Errorf("confirmed balance (%v) should equal coinbase-devfee at block 1(%v)", confirmedBal, expectedBalance)
 	}
 	if !unconfirmedOut.IsZero() {
@@ -142,7 +142,7 @@ func TestSendSiacoinsFeeIncluded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	confirmedBal2, _, _, err := wt.wallet.ConfirmedBalance()
+	confirmedBal2, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,7 @@ func TestSendSiacoinsFeeIncluded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !confirmedBal2.Equals(confirmedBal) {
+	if !confirmedBal2.CoinBalance.Equals(confirmedBal.CoinBalance) {
 		t.Error("confirmed balance changed without introduction of blocks")
 	}
 	if !unconfirmedOut2.Equals(unconfirmedIn2.Add(sendValue)) {
@@ -163,7 +163,7 @@ func TestSendSiacoinsFeeIncluded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	confirmedBal3, _, _, err := wt.wallet.ConfirmedBalance()
+	confirmedBal3, err := wt.wallet.ConfirmedBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +171,7 @@ func TestSendSiacoinsFeeIncluded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !confirmedBal3.Equals(confirmedBal2.Add(types.CalculateCoinbase(2).Sub(types.CalculateDevSubsidy(2))).Sub(sendValue)) {
+	if !confirmedBal3.CoinBalance.Equals(confirmedBal2.CoinBalance.Add(types.CalculateCoinbase(2).Sub(types.CalculateDevSubsidy(2))).Sub(sendValue)) {
 		t.Error("confirmed balance did not adjust to the expected value")
 	}
 	if !unconfirmedOut3.IsZero() {

@@ -25,6 +25,7 @@ var (
 	errUnfinishedFileContract     = errors.New("file contract window has not yet openend")
 	errUnrecognizedFileContractID = errors.New("cannot fetch storage proof segment for unknown file contract")
 	errWrongUnlockConditions      = errors.New("transaction contains incorrect unlock conditions")
+	errSiafundMixedInputs         = errors.New("transaction contains both SPF-A and SPF-B siafund inputs")
 )
 
 // validSiacoins checks that the scprimecoin inputs and outputs are valid in the
@@ -255,10 +256,19 @@ func validSiafunds(tx *bolt.Tx, t types.Transaction) (err error) {
 	// Compare the number of input siafunds to the output siafunds.
 	var siafundInputSum types.Currency
 	var siafundOutputSum types.Currency
+	hasSiafundA := false
+	hasSiafundB := false
 	for _, sfi := range t.SiafundInputs {
 		sfo, err := getSiafundOutput(tx, sfi.ParentID)
 		if err != nil {
 			return err
+		}
+
+		isB := isSiafundBOutput(tx, sfi.ParentID)
+		if isB {
+			hasSiafundB = true
+		} else {
+			hasSiafundA = true
 		}
 
 		// Check the unlock conditions match the unlock hash.
@@ -268,6 +278,11 @@ func validSiafunds(tx *bolt.Tx, t types.Transaction) (err error) {
 
 		siafundInputSum = siafundInputSum.Add(sfo.Value)
 	}
+
+	if hasSiafundA && hasSiafundB {
+		return errSiafundMixedInputs
+	}
+
 	for _, sfo := range t.SiafundOutputs {
 		siafundOutputSum = siafundOutputSum.Add(sfo.Value)
 	}
@@ -318,7 +333,7 @@ func (cs *ConsensusSet) tryTransactionSet(txns []types.Transaction) (modules.Con
 	// in a block node. diffHolder is the blockNode that tracks the temporary
 	// changes. At the end of the function, all changes that were made to the
 	// consensus set get reverted.
-	diffHolder := new(processedBlock)
+	diffHolder := new(processedBlockV2)
 
 	// Boltdb will only roll back a tx if an error is returned. In the case of
 	// TryTransactionSet, we want to roll back the tx even if there is no

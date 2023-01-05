@@ -585,7 +585,7 @@ func (cst *consensusSetTester) testSpendSiafunds() {
 	if err != nil {
 		panic(err)
 	}
-	err = txnBuilder.FundSiafunds(txnValue)
+	err = txnBuilder.FundSiafunds(txnValue, false)
 	if err != nil {
 		panic(err)
 	}
@@ -604,15 +604,14 @@ func (cst *consensusSetTester) testSpendSiafunds() {
 	var claimIDs []types.SiacoinOutputID
 	for _, txn := range txnSet {
 		for _, sfi := range txn.SiafundInputs {
-			sfo, err := cst.cs.dbGetSiafundOutput(sfi.ParentID)
+			value, err := cst.cs.SiafundClaim(sfi.ParentID)
 			if err != nil {
 				// It's not in the database because it's in an earlier
 				// transaction: disregard it - testing the first layer of
 				// dependencies is sufficient.
 				continue
 			}
-			value := cst.cs.SiafundClaim(sfo)
-			claimValues = append(claimValues, value)
+			claimValues = append(claimValues, value.Total)
 			claimIDs = append(claimIDs, sfi.ParentID.SiaClaimOutputID())
 		}
 	}

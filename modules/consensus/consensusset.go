@@ -8,6 +8,7 @@ package consensus
 
 import (
 	"errors"
+	"fmt"
 
 	"gitlab.com/NebulousLabs/demotemutex"
 	"gitlab.com/NebulousLabs/encoding"
@@ -324,21 +325,67 @@ func (cs *ConsensusSet) CurrentBlock() (block types.Block) {
 	return block
 }
 
-// SiafundClaim returns claim by SiafundOutput taking hardfork into account.
-func (cs *ConsensusSet) SiafundClaim(sfo types.SiafundOutput) types.Currency {
+// SiafundClaim returns claim of SiafundOutput with SiafundOutputID taking hardforks into account.
+func (cs *ConsensusSet) SiafundClaim(sfoid types.SiafundOutputID) (types.SiafundClaim, error) {
 	// A call to a closed database can cause undefined behavior.
 	err := cs.tg.Add()
 	if err != nil {
-		return types.ZeroCurrency
+		return types.SiafundClaim{Total: types.ZeroCurrency, ByOwner: types.ZeroCurrency}, err
 	}
 	defer cs.tg.Done()
 
-	var claim types.Currency
-	_ = cs.db.View(func(tx *bolt.Tx) error {
-		claim = siafundClaim(tx, sfo)
+	var claim types.SiafundClaim
+	err = cs.db.View(func(tx *bolt.Tx) error {
+		sfo, err := getSiafundOutput(tx, sfoid)
+		if err != nil {
+			return fmt.Errorf("failed to get siafund output by id: %w", err)
+		}
+		claim = siafundClaim(tx, sfoid, sfo)
 		return nil
 	})
-	return claim
+	if err != nil {
+		return types.SiafundClaim{Total: types.ZeroCurrency, ByOwner: types.ZeroCurrency}, err
+	}
+	return claim, nil
+}
+
+// IsSiafundBOutput checks if `id` is an SPF-B output.
+func (cs *ConsensusSet) IsSiafundBOutput(id types.SiafundOutputID) (bool, error) {
+	err := cs.tg.Add()
+	if err != nil {
+		return false, err
+	}
+	defer cs.tg.Done()
+
+	var is bool
+	err = cs.db.View(func(tx *bolt.Tx) error {
+		is = isSiafundBOutput(tx, id)
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	return is, nil
+}
+
+// AddSiafundBOutput marks `id` as SPF-B. For tests only!
+func (cs *ConsensusSet) AddSiafundBOutput(id types.SiafundOutputID) error {
+	err := cs.tg.Add()
+	if err != nil {
+		return err
+	}
+	defer cs.tg.Done()
+
+	err = cs.db.Update(func(tx *bolt.Tx) error {
+		addSiafundBOutput(tx, id)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Height returns the height of the consensus set.

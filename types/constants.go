@@ -43,7 +43,10 @@ var (
 	//  * spending burnt coins from BurnAddressUnlockHash using UnburnAddressUnlockHash
 	//    from UnburnStartBlockHeight until UnburnStopBlockHeight
 	//  * spending coins from AirdropNebulousLabsUnlockHash using UngiftUnlockHash
-	Fork2022 = false
+	//  * introducing SPF-B and allocating 200,000,000 SPF-B funds
+	Fork2022 = true
+	// SiafundBLostClaimAddress is an address all locked claims of existing SPF-B are sent to.
+	SiafundBLostClaimAddress = UnlockHashFromAddrStr("06f07e27a80b0879a47786405053d969b90d41f1e355cb9b8f2dae2f1c31dd0eac9ee57586bf")
 
 	// BlockFrequency is the desired number of seconds that
 	// should elapse, on average, between successive Blocks.
@@ -70,9 +73,9 @@ var (
 	// UnburnAddressUnlockHash is the address used to spend coins from BurnAddressUnlockHash. Activated in Fork2022.
 	UnburnAddressUnlockHash = UnlockHashFromAddrStr("64c682831d977974380ad988787644fd23adeddcc0fe9f155519f5bbb9a8c61273faef5f72c7")
 	// UnburnStartBlockHeight is the height at which unburn address starts working.
-	UnburnStartBlockHeight = BlockHeight(250000)
+	UnburnStartBlockHeight = Fork2022Height
 	// UnburnStopBlockHeight is the height at which unburn address stops working.
-	UnburnStopBlockHeight = BlockHeight(300000)
+	UnburnStopBlockHeight = Fork2022Height + BlockHeight(10000)
 	// DevFundEnabled is a boolean that when set to true will enable the ability to
 	// configure a dev fund
 	DevFundEnabled = true
@@ -150,6 +153,8 @@ var (
 	AirdropNebulousLabsUnlockHash = UnlockHashFromAddrStr("7d0c44f7664e2d34e53efde0661a6f628ec9264785ae8e3cd7c973e8d190c3c97b5e3ecbc567")
 	// UngiftUnlockHash is the address used to spend coins from AirdropNebulousLabsUnlockHash. Activated in Fork2022.
 	UngiftUnlockHash = UnlockHashFromAddrStr("23e3564f335bf2aad01f8b06363547392db54f375025f402a604c60c7a9879d1f8186bcd1e88")
+	// UngiftStartBlockHeight is the height at which ungift address starts working.
+	UngiftStartBlockHeight = Fork2022Height
 	// AirdropSiaPrimeValue is the total amount of coins ScPrime gets to help bootstrap
 	// expenses
 	AirdropSiaPrimeValue = NewCurrency64(200000000).Mul(SiacoinPrecision)
@@ -233,6 +238,8 @@ var (
 	NewSiafundCount = NewCurrency64(30000)
 	// NewerSiafundCount is the total number of Siafunds in existence after the second SPF hardfork.
 	NewerSiafundCount = NewCurrency64(200000000)
+	// NewestSiafundCount is the total number of Siafunds in existing after the 2022 hardfork.
+	NewestSiafundCount = NewCurrency64(400000000)
 	// FirstSiafundMul is multiplier for percentage of siacoins that is taxed from FileContracts
 	// before the first SPF hardfork.
 	FirstSiafundMul = int64(39)
@@ -257,10 +264,25 @@ var (
 	ThirdSiafundDiv = int64(1000)
 	// ThirdSiafundPortion is the percentage of siacoins that is taxed from FileContracts after the second SPF hardfork.
 	ThirdSiafundPortion = big.NewRat(ThirdSiafundMul, ThirdSiafundDiv)
+	// FourthSiafundMul is multiplier for percentage of siacoins that is taxed from FileContracts
+	// after the 2022 hardfork.
+	FourthSiafundMul = int64(150)
+	// FourthSiafundDiv is divider for percentage of siacoins that is taxed from FileContracts
+	// after the 2022 hardfork.
+	FourthSiafundDiv = int64(1000)
+	// FourthSiafundPortion is the percentage of siacoins that is taxed from FileContracts after the 2022 hardfork.
+	FourthSiafundPortion = big.NewRat(FourthSiafundMul, FourthSiafundDiv)
 	// TargetWindow is the number of blocks to look backwards when determining how much
 	// time has passed vs. how many blocks have been created. It's only used in the old,
 	// broken difficulty adjustment algorithm.
 	TargetWindow BlockHeight
+
+	// SiafundStates is a list of all SPF states in historical order.
+	SiafundStates = []SiafundState{
+		{ActivationHeight: BlockHeight(0), TotalSupply: OldSiafundCount, Mul: FirstSiafundMul, Div: FirstSiafundDiv, Portion: *FirstSiafundPortion},
+		{ActivationHeight: SpfHardforkHeight, TotalSupply: NewSiafundCount, Mul: SecondSiafundMul, Div: SecondSiafundDiv, Portion: *SecondSiafundPortion},
+		{ActivationHeight: SpfSecondHardforkHeight, TotalSupply: NewerSiafundCount, Mul: ThirdSiafundMul, Div: ThirdSiafundDiv, Portion: *ThirdSiafundPortion},
+	}
 )
 
 var (
@@ -291,61 +313,68 @@ var (
 		Standard: BlockHeight(109000),
 		Testing:  BlockHeight(20000),
 	}).(BlockHeight)
+
+	// Fork2022Height is the block height of Fork2022.
+	Fork2022Height = build.Select(build.Var{
+		Dev:      BlockHeight(400),
+		Standard: BlockHeight(222800),
+		Testing:  BlockHeight(40000),
+	}).(BlockHeight)
 )
+
+// SiafundState describes total amount of SPF and tax percentage.
+type SiafundState struct {
+	ActivationHeight BlockHeight
+	TotalSupply      Currency
+	Mul              int64
+	Div              int64
+	Portion          big.Rat
+}
 
 // IsSpfHardfork returns true when one of Spf hardforks happens at given height.
 func IsSpfHardfork(height BlockHeight) bool {
-	if height == SpfHardforkHeight {
-		return true
-	}
-	if height == SpfSecondHardforkHeight {
-		return true
+	for _, st := range SiafundStates[1:] {
+		if height == st.ActivationHeight {
+			return true
+		}
 	}
 	return false
 }
 
+// SiafundStateByHeight returns SPF state by block height.
+func SiafundStateByHeight(height BlockHeight) SiafundState {
+	for i := len(SiafundStates) - 1; i >= 0; i-- {
+		state := SiafundStates[i]
+		if height > state.ActivationHeight {
+			return state
+		}
+	}
+	return SiafundStates[0]
+}
+
 // SiafundCount returns the total number of Siafunds by height.
 func SiafundCount(height BlockHeight) Currency {
-	if height > SpfSecondHardforkHeight {
-		return NewerSiafundCount
-	}
-	if height > SpfHardforkHeight {
-		return NewSiafundCount
-	}
-	return OldSiafundCount
+	state := SiafundStateByHeight(height)
+	return state.TotalSupply
 }
 
 // SiafundPortion returns SPF percentage by height.
 func SiafundPortion(height BlockHeight) *big.Rat {
-	if height > SpfSecondHardforkHeight {
-		return ThirdSiafundPortion
-	}
-	if height > SpfHardforkHeight {
-		return SecondSiafundPortion
-	}
-	return FirstSiafundPortion
+	state := SiafundStateByHeight(height)
+	portion := new(big.Rat).Set(&state.Portion)
+	return portion
 }
 
 // SiafundMul returns SPF percentage multiplier by height.
 func SiafundMul(height BlockHeight) int64 {
-	if height > SpfSecondHardforkHeight {
-		return ThirdSiafundMul
-	}
-	if height > SpfHardforkHeight {
-		return SecondSiafundMul
-	}
-	return FirstSiafundMul
+	state := SiafundStateByHeight(height)
+	return state.Mul
 }
 
 // SiafundDiv returns SPF percentage divider by height.
 func SiafundDiv(height BlockHeight) int64 {
-	if height > SpfSecondHardforkHeight {
-		return ThirdSiafundDiv
-	}
-	if height > SpfHardforkHeight {
-		return SecondSiafundDiv
-	}
-	return FirstSiafundDiv
+	state := SiafundStateByHeight(height)
+	return state.Div
 }
 
 // scanAddress scans a types.UnlockHash from a string.
@@ -369,6 +398,15 @@ func UnlockHashFromAddrStr(addrStr string) (addr UnlockHash) {
 // init checks which build constant is in place and initializes the variables
 // accordingly.
 func init() {
+	if Fork2022 {
+		SiafundStates = append(SiafundStates, SiafundState{
+			ActivationHeight: Fork2022Height,
+			TotalSupply:      NewestSiafundCount,
+			Mul:              FourthSiafundMul,
+			Div:              FourthSiafundDiv,
+			Portion:          *FourthSiafundPortion,
+		})
+	}
 	if build.Release == "dev" {
 		// 'dev' settings are for small developer testnets, usually on the same
 		// computer. Settings are slow enough that a small team of developers
@@ -451,6 +489,12 @@ func init() {
 				{
 					Value:      NewCurrency64(200000000 - 30000),
 					UnlockHash: UnlockHashFromAddrStr("f3f512b45c24b531e571d59d99b804b19244cecf1da8117217101fa722e40a18917c91ebb080"),
+				},
+			},
+			Fork2022Height: {
+				{
+					Value:      NewCurrency64(200000000),
+					UnlockHash: UnlockHashFromAddrStr("e1e90a2a9db091e886bde165a185868737ea97437bba540c7ca77b3dc7962e18ac1db7354f08"),
 				},
 			},
 		}
@@ -539,6 +583,12 @@ func init() {
 				{
 					Value:      NewCurrency64(200000000 - 30000),
 					UnlockHash: UnlockHashFromAddrStr("f3f512b45c24b531e571d59d99b804b19244cecf1da8117217101fa722e40a18917c91ebb080"),
+				},
+			},
+			Fork2022Height: {
+				{
+					Value:      NewCurrency64(200000000),
+					UnlockHash: UnlockHashFromAddrStr("e1e90a2a9db091e886bde165a185868737ea97437bba540c7ca77b3dc7962e18ac1db7354f08"),
 				},
 			},
 		}
@@ -690,6 +740,12 @@ func init() {
 				{
 					Value:      NewCurrency64(200000000 - 30000),
 					UnlockHash: UnlockHashFromAddrStr("f3f512b45c24b531e571d59d99b804b19244cecf1da8117217101fa722e40a18917c91ebb080"),
+				},
+			},
+			Fork2022Height: {
+				{
+					Value:      NewCurrency64(200000000),
+					UnlockHash: UnlockHashFromAddrStr("e1e90a2a9db091e886bde165a185868737ea97437bba540c7ca77b3dc7962e18ac1db7354f08"),
 				},
 			},
 		}

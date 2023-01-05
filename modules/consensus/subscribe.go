@@ -74,7 +74,7 @@ func (cs *ConsensusSet) computeConsensusChange(tx *bolt.Tx, ce changeEntry) (mod
 			cc.OldHeight = revertedBlock.Height
 		}
 		cc.RevertedBlocks = append(cc.RevertedBlocks, revertedBlock.Block)
-		diffs := computeConsensusChangeDiffs(revertedBlock, false)
+		diffs := computeConsensusChangeDiffs(&revertedBlock.processedBlock, false)
 		cc.RevertedDiffs = append(cc.RevertedDiffs, diffs)
 		cc.AppendDiffs(diffs)
 	}
@@ -85,7 +85,7 @@ func (cs *ConsensusSet) computeConsensusChange(tx *bolt.Tx, ce changeEntry) (mod
 			return modules.ConsensusChange{}, err
 		}
 		cc.AppliedBlocks = append(cc.AppliedBlocks, appliedBlock.Block)
-		diffs := computeConsensusChangeDiffs(appliedBlock, true)
+		diffs := computeConsensusChangeDiffs(&appliedBlock.processedBlock, true)
 		cc.AppliedDiffs = append(cc.AppliedDiffs, diffs)
 		cc.AppendDiffs(diffs)
 	}

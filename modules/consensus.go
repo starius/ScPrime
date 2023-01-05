@@ -159,12 +159,31 @@ type (
 		FileContract types.FileContract
 	}
 
+	// A FileContractOwnerDiff indicates addition or removal of a FileContract for
+	// specific owner address. Ideally, it needs to be merged with FileContractDiff
+	// but FileContractDiffs are currently reverted on contract's expiration
+	// which does not work for this case, since we need to store historical
+	// contracts.
+	FileContractOwnerDiff struct {
+		Direction   DiffDirection
+		ID          types.FileContractID
+		Owners      []types.UnlockHash
+		StartHeight types.BlockHeight
+		EndHeight   types.BlockHeight
+	}
+
 	// A SiafundOutputDiff indicates the addition or removal of a SiafundOutput in
 	// the consensus set.
 	SiafundOutputDiff struct {
 		Direction     DiffDirection         `json:"dir"`
 		ID            types.SiafundOutputID `json:"id"`
 		SiafundOutput types.SiafundOutput   `json:"sco"`
+	}
+
+	// A SiafundBDiff marks or unmarks SiafundOutput as SPF-B.
+	SiafundBDiff struct {
+		Direction DiffDirection         `json:"dir"`
+		ID        types.SiafundOutputID `json:"id"`
 	}
 
 	// A DelayedSiacoinOutputDiff indicates the introduction of a siacoin output
@@ -261,7 +280,11 @@ type (
 
 		// SiafundClaim returns number of siacoins claimed by given SiafundOutput.
 		// It takes into account height and hardfork changes.
-		SiafundClaim(types.SiafundOutput) types.Currency
+		SiafundClaim(types.SiafundOutputID) (types.SiafundClaim, error)
+
+		// IsSiafundBOutput returns true if given output id is SPF-B output,
+		// rather than SPF-A.
+		IsSiafundBOutput(id types.SiafundOutputID) (bool, error)
 	}
 )
 

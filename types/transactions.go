@@ -37,6 +37,7 @@ var (
 	SpecifierSiafundInput         = NewSpecifier("siafund input")
 	SpecifierSiafundOutput        = NewSpecifier("siafund output")
 	SpecifierStorageProofOutput   = NewSpecifier("storage proof")
+	SpecifierSiafundB             = NewSpecifier("siafund b")
 )
 
 type (
@@ -124,6 +125,14 @@ type (
 		Value      Currency   `json:"value"`
 		UnlockHash UnlockHash `json:"unlockhash"`
 		ClaimStart Currency   `json:"claimstart"`
+	}
+
+	// SiafundClaim describes claim earned by SiafundOutput.
+	// `Total` field is cumulative, `ByOwner` is how much goes to SiafundInput's ClaimUnlockHash.
+	// For SPF-A, it's always the same thing, for SPF-B the difference goes to DevFund address.
+	SiafundClaim struct {
+		Total   Currency `json:"total"`
+		ByOwner Currency `json:"byowner"`
 	}
 
 	// An UnlockHash is a specially constructed hash of the UnlockConditions type.
@@ -228,8 +237,46 @@ func (t Transaction) RenterSignature() TransactionSignature {
 	return t.TransactionSignatures[0]
 }
 
+// SponsorAddresses returns a list of unique unlock hashes from transaction's inputs.
+func (t Transaction) SponsorAddresses() []UnlockHash {
+	inputUnlockHahes := make([]UnlockHash, 0, len(t.SiacoinInputs))
+	uniqueUnlockHashes := make(map[UnlockHash]bool, len(t.SiacoinInputs))
+	for _, in := range t.SiacoinInputs {
+		uh := in.UnlockConditions.UnlockHash()
+		if _, ok := uniqueUnlockHashes[uh]; ok {
+			continue
+		}
+		uniqueUnlockHashes[uh] = true
+		inputUnlockHahes = append(inputUnlockHahes, uh)
+	}
+	return inputUnlockHahes
+}
+
 // SiaClaimOutputID returns the ID of the SiacoinOutput that is created when
 // the siafund output is spent. The ID is the hash the SiafundOutputID.
 func (id SiafundOutputID) SiaClaimOutputID() SiacoinOutputID {
 	return SiacoinOutputID(crypto.HashObject(id))
+}
+
+// SiaClaimSecondOutputID returns the ID of the second SiacoinOutput that is created
+// for SPF-B when it is spent.
+func (id SiafundOutputID) SiaClaimSecondOutputID() SiacoinOutputID {
+	var soid SiacoinOutputID
+	h := crypto.NewHash()
+	h.Write(SpecifierSiafundB[:])
+	h.Write(id[:])
+	h.Sum(soid[:0])
+	return soid
+}
+
+// Add adds sfc2 to sfc.
+func (sfc *SiafundClaim) Add(sfc2 SiafundClaim) {
+	sfc.Total = sfc.Total.Add(sfc2.Total)
+	sfc.ByOwner = sfc.ByOwner.Add(sfc2.ByOwner)
+}
+
+// MulCurrency multiplies sfc by c.
+func (sfc *SiafundClaim) MulCurrency(c Currency) {
+	sfc.Total = sfc.Total.Mul(c)
+	sfc.ByOwner = sfc.ByOwner.Mul(c)
 }
