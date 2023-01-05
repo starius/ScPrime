@@ -30,10 +30,11 @@ func TestUnburn(t *testing.T) {
 			disabledHeight: &types.UnburnStopBlockHeight,
 		},
 		{
-			name:         "ungift",
-			sendAddress:  types.AirdropNebulousLabsUnlockHash,
-			spendAddress: &types.UngiftUnlockHash,
-			wantBalance:  "300001000000000000000000000000000",
+			name:          "ungift",
+			enabledHeight: &types.UngiftStartBlockHeight,
+			sendAddress:   types.AirdropNebulousLabsUnlockHash,
+			spendAddress:  &types.UngiftUnlockHash,
+			wantBalance:   "300001000000000000000000000000000",
 		},
 	}
 

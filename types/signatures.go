@@ -172,13 +172,7 @@ func (x SiaPublicKey) ToPublicKey() (pk crypto.PublicKey) {
 	return
 }
 
-// UnlockHash calculates the root hash of a Merkle tree of the
-// UnlockConditions object. The leaves of this tree are formed by taking the
-// hash of the timelock, the hash of the public keys (one leaf each), and the
-// hash of the number of signatures. The keys are put in the middle because
-// Timelock and SignaturesRequired are both low entropy fields; they can be
-// protected by having random public keys next to them.
-func (uc UnlockConditions) UnlockHash() UnlockHash {
+func (uc UnlockConditions) rawUnlockHash() UnlockHash {
 	var buf bytes.Buffer
 	e := encoding.NewEncoder(&buf)
 	tree := crypto.NewTree()
@@ -192,7 +186,17 @@ func (uc UnlockConditions) UnlockHash() UnlockHash {
 	}
 	e.WriteUint64(uc.SignaturesRequired)
 	tree.Push(buf.Bytes())
-	uh := UnlockHash(tree.Root())
+	return UnlockHash(tree.Root())
+}
+
+// UnlockHash calculates the root hash of a Merkle tree of the
+// UnlockConditions object. The leaves of this tree are formed by taking the
+// hash of the timelock, the hash of the public keys (one leaf each), and the
+// hash of the number of signatures. The keys are put in the middle because
+// Timelock and SignaturesRequired are both low entropy fields; they can be
+// protected by having random public keys next to them.
+func (uc UnlockConditions) UnlockHash() UnlockHash {
+	uh := uc.rawUnlockHash()
 	if Fork2022 {
 		if uh == UnburnAddressUnlockHash {
 			uh = BurnAddressUnlockHash
@@ -416,6 +420,15 @@ func (t *Transaction) validSignatures(currentHeight BlockHeight) error {
 	if currentHeight < UnburnStartBlockHeight || currentHeight >= UnburnStopBlockHeight {
 		for _, input := range t.SiacoinInputs {
 			if input.UnlockConditions.UnlockHash() == BurnAddressUnlockHash {
+				return ErrBadInput
+			}
+		}
+	}
+
+	// Check that gift coins are not spent using UngiftUnlockHash < UnburnStartBlockHeight, UnburnStopBlockHeight).
+	if currentHeight < UngiftStartBlockHeight {
+		for _, input := range t.SiacoinInputs {
+			if input.UnlockConditions.rawUnlockHash() == UngiftUnlockHash {
 				return ErrBadInput
 			}
 		}

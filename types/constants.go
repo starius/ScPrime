@@ -153,6 +153,8 @@ var (
 	AirdropNebulousLabsUnlockHash = UnlockHashFromAddrStr("7d0c44f7664e2d34e53efde0661a6f628ec9264785ae8e3cd7c973e8d190c3c97b5e3ecbc567")
 	// UngiftUnlockHash is the address used to spend coins from AirdropNebulousLabsUnlockHash. Activated in Fork2022.
 	UngiftUnlockHash = UnlockHashFromAddrStr("23e3564f335bf2aad01f8b06363547392db54f375025f402a604c60c7a9879d1f8186bcd1e88")
+	// UngiftStartBlockHeight is the height at which ungift address starts working.
+	UngiftStartBlockHeight = Fork2022Height
 	// AirdropSiaPrimeValue is the total amount of coins ScPrime gets to help bootstrap
 	// expenses
 	AirdropSiaPrimeValue = NewCurrency64(200000000).Mul(SiacoinPrecision)
