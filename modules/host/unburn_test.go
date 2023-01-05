@@ -98,7 +98,7 @@ func TestUnburn(t *testing.T) {
 				types.Fork2022 = originalFork2022
 			})
 
-			if tc.disabledHeight != nil {
+			if tc.enabledHeight != nil {
 				// Set enabledHeight to current height to enable spending.
 				originalEnabledHeight := *tc.enabledHeight
 				*tc.enabledHeight = ht.cs.Height()
