@@ -214,7 +214,9 @@ func applySiafundInputs(tx *bolt.Tx, pb *processedBlockV2, t types.Transaction) 
 		}
 		claim := siafundClaim(tx, sfi.ParentID, sfo)
 
-		if !claim.ByOwner.IsZero() {
+		// Save zero claims before Fork2022 or any time if Fork2022 is not enabled.
+		saveZeroClaimOutput := !types.Fork2022 || (pb.Height <= types.Fork2022Height)
+		if !claim.ByOwner.IsZero() || saveZeroClaimOutput {
 			// Add the claim output to the delayed set of outputs.
 			sco := types.SiacoinOutput{
 				Value:      claim.ByOwner,
