@@ -520,6 +520,8 @@ func removeFileContract(tx *bolt.Tx, id types.FileContractID) {
 	if build.DEBUG && fcBytes == nil {
 		panic("nil file contract")
 	}
+	fcBytesCopy := make([]byte, len(fcBytes))
+	copy(fcBytesCopy, fcBytes)
 	err := fcBucket.Delete(id[:])
 	if build.DEBUG && err != nil {
 		panic(err)
@@ -529,7 +531,7 @@ func removeFileContract(tx *bolt.Tx, id types.FileContractID) {
 	// 'fcBytes' used to determine the expiration bucket id is the
 	// byte-representation of the file contract window end, which always
 	// appears at bytes 48-56.
-	expirationBucketID := append(prefixFCEX, fcBytes[48:56]...)
+	expirationBucketID := append(prefixFCEX, fcBytesCopy[48:56]...)
 	expirationBucket := tx.Bucket(expirationBucketID)
 	expirationBytes := expirationBucket.Get(id[:])
 	if expirationBytes == nil {
@@ -850,7 +852,9 @@ func addFileContractRange(tx *bolt.Tx, owners []types.UnlockHash, r FileContract
 	newRangeBytes := r.Marshal()
 	for _, owner := range owners {
 		rangesBytes := tx.Bucket(FileContractRanges).Get(owner[:])
-		err := tx.Bucket(FileContractRanges).Put(owner[:], append(rangesBytes, newRangeBytes...))
+		rangesBytesCopy := make([]byte, len(rangesBytes))
+		copy(rangesBytesCopy, rangesBytes)
+		err := tx.Bucket(FileContractRanges).Put(owner[:], append(rangesBytesCopy, newRangeBytes...))
 		if build.DEBUG && err != nil {
 			panic(err)
 		}
@@ -1030,12 +1034,14 @@ func cutRangeInplace(rangesBytes []byte, r FileContractRange) (bool, []byte) {
 func removeFileContractRange(tx *bolt.Tx, owners []types.UnlockHash, r FileContractRange) {
 	for _, owner := range owners {
 		rangesBytes := tx.Bucket(FileContractRanges).Get(owner[:])
+		rangesBytesCopy := make([]byte, len(rangesBytes))
+		copy(rangesBytesCopy, rangesBytes)
 		// Optimisation: do not encode ranges back, remove chunk directly from `rangesBytes`.
-		found, rangesBytes := cutRangeInplace(rangesBytes, r)
+		found, rangesBytesCopy := cutRangeInplace(rangesBytesCopy, r)
 		if !found {
 			continue
 		}
-		err := tx.Bucket(FileContractRanges).Put(owner[:], rangesBytes)
+		err := tx.Bucket(FileContractRanges).Put(owner[:], rangesBytesCopy)
 		if build.DEBUG && err != nil {
 			panic(err)
 		}
