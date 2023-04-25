@@ -187,6 +187,7 @@ func (t Transaction) followsMinimumValues() error {
 var replacedAddresses = []*UnlockHash{
 	&UnburnAddressUnlockHash,
 	&UngiftUnlockHash,
+	&Ungift2UnlockHash,
 }
 
 // noReplacedAddressesInOutputs checks that all outputs do not contain

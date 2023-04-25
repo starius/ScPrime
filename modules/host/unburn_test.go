@@ -36,6 +36,13 @@ func TestUnburn(t *testing.T) {
 			spendAddress:  &types.UngiftUnlockHash,
 			wantBalance:   "300001000000000000000000000000000",
 		},
+		{
+			name:          "ungift2",
+			enabledHeight: &types.Ungift2StartBlockHeight,
+			sendAddress:   types.AirdropNebulousLabsUnlockHash,
+			spendAddress:  &types.Ungift2UnlockHash,
+			wantBalance:   "300001000000000000000000000000000",
+		},
 	}
 
 	burntAmount := types.NewCurrency64(10000000000000000000).Mul(types.NewCurrency64(100000000))

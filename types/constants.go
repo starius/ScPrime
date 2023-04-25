@@ -151,6 +151,10 @@ var (
 	UngiftUnlockHash = UnlockHashFromAddrStr("23e3564f335bf2aad01f8b06363547392db54f375025f402a604c60c7a9879d1f8186bcd1e88")
 	// UngiftStartBlockHeight is the height at which ungift address starts working.
 	UngiftStartBlockHeight = Fork2022Height
+	// Ungift2UnlockHash is the address used to spend coins from AirdropNebulousLabsUnlockHash. Activated on ASICHardforkHeight.
+	Ungift2UnlockHash = UnlockHashFromAddrStr("015ccfcefcd9700ac7e118929590f9e66efb7bc2c473c560889aa197bec45efe429917a941d2")
+	// Ungift2StartBlockHeight is the height at which ungift2 address starts working.
+	Ungift2StartBlockHeight = ASICHardforkHeight
 	// AirdropSiaPrimeValue is the total amount of coins ScPrime gets to help bootstrap
 	// expenses
 	AirdropSiaPrimeValue = NewCurrency64(200000000).Mul(SiacoinPrecision)
@@ -320,9 +324,9 @@ var (
 	// ASICHardforkHeight is the height at which the hardfork targeting
 	// selected ASICs was activated.
 	ASICHardforkHeight = build.Select(build.Var{
-		Dev:      BlockHeight(5),
+		Dev:      BlockHeight(800),
 		Standard: BlockHeight(238650),
-		Testing:  BlockHeight(5),
+		Testing:  BlockHeight(80000),
 	}).(BlockHeight)
 )
 
