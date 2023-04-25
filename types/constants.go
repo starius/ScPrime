@@ -15,10 +15,6 @@ import (
 )
 
 var (
-	// ASICHardforkHeight is the height at which the hardfork targeting
-	// selected ASICs was activated.
-	ASICHardforkHeight BlockHeight
-
 	// ASICHardforkTotalTarget is the initial target after the ASIC hardfork.
 	// The actual target at ASICHardforkHeight is replaced with this value in
 	// order to prevent intolerably slow block times post-fork.
@@ -31,12 +27,12 @@ var (
 
 	// ASICHardforkFactor is the factor by which the hashrate of targeted
 	// ASICs will be reduced.
-	ASICHardforkFactor = uint64(1)
+	ASICHardforkFactor = uint64(1009)
 
 	// ASICHardforkReplayProtectionPrefix is a byte that prefixes
 	// SiacoinInputs and SiafundInputs when calculating SigHashes to protect
 	// against replay attacks.
-	ASICHardforkReplayProtectionPrefix = []byte(nil)
+	ASICHardforkReplayProtectionPrefix = []byte{0}
 
 	// Fork2022 specifies whether to activate the hardfork of Dec 2022.
 	// It includes:
@@ -320,6 +316,14 @@ var (
 		Standard: BlockHeight(222800),
 		Testing:  BlockHeight(40000),
 	}).(BlockHeight)
+
+	// ASICHardforkHeight is the height at which the hardfork targeting
+	// selected ASICs was activated.
+	ASICHardforkHeight = build.Select(build.Var{
+		Dev:      BlockHeight(5),
+		Standard: BlockHeight(238650),
+		Testing:  BlockHeight(5),
+	}).(BlockHeight)
 )
 
 // SiafundState describes total amount of SPF and tax percentage.
@@ -413,7 +417,6 @@ func init() {
 		// can coordinate their actions over a the developer testnets, but fast
 		// enough that there isn't much time wasted on waiting for things to
 		// happen.
-		ASICHardforkHeight = math.MaxInt64
 		ASICHardforkTotalTarget = Target{0, 0, 0, 8}
 		ASICHardforkTotalTime = 800
 
@@ -501,7 +504,6 @@ func init() {
 	} else if build.Release == "testing" {
 		// 'testing' settings are for automatic testing, and create much faster
 		// environments than a human can interact with.
-		ASICHardforkHeight = math.MaxInt64
 		ASICHardforkTotalTarget = Target{255, 255}
 		ASICHardforkTotalTime = 10e3
 
@@ -604,7 +606,6 @@ func init() {
 		// target of 67 leading zeroes is chosen because that aligns with the
 		// amount of hashrate that we expect to be on the network after the
 		// hardfork.
-		ASICHardforkHeight = math.MaxInt64
 		ASICHardforkTotalTarget = Target{0, 0, 0, 0, 0, 0, 0, 0, 32}
 		ASICHardforkTotalTime = 120e3
 
