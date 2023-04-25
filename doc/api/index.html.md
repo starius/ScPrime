@@ -4711,7 +4711,7 @@ Indicates whether the wallet has been encrypted or not. If the wallet has not
 been encrypted, then no data has been generated at all, and the first time the
 wallet is unlocked, the password given will be used as the password for
 encrypting all of the data. 'encrypted' will only be set to false if the wallet
-has never been unlocked before (the unlocked wallet is still encryped - but the
+has never been unlocked before (the unlocked wallet is still encrypted - but the
 encryption key is in memory).  
 
 **unlocked** | boolean  
