@@ -302,21 +302,21 @@ var (
 
 	// SpfHardforkHeight is the height of SPF hardfork.
 	SpfHardforkHeight = build.Select(build.Var{
-		Dev:      BlockHeight(100),
+		Dev:      BlockHeight(30),
 		Standard: BlockHeight(54550),
 		Testing:  BlockHeight(10000),
 	}).(BlockHeight)
 
 	// SpfSecondHardforkHeight is the height of second SPF hardfork.
 	SpfSecondHardforkHeight = build.Select(build.Var{
-		Dev:      BlockHeight(200),
+		Dev:      BlockHeight(40),
 		Standard: BlockHeight(109000),
 		Testing:  BlockHeight(20000),
 	}).(BlockHeight)
 
 	// Fork2022Height is the block height of Fork2022.
 	Fork2022Height = build.Select(build.Var{
-		Dev:      BlockHeight(400),
+		Dev:      BlockHeight(50),
 		Standard: BlockHeight(222800),
 		Testing:  BlockHeight(40000),
 	}).(BlockHeight)
@@ -324,7 +324,7 @@ var (
 	// ASICHardforkHeight is the height at which the hardfork targeting
 	// selected ASICs was activated.
 	ASICHardforkHeight = build.Select(build.Var{
-		Dev:      BlockHeight(800),
+		Dev:      BlockHeight(60),
 		Standard: BlockHeight(238650),
 		Testing:  BlockHeight(80000),
 	}).(BlockHeight)
@@ -448,11 +448,11 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+				UnlockHash: UnlockHashFromAddrStr("c1569b64c4f0835629b343fbef92ec3020d4029e9f0610bf177c80a8ddaae81d1ff73b81b010"),
 			},
 			{
 				Value:      AirdropPoolValue,
-				UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
+				UnlockHash: UnlockHashFromAddrStr("268531a98b4c0ac7f1bc5580b4afed64c238496ee9f71b95a5447ab2aee96ebc7b8e2d4ca09d"),
 			},
 			{
 				Value:      AirdropNebulousLabsValue,
@@ -460,7 +460,7 @@ func init() {
 			},
 			{
 				Value:      AirdropSiaPrimeValue,
-				UnlockHash: UnlockHashFromAddrStr("aefe0af2713c112ba4d10dee7753726e5c4de3f237ea455151342615c95d0e797d7a8cce7b05"),
+				UnlockHash: UnlockHashFromAddrStr("c9413003516fd58220e57518fb66775a55651bb0f619f0fc44d7ab0d72383088d61c8343c5ce"),
 			},
 		}
 
@@ -482,26 +482,26 @@ func init() {
 		ForkedGenesisSiafundAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(10000),
-				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+				UnlockHash: UnlockHashFromAddrStr("c1569b64c4f0835629b343fbef92ec3020d4029e9f0610bf177c80a8ddaae81d1ff73b81b010"),
 			},
 		}
 		SiafundHardforkAllocation = map[BlockHeight][]SiafundOutput{
 			SpfHardforkHeight: {
 				{
 					Value:      NewCurrency64(20000),
-					UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+					UnlockHash: UnlockHashFromAddrStr("48744e1ef623691a125dd2e9e8f6e039c734141b208b824c5f98d13921cf0facb8f8cd55910d"),
 				},
 			},
 			SpfSecondHardforkHeight: {
 				{
 					Value:      NewCurrency64(200000000 - 30000),
-					UnlockHash: UnlockHashFromAddrStr("f3f512b45c24b531e571d59d99b804b19244cecf1da8117217101fa722e40a18917c91ebb080"),
+					UnlockHash: UnlockHashFromAddrStr("f634648527473e4ba5ccc5c73dd8a28ef06dc3ec9b63e8a51acb76a41546d3c2b2990f07f0a6"),
 				},
 			},
 			Fork2022Height: {
 				{
 					Value:      NewCurrency64(200000000),
-					UnlockHash: UnlockHashFromAddrStr("e1e90a2a9db091e886bde165a185868737ea97437bba540c7ca77b3dc7962e18ac1db7354f08"),
+					UnlockHash: UnlockHashFromAddrStr("d525aa24fd6ffcfbda03969f9e5d2f4aebe13b75bdc3473b6cdf8b5366ed15f31479610112ca"),
 				},
 			},
 		}
