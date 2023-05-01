@@ -602,8 +602,6 @@ func init() {
 		// 'standard' settings are for the full network. They are slow enough
 		// that the network is secure in a real-world byzantine environment.
 
-		// A hardfork height of max int64 was chosen to clarify that the we
-		// expect the hardfork to never happen on the ScPrime blockchain.
 		// A total time of 120,000 is chosen because that represents the total
 		// time elapsed at a perfect equilibrium, indicating a visible average
 		// block time that perfectly aligns with what is expected. A total
