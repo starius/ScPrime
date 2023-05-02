@@ -26,3 +26,6 @@ debug.test
 
 # OSX auto-generated file
 **/.DS_Store
+
+# devnet dir
+/.devnet

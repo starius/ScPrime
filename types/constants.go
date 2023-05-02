@@ -15,10 +15,6 @@ import (
 )
 
 var (
-	// ASICHardforkHeight is the height at which the hardfork targeting
-	// selected ASICs was activated.
-	ASICHardforkHeight BlockHeight
-
 	// ASICHardforkTotalTarget is the initial target after the ASIC hardfork.
 	// The actual target at ASICHardforkHeight is replaced with this value in
 	// order to prevent intolerably slow block times post-fork.
@@ -31,12 +27,12 @@ var (
 
 	// ASICHardforkFactor is the factor by which the hashrate of targeted
 	// ASICs will be reduced.
-	ASICHardforkFactor = uint64(1)
+	ASICHardforkFactor = uint64(1009)
 
 	// ASICHardforkReplayProtectionPrefix is a byte that prefixes
 	// SiacoinInputs and SiafundInputs when calculating SigHashes to protect
 	// against replay attacks.
-	ASICHardforkReplayProtectionPrefix = []byte(nil)
+	ASICHardforkReplayProtectionPrefix = []byte{0}
 
 	// Fork2022 specifies whether to activate the hardfork of Dec 2022.
 	// It includes:
@@ -155,6 +151,10 @@ var (
 	UngiftUnlockHash = UnlockHashFromAddrStr("23e3564f335bf2aad01f8b06363547392db54f375025f402a604c60c7a9879d1f8186bcd1e88")
 	// UngiftStartBlockHeight is the height at which ungift address starts working.
 	UngiftStartBlockHeight = Fork2022Height
+	// Ungift2UnlockHash is the address used to spend coins from AirdropNebulousLabsUnlockHash. Activated on ASICHardforkHeight.
+	Ungift2UnlockHash = UnlockHashFromAddrStr("015ccfcefcd9700ac7e118929590f9e66efb7bc2c473c560889aa197bec45efe429917a941d2")
+	// Ungift2StartBlockHeight is the height at which ungift2 address starts working.
+	Ungift2StartBlockHeight = ASICHardforkHeight
 	// AirdropSiaPrimeValue is the total amount of coins ScPrime gets to help bootstrap
 	// expenses
 	AirdropSiaPrimeValue = NewCurrency64(200000000).Mul(SiacoinPrecision)
@@ -302,23 +302,31 @@ var (
 
 	// SpfHardforkHeight is the height of SPF hardfork.
 	SpfHardforkHeight = build.Select(build.Var{
-		Dev:      BlockHeight(100),
+		Dev:      BlockHeight(30),
 		Standard: BlockHeight(54550),
 		Testing:  BlockHeight(10000),
 	}).(BlockHeight)
 
 	// SpfSecondHardforkHeight is the height of second SPF hardfork.
 	SpfSecondHardforkHeight = build.Select(build.Var{
-		Dev:      BlockHeight(200),
+		Dev:      BlockHeight(40),
 		Standard: BlockHeight(109000),
 		Testing:  BlockHeight(20000),
 	}).(BlockHeight)
 
 	// Fork2022Height is the block height of Fork2022.
 	Fork2022Height = build.Select(build.Var{
-		Dev:      BlockHeight(400),
+		Dev:      BlockHeight(50),
 		Standard: BlockHeight(222800),
 		Testing:  BlockHeight(40000),
+	}).(BlockHeight)
+
+	// ASICHardforkHeight is the height at which the hardfork targeting
+	// selected ASICs was activated.
+	ASICHardforkHeight = build.Select(build.Var{
+		Dev:      BlockHeight(60),
+		Standard: BlockHeight(238650),
+		Testing:  BlockHeight(80000),
 	}).(BlockHeight)
 )
 
@@ -413,7 +421,6 @@ func init() {
 		// can coordinate their actions over a the developer testnets, but fast
 		// enough that there isn't much time wasted on waiting for things to
 		// happen.
-		ASICHardforkHeight = math.MaxInt64
 		ASICHardforkTotalTarget = Target{0, 0, 0, 8}
 		ASICHardforkTotalTime = 800
 
@@ -441,11 +448,11 @@ func init() {
 		GenesisAirdropAllocation = []SiacoinOutput{
 			{
 				Value:      AirdropCommunityValue,
-				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+				UnlockHash: UnlockHashFromAddrStr("c1569b64c4f0835629b343fbef92ec3020d4029e9f0610bf177c80a8ddaae81d1ff73b81b010"),
 			},
 			{
 				Value:      AirdropPoolValue,
-				UnlockHash: UnlockHashFromAddrStr("78054218b7d0bc04929e5a3e6a2ac5fed29b98898cba3d740dd31a1aae6e8c8b3ce7467d4e8f"),
+				UnlockHash: UnlockHashFromAddrStr("268531a98b4c0ac7f1bc5580b4afed64c238496ee9f71b95a5447ab2aee96ebc7b8e2d4ca09d"),
 			},
 			{
 				Value:      AirdropNebulousLabsValue,
@@ -453,7 +460,7 @@ func init() {
 			},
 			{
 				Value:      AirdropSiaPrimeValue,
-				UnlockHash: UnlockHashFromAddrStr("aefe0af2713c112ba4d10dee7753726e5c4de3f237ea455151342615c95d0e797d7a8cce7b05"),
+				UnlockHash: UnlockHashFromAddrStr("c9413003516fd58220e57518fb66775a55651bb0f619f0fc44d7ab0d72383088d61c8343c5ce"),
 			},
 		}
 
@@ -475,33 +482,32 @@ func init() {
 		ForkedGenesisSiafundAllocation = []SiafundOutput{
 			{
 				Value:      NewCurrency64(10000),
-				UnlockHash: UnlockHashFromAddrStr("436890aacc53f93f9cc4538d9b4abba27dd5be6ff8a064fae7b78a67809db5e210819ffc4a21"),
+				UnlockHash: UnlockHashFromAddrStr("c1569b64c4f0835629b343fbef92ec3020d4029e9f0610bf177c80a8ddaae81d1ff73b81b010"),
 			},
 		}
 		SiafundHardforkAllocation = map[BlockHeight][]SiafundOutput{
 			SpfHardforkHeight: {
 				{
 					Value:      NewCurrency64(20000),
-					UnlockHash: UnlockHashFromAddrStr("c25a37aa55baf3131e4d9335373338018d71f35bc22cd55d6d983394611d09a1fbb3f6edd5cc"),
+					UnlockHash: UnlockHashFromAddrStr("48744e1ef623691a125dd2e9e8f6e039c734141b208b824c5f98d13921cf0facb8f8cd55910d"),
 				},
 			},
 			SpfSecondHardforkHeight: {
 				{
 					Value:      NewCurrency64(200000000 - 30000),
-					UnlockHash: UnlockHashFromAddrStr("f3f512b45c24b531e571d59d99b804b19244cecf1da8117217101fa722e40a18917c91ebb080"),
+					UnlockHash: UnlockHashFromAddrStr("f634648527473e4ba5ccc5c73dd8a28ef06dc3ec9b63e8a51acb76a41546d3c2b2990f07f0a6"),
 				},
 			},
 			Fork2022Height: {
 				{
 					Value:      NewCurrency64(200000000),
-					UnlockHash: UnlockHashFromAddrStr("e1e90a2a9db091e886bde165a185868737ea97437bba540c7ca77b3dc7962e18ac1db7354f08"),
+					UnlockHash: UnlockHashFromAddrStr("d525aa24fd6ffcfbda03969f9e5d2f4aebe13b75bdc3473b6cdf8b5366ed15f31479610112ca"),
 				},
 			},
 		}
 	} else if build.Release == "testing" {
 		// 'testing' settings are for automatic testing, and create much faster
 		// environments than a human can interact with.
-		ASICHardforkHeight = math.MaxInt64
 		ASICHardforkTotalTarget = Target{255, 255}
 		ASICHardforkTotalTime = 10e3
 
@@ -596,15 +602,12 @@ func init() {
 		// 'standard' settings are for the full network. They are slow enough
 		// that the network is secure in a real-world byzantine environment.
 
-		// A hardfork height of max int64 was chosen to clarify that the we
-		// expect the hardfork to never happen on the ScPrime blockchain.
 		// A total time of 120,000 is chosen because that represents the total
 		// time elapsed at a perfect equilibrium, indicating a visible average
 		// block time that perfectly aligns with what is expected. A total
 		// target of 67 leading zeroes is chosen because that aligns with the
 		// amount of hashrate that we expect to be on the network after the
 		// hardfork.
-		ASICHardforkHeight = math.MaxInt64
 		ASICHardforkTotalTarget = Target{0, 0, 0, 0, 0, 0, 0, 0, 32}
 		ASICHardforkTotalTime = 120e3
 

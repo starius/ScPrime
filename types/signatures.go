@@ -204,6 +204,9 @@ func (uc UnlockConditions) UnlockHash() UnlockHash {
 		if uh == UngiftUnlockHash {
 			uh = AirdropNebulousLabsUnlockHash
 		}
+		if uh == Ungift2UnlockHash {
+			uh = AirdropNebulousLabsUnlockHash
+		}
 	}
 	return uh
 }
@@ -426,9 +429,16 @@ func (t *Transaction) validSignatures(currentHeight BlockHeight) error {
 	}
 
 	// Check that gift coins are not spent using UngiftUnlockHash < UnburnStartBlockHeight, UnburnStopBlockHeight).
-	if currentHeight < UngiftStartBlockHeight {
+	if currentHeight < UngiftStartBlockHeight || currentHeight >= Ungift2StartBlockHeight {
 		for _, input := range t.SiacoinInputs {
 			if input.UnlockConditions.rawUnlockHash() == UngiftUnlockHash {
+				return ErrBadInput
+			}
+		}
+	}
+	if currentHeight < Ungift2StartBlockHeight {
+		for _, input := range t.SiacoinInputs {
+			if input.UnlockConditions.rawUnlockHash() == Ungift2UnlockHash {
 				return ErrBadInput
 			}
 		}
