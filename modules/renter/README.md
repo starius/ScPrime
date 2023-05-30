@@ -21,8 +21,6 @@ README files should be reviewed.
  - Filesystem
  - HostDB
  - Proto
- - Pubaccess Blacklist
- - Pubaccess Portals
 
 ### Contractor
 The Contractor manages the Renter's contracts and is responsible for all
@@ -47,16 +45,6 @@ The proto module implements the renter's half of the renter-host protocol,
 including contract formation and renewal RPCs, uploading and downloading,
 verifying Merkle proofs, and synchronizing revision states. It is a low-level
 module whose functionality is largely wrapped by the Contractor.
-
-### Pubaccess Blacklist
-The Pubaccess Blacklist module manages the list of publinks that the Renter wants
-blacklisted. It also manages persisting the blacklist in an ACID and performant
-manner.
-
-### Pubaccess Portals
-The Pubaccess Portals module manages the list of known Pubaccess portals that the
-Renter wants to keep track of. It also manages persisting the list in an ACID
-and performant manner.
 
 ## Subsystems
 The Renter has the following subsystems that help carry out its

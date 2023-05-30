@@ -49,7 +49,7 @@ func (w *worker) managedUpdateCache() {
 	if !atomic.CompareAndSwapUint64(&w.atomicCacheUpdating, 0, 1) {
 		return
 	}
-
+	w.renter.log.Debugln("(w *worker) managedUpdateCache()")
 	// Grab the host to check the version.
 	host, ok, err := w.renter.hostDB.Host(w.staticHostPubKey)
 	if !ok || err != nil {

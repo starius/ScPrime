@@ -175,8 +175,13 @@ func installKillSignalHandler() chan os.Signal {
 func tryAutoUnlock(srv *server.Server) {
 	if password := build.WalletPassword(); password != "" {
 		fmt.Println("ScPrime Wallet Password found, attempting to auto-unlock wallet")
-		if err := srv.Unlock(password); err != nil {
-			fmt.Println("Auto-unlock failed:", err)
+		err := srv.Unlock(password)
+		if err != nil {
+			if err == modules.ErrAlreadyUnlocked {
+				fmt.Println("Wallet unlocked.")
+			} else {
+				fmt.Println("Auto-unlock failed:", err)
+			}
 		} else {
 			fmt.Println("Auto-unlock successful.")
 		}

@@ -29,12 +29,13 @@ func TestTargetCmp(t *testing.T) {
 	var target1, target2 Target
 	target1[crypto.HashSize-1] = 1
 	target2[crypto.HashSize-1] = 2
+	target2copy := target2
 
 	if target1.Cmp(target2) != -1 {
 		t.Error("Target.Cmp not behaving as expected")
 	}
-	if target2.Cmp(target2) != 0 {
-		t.Error("Target.Cmp not behaving as expected")
+	if target2.Cmp(target2copy) != 0 {
+		t.Error("Target.Cmp not behaving as expected (equal targets reported as not equal)")
 	}
 	if target2.Cmp(target1) != 1 {
 		t.Error("Target.Cmp not behaving as expected")

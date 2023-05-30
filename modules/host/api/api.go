@@ -66,6 +66,8 @@ func (a *API) Start(ln net.Listener) (err error) {
 
 	a.httpServer = &http.Server{
 		Handler: mux,
+		// Mitigate Potential Slowloris Attack
+		ReadHeaderTimeout: time.Minute / 2,
 		TLSConfig: &tls.Config{ //nolint:gosec
 			Certificates: []tls.Certificate{*cert},
 		},

@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/NebulousLabs/threadgroup"
 
 	"gitlab.com/scpcorp/ScPrime/build"
@@ -32,7 +31,6 @@ var (
 	errNilCS                 = errors.New("cannot create hostdb with nil consensus set")
 	errNilGateway            = errors.New("cannot create hostdb with nil gateway")
 	errNilTPool              = errors.New("cannot create hostdb with nil transaction pool")
-	errNilSiaMux             = errors.New("cannot create hostdb with nil siamux")
 
 	// errHostNotFoundInTree is returned when the host is not found in the
 	// hosttree
@@ -53,7 +51,6 @@ type HostDB struct {
 	cs          modules.ConsensusSet
 	staticDeps  modules.Dependencies
 	gateway     modules.Gateway
-	staticMux   *siamux.SiaMux
 	staticTpool modules.TransactionPool
 
 	staticLog     *persist.Logger
@@ -204,7 +201,7 @@ func (hdb *HostDB) updateContracts(contracts []modules.RenterContract) {
 }
 
 // hostdbBlockingStartup handles the blocking portion of NewCustomHostDB.
-func hostdbBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, siamux *siamux.SiaMux, persistDir string, deps modules.Dependencies) (*HostDB, error) {
+func hostdbBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, persistDir string, deps modules.Dependencies) (*HostDB, error) {
 	// Check for nil inputs.
 	if g == nil {
 		return nil, errNilGateway
@@ -215,9 +212,6 @@ func hostdbBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 	if tpool == nil {
 		return nil, errNilTPool
 	}
-	if siamux == nil {
-		return nil, errNilSiaMux
-	}
 
 	// Create the HostDB object.
 	hdb := &HostDB{
@@ -225,7 +219,6 @@ func hostdbBlockingStartup(g modules.Gateway, cs modules.ConsensusSet, tpool mod
 		staticDeps:     deps,
 		gateway:        g,
 		persistDir:     persistDir,
-		staticMux:      siamux,
 		staticTpool:    tpool,
 		filteredHosts:  make(map[string]types.SiaPublicKey),
 		knownContracts: make(map[string]contractInfo),
@@ -375,19 +368,19 @@ func hostdbAsyncStartup(hdb *HostDB, cs modules.ConsensusSet) error {
 }
 
 // New returns a new HostDB.
-func New(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, siamux *siamux.SiaMux, persistDir string) (*HostDB, <-chan error) {
+func New(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, persistDir string) (*HostDB, <-chan error) {
 	// Create HostDB using production dependencies.
-	return NewCustomHostDB(g, cs, tpool, siamux, persistDir, modules.ProdDependencies)
+	return NewCustomHostDB(g, cs, tpool, persistDir, modules.ProdDependencies)
 }
 
 // NewCustomHostDB creates a HostDB using the provided dependencies. It loads the old
 // persistence data, spawns the HostDB's scanning threads, and subscribes it to
 // the consensusSet.
-func NewCustomHostDB(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, siamux *siamux.SiaMux, persistDir string, deps modules.Dependencies) (*HostDB, <-chan error) {
+func NewCustomHostDB(g modules.Gateway, cs modules.ConsensusSet, tpool modules.TransactionPool, persistDir string, deps modules.Dependencies) (*HostDB, <-chan error) {
 	errChan := make(chan error, 1)
 
 	// Blocking startup.
-	hdb, err := hostdbBlockingStartup(g, cs, tpool, siamux, persistDir, deps)
+	hdb, err := hostdbBlockingStartup(g, cs, tpool, persistDir, deps)
 	if err != nil {
 		errChan <- err
 		return nil, errChan

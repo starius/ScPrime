@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -26,8 +25,6 @@ type (
 	closeFn func() error
 
 	hostTester struct {
-		mux *siamux.SiaMux
-
 		cs        modules.ConsensusSet
 		gateway   modules.Gateway
 		miner     modules.TestMiner
@@ -42,8 +39,6 @@ type (
 
 	// HostMock is almost full copy of the hostTester.
 	HostMock struct {
-		Mux *siamux.SiaMux
-
 		CS           modules.ConsensusSet
 		Gateway      modules.Gateway
 		Miner        modules.TestMiner
@@ -72,7 +67,6 @@ func NewHostMock(d modules.Dependencies, dirName string) (*HostMock, error) {
 	}
 
 	return &HostMock{
-		Mux:          h.mux,
 		CS:           h.cs,
 		Gateway:      h.gateway,
 		Miner:        h.miner,
@@ -92,7 +86,6 @@ func (hm *HostMock) Close() error {
 		}
 	}
 
-	addErr(hm.Mux.Close(), "mux")
 	addErr(hm.CS.Close(), "consensus set")
 	addErr(hm.Gateway.Close(), "gateway")
 	addErr(hm.Miner.Close(), "miner")
@@ -152,15 +145,8 @@ func createWallet(cs modules.ConsensusSet, tp modules.TransactionPool, miner mod
 func blankMockHostTester(d modules.Dependencies, name string) (*hostTester, error) {
 	testdir := build.TempDir(modules.HostDir, name)
 
-	// Create the siamux.
-	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
-	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
-	if err != nil {
-		return nil, fmt.Errorf("new sia mux: %w", err)
-	}
-
 	// Create the modules.
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
 		return nil, fmt.Errorf("new gateway: %w", err)
 	}
@@ -181,20 +167,16 @@ func blankMockHostTester(d modules.Dependencies, name string) (*hostTester, erro
 		return nil, fmt.Errorf("new miner: %w", err)
 	}
 
-	h, err := NewCustomHost(d, cs, g, tp, w, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), nil, 5*time.Second)
+	h, err := NewCustomHost(d, cs, g, tp, w, "127.0.0.1:0", filepath.Join(testdir, modules.HostDir), nil, 5*time.Second)
+	//h, hErrChan := NewBlockedStartHost(d, new(modules.ProductionDependencies), cs, g, tp, w, "127.0.0.1:0", filepath.Join(testdir, modules.HostDir), nil, 5*time.Second, false)
+	//err = <-hErrChan
+
 	if err != nil {
 		return nil, fmt.Errorf("new custom host: %w", err)
 	}
-	/*
-		r, err := renter.New(cs, w, tp, filepath.Join(testdir, modules.RenterDir))
-		if err != nil {
-			return nil, err
-		}
-	*/
 
 	// Assemble all objects into a hostTester
 	ht := &hostTester{
-		mux: mux,
 
 		cs:      cs,
 		gateway: g,

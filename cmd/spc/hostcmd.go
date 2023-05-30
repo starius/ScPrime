@@ -64,19 +64,11 @@ Available settings:
      minstorageprice:           currency / TB / Month
      minuploadbandwidthprice:   currency / TB
 
-     ephemeralaccountexpiry:     seconds
-     maxephemeralaccountbalance: currency
-     maxephemeralaccountrisk:    currency
-
 Currency units can be specified, e.g. 10SCP; run 'spc help wallet' for details.
 
 Durations (maxduration and windowsize) must be specified in either blocks (b),
 hours (h), days (d), or weeks (w). A block is approximately 10 minutes, so one
 hour is six blocks, a day is 144 blocks, and a week is 1008 blocks.
-
-Timeouts (ephemeralaccountexpiry) must be specified in either seconds (s),
-hours (h), days (d), or weeks (w). One hour is 3600 seconds, a day is 86400
-seconds, and a week is 604800 seconds.
 
 For a description of each parameter, see doc/API.md.
 
@@ -239,10 +231,6 @@ Host Internal Settings:
 	minstorageprice:           %v / TB / Month
 	minuploadbandwidthprice:   %v / TB
 
-	ephemeralaccountexpiry:     %vs
-	maxephemeralaccountbalance: %v
-	maxephemeralaccountrisk:    %v
-
 Host Financials:
 	Contract Count:               %v
 	Transaction Fee Compensation: %v
@@ -291,10 +279,6 @@ RPC Stats:
 			currencyUnits(is.MinSectorAccessPrice),
 			currencyUnits(is.MinStoragePrice.Mul(modules.BlockBytesPerMonthTerabyte)),
 			currencyUnits(is.MinUploadBandwidthPrice.Mul(modules.BytesPerTerabyte)),
-
-			is.EphemeralAccountExpiry.Seconds(),
-			currencyUnits(is.MaxEphemeralAccountBalance),
-			currencyUnits(is.MaxEphemeralAccountRisk),
 
 			fm.ContractCount, currencyUnits(fm.ContractCompensation),
 			currencyUnits(fm.PotentialContractCompensation),
@@ -379,7 +363,7 @@ func hostconfigcmd(param, value string) {
 	var err error
 	switch param {
 	// currency (convert to hastings)
-	case "collateralbudget", "maxcollateral", "minbaserpcprice", "mincontractprice", "minsectoraccessprice", "maxephemeralaccountbalance", "maxephemeralaccountrisk":
+	case "collateralbudget", "maxcollateral", "minbaserpcprice", "mincontractprice", "minsectoraccessprice":
 		value, err = parseCurrency(value)
 		if err != nil {
 			die("Could not parse "+param+":", err)
@@ -417,13 +401,6 @@ func hostconfigcmd(param, value string) {
 	// duration (convert to blocks)
 	case "maxduration", "windowsize":
 		value, err = parsePeriod(value)
-		if err != nil {
-			die("Could not parse "+param+":", err)
-		}
-
-	// timeout (convert to seconds)
-	case "ephemeralaccountexpiry":
-		value, err = parseTimeout(value)
 		if err != nil {
 			die("Could not parse "+param+":", err)
 		}

@@ -9,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/NebulousLabs/siamux"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -30,7 +28,6 @@ type hdbTester struct {
 	gateway   modules.Gateway
 	miner     modules.TestMiner
 	tpool     modules.TransactionPool
-	mux       *siamux.SiaMux
 	wallet    modules.Wallet
 	walletKey crypto.CipherKey
 
@@ -84,7 +81,7 @@ func newHDBTesterDeps(name string, deps modules.Dependencies) (*hdbTester, error
 	}
 	testDir := build.TempDir("HostDB", name)
 
-	g, err := gateway.New("localhost:0", false, filepath.Join(testDir, modules.GatewayDir))
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testDir, modules.GatewayDir))
 	if err != nil {
 		return nil, err
 	}
@@ -96,10 +93,6 @@ func newHDBTesterDeps(name string, deps modules.Dependencies) (*hdbTester, error
 	if err != nil {
 		return nil, err
 	}
-	mux, err := modules.NewSiaMux(filepath.Join(testDir, modules.SiaMuxDir), testDir, "localhost:0", "localhost:0")
-	if err != nil {
-		return nil, err
-	}
 	w, err := wallet.New(cs, tp, filepath.Join(testDir, modules.WalletDir))
 	if err != nil {
 		return nil, err
@@ -108,7 +101,7 @@ func newHDBTesterDeps(name string, deps modules.Dependencies) (*hdbTester, error
 	if err != nil {
 		return nil, err
 	}
-	hdb, errChan := NewCustomHostDB(g, cs, tp, mux, filepath.Join(testDir, modules.RenterDir), deps)
+	hdb, errChan := NewCustomHostDB(g, cs, tp, filepath.Join(testDir, modules.RenterDir), deps)
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
@@ -119,9 +112,7 @@ func newHDBTesterDeps(name string, deps modules.Dependencies) (*hdbTester, error
 		miner:   m,
 		tpool:   tp,
 		wallet:  w,
-		mux:     mux,
-
-		hdb: hdb,
+		hdb:     hdb,
 
 		persistDir: testDir,
 	}
@@ -155,7 +146,7 @@ func TestNew(t *testing.T) {
 	}
 	t.Parallel()
 	testDir := build.TempDir("HostDB", t.Name())
-	g, err := gateway.New("localhost:0", false, filepath.Join(testDir, modules.GatewayDir))
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testDir, modules.GatewayDir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,36 +158,32 @@ func TestNew(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mux, err := modules.NewSiaMux(filepath.Join(testDir, modules.SiaMuxDir), testDir, "localhost:0", "localhost:0")
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	// Vanilla HDB, nothing should go wrong.
 	hdbName := filepath.Join(testDir, modules.RenterDir)
-	_, errChan = New(g, cs, tp, mux, hdbName+"1")
+	_, errChan = New(g, cs, tp, hdbName+"1")
 	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
 
 	// Nil gateway.
-	_, errChan = New(nil, cs, tp, mux, hdbName+"2")
+	_, errChan = New(nil, cs, tp, hdbName+"2")
 	if err := <-errChan; err != errNilGateway {
 		t.Fatalf("expected %v, got %v", errNilGateway, err)
 	}
 	// Nil consensus set.
-	_, errChan = New(g, nil, tp, mux, hdbName+"3")
+	_, errChan = New(g, nil, tp, hdbName+"3")
 	if err := <-errChan; err != errNilCS {
 		t.Fatalf("expected %v, got %v", errNilCS, err)
 	}
 	// Nil tpool.
-	_, errChan = New(g, cs, nil, mux, hdbName+"3")
+	_, errChan = New(g, cs, nil, hdbName+"3")
 	if err := <-errChan; err != errNilTPool {
 		t.Fatalf("expected %v, got %v", errNilTPool, err)
 	}
 	// TODO: Nil siamux?
 	// Bad persistDir.
-	_, errChan = New(g, cs, tp, mux, "")
+	_, errChan = New(g, cs, tp, "")
 	if err := <-errChan; !os.IsNotExist(err) {
 		t.Fatalf("expected invalid directory, got %v", err)
 	}

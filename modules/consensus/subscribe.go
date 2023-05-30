@@ -272,41 +272,44 @@ func (cs *ConsensusSet) ConsensusSetSubscribe(subscriber modules.ConsensusSetSub
 	}
 	defer cs.tg.Done()
 
-	// Call managedInitializeSubscribe until the new module is up-to-date.
-	for {
-		start, err = cs.managedInitializeSubscribe(subscriber, start, cancel)
-		if err != nil {
-			return err
-		}
-		if cs.staticDeps.Disrupt("SleepAfterInitializeSubscribe") {
-			time.Sleep(10 * time.Second)
-		}
-		// Check if the start equals the most recent change id. If it does we
-		// are done. If it doesn't, we need to call managedInitializeSubscribe
-		// again.
-		cs.mu.Lock()
-		recentID, err := cs.recentConsensusChangeID()
-		if err != nil {
-			cs.mu.Unlock()
-			return err
-		}
-		if start == recentID {
-			// break out of the loop while still holding to lock to avoid
-			// updating subscribers before the new module is appended to the
-			// list of subscribers.
-			defer cs.mu.Unlock()
-			break
-		}
+	//Init subscription
+	lastSubscribedConsensusChange, err := cs.managedInitializeSubscribe(subscriber, start, cancel)
+	if err != nil {
+		return err
+	}
+	//see if consensus didn't advance during initialization
+	cs.mu.Lock()
+	recentID, err := cs.recentConsensusChangeID()
+	if err != nil {
 		cs.mu.Unlock()
-
+		return err
+	}
+	// Check if the new start equals the most recent change id. If it does the
+	// subscriber has caught the last consensus change and can proceed.
+	// If it doesn't, we need to repeat until the new subscriber is up-to-date.
+	for lastSubscribedConsensusChange != recentID {
+		cs.mu.Unlock()
 		// Check for shutdown.
 		select {
 		case <-cs.tg.StopChan():
 			return siasync.ErrStopped
 		default:
 		}
+		lastSubscribedConsensusChange, err = cs.managedInitializeSubscribe(subscriber, lastSubscribedConsensusChange, cancel)
+		if err != nil {
+			return err
+		}
+		if cs.staticDeps.Disrupt("SleepAfterInitializeSubscribe") {
+			time.Sleep(10 * time.Second)
+		}
+		cs.mu.Lock()
+		recentID, err = cs.recentConsensusChangeID()
+		if err != nil {
+			cs.mu.Unlock()
+			return err
+		}
 	}
-
+	defer cs.mu.Unlock()
 	// Add the module to the list of subscribers.
 	// Sanity check - subscriber should not be already subscribed.
 	for _, s := range cs.subscribers {

@@ -120,7 +120,8 @@ func ExtractTarGz(filename, dir string) (err error) {
 			return err
 		}
 
-		path := filepath.Join(dir, hdr.Name)
+		//G305: File traversal when extracting zip/tar archive (gosec)
+		path := filepath.Join(dir, hdr.Name) //nolint:gosec
 		info := hdr.FileInfo()
 		if info.IsDir() {
 			// Create directory.

@@ -521,6 +521,7 @@ func testProcessUploadChunkNotGoodForUpload(t *testing.T, chunk func(wt *workerT
 
 // TestProcessUploadChunk is a unit test for managedProcessUploadChunk.
 func TestProcessUploadChunk(t *testing.T) {
+	t.Skip("EA workers disabled")
 	if testing.Short() {
 		t.SkipNow()
 	}

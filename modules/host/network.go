@@ -15,16 +15,13 @@ package host
 // have to keep all the files following a renew in order to get the money.
 
 import (
-	"fmt"
 	"io"
 	"net"
 	"sync/atomic"
 	"time"
 
 	"gitlab.com/NebulousLabs/encoding"
-	"gitlab.com/NebulousLabs/errors"
 	connmonitor "gitlab.com/NebulousLabs/monitor"
-	"gitlab.com/NebulousLabs/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -197,7 +194,7 @@ func (h *Host) initNetworking(address string) (err error) {
 	h.port = port
 	if build.Release == "testing" {
 		// Set the autoAddress to localhost for testing builds only.
-		h.autoAddress = modules.NetAddress(net.JoinHostPort("localhost", h.port))
+		h.autoAddress = modules.NetAddress(net.JoinHostPort("127.0.0.1", h.port))
 	}
 
 	// Non-blocking, perform port forwarding and create the hostname discovery
@@ -247,18 +244,6 @@ func (h *Host) initNetworking(address string) (err error) {
 
 	// Launch the listener.
 	go h.threadedListen(threadedListenerClosedChan)
-
-	// Create a listener for the SiaMux.
-	if !h.dependencies.Disrupt("DisableHostSiamux") {
-		err = h.staticMux.NewListener(modules.HostSiaMuxSubscriberName, h.threadedHandleStream)
-		if err != nil {
-			return errors.AddContext(err, "Failed to subscribe to the SiaMux")
-		}
-		// Close the listener when h.tg.OnStop is called.
-		h.tg.OnStop(func() {
-			h.staticMux.CloseListener(modules.HostSiaMuxSubscriberName)
-		})
-	}
 
 	return nil
 }
@@ -347,73 +332,6 @@ func (h *Host) threadedHandleConn(conn net.Conn) {
 	if err != nil {
 		atomic.AddUint64(&h.atomicErroredCalls, 1)
 		err = extendErr("error with "+conn.RemoteAddr().String()+": ", err)
-		h.managedLogError(err)
-	}
-}
-
-// threadedHandleStream handles incoming SiaMux streams.
-func (h *Host) threadedHandleStream(stream siamux.Stream) {
-	// close the stream when the method terminates
-	defer func() {
-		if h.dependencies.Disrupt("DisableStreamClose") {
-			return
-		}
-		err := stream.Close()
-		if err != nil {
-			h.log.Println("ERROR: failed to close stream:", err)
-		}
-		// Update used bandwidth.
-		l := stream.Limit()
-		atomic.AddUint64(&h.atomicStreamUpload, l.Uploaded())
-		atomic.AddUint64(&h.atomicStreamDownload, l.Downloaded())
-	}()
-
-	err := h.tg.Add()
-	if err != nil {
-		return
-	}
-	defer h.tg.Done()
-
-	// set an initial duration that is generous, but finite. RPCs can extend
-	// this if desired
-	err = stream.SetDeadline(time.Now().Add(defaultConnectionDeadline))
-	if err != nil {
-		h.log.Println("WARN: could not set deadline on stream:", err)
-		return
-	}
-
-	// read the RPC id
-	var rpcID types.Specifier
-	err = modules.RPCRead(stream, &rpcID)
-	if err != nil {
-		err = errors.AddContext(err, "Failed to read RPC id")
-		if wErr := modules.RPCWriteError(stream, err); wErr != nil {
-			h.managedLogError(wErr)
-		}
-		atomic.AddUint64(&h.atomicUnrecognizedCalls, 1)
-		return
-	}
-
-	switch rpcID {
-	case modules.RPCAccountBalance:
-		err = h.managedRPCAccountBalance(stream)
-	case modules.RPCExecuteProgram:
-		err = h.managedRPCExecuteProgram(stream)
-	case modules.RPCUpdatePriceTable:
-		err = h.managedRPCUpdatePriceTable(stream)
-	case modules.RPCFundAccount:
-		err = h.managedRPCFundEphemeralAccount(stream)
-	case modules.RPCLatestRevision:
-		err = h.managedRPCLatestRevision(stream)
-	default:
-		h.log.Debugf("WARN: incoming stream %v requested unknown RPC \"%v\"", stream.RemoteAddr().String(), rpcID)
-		err = errors.New(fmt.Sprintf("Unrecognized RPC id %v", rpcID))
-		atomic.AddUint64(&h.atomicUnrecognizedCalls, 1)
-	}
-
-	if err != nil {
-		err = errors.Compose(err, modules.RPCWriteError(stream, err))
-		atomic.AddUint64(&h.atomicErroredCalls, 1)
 		h.managedLogError(err)
 	}
 }

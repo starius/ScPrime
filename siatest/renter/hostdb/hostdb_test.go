@@ -22,7 +22,7 @@ import (
 // TestSiamuxRequired checks that the hostdb will count a host as offline if the
 // host is not running siamux.
 func TestSiamuxRequired(t *testing.T) {
-	t.Skip("Siamux is not an enforced requirement in ScPrime yet.")
+	t.Skip("Siamux is not an enforced requirement in ScPrime nor will be.")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -238,8 +238,12 @@ func TestPruneRedundantAddressRange(t *testing.T) {
 			return []net.IP{{130, 0, 0, 2}}, nil
 		case "localhost":
 			return []net.IP{{127, 0, 0, 1}}, nil
+		case "127.0.0.1":
+			return []net.IP{{127, 0, 0, 1}}, nil
 		default:
-			panic("shouldn't happen")
+			t.Errorf("host %v should resolve to known IP address", host)
+			//panic("shouldn't happen")
+			return []net.IP{}, fmt.Errorf("failed to resolve %v using custom resolver", host)
 		}
 	})
 	renterTemplate.ContractorDeps = renterTemplate.HostDBDeps
@@ -416,8 +420,12 @@ func TestSelectRandomCanceledHost(t *testing.T) {
 			return []net.IP{{128, 1, 0, 1}}, nil
 		case "localhost":
 			return []net.IP{{127, 0, 0, 1}}, nil
+		case "127.0.0.1":
+			return []net.IP{{127, 0, 0, 1}}, nil
 		default:
-			panic("shouldn't happen")
+			t.Errorf("host %v should resolve to known IP address", host)
+			//panic("shouldn't happen")
+			return []net.IP{}, fmt.Errorf("failed to resolve %v using custom resolver", host)
 		}
 	})
 	renterTemplate.ContractorDeps = renterTemplate.HostDBDeps
@@ -589,8 +597,12 @@ func TestDisableIPViolationCheck(t *testing.T) {
 			return []net.IP{{130, 0, 0, 2}}, nil
 		case "localhost":
 			return []net.IP{{127, 0, 0, 1}}, nil
+		case "127.0.0.1":
+			return []net.IP{{127, 0, 0, 1}}, nil
 		default:
-			panic("shouldn't happen")
+			t.Errorf("host %v should resolve to known IP address", host)
+			//panic("shouldn't happen")
+			return []net.IP{}, fmt.Errorf("failed to resolve %v using custom resolver", host)
 		}
 	})
 	renterTemplate.ContractorDeps = renterTemplate.HostDBDeps

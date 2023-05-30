@@ -74,7 +74,7 @@ func newBenchmarkRenterWithDependency(name string, deps modules.Dependencies) (*
 	if err != nil {
 		return nil, err
 	}
-	r, err := newRenterWithDependency(rt.gateway, rt.cs, rt.wallet, rt.tpool, rt.mux, filepath.Join(testdir, modules.RenterDir), deps)
+	r, err := newRenterWithDependency(rt.gateway, rt.cs, rt.wallet, rt.tpool, filepath.Join(testdir, modules.RenterDir), deps)
 	if err != nil {
 		return nil, err
 	}

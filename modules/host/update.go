@@ -24,7 +24,7 @@ func (h *Host) initRescan() error {
 	var allObligations []storageObligation
 	// Reset all of the consensus-relevant variables in the host.
 	h.blockHeight = 0
-
+	h.log.Debugln("Resetting h.blockheight to 0")
 	// Reset all of the storage obligations.
 	err := h.db.Update(func(tx *bolt.Tx) error {
 		bsu := tx.Bucket(bucketStorageObligations)
@@ -100,12 +100,14 @@ func (h *Host) initConsensusSubscription() error {
 	// it happens while blocking, and because there is no actual host lock held
 	// at this time, none of the host external functions are exposed, so it is
 	// save to make the exported call.
+	h.log.Debugf("Initializing consensus subscription with h.recentChange=%v", h.recentChange)
 	err := h.cs.ConsensusSetSubscribe(h, h.recentChange, h.tg.StopChan())
 	if err == modules.ErrInvalidConsensusChangeID {
 		// Perform a rescan of the consensus set if the change id that the host
 		// has is unrecognized by the consensus set. This will typically only
 		// happen if the user has been replacing files inside the ScPrime folder
 		// structure.
+		h.log.Debugf("Initializing rescan since err=%v", err.Error())
 		return h.initRescan()
 	}
 	if err != nil {
@@ -126,7 +128,6 @@ func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
 		h.mu.Lock()
 		h.recentChange = cc.ID
 		h.blockHeight = cc.NewHeight
-		h.staticAccountManager.callConsensusChanged(cc)
 		h.mu.Unlock()
 		return
 	}
@@ -136,10 +137,6 @@ func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
 	// terminated. This function should not block while these threads wait to
 	// terminate.
 	h.mu.Lock()
-	// Notify the account manager of an update to the consensus.
-	defer func() {
-		h.staticAccountManager.callConsensusChanged(cc)
-	}()
 	defer h.mu.Unlock()
 
 	// Wrap the whole parsing into a single large database tx to keep things
@@ -321,7 +318,13 @@ func (h *Host) ProcessConsensusChange(cc modules.ConsensusChange) {
 	h.recentChange = cc.ID
 
 	//Launch the audit if it is time to do so
-	if cc.NewHeight >= types.BlockHeight(atomic.LoadUint64(&h.scheduledAuditBlockheight)) {
+	//first check if consensus is synchronized
+	auditable := cc.Synced
+	if auditable {
+		// and if wallet is unlocked as a secondary checkpoint before audit
+		auditable, err = h.wallet.Unlocked()
+	}
+	if auditable && cc.NewHeight >= types.BlockHeight(atomic.LoadUint64(&h.scheduledAuditBlockheight)) {
 		atomic.StoreUint64(&h.scheduledAuditBlockheight, uint64(cc.NewHeight+storageObligationAuditInteval))
 		err = h.auditStorageObligations()
 		if err != nil {

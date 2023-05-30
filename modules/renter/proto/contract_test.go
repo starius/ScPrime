@@ -433,8 +433,6 @@ func TestContractRecordAndCommitPaymentIntent(t *testing.T) {
 	}
 	t.Parallel()
 
-	blockHeight := types.BlockHeight(fastrand.Intn(100))
-
 	// create contract set
 	dir := build.TempDir(filepath.Join("proto", t.Name()))
 	rl := ratelimit.NewRateLimit(0, 0, 0)
@@ -478,8 +476,10 @@ func TestContractRecordAndCommitPaymentIntent(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	blockHeight := types.BlockHeight(fastrand.Intn(100))
+
 	// record the payment intent
-	rpc := modules.RPCExecuteProgram
+	rpc := modules.RPCDownload // ExecuteProgram
 	walTxn, err := sc.RecordPaymentIntent(rev, amount, rpc)
 	if err != nil {
 		t.Fatal("Failed to record payment intent")

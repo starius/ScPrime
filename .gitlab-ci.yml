@@ -55,7 +55,7 @@ variables:
 default: &default_params
   ## Run tests with most recent golang version to take advantage of any perf
   ## improvements.
-  image: golang:1.16
+  image: golang:1.20
   before_script:
     - go version
     - mkdir -p .cache/gocache
@@ -154,7 +154,7 @@ lint:
   before_script:
     - mkdir -p .cache/gocache      
     - export GOCACHE=$CI_PROJECT_DIR/.cache/gocache
-    - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.24.0
+    - wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.52.2
     - apt-get update
     - apt-get -y install python3-pip
     - pip3 install codespell      
@@ -166,7 +166,7 @@ lint:
 
 build:
   stage: lint
-  image: golang:1.16
+  image: golang:1.20
   artifacts:
     name: "Binaries"
     paths:

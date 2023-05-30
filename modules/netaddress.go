@@ -34,7 +34,7 @@ func (na NetAddress) Host() string {
 
 // Port returns the NetAddress object's port number. If the address is not of
 // the form "host:port" the empty string is returned. The port will still be
-// returned for invalid NetAddresses (e.g. "localhost:0" will return "0"), but
+// returned for invalid NetAddresses (e.g. "127.0.0.1:0" will return "0"), but
 // in general you should only call Port on valid addresses.
 func (na NetAddress) Port() string {
 	_, port, err := net.SplitHostPort(string(na))

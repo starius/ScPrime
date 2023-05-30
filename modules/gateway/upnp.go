@@ -27,7 +27,17 @@ func myExternalIP() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	// safe close defer resp.Body.Close()
+	defer func() {
+		e := resp.Body.Close()
+		if err == nil {
+			err = e
+		} else {
+			if e != nil {
+				err = fmt.Errorf("error %v on closing after %w", e.Error(), err)
+			}
+		}
+	}()
 	if resp.StatusCode != http.StatusOK {
 		errResp, _ := ioutil.ReadAll(resp.Body)
 		return "", errors.New(string(errResp))

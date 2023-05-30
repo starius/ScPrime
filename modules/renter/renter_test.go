@@ -1,6 +1,7 @@
 package renter
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -9,7 +10,6 @@ import (
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/ratelimit"
-	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -34,7 +34,7 @@ type renterTester struct {
 	tpool   modules.TransactionPool
 	wallet  modules.Wallet
 
-	mux *siamux.SiaMux
+	//mux *siamux.SiaMux
 
 	renter *Renter
 	dir    string
@@ -47,21 +47,14 @@ func (rt *renterTester) Close() error {
 	rt.miner.Close()
 	rt.tpool.Close()
 	rt.wallet.Close()
-	rt.mux.Close()
+	//rt.mux.Close()
 	rt.renter.Close()
 	return nil
 }
 
 // addCustomHost adds a host to the test group so that it appears in the host db
 func (rt *renterTester) addCustomHost(testdir string, deps modules.Dependencies) (modules.Host, error) {
-	// create a siamux for this particular host
-	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
-	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
-	if err != nil {
-		return nil, errors.AddContext(err, "Failed to create SiaMux")
-	}
-
-	h, err := host.NewCustomHost(deps, rt.cs, rt.gateway, rt.tpool, rt.wallet, mux, "localhost:0", filepath.Join(testdir, modules.HostDir), nil, 5*time.Second)
+	h, err := host.NewCustomHost(deps, rt.cs, rt.gateway, rt.tpool, rt.wallet, "127.0.0.1:0", filepath.Join(testdir, modules.HostDir), nil, 5*time.Second)
 	if err != nil {
 		return nil, errors.AddContext(err, "Failed to create host")
 	}
@@ -104,13 +97,17 @@ func (rt *renterTester) addCustomHost(testdir string, deps modules.Dependencies)
 	}
 	for i := 0; i < 50 && len(activeHosts) == 0; i++ {
 		time.Sleep(time.Millisecond * 100)
-	}
-	activeHosts, err = rt.renter.ActiveHosts()
-	if err != nil {
-		return nil, errors.AddContext(err, "Could not get Active hosts")
+		activeHosts, err = rt.renter.ActiveHosts()
+		if err != nil {
+			return nil, errors.AddContext(err, "Could not get Active hosts")
+		}
 	}
 	if len(activeHosts) == 0 {
-		return nil, errors.New("host did not make it into the contractor hostdb in time")
+		all, err := rt.renter.AllHosts()
+		if err != nil {
+			return nil, errors.AddContext(err, "Could not get Active hosts")
+		}
+		return nil, fmt.Errorf("host did not make it into the contractor hostdb in time, total %v hosts, 0 active\n%+v", len(all), all)
 	}
 
 	return h, nil
@@ -161,7 +158,7 @@ func (rt *renterTester) reloadRenterWithDependency(r *Renter, deps modules.Depen
 		return nil, err
 	}
 
-	r, err = newRenterWithDependency(rt.gateway, rt.cs, rt.wallet, rt.tpool, rt.mux, filepath.Join(rt.dir, modules.RenterDir), deps)
+	r, err = newRenterWithDependency(rt.gateway, rt.cs, rt.wallet, rt.tpool, filepath.Join(rt.dir, modules.RenterDir), deps)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +180,7 @@ func newRenterTester(name string) (*renterTester, error) {
 	}
 
 	rl := ratelimit.NewRateLimit(0, 0, 0)
-	r, errChan := New(rt.gateway, rt.cs, rt.wallet, rt.tpool, rt.mux, rl, filepath.Join(testdir, modules.RenterDir))
+	r, errChan := New(rt.gateway, rt.cs, rt.wallet, rt.tpool, rl, filepath.Join(testdir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
@@ -198,15 +195,8 @@ func newRenterTester(name string) (*renterTester, error) {
 // the renter. A renter will need to be added and blocks mined to add money to
 // the wallet.
 func newRenterTesterNoRenter(testdir string) (*renterTester, error) {
-	// Create the siamux
-	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
-	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
-	if err != nil {
-		return nil, err
-	}
-
 	// Create the modules.
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
 		return nil, err
 	}
@@ -238,8 +228,7 @@ func newRenterTesterNoRenter(testdir string) (*renterTester, error) {
 
 	// Assemble all pieces into a renter tester.
 	return &renterTester{
-		mux: mux,
-
+		//mux: mux,
 		cs:      cs,
 		gateway: g,
 		miner:   m,
@@ -260,13 +249,13 @@ func newRenterTesterWithDependency(name string, deps modules.Dependencies) (*ren
 	}
 
 	// Create the siamux
-	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
-	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
-	if err != nil {
-		return nil, err
-	}
+	// siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
+	// mux, err := modules.NewSiaMux(siaMuxDir, testdir, "127.0.0.1:0", "127.0.0.1:0")
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	r, err := newRenterWithDependency(rt.gateway, rt.cs, rt.wallet, rt.tpool, mux, filepath.Join(testdir, modules.RenterDir), deps)
+	r, err := newRenterWithDependency(rt.gateway, rt.cs, rt.wallet, rt.tpool, filepath.Join(testdir, modules.RenterDir), deps)
 	if err != nil {
 		return nil, err
 	}
@@ -278,8 +267,8 @@ func newRenterTesterWithDependency(name string, deps modules.Dependencies) (*ren
 }
 
 // newRenterWithDependency creates a Renter with custom dependency
-func newRenterWithDependency(g modules.Gateway, cs modules.ConsensusSet, wallet modules.Wallet, tpool modules.TransactionPool, mux *siamux.SiaMux, persistDir string, deps modules.Dependencies) (*Renter, error) {
-	hdb, errChan := hostdb.NewCustomHostDB(g, cs, tpool, mux, persistDir, deps)
+func newRenterWithDependency(g modules.Gateway, cs modules.ConsensusSet, wallet modules.Wallet, tpool modules.TransactionPool, persistDir string, deps modules.Dependencies) (*Renter, error) {
+	hdb, errChan := hostdb.NewCustomHostDB(g, cs, tpool, persistDir, deps)
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
@@ -298,45 +287,45 @@ func newRenterWithDependency(g modules.Gateway, cs modules.ConsensusSet, wallet 
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
-	renter, errChan := NewCustomRenter(g, cs, tpool, hdb, wallet, hc, mux, persistDir, rl, deps)
+	renter, errChan := NewCustomRenter(g, cs, tpool, hdb, wallet, hc, persistDir, rl, deps)
 	return renter, <-errChan
 }
 
-// TestRenterCanAccessEphemeralAccountHostSettings verifies that the renter has
-// access to the host's external settings and that they include the new
-// ephemeral account setting fields.
-func TestRenterCanAccessEphemeralAccountHostSettings(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	rt, err := newRenterTester(t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer rt.Close()
+// // TestRenterCanAccessEphemeralAccountHostSettings verifies that the renter has
+// // access to the host's external settings and that they include the new
+// // ephemeral account setting fields.
+// func TestRenterCanAccessEphemeralAccountHostSettings(t *testing.T) {
+// 	if testing.Short() {
+// 		t.SkipNow()
+// 	}
+// 	rt, err := newRenterTester(t.Name())
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	defer rt.Close()
 
-	// Add a host to the test group
-	h, err := rt.addHost(t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	// Add a host to the test group
+// 	h, err := rt.addHost(t.Name())
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	hostEntry, found, err := rt.renter.hostDB.Host(h.PublicKey())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !found {
-		t.Fatal("Expected the newly added host to be found in the hostDB")
-	}
+// 	hostEntry, found, err := rt.renter.hostDB.Host(h.PublicKey())
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	if !found {
+// 		t.Fatal("Expected the newly added host to be found in the hostDB")
+// 	}
 
-	if hostEntry.EphemeralAccountExpiry != modules.DefaultEphemeralAccountExpiry {
-		t.Fatal("Unexpected account expiry")
-	}
+// 	if hostEntry.EphemeralAccountExpiry != modules.DefaultEphemeralAccountExpiry {
+// 		t.Fatal("Unexpected account expiry")
+// 	}
 
-	if !hostEntry.MaxEphemeralAccountBalance.Equals(modules.DefaultMaxEphemeralAccountBalance) {
-		t.Fatal("Unexpected max account balance")
-	}
-}
+// 	if !hostEntry.MaxEphemeralAccountBalance.Equals(modules.DefaultMaxEphemeralAccountBalance) {
+// 		t.Fatal("Unexpected max account balance")
+// 	}
+// }
 
 // TestRenterPricesDivideByZero verifies that the Price Estimation catches
 // divide by zero errors.

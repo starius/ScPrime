@@ -56,7 +56,16 @@ func (sc *SiadClient) GetHeaderForWork() (target []byte, header []byte, deprecat
 	if err != nil {
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		e := resp.Body.Close()
+		if err == nil {
+			err = e
+		} else {
+			if e != nil {
+				err = fmt.Errorf("error %v on closing after %w", e.Error(), err)
+			}
+		}
+	}()
 	switch resp.StatusCode {
 	case 200:
 	case 400:

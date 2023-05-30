@@ -81,7 +81,9 @@ func NewCurrencyStr(amount string) (Currency, error) {
 			// value and the unit.
 			value := strings.TrimSpace(strings.TrimSuffix(amount, unit))
 			// scan into big.Rat
-			r, ok := new(big.Rat).SetString(value)
+			// G113: Potential uncontrolled memory consumption in Rat.SetString (CVE-2022-23772) (gosec)
+			// solved in golang version > 1.17.7
+			r, ok := new(big.Rat).SetString(value) //nolint:gosec
 			if !ok {
 				return Currency{}, ErrParseCurrencyAmount
 			}
@@ -104,7 +106,9 @@ func NewCurrencyStr(amount string) (Currency, error) {
 	if strings.HasSuffix(amount, "SPF") {
 		value := strings.TrimSpace(strings.TrimSuffix(amount, "SPF"))
 		// scan into big.Rat
-		r, ok := new(big.Rat).SetString(value)
+		// G113: Potential uncontrolled memory consumption in Rat.SetString (CVE-2022-23772) (gosec)
+		// solved in golang version > 1.17.7
+		r, ok := new(big.Rat).SetString(value) //nolint:gosec
 		if !ok {
 			return Currency{}, ErrParseCurrencyAmount
 		}

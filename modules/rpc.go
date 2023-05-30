@@ -91,22 +91,23 @@ type RPCPriceTable struct {
 	TxnFeeMaxRecommended types.Currency `json:"txnfeemaxrecommended"`
 }
 
-var (
-	// RPCAccountBalance specifier
-	RPCAccountBalance = types.NewSpecifier("AccountBalance")
+// Removed Ephemeral accounts RPC
+//var (
+// RPCAccountBalance specifier
+//RPCAccountBalance = types.NewSpecifier("AccountBalance")
 
-	// RPCUpdatePriceTable specifier
-	RPCUpdatePriceTable = types.NewSpecifier("UpdatePriceTable")
+// RPCUpdatePriceTable specifier
+//RPCUpdatePriceTable = types.NewSpecifier("UpdatePriceTable")
 
-	// RPCExecuteProgram specifier
-	RPCExecuteProgram = types.NewSpecifier("ExecuteProgram")
+// RPCExecuteProgram specifier
+//RPCExecuteProgram = types.NewSpecifier("ExecuteProgram")
 
-	// RPCFundAccount specifier
-	RPCFundAccount = types.NewSpecifier("FundAccount")
+// RPCFundAccount specifier
+//RPCFundAccount = types.NewSpecifier("FundAccount")
 
-	// RPCLatestRevision specifier
-	RPCLatestRevision = types.NewSpecifier("LatestRevision")
-)
+// RPCLatestRevision specifier
+//RPCLatestRevision = types.NewSpecifier("LatestRevision")
+//)
 
 type (
 	// AccountBalanceRequest specifies the account for which to retrieve the

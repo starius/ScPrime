@@ -119,6 +119,7 @@ func (w *worker) managedKillUploading() {
 // callQueueUploadChunk will take a chunk and add it to the worker's repair
 // stack.
 func (w *worker) callQueueUploadChunk(uc *unfinishedUploadChunk) bool {
+	w.renter.log.Debugf("worker.callQueueUploadChunk(uc *unfinishedUploadChunk) uc=%v", uc.id)
 	// Check that the worker is allowed to be uploading before grabbing the
 	// worker lock.
 	cache := w.staticCache()
@@ -129,6 +130,7 @@ func (w *worker) callQueueUploadChunk(uc *unfinishedUploadChunk) bool {
 	w.mu.Lock()
 	onCooldown, _ := w.onUploadCooldown()
 	uploadTerminated := w.uploadTerminated
+	w.renter.log.Debugf("goodForUpload=%v uploadTerminated=%v onCooldown=%v candidateHost=%v", goodForUpload, uploadTerminated, onCooldown, candidateHost)
 	if !goodForUpload || uploadTerminated || onCooldown || !candidateHost {
 		// The worker should not be uploading, remove the chunk.
 		w.mu.Unlock()
@@ -160,6 +162,7 @@ func (w *worker) managedPerformUploadChunkJob() {
 		w.mu.Unlock()
 		return
 	}
+	w.renter.log.Debugf("managedPerformUploadChunkJob() unprocessedChunks=%v", len(w.unprocessedChunks))
 	nextChunk := w.unprocessedChunks[0]
 	w.unprocessedChunks = w.unprocessedChunks[1:]
 	w.mu.Unlock()

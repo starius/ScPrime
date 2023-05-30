@@ -115,6 +115,7 @@ func (he *hostEditor) Upload(data []byte) (_ crypto.Hash, err error) {
 	// Perform the upload.
 	_, sectorRoot, err := he.editor.Upload(data)
 	if err != nil {
+		he.contractor.log.Errorf("Error uploading %v", err.Error())
 		return crypto.Hash{}, err
 	}
 	return sectorRoot, nil

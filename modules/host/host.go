@@ -77,13 +77,11 @@ import (
 
 	"gitlab.com/NebulousLabs/encoding"
 	connmonitor "gitlab.com/NebulousLabs/monitor"
-	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/host/api"
 	"gitlab.com/scpcorp/ScPrime/modules/host/contractmanager"
-	"gitlab.com/scpcorp/ScPrime/modules/host/mdm"
 	"gitlab.com/scpcorp/ScPrime/modules/host/tokenstorage"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
@@ -112,22 +110,6 @@ var (
 	errNilTpool   = errors.New("host cannot use a nil transaction pool")
 	errNilWallet  = errors.New("host cannot use a nil wallet")
 	errNilGateway = errors.New("host cannot use nil gateway")
-
-	// rpcPriceGuaranteePeriod defines the amount of time a host will guarantee
-	// its prices to the renter.
-	rpcPriceGuaranteePeriod = build.Select(build.Var{
-		Standard: 10 * time.Minute,
-		Dev:      5 * time.Minute,
-		Testing:  1 * time.Minute,
-	}).(time.Duration)
-
-	// pruneExpiredRPCPriceTableFrequency is the frequency at which the host
-	// checks if it can expire price tables that have an expiry in the past.
-	pruneExpiredRPCPriceTableFrequency = build.Select(build.Var{
-		Standard: 15 * time.Minute,
-		Dev:      10 * time.Minute,
-		Testing:  30 * time.Second,
-	}).(time.Duration)
 
 	storageObligationAuditInteval = types.BlocksPerDay // Audit contracts once a day
 )
@@ -161,13 +143,8 @@ type Host struct {
 	tpool         modules.TransactionPool
 	wallet        modules.Wallet
 	staticAlerter *modules.GenericAlerter
-	staticMux     *siamux.SiaMux
 	dependencies  modules.Dependencies
 	modules.StorageManager
-
-	// Subsystems
-	staticAccountManager *accountManager
-	staticMDM            *mdm.MDM
 
 	// Host ACID fields - these fields need to be updated in serial, ACID
 	// transactions.
@@ -198,18 +175,6 @@ type Host struct {
 	// Storage of tokens for prepaid downloads.
 	tokenStor *tokenstorage.TokenStorage
 
-	// A collection of rpc price tables, covered by its own RW mutex. It
-	// contains the host's current price table and the set of price tables the
-	// host has communicated to all renters, thus guaranteeing a set of prices
-	// for a fixed period of time. The host's RPC prices are dynamic, and are
-	// subject to various conditions specific to the RPC in question. Examples
-	// of such conditions are congestion, load, liquidity, etc.
-	staticPriceTables *hostPrices
-
-	// Fields related to RHP3 bandwidhth.
-	atomicStreamUpload   uint64
-	atomicStreamDownload uint64
-
 	// Misc state.
 	db            *persist.BoltDatabase
 	listener      net.Listener
@@ -220,73 +185,10 @@ type Host struct {
 	port          string
 	apiPort       string
 	tg            siasync.ThreadGroup
-}
 
-// hostPrices is a helper type that wraps both the host's RPC price table and
-// the set of price tables containing prices it has guaranteed to all renters,
-// covered by a read write mutex to help lock contention. It contains a separate
-// minheap that enables efficiently purging expired price tables from the
-// 'guaranteed' map.
-type hostPrices struct {
-	current       modules.RPCPriceTable
-	guaranteed    map[modules.UniqueID]*hostRPCPriceTable
-	staticMinHeap priceTableHeap
-	mu            sync.RWMutex
-}
-
-// managedCurrent returns the host's current price table
-func (hp *hostPrices) managedCurrent() modules.RPCPriceTable {
-	hp.mu.RLock()
-	defer hp.mu.RUnlock()
-	return hp.current
-}
-
-// managedGet returns the price table with given uid
-func (hp *hostPrices) managedGet(uid modules.UniqueID) (pt *hostRPCPriceTable, found bool) {
-	hp.mu.RLock()
-	defer hp.mu.RUnlock()
-	pt, found = hp.guaranteed[uid]
-	return
-}
-
-// managedSetCurrent overwrites the current price table with the one that's
-// given
-func (hp *hostPrices) managedSetCurrent(pt modules.RPCPriceTable) {
-	hp.mu.Lock()
-	defer hp.mu.Unlock()
-	hp.current = pt
-}
-
-// managedTrack adds the given price table to the 'guaranteed' map, that holds
-// all of the price tables the host has recently guaranteed to renters. It will
-// also add it to the heap which facilates efficient pruning of that map.
-func (hp *hostPrices) managedTrack(pt *hostRPCPriceTable) {
-	hp.mu.Lock()
-	hp.guaranteed[pt.UID] = pt
-	hp.mu.Unlock()
-	hp.staticMinHeap.Push(pt)
-}
-
-// managedPruneExpired removes all of the price tables that have expired from
-// the 'guaranteed' map.
-func (hp *hostPrices) managedPruneExpired() {
-	current := hp.managedCurrent()
-	expired := hp.staticMinHeap.PopExpired()
-	if len(expired) == 0 {
-		return
-	}
-	hp.mu.Lock()
-	for _, uid := range expired {
-		// Sanity check to never prune the host's current price table. This can
-		// never occur because the host's price table UID is not added to the
-		// minheap.
-		if uid == current.UID {
-			build.Critical("The host's current price table should not be pruned")
-			continue
-		}
-		delete(hp.guaranteed, uid)
-	}
-	hp.mu.Unlock()
+	//atomicReadyToServe is indicator of host initialization comleteness
+	// indicates if api calls are going to be served correctly
+	atomicReadyToServe atomic.Bool
 }
 
 // lockedObligation is a helper type that locks a TryMutex and a counter to
@@ -338,82 +240,13 @@ func (h *Host) managedInternalSettings() modules.HostInternalSettings {
 	return h.settings
 }
 
-// managedUpdatePriceTable will recalculate the RPC costs and update the host's
-// price table accordingly.
-func (h *Host) managedUpdatePriceTable() {
-	// create a new RPC price table
-	hes := h.ManagedExternalSettings()
-	priceTable := modules.RPCPriceTable{
-		// TODO: hardcoded cost should be updated to use a better value.
-		AccountBalanceCost:   types.NewCurrency64(1),
-		FundAccountCost:      types.NewCurrency64(1),
-		UpdatePriceTableCost: types.NewCurrency64(1),
-
-		// TODO: hardcoded MDM costs should be updated to use better values.
-		HasSectorBaseCost:   types.NewCurrency64(1),
-		MemoryTimeCost:      types.NewCurrency64(1),
-		DropSectorsBaseCost: types.NewCurrency64(1),
-		DropSectorsUnitCost: types.NewCurrency64(1),
-		SwapSectorCost:      types.NewCurrency64(1),
-
-		// Read related costs.
-		ReadBaseCost:   hes.SectorAccessPrice,
-		ReadLengthCost: types.NewCurrency64(1),
-
-		// Write related costs.
-		WriteBaseCost:   types.NewCurrency64(1),
-		WriteLengthCost: types.NewCurrency64(1),
-		WriteStoreCost:  hes.StoragePrice,
-
-		// Init costs.
-		InitBaseCost: hes.BaseRPCPrice,
-
-		// LatestRevisionCost is set to a reasonable base + the estimated
-		// bandwidth cost of downloading a filecontract. This isn't perfect but
-		// at least scales a bit as the host updates their download bandwidth
-		// prices.
-		LatestRevisionCost: modules.DefaultBaseRPCPrice.Add(hes.DownloadBandwidthPrice.Mul64(modules.EstimatedFileContractTransactionSetSize)),
-
-		// Bandwidth related fields.
-		DownloadBandwidthCost: hes.DownloadBandwidthPrice,
-		UploadBandwidthCost:   hes.UploadBandwidthPrice,
-	}
-	// update the pricetable
-	h.staticPriceTables.managedSetCurrent(priceTable)
-}
-
-// threadedPruneExpiredPriceTables will expire price tables which have an expiry
-// in the past.
-//
-// Note: threadgroup counter must be inside for loop. If not, calling 'Flush'
-// on the threadgroup would deadlock.
-func (h *Host) threadedPruneExpiredPriceTables() {
-	for {
-		func() {
-			if err := h.tg.Add(); err != nil {
-				return
-			}
-			defer h.tg.Done()
-			h.staticPriceTables.managedPruneExpired()
-		}()
-
-		// Block until next cycle.
-		select {
-		case <-h.tg.StopChan():
-			return
-		case <-time.After(pruneExpiredRPCPriceTableFrequency):
-			continue
-		}
-	}
-}
-
 // newHost returns an initialized Host, taking a set of dependencies as input.
 // By making the dependencies an argument of the 'new' call, the host can be
 // mocked such that the dependencies can return unexpected errors or unique
 // behaviors during testing, enabling easier testing of the failure modes of
 // the Host.
 func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway,
-	tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, listenerAddress, persistDir string,
+	tpool modules.TransactionPool, wallet modules.Wallet, listenerAddress, persistDir string,
 	hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration, onlyFirstDir bool) (*Host, error) {
 	// Check that all the dependencies were provided.
 	if cs == nil {
@@ -447,21 +280,12 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 		tpool:                    tpool,
 		wallet:                   wallet,
 		staticAlerter:            modules.NewAlerter("host"),
-		staticMux:                mux,
 		dependencies:             dependencies,
 		lockedStorageObligations: make(map[types.FileContractID]*lockedObligation),
-		staticPriceTables: &hostPrices{
-			guaranteed: make(map[modules.UniqueID]*hostRPCPriceTable),
-			staticMinHeap: priceTableHeap{
-				heap: make([]*hostRPCPriceTable, 0),
-			},
-		},
-		persistDir: persistDir,
-		apiPort:    hostAPIPort,
+		persistDir:               persistDir,
+		apiPort:                  hostAPIPort,
 	}
-
-	// Create MDM.
-	h.staticMDM = mdm.New(h)
+	h.atomicReadyToServe.Store(false)
 
 	// Call stop in the event of a partial startup.
 	defer func() {
@@ -473,7 +297,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	// Create the perist directory if it does not yet exist.
 	err = dependencies.MkdirAll(h.persistDir, 0700)
 	if err != nil {
-		return nil, fmt.Errorf("Could not create directory %v: %w", h.persistDir, err)
+		return nil, fmt.Errorf("could not create directory %v: %w", h.persistDir, err)
 	}
 
 	// Initialize the logger, and set up the stop call that will close the
@@ -499,6 +323,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 			return nil, fmt.Errorf("error creating token storage directory: %w", err)
 		}
 	}
+	h.log.Debugf("Token storage directory (%v) ready", tokenStorageDir)
 	// Add the storage manager to the host, and set up the stop call that will
 	// close the storage manager.
 	stManager, err := contractmanager.NewCustomContractManager(smDeps, filepath.Join(persistDir, "contractmanager"), onlyFirstDir)
@@ -507,7 +332,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 		return nil, fmt.Errorf("error creating contract manager: %w", err)
 	}
 	h.StorageManager = stManager
-
+	h.log.Debugf("Contract manager ready")
 	h.tg.AfterStop(func() {
 		err = h.StorageManager.Close()
 		if err != nil {
@@ -523,6 +348,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	if err != nil {
 		return nil, fmt.Errorf("error initializing token storage: %w", err)
 	}
+	h.log.Debugf("TokenStorage manager ready")
 	updateTokenSectorsChan := make(chan bool)
 	h.tg.AfterStop(func() {
 		updateTokenSectorsChan <- true
@@ -540,6 +366,7 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 	if err != nil {
 		return nil, fmt.Errorf("error loading persistence: %w", err)
 	}
+	h.log.Debugf("Host persistence loaded")
 	h.tg.AfterStop(func() {
 		err = h.saveSync()
 		if err != nil {
@@ -547,19 +374,14 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 		}
 	})
 
-	// Add the account manager subsystem
-	h.staticAccountManager, err = h.newAccountManager()
-	if err != nil {
-		return nil, fmt.Errorf("error creating account manager: %w", err)
-	}
-
 	atomic.StoreUint64(&h.scheduledAuditBlockheight, uint64(h.blockHeight))
-
+	h.log.Debugf("h.scheduledAuditBlockheight set to %v", h.blockHeight)
 	// Subscribe to the consensus set.
 	err = h.initConsensusSubscription()
 	if err != nil {
 		return nil, fmt.Errorf("error subscribing to consensus: %w", err)
 	}
+	h.log.Debugln("Consensus subscription initialized")
 
 	// Create bandwidth monitor
 	h.staticMonitor = connmonitor.NewMonitor()
@@ -573,12 +395,6 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 		h.log.Errorf("Could not initialize host networking: %v", err)
 		return nil, err
 	}
-
-	// Initialize the RPC price table
-	h.managedUpdatePriceTable()
-
-	// Ensure the expired RPC tables get pruned as to not leak memory
-	go h.threadedPruneExpiredPriceTables()
 
 	//	Initialize and run host API
 	hostApi := api.NewAPI(h.tokenStor, h.secretKey, h)
@@ -595,26 +411,33 @@ func newHost(dependencies modules.Dependencies, smDeps modules.Dependencies, cs 
 			err = fmt.Errorf("error closing host API: %w", err)
 		}
 	})
+	//remove obsoleted ephemeral accounts and fingerprintsbucket files if there are any
+	h.log.Debugf("Removing fingerprintsbucket files from %v", h.persistDir)
+	err = removeObsoletedFiles(h.persistDir)
+	if err != nil {
+		h.log.Debugf("remove fingerprintbuckets files failed: %v", err)
+	}
+	h.atomicReadyToServe.Store(true)
 	return h, nil
 }
 
 // New returns an initialized Host.
-func New(cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir string, hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration) (*Host, error) {
+func New(cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, address, persistDir string, hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration) (*Host, error) {
 	const onlyFirstDir = false
-	return newHost(modules.ProdDependencies, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIListener, checkTokenExpirationFrequency, onlyFirstDir)
+	return newHost(modules.ProdDependencies, new(modules.ProductionDependencies), cs, g, tpool, wallet, address, persistDir, hostAPIListener, checkTokenExpirationFrequency, onlyFirstDir)
 }
 
 // NewCustomHost returns an initialized Host using the provided dependencies.
-func NewCustomHost(deps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir string, hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration) (*Host, error) {
+func NewCustomHost(deps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, address, persistDir string, hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration) (*Host, error) {
 	const onlyFirstDir = false
-	return newHost(deps, new(modules.ProductionDependencies), cs, g, tpool, wallet, mux, address, persistDir, hostAPIListener, checkTokenExpirationFrequency, onlyFirstDir)
+	return newHost(deps, new(modules.ProductionDependencies), cs, g, tpool, wallet, address, persistDir, hostAPIListener, checkTokenExpirationFrequency, onlyFirstDir)
 }
 
 // NewCustomTestHost allows passing in both host dependencies and storage
 // manager dependencies. Used solely for testing purposes, to allow dependency
 // injection into the host's submodules.
-func NewCustomTestHost(deps modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, mux *siamux.SiaMux, address, persistDir string, hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration, onlyFirstDir bool) (*Host, error) {
-	return newHost(deps, smDeps, cs, g, tpool, wallet, mux, address, persistDir, hostAPIListener, checkTokenExpirationFrequency, onlyFirstDir)
+func NewCustomTestHost(deps modules.Dependencies, smDeps modules.Dependencies, cs modules.ConsensusSet, g modules.Gateway, tpool modules.TransactionPool, wallet modules.Wallet, address, persistDir string, hostAPIListener net.Listener, checkTokenExpirationFrequency time.Duration, onlyFirstDir bool) (*Host, error) {
+	return newHost(deps, smDeps, cs, g, tpool, wallet, address, persistDir, hostAPIListener, checkTokenExpirationFrequency, onlyFirstDir)
 }
 
 // Close shuts down the host.
@@ -655,15 +478,6 @@ func (h *Host) BandwidthCounters() (uint64, uint64, time.Time, error) {
 
 	// Get the bandwidth usage for RHP1 & RHP2 connections.
 	readBytes, writeBytes := h.staticMonitor.Counts()
-
-	// Get the bandwidth usage for RHP3 connections. Unfortunately we can't just
-	// wrap the siamux streams since that wouldn't give us the raw data sent over
-	// the TCP connection. Since we want this to be as accurate as possible, we
-	// use the `Limit` method on the streams before closing them to get the
-	// accurate amount of data sent and received. This includes overhead such as
-	// frame headers and encryption.
-	readBytes += atomic.LoadUint64(&h.atomicStreamDownload)
-	writeBytes += atomic.LoadUint64(&h.atomicStreamUpload)
 
 	startTime := h.staticMonitor.StartTime()
 	return writeBytes, readBytes, startTime, nil
@@ -719,7 +533,7 @@ func (h *Host) SetInternalSettings(settings modules.HostInternalSettings) error 
 	// By updating the internal settings the user might influence the host's
 	// price table, we defer a call to update the price table to ensure it
 	// reflects the updated settings.
-	defer h.managedUpdatePriceTable()
+	//defer h.managedUpdatePriceTable()
 	defer h.mu.Unlock()
 
 	// The host should not be accepting file contracts if it does not have an
@@ -784,4 +598,9 @@ func (h *Host) ManagedExternalSettings() modules.HostExternalSettings {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return h.externalSettings(maxFee)
+}
+
+// ReadyToServe tells if the host module is ready to serve API calls.
+func (h *Host) ReadyToServe() bool {
+	return h.atomicReadyToServe.Load()
 }

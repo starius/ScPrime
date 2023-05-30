@@ -95,25 +95,6 @@ func (w *worker) externTryLaunchSerialJob() {
 	if w.staticLoopState.staticSerialJobRunning() {
 		return
 	}
-
-	// Perform a disrupt for testing. See the implementation in
-	// workerloop_test.go for more info.
-	if w.renter.deps.Disrupt("TestJobSerialExecution") {
-		return
-	}
-
-	// Check every potential serial job that the worker may be required to
-	// perform. This scheduling allows a flood of jobs earlier in the list to
-	// starve out jobs later in the list. At some point we will probably
-	// revisit this to try and address the starvation issue.
-	if w.managedNeedsToUpdatePriceTable() {
-		w.externLaunchSerialJob(w.staticUpdatePriceTable)
-		return
-	}
-	if w.managedNeedsToRefillAccount() {
-		w.externLaunchSerialJob(w.managedRefillAccount)
-		return
-	}
 	if w.staticFetchBackupsJobQueue.managedHasJob() {
 		w.externLaunchSerialJob(w.managedPerformFetchBackupsJob)
 		return
@@ -133,7 +114,6 @@ func (w *worker) externTryLaunchSerialJob() {
 	}
 	if w.managedHasUploadJob() {
 		w.externLaunchSerialJob(w.managedPerformUploadChunkJob)
-		return
 	}
 }
 
@@ -208,18 +188,6 @@ func (w *worker) externTryLaunchAsyncJob() bool {
 		return false
 	}
 
-	// A valid price table is required to perform async tasks.
-	if !w.staticPriceTable().staticValid() {
-		w.managedDiscardAsyncJobs(errors.New("price table with host is no longer valid"))
-		return false
-	}
-
-	// RHP3 must not be on cooldown to perform async tasks.
-	if w.managedOnMaintenanceCooldown() {
-		w.managedDiscardAsyncJobs(errors.New("the worker account is on cooldown"))
-		return false
-	}
-
 	// Check every potential async job that can be launched.
 	job := w.staticJobHasSectorQueue.callNext()
 	if job != nil {
@@ -287,26 +255,6 @@ func (w *worker) threadedWorkLoop() {
 		// the top as consecutive checks make use of the file contract for
 		// payment.
 		w.externTryFixRevisionMismatch()
-
-		// The worker cannot execute any async tasks unless the price table of
-		// the host is known, the balance of the worker account is known, and
-		// the account has sufficient funds in it. This update is done as a
-		// blocking update to ensure nothing else runs until the price table is
-		// available.
-		w.staticUpdatePriceTable()
-
-		// Perform a balance check on the host and sync it to his version if
-		// necessary. This avoids running into MaxBalanceExceeded errors upon
-		// refill after an unclean shutdown.
-		if w.staticPriceTable().staticValid() {
-			w.externSyncAccountBalanceToHost()
-		}
-
-		// This update is done as a blocking update to ensure nothing else runs
-		// until the account has filled.
-		if w.managedNeedsToRefillAccount() {
-			w.managedRefillAccount()
-		}
 	}
 
 	// The worker will continuously perform jobs in a loop.
@@ -323,23 +271,20 @@ func (w *worker) threadedWorkLoop() {
 		// be the case if other processes errored out with an error indicating a
 		// mismatch.
 		if w.staticSuspectRevisionMismatch() {
+			w.renter.log.Debugln("staticSuspectRevisionMismatch() == true")
 			w.externTryFixRevisionMismatch()
 		}
 
 		// Update the worker cache object, note that we do this after trying to
 		// sync the revision as that might influence the contract, which is used
 		// to build the cache object.
+		w.renter.log.Debugln("staticTryUpdateCache()")
 		w.staticTryUpdateCache()
-
-		// If the worker needs to sync the account balance, perform a sync
-		// operation. This should be attempted before launching any jobs.
-		if w.managedNeedsToSyncAccountBalanceToHost() {
-			w.externSyncAccountBalanceToHost()
-		}
 
 		// Attempt to launch a serial job. If there is already a job running,
 		// this will no-op. If no job is running, a goroutine will be spun up
 		// to run a job, this call is non-blocking.
+		w.renter.log.Debugln("externTryLaunchSerialJob()")
 		w.externTryLaunchSerialJob()
 
 		// Attempt to launch an async job. If the async job launches
@@ -352,9 +297,10 @@ func (w *worker) threadedWorkLoop() {
 		// large amount of bandwidth are all running simultaneously. If the
 		// jobs are tiny in terms of resource footprints, the worker will allow
 		// more of them to be running at once.
-		if w.externTryLaunchAsyncJob() {
-			continue
-		}
+		// if w.externTryLaunchAsyncJob() {
+		// 	w.renter.log.Debugln("externTryLaunchAsyncJob()==true")
+		// 	continue
+		// }
 
 		// Block until:
 		//    + New work has been submitted

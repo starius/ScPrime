@@ -16,10 +16,13 @@ func TestNew(t *testing.T) {
 
 	// Test AllModulesTemplate.
 	dir := build.TempDir("node", t.Name()+"-AllModulesTemplate")
+	t.Log("creating all modules")
 	n, errChan := New(AllModules(dir), time.Now())
+	t.Log("Waiting for all modules ready")
 	if err := <-errChan; err != nil {
 		t.Fatal(err)
 	}
+	t.Log("All modules should be ready now, verifying")
 	if n.Gateway == nil {
 		t.Error("gateway not set correctly")
 	}

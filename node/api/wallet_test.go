@@ -32,7 +32,7 @@ func TestWalletGETEncrypted(t *testing.T) {
 	t.Parallel()
 	// Check a wallet that has never been encrypted.
 	testdir := build.TempDir("api", t.Name())
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
 		t.Fatal("Failed to create gateway:", err)
 	}
@@ -48,7 +48,7 @@ func TestWalletGETEncrypted(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to create wallet:", err)
 	}
-	srv, err := NewServer(testdir, "localhost:0", "ScPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "127.0.0.1:0", "ScPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +171,7 @@ func TestWalletBlankEncrypt(t *testing.T) {
 	t.Parallel()
 	// Create a server object without encrypting or unlocking the wallet.
 	testdir := build.TempDir("api", t.Name())
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +187,7 @@ func TestWalletBlankEncrypt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv, err := NewServer(testdir, "localhost:0", "ScPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "127.0.0.1:0", "ScPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,7 +239,7 @@ func TestIntegrationWalletInitSeed(t *testing.T) {
 	}
 	// Create a server object without encrypting or unlocking the wallet.
 	testdir := build.TempDir("api", "TestIntegrationWalletInitSeed")
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -255,7 +255,7 @@ func TestIntegrationWalletInitSeed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv, err := NewServer(testdir, "localhost:0", "ScPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "127.0.0.1:0", "ScPrime-Agent", "", cs, nil, g, nil, nil, nil, tp, w, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

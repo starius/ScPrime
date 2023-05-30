@@ -36,7 +36,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strconv"
 	"sync"
 	"time"
 
@@ -48,13 +47,6 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules/wallet"
 	"gitlab.com/scpcorp/ScPrime/types"
 	bolt "go.etcd.io/bbolt"
-)
-
-const (
-	obligationUnresolved storageObligationStatus = iota // Indicatees that an unitialized value was used.
-	obligationRejected                                  // Indicates that the obligation never got started, no revenue gained or lost.
-	obligationSucceeded                                 // Indicates that the obligation was completed, revenues were gained.
-	obligationFailed                                    // Indicates that the obligation failed, revenues and collateral were lost.
 )
 
 const (
@@ -176,26 +168,6 @@ type storageObligation struct {
 	RevisionConstructed bool
 
 	h *Host
-}
-
-// storageObligationStatus indicates the current status of a storage obligation
-type storageObligationStatus uint64
-
-// String converts a storageObligationStatus to a string.
-func (i storageObligationStatus) String() string {
-	if i == 0 {
-		return "obligationUnresolved"
-	}
-	if i == 1 {
-		return "obligationRejected"
-	}
-	if i == 2 {
-		return "obligationSucceeded"
-	}
-	if i == 3 {
-		return "obligationFailed"
-	}
-	return "storageObligationStatus(" + strconv.FormatInt(int64(i), 10) + ")"
 }
 
 // managedGetStorageObligationSnapshot fetches a storage obligation from the
@@ -680,7 +652,6 @@ func (h *Host) managedAddStorageObligation(so storageObligation, renewal bool) e
 	h.financialMetrics.PotentialContractCompensation = h.financialMetrics.PotentialContractCompensation.Add(so.ContractCost)
 	h.financialMetrics.LockedStorageCollateral = h.financialMetrics.LockedStorageCollateral.Add(so.LockedCollateral)
 	h.financialMetrics.PotentialStorageRevenue = h.financialMetrics.PotentialStorageRevenue.Add(so.PotentialStorageRevenue)
-	h.financialMetrics.PotentialAccountFunding = h.financialMetrics.PotentialAccountFunding.Add(so.PotentialAccountFunding)
 	h.financialMetrics.PotentialDownloadBandwidthRevenue = h.financialMetrics.PotentialDownloadBandwidthRevenue.Add(so.PotentialDownloadRevenue)
 	h.financialMetrics.PotentialUploadBandwidthRevenue = h.financialMetrics.PotentialUploadBandwidthRevenue.Add(so.PotentialUploadRevenue)
 	h.financialMetrics.RiskedStorageCollateral = h.financialMetrics.RiskedStorageCollateral.Add(so.RiskedCollateral)
@@ -814,7 +785,6 @@ func (h *Host) managedModifyStorageObligation(so storageObligation, sectorsRemov
 	// new values.
 	h.financialMetrics.PotentialContractCompensation = h.financialMetrics.PotentialContractCompensation.Add(so.ContractCost)
 	h.financialMetrics.LockedStorageCollateral = h.financialMetrics.LockedStorageCollateral.Add(so.LockedCollateral)
-	h.financialMetrics.PotentialAccountFunding = h.financialMetrics.PotentialAccountFunding.Add(so.PotentialAccountFunding)
 	h.financialMetrics.PotentialStorageRevenue = h.financialMetrics.PotentialStorageRevenue.Add(so.PotentialStorageRevenue)
 	h.financialMetrics.PotentialDownloadBandwidthRevenue = h.financialMetrics.PotentialDownloadBandwidthRevenue.Add(so.PotentialDownloadRevenue)
 	h.financialMetrics.PotentialUploadBandwidthRevenue = h.financialMetrics.PotentialUploadBandwidthRevenue.Add(so.PotentialUploadRevenue)
@@ -825,7 +795,6 @@ func (h *Host) managedModifyStorageObligation(so storageObligation, sectorsRemov
 	// old values.
 	h.financialMetrics.PotentialContractCompensation = h.financialMetrics.PotentialContractCompensation.Sub(oldSO.ContractCost)
 	h.financialMetrics.LockedStorageCollateral = h.financialMetrics.LockedStorageCollateral.Sub(oldSO.LockedCollateral)
-	h.financialMetrics.PotentialAccountFunding = h.financialMetrics.PotentialAccountFunding.Sub(oldSO.PotentialAccountFunding)
 	h.financialMetrics.PotentialStorageRevenue = h.financialMetrics.PotentialStorageRevenue.Sub(oldSO.PotentialStorageRevenue)
 	h.financialMetrics.PotentialDownloadBandwidthRevenue = h.financialMetrics.PotentialDownloadBandwidthRevenue.Sub(oldSO.PotentialDownloadRevenue)
 	h.financialMetrics.PotentialUploadBandwidthRevenue = h.financialMetrics.PotentialUploadBandwidthRevenue.Sub(oldSO.PotentialUploadRevenue)
@@ -861,8 +830,7 @@ func (h *Host) removeStorageObligation(so storageObligation, sos storageObligati
 			h.financialMetrics.TransactionFeeExpenses = h.financialMetrics.TransactionFeeExpenses.Sub(so.TransactionFeesAdded)
 
 			// Remove the obligation statistics as potential risk and income.
-			h.log.Printf("Rejecting storage obligation expiring at block %v, current height is %v. Potential revenue is %v.\n", so.expiration(), h.blockHeight, h.financialMetrics.PotentialContractCompensation.Add(h.financialMetrics.PotentialStorageRevenue).Add(h.financialMetrics.PotentialDownloadBandwidthRevenue).Add(h.financialMetrics.PotentialUploadBandwidthRevenue).Add(h.financialMetrics.PotentialAccountFunding))
-			h.financialMetrics.PotentialAccountFunding = h.financialMetrics.PotentialAccountFunding.Sub(so.PotentialAccountFunding)
+			h.log.Printf("Rejecting storage obligation expiring at block %v, current height is %v. Potential revenue is %v.\n", so.expiration(), h.blockHeight, h.financialMetrics.PotentialContractCompensation.Add(h.financialMetrics.PotentialStorageRevenue).Add(h.financialMetrics.PotentialDownloadBandwidthRevenue).Add(h.financialMetrics.PotentialUploadBandwidthRevenue))
 			h.financialMetrics.PotentialContractCompensation = h.financialMetrics.PotentialContractCompensation.Sub(so.ContractCost)
 			h.financialMetrics.LockedStorageCollateral = h.financialMetrics.LockedStorageCollateral.Sub(so.LockedCollateral)
 			h.financialMetrics.PotentialStorageRevenue = h.financialMetrics.PotentialStorageRevenue.Sub(so.PotentialStorageRevenue)
@@ -886,7 +854,6 @@ func (h *Host) removeStorageObligation(so storageObligation, sos storageObligati
 		}
 
 		// Remove the obligation statistics as potential risk and income.
-		h.financialMetrics.PotentialAccountFunding = h.financialMetrics.PotentialAccountFunding.Sub(so.PotentialAccountFunding)
 		h.financialMetrics.PotentialContractCompensation = h.financialMetrics.PotentialContractCompensation.Sub(so.ContractCost)
 		h.financialMetrics.LockedStorageCollateral = h.financialMetrics.LockedStorageCollateral.Sub(so.LockedCollateral)
 		h.financialMetrics.PotentialStorageRevenue = h.financialMetrics.PotentialStorageRevenue.Sub(so.PotentialStorageRevenue)
@@ -895,7 +862,6 @@ func (h *Host) removeStorageObligation(so storageObligation, sos storageObligati
 		h.financialMetrics.RiskedStorageCollateral = h.financialMetrics.RiskedStorageCollateral.Sub(so.RiskedCollateral)
 
 		// Add the obligation statistics as actual income.
-		h.financialMetrics.AccountFunding = h.financialMetrics.AccountFunding.Add(so.PotentialAccountFunding)
 		h.financialMetrics.ContractCompensation = h.financialMetrics.ContractCompensation.Add(so.ContractCost)
 		h.financialMetrics.StorageRevenue = h.financialMetrics.StorageRevenue.Add(so.PotentialStorageRevenue)
 		h.financialMetrics.DownloadBandwidthRevenue = h.financialMetrics.DownloadBandwidthRevenue.Add(so.PotentialDownloadRevenue)
@@ -907,8 +873,7 @@ func (h *Host) removeStorageObligation(so storageObligation, sos storageObligati
 	}
 	if sos == obligationFailed {
 		// Remove the obligation statistics as potential risk and income.
-		h.log.Printf("Missed storage proof. Revenue would have been %v.\n", so.ContractCost.Add(so.PotentialStorageRevenue).Add(so.PotentialDownloadRevenue).Add(so.PotentialUploadRevenue).Add(so.PotentialAccountFunding))
-		h.financialMetrics.PotentialAccountFunding = h.financialMetrics.PotentialAccountFunding.Sub(so.PotentialAccountFunding)
+		h.log.Printf("Missed storage proof. Revenue would have been %v.\n", so.ContractCost.Add(so.PotentialStorageRevenue).Add(so.PotentialDownloadRevenue).Add(so.PotentialUploadRevenue))
 		h.financialMetrics.PotentialContractCompensation = h.financialMetrics.PotentialContractCompensation.Sub(so.ContractCost)
 		h.financialMetrics.LockedStorageCollateral = h.financialMetrics.LockedStorageCollateral.Sub(so.LockedCollateral)
 		h.financialMetrics.PotentialStorageRevenue = h.financialMetrics.PotentialStorageRevenue.Sub(so.PotentialStorageRevenue)
@@ -957,7 +922,6 @@ func (h *Host) resetFinancialMetrics() error {
 			// Update the other financial values based on the obligation status.
 			if so.ObligationStatus == obligationUnresolved {
 				fm.ContractCount++
-				fm.PotentialAccountFunding = fm.PotentialAccountFunding.Add(so.PotentialAccountFunding)
 				fm.PotentialContractCompensation = fm.PotentialContractCompensation.Add(so.ContractCost)
 				fm.LockedStorageCollateral = fm.LockedStorageCollateral.Add(so.LockedCollateral)
 				fm.PotentialStorageRevenue = fm.PotentialStorageRevenue.Add(so.PotentialStorageRevenue)
@@ -966,7 +930,6 @@ func (h *Host) resetFinancialMetrics() error {
 				fm.PotentialUploadBandwidthRevenue = fm.PotentialUploadBandwidthRevenue.Add(so.PotentialUploadRevenue)
 			}
 			if so.ObligationStatus == obligationSucceeded {
-				fm.AccountFunding = fm.AccountFunding.Add(so.PotentialAccountFunding)
 				fm.ContractCompensation = fm.ContractCompensation.Add(so.ContractCost)
 				fm.StorageRevenue = fm.StorageRevenue.Add(so.PotentialStorageRevenue)
 				fm.DownloadBandwidthRevenue = fm.DownloadBandwidthRevenue.Add(so.PotentialDownloadRevenue)
@@ -1555,12 +1518,12 @@ func (h *Host) auditStorageObligations() error {
 		id := key.(types.FileContractID)
 		so := value.(storageObligation)
 		h.log.Debugf("auditing storage obligation %v\n", id)
-		status := so.ObligationStatus
+		status := verifyStorageObligationStatus(so)
 
 		//Clear expired contracts
 		bh := h.blockHeight
 		soh := so.proofDeadline() + types.BlocksPerDay
-		h.log.Printf("AUDIT DEBUG: h.blockHeight: %d; storageObligation's proof deadline + BlocksPerDay: %d\n", bh, soh)
+		h.log.Debugf("AUDIT DEBUG: h.blockHeight: %d; storageObligation's proof deadline + BlocksPerDay: %d\n", bh, soh)
 		if status == 0 && (bh > soh) { //status 0 means unresolved, let it stay for a day after the deadline has passed
 			//TODO: Check the correct state of contract!
 			//If it was renewed without storage proof, then it should get
@@ -1613,8 +1576,7 @@ func (h *Host) auditStorageObligations() error {
 					})
 					if err != nil {
 						h.log.Println(errors.AddContext(err, "Audit: database failed to delete storage obligations"))
-					}
-				*/
+					}*/
 			}
 		}
 		return true

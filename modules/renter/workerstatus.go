@@ -28,12 +28,6 @@ func (w *worker) callStatus() modules.WorkerStatus {
 		uploadCoolDownErr = w.uploadRecentFailureErr.Error()
 	}
 
-	maintenanceOnCooldown, maintenanceCoolDownTime, maintenanceCoolDownErr := w.staticMaintenanceState.managedMaintenanceCooldownStatus()
-	var mcdErr string
-	if maintenanceCoolDownErr != nil {
-		mcdErr = maintenanceCoolDownErr.Error()
-	}
-
 	// Update the worker cache before returning a status.
 	w.staticTryUpdateCache()
 	cache := w.staticCache()
@@ -60,44 +54,6 @@ func (w *worker) callStatus() modules.WorkerStatus {
 		// Job Queues
 		BackupJobQueueSize:       w.staticFetchBackupsJobQueue.managedLen(),
 		DownloadRootJobQueueSize: w.staticJobQueueDownloadByRoot.managedLen(),
-
-		// Maintenance Cooldown Information
-		MaintenanceOnCooldown:    maintenanceOnCooldown,
-		MaintenanceCoolDownError: mcdErr,
-		MaintenanceCoolDownTime:  maintenanceCoolDownTime,
-
-		// Account Information
-		AccountBalanceTarget: w.staticBalanceTarget,
-		AccountStatus:        w.staticAccount.managedStatus(),
-
-		// Price Table Information
-		PriceTableStatus: w.staticPriceTableStatus(),
-
-		// Read Job Information
-		ReadJobsStatus: w.callReadJobStatus(),
-
-		// HasSector Job Information
-		HasSectorJobsStatus: w.callHasSectorJobStatus(),
-	}
-}
-
-// staticPriceTableStatus returns the status of the worker's price table
-func (w *worker) staticPriceTableStatus() modules.WorkerPriceTableStatus {
-	pt := w.staticPriceTable()
-
-	var recentErrStr string
-	if pt.staticRecentErr != nil {
-		recentErrStr = pt.staticRecentErr.Error()
-	}
-
-	return modules.WorkerPriceTableStatus{
-		ExpiryTime: pt.staticExpiryTime,
-		UpdateTime: pt.staticUpdateTime,
-
-		Active: time.Now().Before(pt.staticExpiryTime),
-
-		RecentErr:     recentErrStr,
-		RecentErrTime: pt.staticRecentErrTime,
 	}
 }
 

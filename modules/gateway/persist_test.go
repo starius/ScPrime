@@ -33,7 +33,7 @@ func TestLoad(t *testing.T) {
 	g.Close()
 
 	// Start second gateway
-	g2, err := New("localhost:0", false, g.persistDir)
+	g2, err := New("127.0.0.1:0", false, g.persistDir)
 	if err != nil {
 		t.Fatal(err)
 	}

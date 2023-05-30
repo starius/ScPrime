@@ -25,14 +25,14 @@ func TestPDBRGouging(t *testing.T) {
 	}
 
 	// verify happy case
-	pt := newDefaultPriceTable()
+	pt := modules.RPCPriceTable{}
 	err := checkPDBRGouging(pt, allowance)
 	if err != nil {
 		t.Fatal("unexpected price gouging failure", err)
 	}
 
 	// verify max download bandwidth price gouging
-	pt = newDefaultPriceTable()
+	pt = modules.RPCPriceTable{}
 	pt.DownloadBandwidthCost = allowance.MaxDownloadBandwidthPrice.Add64(1)
 	err = checkPDBRGouging(pt, allowance)
 	if err == nil || !strings.Contains(err.Error(), "download bandwidth price") {
@@ -40,7 +40,7 @@ func TestPDBRGouging(t *testing.T) {
 	}
 
 	// verify max upload bandwidth price gouging
-	pt = newDefaultPriceTable()
+	pt = modules.RPCPriceTable{}
 	pt.UploadBandwidthCost = allowance.MaxUploadBandwidthPrice.Add64(1)
 	err = checkPDBRGouging(pt, allowance)
 	if err == nil || !strings.Contains(err.Error(), "upload bandwidth price") {
@@ -49,7 +49,7 @@ func TestPDBRGouging(t *testing.T) {
 
 	// update the expected download to be non zero and verify the default prices
 	allowance.ExpectedDownload = 1 << 30 // 1GiB
-	pt = newDefaultPriceTable()
+	pt = modules.RPCPriceTable{}
 	err = checkPDBRGouging(pt, allowance)
 	if err != nil {
 		t.Fatal("unexpected price gouging failure", err)
@@ -91,28 +91,28 @@ func TestPDBRGouging(t *testing.T) {
 
 	// verify bumping every individual cost component to an insane value results
 	// in a price gouging error
-	pt = newDefaultPriceTable()
+	pt = modules.RPCPriceTable{}
 	pt.InitBaseCost = types.SiacoinPrecision.Mul64(100)
 	err = checkPDBRGouging(pt, allowance)
 	if err == nil || !strings.Contains(err.Error(), "combined PDBR pricing of host yields") {
 		t.Fatalf("expected PDBR price gouging error, instead error was '%v'", err)
 	}
 
-	pt = newDefaultPriceTable()
+	pt = modules.RPCPriceTable{}
 	pt.ReadBaseCost = types.SiacoinPrecision
 	err = checkPDBRGouging(pt, allowance)
 	if err == nil || !strings.Contains(err.Error(), "combined PDBR pricing of host yields") {
 		t.Fatalf("expected PDBR price gouging error, instead error was '%v'", err)
 	}
 
-	pt = newDefaultPriceTable()
+	pt = modules.RPCPriceTable{}
 	pt.ReadLengthCost = types.SiacoinPrecision
 	err = checkPDBRGouging(pt, allowance)
 	if err == nil || !strings.Contains(err.Error(), "combined PDBR pricing of host yields") {
 		t.Fatalf("expected PDBR price gouging error, instead error was '%v'", err)
 	}
 
-	pt = newDefaultPriceTable()
+	pt = modules.RPCPriceTable{}
 	pt.MemoryTimeCost = types.SiacoinPrecision
 	err = checkPDBRGouging(pt, allowance)
 	if err == nil || !strings.Contains(err.Error(), "combined PDBR pricing of host yields") {

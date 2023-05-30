@@ -1,4 +1,4 @@
-# [![ScPrime Logo](https://scpri.me/imagestore/SPRho_256x256.png)](http://scpri.me) v1.8.1
+# [![ScPrime Logo](https://scpri.me/imagestore/SPRho_256x256.png)](http://scpri.me) v1.8.2
 
 [![Build Status](https://gitlab.com/scpcorp/ScPrime/badges/master/pipeline.svg)](https://gitlab.com/scpcorp/ScPrime/commits/master)
 [![Coverage Report](https://gitlab.com/scpcorp/ScPrime/badges/master/coverage.svg)](https://gitlab.com/scpcorp/ScPrime/commits/master)
@@ -57,13 +57,18 @@ Usage
 This release comes with 2 binaries, `spd` and `spc`. `spd` is a background
 service, or "daemon," that runs the ScPrime protocol and exposes an HTTP API on
 port 4280. `spc` is a command-line client that can be used to interact with
-`spd` in a user-friendly way. There is also a graphical client, [ScPrime-UI](https://gitlab.com/scpcorp/ScPrime-UI),
-which is a way of using ScPrime for wallet users. For interested 
-developers, the `spd` API is documented [here](doc/API.md).
+`spd` in a user-friendly way. There is also a web browser access based version
+available from [Downloads](https://scpri.me/software/),
+which is a way of using ScPrime for wallet users.
 
-On Windows, double-click `spd.exe`. For command line operation, navigate to the
-containing folder and click File->Open command prompt. Start the `spd` service 
-by entering `spd` and pressing Enter. The command prompt may appear to freeze; 
+For interested developers, the `spd` API is documented [here](doc/API.md).
+
+To start the daemon directly on Windows, double-click `spd.exe`. For command 
+line operation and custom options, navigate to the containing folder and click 
+File->Open command prompt. To start the `spd` service with default settings 
+enter `spd` and press Enter. To see the available options type `spd -h` and 
+press Enter.
+The command prompt may appear to freeze; 
 this means `spd` is waiting for requests. Windows users may see a warning from 
 Windows Firewall; be sure to check both boxes ("Private networks" and "Public 
 networks") and click "Allow access." You can now run `spc` (in a separate command
@@ -72,7 +77,7 @@ prompt) or ScPrime-UI to interact with `spd`.
 Building From Source
 --------------------
 
-To build from source, [Go 1.16 or above must be installed](https://golang.org/doc/install)
+To build from source, [Go 1.19 or above must be installed](https://golang.org/doc/install)
 on the system. Clone the repo and run `make`:
 
 ```

@@ -18,7 +18,6 @@ import (
 )
 
 var (
-	errAlreadyUnlocked   = errors.New("wallet has already been unlocked")
 	errReencrypt         = errors.New("wallet is already encrypted, cannot encrypt again")
 	errScanInProgress    = errors.New("another wallet rescan is already underway")
 	errUnencryptedWallet = errors.New("wallet has not been encrypted yet")
@@ -183,7 +182,7 @@ func (w *Wallet) managedBlockingUnlock(masterKey crypto.CipherKey) (modules.Cons
 	encrypted := w.encrypted
 	w.mu.RUnlock()
 	if unlocked {
-		return modules.ConsensusChangeID{}, errAlreadyUnlocked
+		return modules.ConsensusChangeID{}, modules.ErrAlreadyUnlocked
 	} else if !encrypted {
 		return modules.ConsensusChangeID{}, errUnencryptedWallet
 	}

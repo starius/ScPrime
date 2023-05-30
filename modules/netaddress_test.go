@@ -72,7 +72,7 @@ var (
 		"foo:65536",
 		"foo:-100",
 		"foo:1000000",
-		"localhost:0",
+		"127.0.0.1:0",
 		"[::1]:0",
 	}
 	validAddrs = []string{

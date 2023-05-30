@@ -129,7 +129,7 @@ func (j *jobHasSector) callExpectedBandwidth() (ul, dl uint64) {
 func (j *jobHasSector) managedHasSector() ([]bool, error) {
 	w := j.staticQueue.staticWorker()
 	// Create the program.
-	pt := w.staticPriceTable().staticPriceTable
+	pt := modules.RPCPriceTable{}
 	pb := modules.NewProgramBuilder(&pt, 0) // 0 duration since HasSector doesn't depend on it.
 	for _, sector := range j.staticSectors {
 		pb.AddHasSectorInstruction(sector)

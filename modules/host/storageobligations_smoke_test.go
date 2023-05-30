@@ -28,7 +28,7 @@ import (
 func newTestTPool(name string, deps modules.Dependencies) (func() error, *transactionpool.TransactionPool, error) {
 	testdir := build.TempDir(modules.HostDir, name)
 	// Create the modules needed.
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
 		return nil, nil, err
 	}

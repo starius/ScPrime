@@ -4,38 +4,25 @@ package api
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"math/big"
+	"net/http"
 	"os/user"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
 
-	"golang.org/x/crypto/openpgp"
-	//"archive/zip"
-	//"bytes"
-	//"crypto/sha256"
-	"encoding/json"
-	"fmt"
-
-	//"io"
-	//"io/ioutil"
-	"math/big"
-	"net/http"
-
-	//"path"
-	//"path/filepath"
-	//"runtime"
-	//"strings"
-
 	"github.com/inconshreveable/go-update"
 	"github.com/julienschmidt/httprouter"
-
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
+	"golang.org/x/crypto/openpgp"
 )
 
 const (
@@ -197,7 +184,16 @@ func fetchLatestRelease() (gitlabRelease, error) {
 	if err != nil {
 		return gitlabRelease{}, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		e := resp.Body.Close()
+		if err == nil {
+			err = e
+		} else {
+			if e != nil {
+				err = fmt.Errorf("error %v on closing after %w", e.Error(), err)
+			}
+		}
+	}()
 	var releases []gitlabRelease
 	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
 		return gitlabRelease{}, err
@@ -287,7 +283,16 @@ func updateToRelease(version string) error {
 			if err != nil {
 				return err
 			}
-			defer binData.Close()
+			defer func() {
+				e := binData.Close()
+				if err == nil {
+					err = e
+				} else {
+					if e != nil {
+						err = fmt.Errorf("error %v on closing after %w", e.Error(), err)
+					}
+				}
+			}()
 		}
 		if binData == nil {
 			return errors.New("could not find " + binary + " binary")

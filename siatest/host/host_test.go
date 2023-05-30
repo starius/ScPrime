@@ -360,8 +360,8 @@ func TestHostContract(t *testing.T) {
 		t.Fatal("contract should have received more revisions from the upload", hcg.Contract.RevisionNumber)
 	}
 
-	if hcg.Contract.PotentialAccountFunding.IsZero() {
-		t.Fatal("contract should have account funding")
+	if !hcg.Contract.PotentialAccountFunding.IsZero() {
+		t.Fatal("contract shouldn't have account funding as EA is removed")
 	}
 
 	if hcg.Contract.PotentialUploadRevenue.IsZero() {
@@ -376,8 +376,9 @@ func TestHostContract(t *testing.T) {
 		t.Fatal("valid payout should be greater than old valid payout")
 	}
 
-	if cmp := hcg.Contract.MissedProofOutputs[1].Value.Cmp(prevMissPayout); cmp != 1 {
-		t.Fatalf("missed payout %v should be more than old missed payout %v", hcg.Contract.MissedProofOutputs[1].Value, prevMissPayout)
+	newMissPayout := hcg.Contract.MissedProofOutputs[1].Value
+	if cmp := newMissPayout.Cmp(prevMissPayout); cmp != -1 {
+		t.Errorf("missed proof payout for provider %v should be less than previous missed proof payout %v after a getting data", newMissPayout, prevMissPayout)
 	}
 }
 
@@ -446,7 +447,6 @@ func TestHostContracts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	if hc.Contracts[0].DataSize != 4096 {
 		t.Fatal("contract should have 1 sector uploaded")
 	}
@@ -458,8 +458,8 @@ func TestHostContracts(t *testing.T) {
 		t.Fatal("contract should have received more revisions from the upload", hc.Contracts[0].RevisionNumber)
 	}
 
-	if hc.Contracts[0].PotentialAccountFunding.IsZero() {
-		t.Fatal("contract should have account funding")
+	if !hc.Contracts[0].PotentialAccountFunding.IsZero() {
+		t.Fatal("contract shouldn't have account funding as EA is removed")
 	}
 
 	if hc.Contracts[0].PotentialUploadRevenue.IsZero() {
@@ -474,70 +474,9 @@ func TestHostContracts(t *testing.T) {
 		t.Fatal("valid payout should be greater than old valid payout")
 	}
 
-	if cmp := hc.Contracts[0].MissedProofOutputs[1].Value.Cmp(prevMissPayout); cmp != 1 {
-		t.Fatal("missed payout should be more than old missed payout", cmp)
-	}
-}
-
-// TestHostExternalSettingsEphemeralAccountFields confirms the host's external
-// settings contain both ephemeral account fields and they are initialized to
-// their defaults. It will also check if both fields can be updated and whether
-// or not those updates take effect properly.
-func TestHostExternalSettingsEphemeralAccountFields(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	t.Parallel()
-
-	// Create Host
-	testDir := hostTestDir(t.Name())
-	hostParams := node.Host(testDir)
-	host, err := siatest.NewCleanNode(hostParams)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := host.Close(); err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	hg, err := host.HostGet()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// verify settings exist and are set to their defaults
-	if hg.ExternalSettings.EphemeralAccountExpiry != modules.DefaultEphemeralAccountExpiry {
-		t.Fatalf("Expected EphemeralAccountExpiry to be set, and to equal the default, instead it was %v", hg.ExternalSettings.EphemeralAccountExpiry)
-	}
-	if !hg.ExternalSettings.MaxEphemeralAccountBalance.Equals(modules.DefaultMaxEphemeralAccountBalance) {
-		t.Fatalf("Expected MaxEphemeralAccountBalance to be set, and to equal the default, instead it was %v", hg.ExternalSettings.MaxEphemeralAccountBalance)
-	}
-
-	// modify them
-	updatedExpiry := int64(modules.DefaultEphemeralAccountExpiry.Seconds()) + 1
-	err = host.HostModifySettingPost(client.HostParamEphemeralAccountExpiry, updatedExpiry)
-	if err != nil {
-		t.Fatal(err)
-	}
-	updatedMaxBalance := modules.DefaultMaxEphemeralAccountBalance.Mul64(2)
-	err = host.HostModifySettingPost(client.HostParamMaxEphemeralAccountBalance, updatedMaxBalance)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// verify settings were updated
-	hg, err = host.HostGet()
-	if err != nil {
-		t.Fatal(err)
-	}
-	expectedExpiry := time.Duration(updatedExpiry) * time.Second
-	if hg.ExternalSettings.EphemeralAccountExpiry != expectedExpiry {
-		t.Fatalf("Expected EphemeralAccountExpiry to be set, and to equal the updated value, instead it was %v", hg.ExternalSettings.EphemeralAccountExpiry)
-	}
-	if !hg.ExternalSettings.MaxEphemeralAccountBalance.Equals(updatedMaxBalance) {
-		t.Fatalf("Expected MaxEphemeralAccountBalance to be set, and to equal the updated value, instead it was %v", hg.ExternalSettings.MaxEphemeralAccountBalance)
+	newMissPayout := hc.Contracts[0].MissedProofOutputs[1].Value
+	if cmp := newMissPayout.Cmp(prevMissPayout); cmp != -1 {
+		t.Errorf("missed proof payout for provider %v should be less than previous missed proof payout %v after a getting data", newMissPayout, prevMissPayout)
 	}
 }
 
@@ -629,9 +568,6 @@ func TestStorageProofEmptyContract(t *testing.T) {
 	renters := tg.Renters()
 	//	renterUpload := renters[0]
 	renterDownload := renters[1]
-
-	t.Log("Pubaccess upload/download removed from this test.")
-
 	// Get the storage obligations from the hosts.
 	hosts := tg.Hosts()
 	host1, host2 := hosts[0], hosts[1]

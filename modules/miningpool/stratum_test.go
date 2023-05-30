@@ -56,7 +56,7 @@ func createAuthorizeRequest(t *testing.T, port int, waitchan chan int, tID uint6
 	//fmt.Printf("listening on port: %v\n", pt.mpool.InternalSettings().PoolNetworkPort)
 	socket, err := net.DialTimeout("tcp", fmt.Sprintf(":%d", port), 3*time.Second)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	defer func() {
 		if autoclose {
@@ -74,7 +74,7 @@ func createAuthorizeRequest(t *testing.T, port int, waitchan chan int, tID uint6
 	req := types.StratumRequest{Method: "mining.authorize", Params: params, ID: tID}
 	rawmsg, err := json.Marshal(req)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 		return nil
 	}
 	rawmsg = append(rawmsg, []byte("\n")...)
@@ -84,7 +84,7 @@ func createAuthorizeRequest(t *testing.T, port int, waitchan chan int, tID uint6
 	}
 	_, err = socket.Write(rawmsg)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 		return nil
 	} else if waitchan != nil {
 		waitchan <- 0
@@ -96,20 +96,20 @@ func createAuthorizeRequest(t *testing.T, port int, waitchan chan int, tID uint6
 		//fmt.Printf("Reading from socket\n")
 		rawmessage, err := reader.ReadString('\n')
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		r := types.StratumResponse{}
 		err = json.Unmarshal([]byte(rawmessage), &r)
 		if err != nil {
 			//fmt.Println(string(rawmessage))
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		if r.ID == tID {
 			break
 		} else {
-			t.Fatal("got a wrong message: ", rawmessage)
+			t.Error("got a wrong message: ", rawmessage)
 		}
 	}
 	if waitchan != nil {
@@ -208,23 +208,23 @@ func createSubscribeRequest(t *testing.T, socket net.Conn, waitchan chan int, tI
 		rawmessage, err := reader.ReadString('\n')
 		// fmt.Println(rawmessage)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		r := types.StratumResponse{}
 		err = json.Unmarshal([]byte(rawmessage), &r)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		if r.ID == tID {
 			//fmt.Printf("MATCH %d: %s\n", r.ID, rawmessage)
 			if r.Error != nil {
 				rErr := r.Error
-				t.Fatal(errors.New(rErr[0].(string)))
+				t.Error(errors.New(rErr[0].(string)))
 			}
 			resp := r.Result.([]interface{})
 			if len(resp) != 3 {
-				t.Fatal(errors.New(fmt.Sprintf("wrong response number %d", len(resp))))
+				t.Error(errors.New(fmt.Sprintf("wrong response number %d", len(resp))))
 			}
 
 			break

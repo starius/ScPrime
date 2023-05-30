@@ -129,37 +129,7 @@ func (r *Renter) managedDownloadByRoot(ctx context.Context, root crypto.Hash, of
 	workers := r.staticWorkerPool.callWorkers()
 	staticResponseChan := make(chan *jobHasSectorResponse, len(workers))
 
-	// Filter out all workers that do not support the new protocol. It has been
-	// determined that hosts who do not support the async protocol are not worth
-	// supporting in the new download by root code - it'll remove pretty much
-	// all of the performance advantages. Pubaccess is being forced to fully
-	// migrate to the async protocol.
-	numAsyncWorkers := 0
-	for _, worker := range workers {
-		cache := worker.staticCache()
-		if build.VersionCmp(cache.staticHostVersion, minAsyncVersion) < 0 {
-			continue
-		}
-
-		// check for price gouging
-		pt := worker.staticPriceTable().staticPriceTable
-		err := checkPDBRGouging(pt, cache.staticRenterAllowance)
-		if err != nil {
-			r.log.Debugf("price gouging detected in worker %v, err: %v\n", worker.staticHostPubKeyStr, err)
-			continue
-		}
-
-		jhs := worker.newJobHasSector(ctx.Done(), staticResponseChan, root)
-		if !worker.staticJobHasSectorQueue.callAdd(jhs) {
-			// This will filter out any workers that are on cooldown or
-			// otherwise can't participate in the project.
-			continue
-		}
-		workers[numAsyncWorkers] = worker
-		numAsyncWorkers++
-	}
-	workers = workers[:numAsyncWorkers]
-	// If there are no workers remaining, fail early.
+	// If there are no workers fail early.
 	if len(workers) == 0 {
 		return nil, errors.New("cannot perform DownloadByRoot, no workers in worker pool")
 	}
@@ -208,7 +178,7 @@ func (r *Renter) managedDownloadByRoot(ctx context.Context, root crypto.Hash, of
 		}
 
 		var resp *jobHasSectorResponse
-		if len(usableWorkers) > 0 && responses < numAsyncWorkers {
+		if len(usableWorkers) > 0 && responses < len(workers) {
 			// There are usable workers, and there are also workers that have
 			// not reported back yet. Because we have usable workers, we want to
 			// listen on the useBestWorkerChan.

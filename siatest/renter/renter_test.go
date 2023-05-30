@@ -60,7 +60,6 @@ func TestRenterOne(t *testing.T) {
 		{Name: "TestDownloadAfterLegacyRenewAndClear", Test: testDownloadAfterLegacyRenewAndClear},
 		{Name: "TestDirectories", Test: testDirectories},
 		{Name: "TestAlertsSorted", Test: testAlertsSorted},
-		{Name: "TestPriceTablesUpdated", Test: testPriceTablesUpdated},
 		{Name: "TestReceivedFieldEqualsFileSize", Test: testReceivedFieldEqualsFileSize},
 		{Name: "TestFileAvailableAndRecoverable", Test: testFileAvailableAndRecoverable},
 	}
@@ -1105,94 +1104,6 @@ func TestLocalRepairCorrupted(t *testing.T) {
 	}
 }
 
-// testPriceTablesUpdated verfies the workers' price tables are updated and stay
-// recent with the host
-func testPriceTablesUpdated(t *testing.T, tg *siatest.TestGroup) {
-	r := tg.Renters()[0]
-
-	// Get the worker status
-	rwg, err := r.RenterWorkersGet()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Get a random worker
-	var host types.SiaPublicKey
-	for _, worker := range rwg.Workers {
-		host = worker.HostPubKey
-		break
-	}
-
-	// Wait until that worker has been able to update its price table, when that
-	// is the case we save its current update and expiry time.
-	var ut, et time.Time
-	err = build.Retry(100, 100*time.Millisecond, func() error {
-		rwg, err := r.RenterWorkersGet()
-		if err != nil {
-			return err
-		}
-
-		var ws *modules.WorkerStatus
-		for i := range rwg.Workers {
-			worker := rwg.Workers[i]
-			if worker.HostPubKey.Equals(host) {
-				ws = &worker
-				break
-			}
-		}
-		if ws == nil {
-			return errors.New("worker not found")
-		}
-
-		if !ws.PriceTableStatus.Active {
-			return errors.New("worker has no valid price table")
-		}
-
-		ut = ws.PriceTableStatus.UpdateTime
-		et = ws.PriceTableStatus.ExpiryTime
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Wait until after the price table is set to update, note we don't gain
-	// anything by waiting for this inside the build.Retry as we know when it
-	// won't trigger before the update time.
-	time.Sleep(time.Until(ut))
-
-	// Verify in a retry that the price table's updateTime and expiryTime have
-	// been set to new dates in the future, indicating a successful price table
-	// update.
-	err = build.Retry(100, 100*time.Millisecond, func() error {
-		rwg, err := r.RenterWorkersGet()
-		if err != nil {
-			return err
-		}
-
-		var ws *modules.WorkerStatus
-		for i := range rwg.Workers {
-			worker := rwg.Workers[i]
-			if worker.HostPubKey.Equals(host) {
-				ws = &worker
-				break
-			}
-		}
-		if ws == nil {
-			return errors.New("worker not found")
-		}
-
-		if !(ws.PriceTableStatus.UpdateTime.After(ut) && ws.PriceTableStatus.ExpiryTime.After(et)) {
-			return errors.New("updatedTime and expiryTime have not been updated yet, indicating the price table has not been renewed")
-		}
-
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 // testRemoteRepair tests if a renter correctly repairs a file by
 // downloading it after a host goes offline.
 //
@@ -2008,7 +1919,6 @@ func testRedundancyReporting(t *testing.T, tg *siatest.TestGroup) {
 // TestRenewFailing checks if a contract gets marked as !goodForRenew after
 // failing multiple times in a row.
 func TestRenewFailing(t *testing.T) {
-	t.Skip()
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -2911,7 +2821,10 @@ func TestRenterPersistData(t *testing.T) {
 	// Create new node from legacy renter.json persistence file
 	r, err := siatest.NewNode(node.AllModules(testDir))
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf("siatest.NewNode fail: %v", err)
+		if r == nil {
+			t.FailNow()
+		}
 	}
 	defer func() {
 		if err = r.Close(); err != nil {
@@ -4847,28 +4760,12 @@ func TestWorkerStatus(t *testing.T) {
 				return errors.New("Worker should not be marked as UploadTerminated")
 			}
 
-			// Account checks
-			if !worker.AccountBalanceTarget.Equals(types.SiacoinPrecision) {
-				return fmt.Errorf("Expected balance target to be 1SC but was %v", worker.AccountBalanceTarget.HumanString())
-			}
-
 			// Job Queues
 			if worker.BackupJobQueueSize != 0 {
 				return fmt.Errorf("Expected backup queue to be empty but was %v", worker.BackupJobQueueSize)
 			}
 			if worker.DownloadRootJobQueueSize != 0 {
 				return fmt.Errorf("Expected download by root queue to be empty but was %v", worker.DownloadRootJobQueueSize)
-			}
-
-			// AccountStatus checks
-			if worker.AccountStatus.AvailableBalance.IsZero() {
-				return fmt.Errorf("Expected available balance to be greater zero but was %v", worker.AccountStatus.AvailableBalance.HumanString())
-			}
-			if !worker.AccountStatus.NegativeBalance.IsZero() {
-				return fmt.Errorf("Expected negative balance to be zero but was %v", worker.AccountStatus.NegativeBalance.HumanString())
-			}
-			if worker.AccountStatus.RecentErr != "" {
-				return fmt.Errorf("Expected recent err to be nil but was %v", worker.AccountStatus.RecentErr)
 			}
 
 			// PriceTableStatus checks
@@ -4901,185 +4798,8 @@ func TestWorkerStatus(t *testing.T) {
 		return nil
 	})
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
-}
-
-// TestWorkerSyncBalanceWithHost verifies the renter will sync its
-// account balance with the host's account balance after it experienced an
-// unclean shutdown.
-//
-// Note: this test purposefully uses its own testgroup to avoid NDFs
-func TestWorkerSyncBalanceWithHost(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	t.Parallel()
-
-	// create a testgroup without a renter and with only 3 hosts
-	groupParams := siatest.GroupParams{
-		Hosts:  3,
-		Miners: 1,
-	}
-	testDir := renterTestDir(t.Name())
-	tg, err := siatest.NewGroupFromTemplate(testDir, groupParams)
-	if err != nil {
-		t.Fatal("Failed to create group:", err)
-	}
-	defer tg.Close()
-
-	// add a renter with a dependency that simulates an unclean shutdown by
-	// preventing accounts to be saved and also prevents the snapshot syncing
-	// thread from running. That way we won't experience unexpected withdrawals
-	// or refunds.
-	renterParams := node.Renter(filepath.Join(testDir, "renter"))
-	renterParams.RenterDeps = &dependencies.DependencyNoSnapshotSyncInterruptAccountSaveOnShutdown{}
-
-	// add a host with a dependency that alters the deposit amount, in a way not
-	// noticeable to the renter until he asks for his balance, this is necessary
-	// as only then we can ensure the unclean shutdown took place and we synced
-	// to the host balance
-	hostParams := node.Host(filepath.Join(testDir, "host"))
-	hostParams.HostDeps = &dependencies.HostLowerDeposit{}
-	nodes, err := tg.AddNodes(renterParams, hostParams)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// grab the nodes we just added
-	var r, h *siatest.TestNode
-	if strings.HasSuffix(nodes[0].Dir, "renter") {
-		r = nodes[0]
-		h = nodes[1]
-	} else {
-		r = nodes[1]
-		h = nodes[0]
-	}
-
-	// grab the hostkey
-	hpk, err := h.HostPublicKey()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// create a function that filters worker statuses to return the status of
-	// our custom host
-	worker := func(w []modules.WorkerStatus) (modules.WorkerStatus, bool) {
-		for _, worker := range w {
-			if worker.HostPubKey.Equals(hpk) {
-				return worker, true
-			}
-		}
-		return modules.WorkerStatus{}, false
-	}
-
-	// allow some time for the worker to be added to the worker pool and fund
-	// ephemeral account, remember this balance value as the renter's version of
-	// the balance
-	var renterBalance types.Currency
-	err = build.Retry(300, 100*time.Millisecond, func() error {
-		rwg, err := r.RenterWorkersGet()
-		if err != nil {
-			return err
-		}
-		w, found := worker(rwg.Workers)
-		if !found {
-			return errors.New("worker not in worker pool yet")
-		}
-		if w.AccountStatus.AvailableBalance.IsZero() {
-			return errors.New("expected worker to have a funded account, instead its balance is still 0")
-		}
-		renterBalance = w.AccountStatus.AvailableBalance
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// restart the renter
-	err = tg.RestartNode(r)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// get the worker status
-	rwg, err := r.RenterWorkersGet()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// grab the balance of the worker, this should have been synced to use the
-	// host's version of the balance
-	w, found := worker(rwg.Workers)
-	if !found {
-		t.Fatal("Expected worker to be found")
-	}
-
-	//Wait a second
-	timeout := time.Now().Add(2 * time.Second)
-	for w.AccountStatus.AvailableBalance.IsZero() && time.Now().Before(timeout) {
-		// get the workers
-		rwg, err := r.RenterWorkersGet()
-		if err != nil {
-			t.Fatal(err)
-		}
-		// grab the balance of the worker, this should have been synced to use the
-		// host's version of the balance
-		w, found = worker(rwg.Workers)
-		if !found {
-			t.Fatal("Expected worker to be found")
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	if w.AccountStatus.AvailableBalance.IsZero() {
-		t.Logf("Renter workers: \n %+v\n", rwg)
-		t.Fatal("Expected the renter to have synced its balance to the host's version of the balance")
-	}
-
-	// safety check to avoid panic on sub later
-	if w.AccountStatus.AvailableBalance.Cmp(renterBalance) >= 0 {
-		t.Fatal("Expected the synced balance to be lower, as the 'lower deposit' dependency should have deposited less", w.AccountStatus.AvailableBalance, renterBalance)
-	}
-	delta := types.SiacoinPrecision.Div64(10)
-	if renterBalance.Sub(w.AccountStatus.AvailableBalance).Cmp(delta) < 0 {
-		t.Fatalf("Expected the synced balance to be at least %v lower than the renter balance, as thats the amount we subtracted from the deposit amount, instead synced balance was %v and renter balance was %v", delta, w.AccountStatus.AvailableBalance, renterBalance)
-	}
-}
-
-// TestReadSectorOutputCorrupted verifies that the merkle proof check on the
-// ReadSector MDM instruction works as expected.
-func TestReadSectorOutputCorrupted(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	t.Parallel()
-
-	// create a testgroup with a renter and miner.
-	groupParams := siatest.GroupParams{
-		Miners:  1,
-		Renters: 1,
-	}
-
-	testDir := renterTestDir(t.Name())
-	tg, err := siatest.NewGroupFromTemplate(testDir, groupParams)
-	if err != nil {
-		t.Fatal("Failed to create group:", err)
-	}
-	defer tg.Close()
-
-	// add a host that corrupts downloads.
-	deps1 := dependencies.NewDependencyCorruptMDMOutput()
-	deps2 := dependencies.NewDependencyCorruptMDMOutput()
-	hostParams1 := node.Host(filepath.Join(testDir, "host1"))
-	hostParams2 := node.Host(filepath.Join(testDir, "host2"))
-	hostParams1.HostDeps = deps1
-	hostParams2.HostDeps = deps2
-	_, err = tg.AddNodes(hostParams1, hostParams2)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Skip("TestReadSectorOutputCorrupted not performed due to removal of pubaccess")
 }
 
 // TestRenterPricesVolatility verifies that the renter caches its price

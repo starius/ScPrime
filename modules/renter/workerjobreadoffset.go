@@ -35,7 +35,7 @@ func (j *jobReadOffset) managedReadOffset() ([]byte, error) {
 	// create the program
 	w := j.staticQueue.staticWorker()
 	bh := w.staticCache().staticBlockHeight
-	pt := w.staticPriceTable().staticPriceTable
+	pt := modules.RPCPriceTable{}
 	pb := modules.NewProgramBuilder(&pt, 0) // 0 duration since Read doesn't depend on it.
 	pb.AddRevisionInstruction()
 	pb.AddReadOffsetInstruction(j.staticLength, j.staticOffset, true)

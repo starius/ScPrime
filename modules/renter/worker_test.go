@@ -103,6 +103,7 @@ func TestNewWorkerTester(t *testing.T) {
 // merkle proof returned by the host and reject data that doesn't match said
 // proof.
 func TestReadOffsetCorruptedProof(t *testing.T) {
+	t.Skip("EA workers disabled")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -111,7 +112,7 @@ func TestReadOffsetCorruptedProof(t *testing.T) {
 	deps := dependencies.NewDependencyCorruptMDMOutput()
 	wt, err := newWorkerTesterCustomDependency(t.Name(), modules.ProdDependencies, deps)
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf("newWorkerTesterCustomDependency: %v", err.Error())
 	}
 	defer func() {
 		if err := wt.Close(); err != nil {
@@ -129,18 +130,18 @@ func TestReadOffsetCorruptedProof(t *testing.T) {
 	// Upload a snapshot to fill the first sector of the contract.
 	err = wt.UploadSnapshot(context.Background(), backup, fastrand.Bytes(int(backup.Size)))
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf("UploadSnapshot failed: %v", err.Error())
 	}
 
 	// Download the first sector partially and then fully since both actions
 	// require different proofs.
 	_, err = wt.ReadOffset(context.Background(), 0, modules.SectorSize/2)
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf("Half sector read offset failed: %v", err.Error())
 	}
 	_, err = wt.ReadOffset(context.Background(), 0, modules.SectorSize)
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf("read offset full sector failed: %v", err.Error())
 	}
 
 	// Do it again but this time corrupt the output to make sure the proof
