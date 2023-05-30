@@ -363,6 +363,7 @@ func (r *Renter) threadedFetchAndRepairChunk(chunk *unfinishedUploadChunk) {
 
 	// Fetch the logical data for the chunk.
 	err = r.managedFetchLogicalChunkData(chunk)
+	r.log.Debugf("managedFetchLogicalChunkData(chunk), chunk= %v", chunk.id)
 	if err != nil {
 		// Logical data is not available, cannot upload. Chunk will not be
 		// distributed to workers, therefore set workersRemaining equal to zero.
@@ -408,6 +409,7 @@ func (r *Renter) threadedFetchAndRepairChunk(chunk *unfinishedUploadChunk) {
 
 	// Distribute the chunk to the workers.
 	r.managedDistributeChunkToWorkers(chunk)
+	r.log.Debugf("managedDistributeChunkToWorkers(chunk), chunk= %v", chunk.id)
 }
 
 // staticEncryptAndCheckIntegrity will run through the pieces that are
@@ -477,8 +479,18 @@ func (uc *unfinishedUploadChunk) staticReadLogicalData(r io.Reader) (uint64, err
 
 // staticFetchLogicalDataFromReader will load the logical data for a chunk from
 // a reader, and perform an integrity check on the chunk to ensure correctness.
-func (r *Renter) staticFetchLogicalDataFromReader(uc *unfinishedUploadChunk) error {
-	defer uc.sourceReader.Close()
+func (r *Renter) staticFetchLogicalDataFromReader(uc *unfinishedUploadChunk) (err error) {
+	//defer uc.sourceReader.Close()
+	defer func() {
+		e := uc.sourceReader.Close()
+		if err == nil {
+			err = e
+		} else {
+			if e != nil {
+				err = fmt.Errorf("error %v on closing after %w", e.Error(), err)
+			}
+		}
+	}()
 
 	// Grab the logical data from the reader.
 	n, err := uc.staticReadLogicalData(uc.sourceReader)
@@ -568,6 +580,7 @@ func (r *Renter) managedFetchLogicalChunkData(uc *unfinishedUploadChunk) error {
 // cleanup required. This can include returning rememory and releasing the chunk
 // from the map of active chunks in the chunk heap.
 func (r *Renter) managedCleanUpUploadChunk(uc *unfinishedUploadChunk) {
+	r.log.Debugf("managedCleanUpUploadChunk(uc *unfinishedUploadChunk), uc=%v", uc.id)
 	uc.mu.Lock()
 	piecesAvailable := 0
 	var memoryReleased uint64

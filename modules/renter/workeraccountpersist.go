@@ -103,7 +103,7 @@ func (a *account) managedPersist() error {
 	a.mu.Lock()
 	accountData := accountPersistence{
 		AccountID: a.staticID,
-		Balance:   a.minExpectedBalance(),
+		Balance:   types.NewCurrency64(0), //a.minExpectedBalance(),
 		HostKey:   a.staticHostKey,
 		SecretKey: a.staticSecretKey,
 	}

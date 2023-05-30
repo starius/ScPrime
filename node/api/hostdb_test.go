@@ -266,15 +266,8 @@ func assembleHostPort(key crypto.CipherKey, hostHostname string, testdir string)
 		panic("assembleServerTester called during short tests")
 	}
 
-	// Create the siamux
-	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
-	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
-	if err != nil {
-		return nil, err
-	}
-
 	// Create the modules.
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
 		return nil, err
 	}
@@ -308,16 +301,16 @@ func assembleHostPort(key crypto.CipherKey, hostHostname string, testdir string)
 	if err != nil {
 		return nil, err
 	}
-	h, err := host.New(cs, g, tp, w, mux, hostHostname, filepath.Join(testdir, modules.HostDir), nil, 5*time.Second)
+	h, err := host.New(cs, g, tp, w, hostHostname, filepath.Join(testdir, modules.HostDir), nil, 5*time.Second)
 	if err != nil {
 		return nil, err
 	}
 	rl := ratelimit.NewRateLimit(0, 0, 0)
-	r, errChan := renter.New(g, cs, w, tp, mux, rl, filepath.Join(testdir, modules.RenterDir))
+	r, errChan := renter.New(g, cs, w, tp, rl, filepath.Join(testdir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		return nil, err
 	}
-	srv, err := NewServer(testdir, "localhost:0", "ScPrime-Agent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
+	srv, err := NewServer(testdir, "127.0.0.1:0", "ScPrime-Agent", "", cs, nil, g, h, m, r, tp, w, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}

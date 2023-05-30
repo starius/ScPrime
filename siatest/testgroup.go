@@ -519,7 +519,7 @@ func waitForContracts(miner *TestNode, renters map[*TestNode]struct{}, hosts map
 func (tg *TestGroup) AddNodeN(np node.NodeParams, n int) ([]*TestNode, error) {
 	nps := make([]node.NodeParams, n)
 	for i := 0; i < n; i++ {
-		np.HostAPIAddr = "localhost:0"
+		np.HostAPIAddr = "127.0.0.1:0"
 		nps[i] = np
 	}
 	return tg.AddNodes(nps...)

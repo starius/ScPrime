@@ -776,10 +776,6 @@ type (
 		MaintenanceCoolDownError string        `json:"maintenancecooldownerror"`
 		MaintenanceCoolDownTime  time.Duration `json:"maintenancecooldowntime"`
 
-		// Ephemeral Account information
-		AccountBalanceTarget types.Currency      `json:"accountbalancetarget"`
-		AccountStatus        WorkerAccountStatus `json:"accountstatus"`
-
 		// PriceTable information
 		PriceTableStatus WorkerPriceTableStatus `json:"pricetablestatus"`
 

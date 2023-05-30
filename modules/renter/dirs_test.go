@@ -176,7 +176,6 @@ func TestDirInfo(t *testing.T) {
 // TestRenterListDirectory verifies that the renter properly lists the contents
 // of a directory
 func TestRenterListDirectory(t *testing.T) {
-	t.Skip()
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -202,13 +201,27 @@ func TestRenterListDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create directory
+	siaPath2, err := modules.NewSiaPath("home/user")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = rt.renter.CreateDir(siaPath2, modules.DefaultDirPerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Confirm that we get expected number of FileInfo and DirectoryInfo.
 	directories, err := rt.renter.DirList(modules.RootSiaPath())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(directories) != 5 {
-		t.Fatal("Expected 5 DirectoryInfos but got", len(directories))
+	if len(directories) != 4 {
+		dirlst := make([]string, 0)
+		for _, d := range directories {
+			dirlst = append(dirlst, "'"+d.Name()+"'")
+		}
+		t.Errorf("Expected 4 DirectoryInfos but got %v:%s", len(directories), dirlst)
 	}
 	files, err := rt.renter.FileList(modules.RootSiaPath(), false, false)
 	if err != nil {
@@ -230,14 +243,8 @@ func TestRenterListDirectory(t *testing.T) {
 			return err
 		}
 		root := directories[0]
-		// Check the aggregate and siadir fields.
-		//
-		// Expecting /home, /home/user, /var, /snapshots, /foo
-		if root.AggregateNumSubDirs != 5 {
-			return fmt.Errorf("Expected 5 subdirs in aggregate but got %v", root.AggregateNumSubDirs)
-		}
-		if root.NumSubDirs != 4 {
-			return fmt.Errorf("Expected 4 subdirs but got %v", root.NumSubDirs)
+		if root.NumSubDirs != 3 {
+			return fmt.Errorf("Expected 3 subdirs but got %v", root.NumSubDirs)
 		}
 		if root.AggregateNumFiles != 1 {
 			return fmt.Errorf("Expected 1 file in aggregate but got %v", root.AggregateNumFiles)

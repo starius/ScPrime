@@ -104,11 +104,8 @@ In version `1.4.3.0`, scprime hosting is configured as follows:
 | acceptingcontracts         | Yes or No                                       |
 | collateral                 | in SC / TB / Month, 10-1000                     |
 | collateralbudget           | in SC                                           |
-| ephemeralaccountexpiry     | in seconds                                      |
 | maxcollateral              | in SC, max per contract                         |
 | maxduration                | in weeks, at least 12                           |
-| maxephemeralaccountbalance | in SC                                           |
-| maxephemeralaccountrisk    | in SC                                           |
 | mincontractprice           | minimum price in SC per contract                |
 | mindownloadbandwidthprice  | in SC / TB                                      |
 | minstorageprice            | in SC / TB                                      |
@@ -162,91 +159,6 @@ corresponding field flag, for example '--amount 500SC'.
   `filename` is the path to the file you want to upload, and nickname is what
 you will use to refer to that file in the network. For example, it is common to
 have the nickname be the same as the filename.
-
-* `spc renter workers` shows a detailed overview of all workers. It shows
-  information about their accounts, contract and download and upload status.
-
-* `spc renter workers dj` shows a detailed overview of the workers' download
-  statuses, such as whether its on cooldown or not and potentially the most
-  recent error.
-
-* `spc renter workers ea` shows a detailed overview of the workers' ephemeral
-  account statuses, such as balance information, whether its on cooldown or not
-  and potentially the most recent error.
-
-* `spc renter workers hsj` shows information about the has sector jobs queue.
-  How many jobs are in the queue and their average completion time. In case
-  there was an error it will also display the most recent error and when it
-  occurred.
-
-* `spc renter workers pt` shows a detailed overview of the workers's price table
-  statuses, such as when it was updated, when it expires, whether its on cooldown
-  or not and potentially the most recent error.
-
-* `spc renter workers rj` shows information about the read jobs queue. How many
-  jobs are in the queue and their average completion time. In case there was an
-  error it will also display the most recent error and when it occurred.
-
-* `spc renter workers uj` shows a detailed overview of the workers' upload
-  statuses, such as whether its on cooldown or not and potentially the most
-  recent error.
-
-### Pubaccesskey tasks
-* `spc pubaccesskey add [pubaccesskey base64-encoded pubaccesskey]`will add a base64-encoded
-  pubaccesskey to the key manager.
-
-* `spc pubaccesskey create [name]` will create a pubaccesskey  with the given name. The
-  --type flag can be used to specify the pubaccesskey type. Its default is private-id.
-
-* `spc pubaccesskey delete` will delete the base64-encoded pubaccesskey using either its
-  name with --name or id with --id
-
-* `spc pubaccesskey get` will get the base64-encoded pubaccesskey using either its name
-  with --name or id with --id
-
-* `spc pubaccesskey get-id [name]` will get the base64-encoded pubaccesskey id by its name
-
-* `spc pubaccesskey ls` will list all pubaccesskeys. Use with --show-priv-keys to show full
-  encoding with private key also.
-
-### Public access tasks
-
-* `spc pubaccess blacklist` lists the merkleroots of all blacklisted publinks.
-
-* `spc pubaccess blacklist add [publink]` will add any publinks separated by
-  spaces to the blacklist.
-
-* `spc pubaccess blacklist remove [publinks]` will remove any publinks
-  separated by spaces from the blacklist.
-
-* `spc pubaccess convert [source siaPath] [destination siaPath]` converts
-  a siafile to a pubfile and then generates its publink. A new publink will be
-created in the user's pubfile directory. The pubfile and the original siafile
-are both necessary to pin the file and keep the publink active. The pubfile will
-consume an additional 40 MiB of storage.
-
-* `spc pubaccess download [publink] [destination]` downloads a file from Pubaccess
-  using a publink.
-
-* `spc pubaccess ls` lists all pubfiles and subdirectories that the user has
-  pinned along with the corresponding publinks. By default, only files in
-var/pubaccess/ will be displayed. Files that are not tracking publinks are not
-counted.
-
-* `spc pubaccess pin [publink] [destination siapath]` pins the file associated
-  with this publink by re-uploading an exact copy. This ensures that the file
-will still be available on pubaccess as long as you continue maintaining the file
-in your renter.
-
-* `spc pubaccess unpin [siapath]` unpins one or more pubfiles or directories,
-  deleting them from your list of stored files or directories.
-
-* `spc pubaccess upload [source filepath] [destination siapath]` uploads a file or
-  directory to Pubaccess. A publink will be produced for each file. The link can be
-shared and used to retrieve the file. The file(s) that get uploaded will be
-pinned to this ScPrime node, meaning that this node will pay for storage and repairs
-until the file(s) are manually deleted. If the `silent` flag is provided, `spc`
-will not output progress bars during upload.
 
 ### Utils tasks
 TODO - Fill in

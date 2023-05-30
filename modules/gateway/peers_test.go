@@ -593,7 +593,7 @@ func TestConnectRejectsVersions(t *testing.T) {
 	defer g.Close()
 	// Setup a listener that mocks Gateway.acceptConn, but sends the
 	// version sent over mockVersionChan instead of build.Version.
-	listener, err := net.Listen("tcp", "localhost:0")
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}

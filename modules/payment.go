@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/siamux"
+	//"gitlab.com/NebulousLabs/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
@@ -53,21 +53,21 @@ var (
 	ErrWithdrawalInvalidSignature = errors.New("ephemeral account withdrawal message signature is invalid")
 )
 
-// PaymentProcessor is the interface implemented to handle RPC payments.
-type PaymentProcessor interface {
-	// ProcessPayment takes a stream and handles the payment request objects
-	// sent by the caller. Returns an object that implements the PaymentDetails
-	// interface, or an error in case of failure.
-	ProcessPayment(stream siamux.Stream) (PaymentDetails, error)
-}
+// // PaymentProcessor is the interface implemented to handle RPC payments.
+// type PaymentProcessor interface {
+// 	// ProcessPayment takes a stream and handles the payment request objects
+// 	// sent by the caller. Returns an object that implements the PaymentDetails
+// 	// interface, or an error in case of failure.
+// 	ProcessPayment(stream siamux.Stream) (PaymentDetails, error)
+// }
 
-// PaymentProvider is the interface implemented to provide payment for an RPC.
-type PaymentProvider interface {
-	// ProvidePayment takes a stream and various payment details and handles the
-	// payment by sending and processing payment request and response objects.
-	// Returns an error in case of failure.
-	ProvidePayment(stream io.ReadWriter, host types.SiaPublicKey, rpc types.Specifier, amount types.Currency, refundAccount AccountID, blockHeight types.BlockHeight) error
-}
+// // PaymentProvider is the interface implemented to provide payment for an RPC.
+// type PaymentProvider interface {
+// 	// ProvidePayment takes a stream and various payment details and handles the
+// 	// payment by sending and processing payment request and response objects.
+// 	// Returns an error in case of failure.
+// 	ProvidePayment(stream io.ReadWriter, host types.SiaPublicKey, rpc types.Specifier, amount types.Currency, refundAccount AccountID, blockHeight types.BlockHeight) error
+// }
 
 // PaymentDetails is an interface that defines method that give more information
 // about the details of a processed payment.

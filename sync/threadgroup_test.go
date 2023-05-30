@@ -257,7 +257,7 @@ func TestThreadGroupOnStop(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	l, err := net.Listen("tcp", "localhost:0")
+	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -355,7 +355,7 @@ func TestThreadGroupSiaExample(t *testing.T) {
 	// Open a listener. The listener and handler thread should be closed before
 	// the file is closed.
 	listenerCleanedUp := false
-	listener, err := net.Listen("tcp", "localhost:0")
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}

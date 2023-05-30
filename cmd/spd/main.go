@@ -36,8 +36,8 @@ type Config struct {
 		APIaddr       string
 		RPCaddr       string
 		HostAddr      string
-		SiaMuxTCPAddr string
-		SiaMuxWSAddr  string
+		SiaMuxTCPAddr string //unused but temporary here for spd launch args compatibility
+		SiaMuxWSAddr  string //unused but temporary here for spd launch args compatibility
 		HostApiAddr   string
 		AllowAPIBind  bool
 
@@ -182,7 +182,7 @@ func main() {
 	root.Flags().StringVarP(&globalConfig.Spd.RequiredUserAgent, "agent", "", "ScPrime-Agent", "required substring for the user agent")
 	root.Flags().StringVarP(&globalConfig.Spd.HostAddr, "host-addr", "", ":4282", "which port the host listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.ProfileDir, "profile-directory", "", "profiles", "location of the profiling directory")
-	root.Flags().StringVarP(&globalConfig.Spd.APIaddr, "api-addr", "", "localhost:4280", "which host:port the API server listens on")
+	root.Flags().StringVarP(&globalConfig.Spd.APIaddr, "api-addr", "", "127.0.0.1:4280", "which host:port the API server listens on")
 	root.Flags().StringVarP(&globalConfig.Spd.DataDir, "scprime-directory", "d", "", "location of the scprime daemon metadata directory")
 	root.Flags().BoolVarP(&globalConfig.Spd.NoBootstrap, "no-bootstrap", "", false, "disable bootstrapping on this run")
 	root.Flags().StringVarP(&globalConfig.Spd.Profile, "profile", "", "", "enable profiling with flags 'cmt' for CPU, memory, trace")
@@ -200,6 +200,9 @@ func main() {
 	if globalConfig.Spd.DataDir == "" {
 		globalConfig.Spd.DataDir = build.SiaDir()
 	}
+
+	root.Flags().MarkDeprecated("siamux-addr", "this value is not used anymore (provider doesn't accept connections on this address/port)")
+	root.Flags().MarkDeprecated("siamux-addr-ws", "this value is not used anymore (provider doesn't accept connections on this address/port)")
 
 	// Check for existence of datadir and move it if not found
 	// The only possible scenario when this move is expected is when the target

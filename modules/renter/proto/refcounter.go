@@ -211,9 +211,15 @@ func (rc *refCounter) callCount(secIdx uint64) (uint16, error) {
 
 // callCreateAndApplyTransaction is a helper method that creates a writeaheadlog
 // transaction and applies it.
-func (rc *refCounter) callCreateAndApplyTransaction(updates ...writeaheadlog.Update) error {
+func (rc *refCounter) callCreateAndApplyTransaction(updates ...writeaheadlog.Update) (err error) {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
+
+	//prevent any other actions than delete refcounter file if refcounter is deleted
+	if rc.isDeleted {
+		return applyDeleteUpdate(createDeleteUpdate(rc.filepath))
+	}
+
 	// We allow the creation of the file here because of the case where we got
 	// interrupted during the creation of the refcounter after writing the
 	// header update to the Wal but before applying it.
@@ -231,8 +237,10 @@ func (rc *refCounter) callCreateAndApplyTransaction(updates ...writeaheadlog.Upd
 		return errors.AddContext(err, "failed to create wal txn")
 	}
 	// No extra setup is required. Signal that it is done.
-	if err := <-txn.SignalSetupComplete(); err != nil {
-		return errors.AddContext(err, "failed to signal setup completion")
+	err = <-txn.SignalSetupComplete()
+	if err != nil {
+		err = fmt.Errorf("failed to signal setup completion: %w", err)
+		return
 	}
 	// Starting at this point, the changes to be made are written to the disk.
 	// This means that we need to panic in case applying the updates fails in
@@ -243,12 +251,16 @@ func (rc *refCounter) callCreateAndApplyTransaction(updates ...writeaheadlog.Upd
 		}
 	}()
 	// Apply the updates.
-	if err = applyUpdates(f, updates...); err != nil {
-		return errors.AddContext(err, "failed to apply updates")
+	err = applyUpdates(f, updates...)
+	if err != nil {
+		err = errors.AddContext(err, "failed to apply updates")
+		return
 	}
 	// Updates are applied. Let the writeaheadlog know.
-	if err = txn.SignalUpdatesApplied(); err != nil {
-		return errors.AddContext(err, "failed to signal that updates are applied")
+	err = txn.SignalUpdatesApplied()
+	if err != nil {
+		err = errors.AddContext(err, "failed to signal that updates are applied")
+		return
 	}
 	// If the refcounter got deleted then we're done.
 	if rc.isDeleted {
@@ -471,6 +483,8 @@ func applyUpdates(f modules.File, updates ...writeaheadlog.Update) (err error) {
 		switch update.Name {
 		case updateNameRCDelete:
 			err = applyDeleteUpdate(update)
+			//after delete no other updates are allowed
+			return err
 		case updateNameRCTruncate:
 			err = applyTruncateUpdate(f, update)
 		case updateNameRCWriteAt:
@@ -500,8 +514,8 @@ func applyDeleteUpdate(update writeaheadlog.Update) error {
 		return fmt.Errorf("applyDeleteUpdate called on update of type %v", update.Name)
 	}
 	// Remove the file and ignore the NotExist error
-	if err := os.Remove(string(update.Instructions)); !os.IsNotExist(err) {
-		return err
+	if err := os.Remove(string(update.Instructions)); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove (%v) failed: %w", string(update.Instructions), err)
 	}
 	return nil
 }

@@ -48,7 +48,7 @@ func (rt *contractorTester) Close() error {
 func newContractorTester(name string) (*contractorTester, closeFn, error) {
 	// Create the modules.
 	testdir := build.TempDir("contractor", name)
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -73,12 +73,7 @@ func newContractorTester(name string) (*contractorTester, closeFn, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
-	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
-	if err != nil {
-		return nil, nil, err
-	}
-	hdb, errChan := hostdb.New(g, cs, tp, mux, filepath.Join(testdir, modules.RenterDir))
+	hdb, errChan := hostdb.New(g, cs, tp, filepath.Join(testdir, modules.RenterDir))
 	if err := <-errChan; err != nil {
 		return nil, nil, err
 	}
@@ -113,7 +108,7 @@ func newContractorTester(name string) (*contractorTester, closeFn, error) {
 	}
 
 	cf := func() error {
-		return errors.Compose(c.Close(), m.Close(), hdb.Close(), mux.Close(), w.Close(), tp.Close(), cs.Close(), g.Close())
+		return errors.Compose(c.Close(), m.Close(), hdb.Close(), w.Close(), tp.Close(), cs.Close(), g.Close())
 	}
 	return ct, cf, nil
 }

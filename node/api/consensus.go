@@ -119,6 +119,7 @@ type ConsensusBlocksGetSiafundOutput struct {
 func consensusBlocksGetFromBlock(b types.Block, h types.BlockHeight, d types.Currency) ConsensusBlocksGet {
 	txns := make([]ConsensusBlocksGetTxn, 0, len(b.Transactions))
 	for _, t := range b.Transactions {
+		t := t
 		// Get the transaction's SiacoinOutputs.
 		scos := make([]ConsensusBlocksGetSiacoinOutput, 0, len(t.SiacoinOutputs))
 		for i, sco := range t.SiacoinOutputs {
@@ -226,8 +227,8 @@ func (api *API) consensusHandler(w http.ResponseWriter, _ *http.Request, _ httpr
 		MaturityDelay:          types.MaturityDelay,
 		MedianTimestampWindow:  types.MedianTimestampWindow,
 
-		SiafundCount:   types.SiafundCount(api.cs.Height()),
-		SiafundPortion: types.SiafundPortion(api.cs.Height()),
+		SiafundCount:   types.SiafundCount(height),
+		SiafundPortion: types.SiafundPortion(height),
 
 		InitialCoinbase: types.InitialCoinbase,
 		MinimumCoinbase: types.MinimumCoinbase,

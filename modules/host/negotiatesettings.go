@@ -65,12 +65,6 @@ func (h *Host) externalSettings(maxFeeEstimation types.Currency) modules.HostExt
 		maxCollateral = h.settings.CollateralBudget.Sub(h.financialMetrics.LockedStorageCollateral)
 	}
 
-	// Extract the port from the SiaMux's address
-	_, port, err := net.SplitHostPort(h.staticMux.Address().String())
-	if err != nil {
-		build.Critical("Could not split the SiaMux address in a host and port")
-	}
-
 	return modules.HostExternalSettings{
 		AcceptingContracts:   acceptingContracts,
 		MaxDownloadBatchSize: h.settings.MaxDownloadBatchSize,
@@ -96,13 +90,9 @@ func (h *Host) externalSettings(maxFeeEstimation types.Currency) modules.HostExt
 		StoragePrice:           h.settings.MinStoragePrice,
 		UploadBandwidthPrice:   h.settings.MinUploadBandwidthPrice,
 
-		EphemeralAccountExpiry:     h.settings.EphemeralAccountExpiry,
-		MaxEphemeralAccountBalance: h.settings.MaxEphemeralAccountBalance,
-
 		RevisionNumber: h.revisionNumber,
 		Version:        build.Version,
 
-		SiaMuxPort:  port,
 		RelayerPort: strings.TrimPrefix(h.apiPort, ":"),
 	}
 }

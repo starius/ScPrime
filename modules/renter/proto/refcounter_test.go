@@ -799,7 +799,7 @@ func TestRefCounterUpdateSessionConstraints(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	// prepare a refcounter for the tests
 	rc := testPrepareRefCounter(fastrand.Uint64n(10), t)

@@ -55,7 +55,17 @@ func (g *Gateway) staticPingNode(addr modules.NetAddress) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	//defer conn.Close() safe close
+	defer func() {
+		e := conn.Close()
+		if err == nil {
+			err = e
+		} else {
+			if e != nil {
+				err = fmt.Errorf("error %v on closing after %w", e.Error(), err)
+			}
+		}
+	}()
 
 	// Read the node's version.
 	remoteVersion, err := connectVersionHandshake(conn, build.Version)

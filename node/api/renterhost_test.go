@@ -389,10 +389,6 @@ func TestHostAndRentVanilla(t *testing.T) {
 	if cts.Contracts[0].PotentialDownloadRevenue.IsZero() || cts.Contracts[0].PotentialUploadRevenue.IsZero() || cts.Contracts[0].PotentialStorageRevenue.IsZero() {
 		t.Error("Potential revenue value is zero for used obligation.")
 	}
-	// There should be potential account funding in this contract
-	if cts.Contracts[0].PotentialAccountFunding.IsZero() {
-		t.Error("Potential account funding is zero, even though it should have been used to fund an ephemeral account with.")
-	}
 
 	// Mine blocks until the host should have submitted a storage proof.
 	for i := 0; i <= testPeriodInt+5; i++ {

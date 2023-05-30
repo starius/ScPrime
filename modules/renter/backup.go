@@ -344,7 +344,8 @@ func (r *Renter) managedUntarDir(tr *tar.Reader) error {
 		} else if err != nil {
 			return errors.AddContext(err, "could not get next entry in the tar archive")
 		}
-		dst := filepath.Join(r.staticFileSystem.DirPath(modules.UserFolder), header.Name)
+		//G305: File traversal when extracting zip/tar archive (gosec)
+		dst := filepath.Join(r.staticFileSystem.DirPath(modules.UserFolder), header.Name) //nolint:gosec
 
 		// Check for dir.
 		info := header.FileInfo()

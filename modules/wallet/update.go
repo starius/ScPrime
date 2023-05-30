@@ -271,7 +271,8 @@ func (w *Wallet) computeProcessedTransactionsFromBlock(tx *bolt.Tx, block types.
 	}
 
 	// Find ProcessedTransactions from transactions.
-	for _, txn := range block.Transactions {
+	for txni := range block.Transactions {
+		txn := block.Transactions[txni]
 		// Determine if transaction is relevant.
 		relevant := false
 		for _, sci := range txn.SiacoinInputs {

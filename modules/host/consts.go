@@ -67,13 +67,6 @@ var (
 	// furious for losing access to it for a few weeks.
 	defaultCollateralBudget = types.ScPrimecoinPrecision.Mul64(4e3) //4 KS
 
-	// defaultMaxEphemeralAccountRisk is the maximum amount of money that the
-	// host is willing to risk to a power loss. If a user's withdrawal would put
-	// the host over the maxunsaveddelat, the host will wait to complete the
-	// user's transaction until the host has persisted the widthdrawal, to
-	// prevent the host from having too much money at risk.
-	defaultMaxEphemeralAccountRisk = types.ScPrimecoinPrecision.Div64(100)
-
 	// logAllLimit is the number of errors of each type that the host will log
 	// before switching to probabilistic logging. If there are not many errors,
 	// it is reasonable that all errors get logged. If there are lots of

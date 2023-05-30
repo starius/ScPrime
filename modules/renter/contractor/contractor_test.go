@@ -1,27 +1,21 @@
 package contractor
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/ratelimit"
-	"gitlab.com/NebulousLabs/siamux"
 	"gitlab.com/scpcorp/ScPrime/build"
-	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/consensus"
 	"gitlab.com/scpcorp/ScPrime/modules/gateway"
 	"gitlab.com/scpcorp/ScPrime/modules/renter/hostdb"
 	"gitlab.com/scpcorp/ScPrime/modules/transactionpool"
 	"gitlab.com/scpcorp/ScPrime/modules/wallet"
-	"gitlab.com/scpcorp/ScPrime/siatest/dependencies"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
 
@@ -38,45 +32,31 @@ func tryClose(cf closeFn, t *testing.T) {
 }
 
 // newModules initializes the modules needed to test creating a new contractor
-func newModules(testdir string) (modules.ConsensusSet, modules.Wallet, modules.TransactionPool, *siamux.SiaMux, modules.HostDB, closeFn, error) {
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+func newModules(testdir string) (modules.ConsensusSet, modules.Wallet, modules.TransactionPool, modules.HostDB, closeFn, error) {
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	cs, errChan := consensus.New(g, false, filepath.Join(testdir, modules.ConsensusDir))
 	if err := <-errChan; err != nil {
-		return nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	tp, err := transactionpool.New(cs, g, filepath.Join(testdir, modules.TransactionPoolDir))
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	w, err := wallet.New(cs, tp, filepath.Join(testdir, modules.WalletDir))
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
-	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
-	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
-	if err != nil {
-		return nil, nil, nil, nil, nil, nil, err
-	}
-	hdb, errChanHDB := hostdb.New(g, cs, tp, mux, testdir)
+	hdb, errChanHDB := hostdb.New(g, cs, tp, testdir)
 	if err := <-errChanHDB; err != nil {
-		return nil, nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	cf := func() error {
-		return errors.Compose(hdb.Close(), mux.Close(), w.Close(), tp.Close(), cs.Close(), g.Close())
+		return errors.Compose(hdb.Close(), w.Close(), tp.Close(), cs.Close(), g.Close())
 	}
-	return cs, w, tp, mux, hdb, cf, nil
-}
-
-// newStream is a helper to get a ready-to-use stream that is connected to a
-// host.
-func newStream(mux *siamux.SiaMux, h modules.Host) (siamux.Stream, error) {
-	hes := h.ExternalSettings()
-	muxAddress := fmt.Sprintf("%s:%s", hes.NetAddress.Host(), hes.SiaMuxPort)
-	muxPK := modules.SiaPKToMuxPK(h.PublicKey())
-	return mux.NewStream(modules.HostSiaMuxSubscriberName, muxAddress, muxPK)
+	return cs, w, tp, hdb, cf, nil
 }
 
 // TestNew tests the New function.
@@ -86,7 +66,7 @@ func TestNew(t *testing.T) {
 	}
 	// Create the modules.
 	dir := build.TempDir("contractor", t.Name())
-	cs, w, tpool, _, hdb, closeFn, err := newModules(dir)
+	cs, w, tpool, hdb, closeFn, err := newModules(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,15 +133,6 @@ func TestIntegrationSetAllowance(t *testing.T) {
 	}
 	t.Parallel()
 
-	// create a siamux
-	testdir := build.TempDir("contractor", t.Name())
-	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
-	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tryClose(mux.Close, t)
-
 	// create testing trio
 	h, c, m, cf, err := newTestingTrio(t.Name())
 	if err != nil {
@@ -170,7 +141,7 @@ func TestIntegrationSetAllowance(t *testing.T) {
 	defer tryClose(cf, t)
 
 	// this test requires two hosts: create another one
-	h, hostCF, err := newTestingHost(build.TempDir("hostdata", ""), c.cs.(modules.ConsensusSet), c.tpool.(modules.TransactionPool), mux)
+	h, hostCF, err := newTestingHost(build.TempDir("hostdata", ""), c.cs.(modules.ConsensusSet), c.tpool.(modules.TransactionPool))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -494,6 +465,7 @@ func TestHostMaxDuration(t *testing.T) {
 	}
 }
 
+/* Remove EA
 // TestPayment verifies the PaymentProvider interface on the contractor. It does
 // this by trying to pay the host using a filecontract and verifying if payment
 // can be made successfully.
@@ -515,7 +487,7 @@ func TestPayment(t *testing.T) {
 	// create a siamux
 	testdir := build.TempDir("contractor", t.Name())
 	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
-	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "127.0.0.1:0", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -675,6 +647,8 @@ func TestPayment(t *testing.T) {
 	}
 }
 
+*/ //Remove EA
+
 // TestLinkedContracts tests that the contractors maps are updated correctly
 // when renewing contracts
 func TestLinkedContracts(t *testing.T) {
@@ -786,6 +760,7 @@ func TestLinkedContracts(t *testing.T) {
 	}
 }
 
+/* Remove EA
 // TestPaymentMissingStorageObligation tests the case where a host can't find a
 // storage obligation with which to pay.
 func TestPaymentMissingStorageObligation(t *testing.T) {
@@ -797,7 +772,7 @@ func TestPaymentMissingStorageObligation(t *testing.T) {
 	// create a siamux
 	testdir := build.TempDir("contractor", t.Name())
 	siaMuxDir := filepath.Join(testdir, modules.SiaMuxDir)
-	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "localhost:0", "localhost:0")
+	mux, err := modules.NewSiaMux(siaMuxDir, testdir, "127.0.0.1:0", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -881,3 +856,4 @@ func TestPaymentMissingStorageObligation(t *testing.T) {
 		t.Fatal("Contract should not be locked")
 	}
 }
+*/ // Remove EA

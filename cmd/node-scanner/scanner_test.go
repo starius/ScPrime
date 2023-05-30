@@ -81,7 +81,7 @@ func TestSendShareNodesRequests(t *testing.T) {
 	}
 	t.Parallel()
 
-	mainGateway, err := gateway.New("localhost:0", true, build.TempDir("SiaNodeScannerTestGateway"))
+	mainGateway, err := gateway.New("127.0.0.1:0", true, build.TempDir("SiaNodeScannerTestGateway"))
 	if err != nil {
 		t.Fatal("Error making new gateway: ", err)
 	}
@@ -90,7 +90,7 @@ func TestSendShareNodesRequests(t *testing.T) {
 	// Create testing gateways.
 	gateways := make([]*gateway.Gateway, 0, numTestingGateways)
 	for i := 0; i < numTestingGateways; i++ {
-		g, err := gateway.New("localhost:0", true, build.TempDir(fmt.Sprintf("SiaNodeScannerTestGateway-%d", i)))
+		g, err := gateway.New("127.0.0.1:0", true, build.TempDir(fmt.Sprintf("SiaNodeScannerTestGateway-%d", i)))
 		if err != nil {
 			t.Fatal("Error making new gateway: ", err)
 		}

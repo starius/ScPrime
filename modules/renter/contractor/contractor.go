@@ -1,8 +1,6 @@
 package contractor
 
 import (
-	"bytes"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,7 +10,6 @@ import (
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/ratelimit"
 	"gitlab.com/NebulousLabs/threadgroup"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -213,104 +210,98 @@ func (c *Contractor) CurrentPeriod() types.BlockHeight {
 	return c.currentPeriod
 }
 
-// ProvidePayment fulfills the PaymentProvider interface. It uses the given
-// stream and necessary payment details to perform payment for an RPC call.
-//
-// Note that this implementation performs a `Read` on the stream object.
-// Therefor you should not be passing in a buffer here to optimise writes. This
-// function however does optimise its writes as much as possible.
-func (c *Contractor) ProvidePayment(stream io.ReadWriter, host types.SiaPublicKey, rpc types.Specifier, amount types.Currency, refundAccount modules.AccountID, blockHeight types.BlockHeight) error {
-	// verify we do not specify a refund account on the fund account RPC
-	if rpc == modules.RPCFundAccount && !refundAccount.IsZeroAccount() {
-		return errRefundAccountInvalid
-	}
+// // ProvidePayment fulfills the PaymentProvider interface. It uses the given
+// // stream and necessary payment details to perform payment for an RPC call.
+// //
+// // Note that this implementation performs a `Read` on the stream object.
+// // Therefor you should not be passing in a buffer here to optimise writes. This
+// // function however does optimise its writes as much as possible.
+// func (c *Contractor) ProvidePayment(stream io.ReadWriter, host types.SiaPublicKey, rpc types.Specifier, amount types.Currency, refundAccount modules.AccountID, blockHeight types.BlockHeight) error {
+// 	// find a contract for the given host
+// 	contract, exists := c.ContractByPublicKey(host)
+// 	if !exists {
+// 		return errContractNotFound
+// 	}
 
-	// find a contract for the given host
-	contract, exists := c.ContractByPublicKey(host)
-	if !exists {
-		return errContractNotFound
-	}
+// 	// acquire a safe contract
+// 	sc, exists := c.staticContracts.Acquire(contract.ID)
+// 	if !exists {
+// 		return errContractNotFound
+// 	}
+// 	defer c.staticContracts.Return(sc)
 
-	// acquire a safe contract
-	sc, exists := c.staticContracts.Acquire(contract.ID)
-	if !exists {
-		return errContractNotFound
-	}
-	defer c.staticContracts.Return(sc)
+// 	// create a new revision
+// 	current := sc.LastRevision()
+// 	rev, err := current.EAFundRevision(amount)
+// 	if err != nil {
+// 		return errors.AddContext(err, "Failed to create a payment revision")
+// 	}
 
-	// create a new revision
-	current := sc.LastRevision()
-	rev, err := current.EAFundRevision(amount)
-	if err != nil {
-		return errors.AddContext(err, "Failed to create a payment revision")
-	}
+// 	// create transaction containing the revision
+// 	signedTxn := rev.ToTransaction()
+// 	sig := sc.Sign(signedTxn.SigHash(0, blockHeight))
+// 	signedTxn.TransactionSignatures[0].Signature = sig[:]
 
-	// create transaction containing the revision
-	signedTxn := rev.ToTransaction()
-	sig := sc.Sign(signedTxn.SigHash(0, blockHeight))
-	signedTxn.TransactionSignatures[0].Signature = sig[:]
+// 	// record the payment intent
+// 	walTxn, err := sc.RecordPaymentIntent(rev, amount, rpc)
+// 	if err != nil {
+// 		return errors.AddContext(err, "Failed to record payment intent")
+// 	}
 
-	// record the payment intent
-	walTxn, err := sc.RecordPaymentIntent(rev, amount, rpc)
-	if err != nil {
-		return errors.AddContext(err, "Failed to record payment intent")
-	}
+// 	// prepare a buffer so we can optimize our writes
+// 	buffer := bytes.NewBuffer(nil)
 
-	// prepare a buffer so we can optimize our writes
-	buffer := bytes.NewBuffer(nil)
+// 	// send PaymentRequest
+// 	err = modules.RPCWrite(buffer, modules.PaymentRequest{Type: modules.PayByContract})
+// 	if err != nil {
+// 		return errors.AddContext(err, "unable to write payment request to host")
+// 	}
 
-	// send PaymentRequest
-	err = modules.RPCWrite(buffer, modules.PaymentRequest{Type: modules.PayByContract})
-	if err != nil {
-		return errors.AddContext(err, "unable to write payment request to host")
-	}
+// 	// send PayByContractRequest
+// 	err = modules.RPCWrite(buffer, newPayByContractRequest(rev, sig, refundAccount))
+// 	if err != nil {
+// 		return errors.AddContext(err, "unable to write the pay by contract request")
+// 	}
 
-	// send PayByContractRequest
-	err = modules.RPCWrite(buffer, newPayByContractRequest(rev, sig, refundAccount))
-	if err != nil {
-		return errors.AddContext(err, "unable to write the pay by contract request")
-	}
+// 	// write contents of the buffer to the stream
+// 	_, err = stream.Write(buffer.Bytes())
+// 	if err != nil {
+// 		return errors.AddContext(err, "could not write the buffer contents")
+// 	}
 
-	// write contents of the buffer to the stream
-	_, err = stream.Write(buffer.Bytes())
-	if err != nil {
-		return errors.AddContext(err, "could not write the buffer contents")
-	}
+// 	// receive PayByContractResponse
+// 	var payByResponse modules.PayByContractResponse
+// 	if err := modules.RPCRead(stream, &payByResponse); err != nil {
+// 		if strings.Contains(err.Error(), "storage obligation not found") {
+// 			c.log.Printf("Marking contract %v as bad because host %v did not recognize it: %v", contract.ID, host, err)
+// 			mbcErr := c.managedMarkContractBad(sc)
+// 			if mbcErr != nil {
+// 				c.log.Printf("Unable to mark contract %v on host %v as bad: %v", contract.ID, host, mbcErr)
+// 			}
+// 		}
+// 		return errors.AddContext(err, "unable to read the pay by contract response")
+// 	}
 
-	// receive PayByContractResponse
-	var payByResponse modules.PayByContractResponse
-	if err := modules.RPCRead(stream, &payByResponse); err != nil {
-		if strings.Contains(err.Error(), "storage obligation not found") {
-			c.log.Printf("Marking contract %v as bad because host %v did not recognize it: %v", contract.ID, host, err)
-			mbcErr := c.managedMarkContractBad(sc)
-			if mbcErr != nil {
-				c.log.Printf("Unable to mark contract %v on host %v as bad: %v", contract.ID, host, mbcErr)
-			}
-		}
-		return errors.AddContext(err, "unable to read the pay by contract response")
-	}
+// 	// TODO: Check for revision mismatch and recover by applying the contract
+// 	// unapplied transactions and trying again.
 
-	// TODO: Check for revision mismatch and recover by applying the contract
-	// unapplied transactions and trying again.
+// 	// verify the host's signature
+// 	hash := crypto.HashAll(rev)
+// 	hpk := sc.Metadata().HostPublicKey
+// 	err = crypto.VerifyHash(hash, hpk.ToPublicKey(), payByResponse.Signature)
+// 	if err != nil {
+// 		return errors.New("could not verify host's signature")
+// 	}
 
-	// verify the host's signature
-	hash := crypto.HashAll(rev)
-	hpk := sc.Metadata().HostPublicKey
-	err = crypto.VerifyHash(hash, hpk.ToPublicKey(), payByResponse.Signature)
-	if err != nil {
-		return errors.New("could not verify host's signature")
-	}
-
-	// commit payment intent
-	if !c.staticDeps.Disrupt("DisableCommitPaymentIntent") {
-		err = sc.CommitPaymentIntent(walTxn, signedTxn, amount, rpc)
-		if err != nil {
-			return errors.AddContext(err, "Failed to commit unknown spending intent")
-		}
-	}
-
-	return nil
-}
+// 	// commit payment intent
+// 	if !c.staticDeps.Disrupt("DisableCommitPaymentIntent") {
+// 		err = sc.CommitPaymentIntent(walTxn, signedTxn, amount, rpc)
+// 		if err != nil {
+// 			return errors.AddContext(err, "Failed to commit unknown spending intent")
+// 		}
+// 	}
+// 	return nil
+// }
 
 // RecoveryScanStatus returns a bool indicating if a scan for recoverable
 // contracts is in progress and if it is, the current progress of the scan.

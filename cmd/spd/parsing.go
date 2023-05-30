@@ -46,8 +46,6 @@ func parseModules(config Config) node.NodeParams {
 	params.Bootstrap = !config.Spd.NoBootstrap
 	params.HostAddress = config.Spd.HostAddr
 	params.RPCAddress = config.Spd.RPCaddr
-	params.SiaMuxTCPAddress = config.Spd.SiaMuxTCPAddr
-	params.SiaMuxWSAddress = config.Spd.SiaMuxWSAddr
 	params.Dir = config.Spd.DataDir
 	params.HostAPIAddr = config.Spd.HostApiAddr
 	params.CheckTokenExpirationFrequency = 1 * time.Hour // default

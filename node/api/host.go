@@ -33,6 +33,9 @@ var (
 	// a value for the download price or the Sector Access Price that violates
 	// the maximum ratio
 	ErrInvalidSectorAccessDownloadRatio = errors.New("invalid ratio between the download price and the sector access price, base cost of 10M accesses should be cheaper than downloading 4TB")
+
+	// ErrNotInitialized is returned if the host module has not finished initialization yet
+	ErrNotInitialized = Error{"Host module has not finished initialization"}
 )
 
 type (
@@ -88,6 +91,10 @@ func folderIndex(folderPath string, storageFolders []modules.StorageFolderMetada
 
 // hostContractGetHandler handles the API call to get information about a contract.
 func (api *API) hostContractGetHandler(w http.ResponseWriter, _ *http.Request, ps httprouter.Params) {
+	if !api.host.ReadyToServe() {
+		WriteError(w, ErrNotInitialized, StatusModuleNotLoaded)
+		return
+	}
 	var obligationID types.FileContractID
 	contractIDStr := ps.ByName("contractID")
 
@@ -113,6 +120,10 @@ func (api *API) hostContractGetHandler(w http.ResponseWriter, _ *http.Request, p
 // hostContractInfoHandler handles the API call to get the contract information of the host.
 // Information is retrieved via the storage obligations from the host database.
 func (api *API) hostContractInfoHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	if !api.host.ReadyToServe() {
+		WriteError(w, ErrNotInitialized, StatusModuleNotLoaded)
+		return
+	}
 	cg := ContractInfoGET{
 		Contracts: api.host.StorageObligations(),
 	}
@@ -122,6 +133,10 @@ func (api *API) hostContractInfoHandler(w http.ResponseWriter, _ *http.Request, 
 // hostHandlerGET handles GET requests to the /host API endpoint, returning key
 // information about the host.
 func (api *API) hostHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	if !api.host.ReadyToServe() {
+		WriteError(w, ErrNotInitialized, StatusModuleNotLoaded)
+		return
+	}
 	es := api.host.ExternalSettings()
 	fm := api.host.FinancialMetrics()
 	is := api.host.InternalSettings()
@@ -149,6 +164,10 @@ func (api *API) hostHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprou
 // hostsBandwidthHandlerGET handles GET requests to the /host/bandwidth API endpoint,
 // returning bandwidth usage data from the host module
 func (api *API) hostBandwidthHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	if !api.host.ReadyToServe() {
+		WriteError(w, ErrNotInitialized, StatusModuleNotLoaded)
+		return
+	}
 	sent, receive, startTime, err := api.host.BandwidthCounters()
 	if err != nil {
 		WriteError(w, Error{"failed to get hosts's bandwidth usage: " + err.Error()}, http.StatusBadRequest)
@@ -289,30 +308,6 @@ func (api *API) parseHostSettings(req *http.Request) (modules.HostInternalSettin
 		}
 		settings.MinUploadBandwidthPrice = x
 	}
-	if req.FormValue("ephemeralaccountexpiry") != "" {
-		var x uint64
-		_, err := fmt.Sscan(req.FormValue("ephemeralaccountexpiry"), &x)
-		if err != nil {
-			return modules.HostInternalSettings{}, err
-		}
-		settings.EphemeralAccountExpiry = time.Duration(x) * time.Second
-	}
-	if req.FormValue("maxephemeralaccountbalance") != "" {
-		var x types.Currency
-		_, err := fmt.Sscan(req.FormValue("maxephemeralaccountbalance"), &x)
-		if err != nil {
-			return modules.HostInternalSettings{}, err
-		}
-		settings.MaxEphemeralAccountBalance = x
-	}
-	if req.FormValue("maxephemeralaccountrisk") != "" {
-		var x types.Currency
-		_, err := fmt.Sscan(req.FormValue("maxephemeralaccountrisk"), &x)
-		if err != nil {
-			return modules.HostInternalSettings{}, err
-		}
-		settings.MaxEphemeralAccountRisk = x
-	}
 
 	// Validate the RPC, Sector Access, and Download Prices
 	minBaseRPCPrice := settings.MinBaseRPCPrice
@@ -332,6 +327,10 @@ func (api *API) parseHostSettings(req *http.Request) (modules.HostInternalSettin
 // hostEstimateScoreGET handles the POST request to /host/estimatescore and
 // computes an estimated HostDB score for the provided settings.
 func (api *API) hostEstimateScoreGET(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	if !api.host.ReadyToServe() {
+		WriteError(w, ErrNotInitialized, StatusModuleNotLoaded)
+		return
+	}
 	// This call requires a renter, check that it is present.
 	if api.renter == nil {
 		WriteError(w, Error{"cannot call /host/estimatescore without the renter module"}, http.StatusBadRequest)
@@ -366,9 +365,6 @@ func (api *API) hostEstimateScoreGET(w http.ResponseWriter, req *http.Request, _
 		StoragePrice:           settings.MinStoragePrice,
 		UploadBandwidthPrice:   settings.MinUploadBandwidthPrice,
 
-		EphemeralAccountExpiry:     settings.EphemeralAccountExpiry,
-		MaxEphemeralAccountBalance: settings.MaxEphemeralAccountBalance,
-
 		Version: build.Version,
 	}
 	entry := modules.HostDBEntry{}
@@ -391,6 +387,10 @@ func (api *API) hostEstimateScoreGET(w http.ResponseWriter, req *http.Request, _
 // hostHandlerPOST handles POST request to the /host API endpoint, which sets
 // the internal settings of the host.
 func (api *API) hostHandlerPOST(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	if !api.host.ReadyToServe() {
+		WriteError(w, ErrNotInitialized, StatusModuleNotLoaded)
+		return
+	}
 	settings, err := api.parseHostSettings(req)
 	if err != nil {
 		WriteError(w, Error{"error parsing host settings: " + err.Error()}, http.StatusBadRequest)
@@ -408,6 +408,10 @@ func (api *API) hostHandlerPOST(w http.ResponseWriter, req *http.Request, _ http
 // hostAnnounceHandler handles the API call to get the host to announce itself
 // to the network.
 func (api *API) hostAnnounceHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	if !api.host.ReadyToServe() {
+		WriteError(w, ErrNotInitialized, StatusModuleNotLoaded)
+		return
+	}
 	var err error
 	if addr := req.FormValue("netaddress"); addr != "" {
 		err = api.host.AnnounceAddress(modules.NetAddress(addr))
@@ -424,6 +428,10 @@ func (api *API) hostAnnounceHandler(w http.ResponseWriter, req *http.Request, _ 
 // storageHandler returns a bunch of information about storage management on
 // the host.
 func (api *API) storageHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	if !api.host.ReadyToServe() {
+		WriteError(w, ErrNotInitialized, StatusModuleNotLoaded)
+		return
+	}
 	WriteJSON(w, StorageGET{
 		Folders: api.host.StorageFolders(),
 	})
@@ -431,6 +439,10 @@ func (api *API) storageHandler(w http.ResponseWriter, _ *http.Request, _ httprou
 
 // storageFoldersAddHandler adds a storage folder to the storage manager.
 func (api *API) storageFoldersAddHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	if !api.host.ReadyToServe() {
+		WriteError(w, ErrNotInitialized, StatusModuleNotLoaded)
+		return
+	}
 	folderPath := req.FormValue("path")
 	var folderSize uint64
 	_, err := fmt.Sscan(req.FormValue("size"), &folderSize)
@@ -448,6 +460,10 @@ func (api *API) storageFoldersAddHandler(w http.ResponseWriter, req *http.Reques
 
 // storageFoldersResizeHandler resizes a storage folder in the storage manager.
 func (api *API) storageFoldersResizeHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	if !api.host.ReadyToServe() {
+		WriteError(w, ErrNotInitialized, StatusModuleNotLoaded)
+		return
+	}
 	folderPath := req.FormValue("path")
 	if folderPath == "" {
 		WriteError(w, Error{"path parameter is required"}, http.StatusBadRequest)
@@ -478,6 +494,10 @@ func (api *API) storageFoldersResizeHandler(w http.ResponseWriter, req *http.Req
 // storageFoldersRemoveHandler removes a storage folder from the storage
 // manager.
 func (api *API) storageFoldersRemoveHandler(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	if !api.host.ReadyToServe() {
+		WriteError(w, ErrNotInitialized, StatusModuleNotLoaded)
+		return
+	}
 	folderPath := req.FormValue("path")
 	if folderPath == "" {
 		WriteError(w, Error{"path parameter is required"}, http.StatusBadRequest)
@@ -503,6 +523,10 @@ func (api *API) storageFoldersRemoveHandler(w http.ResponseWriter, req *http.Req
 // storageSectorsDeleteHandler handles the call to delete a sector from the
 // storage manager.
 func (api *API) storageSectorsDeleteHandler(w http.ResponseWriter, _ *http.Request, ps httprouter.Params) {
+	if !api.host.ReadyToServe() {
+		WriteError(w, ErrNotInitialized, StatusModuleNotLoaded)
+		return
+	}
 	sectorRoot, err := scanHash(ps.ByName("merkleroot"))
 	if err != nil {
 		WriteError(w, Error{err.Error()}, http.StatusBadRequest)

@@ -1,17 +1,14 @@
 package pool
 
 import (
-	// "fmt"
-
+	"fmt"
 	"net"
 	"time"
 
 	"github.com/sasha-s/go-deadlock"
-
 	"gitlab.com/scpcorp/ScPrime/persist"
 )
 
-// Dispatcher contains a map of ip addresses to handlers
 // Dispatcher contains a map of ip addresses to handlers
 type Dispatcher struct {
 	handlers          map[string]*Handler
@@ -92,7 +89,17 @@ func (d *Dispatcher) ListenHandlers(port string) {
 	}
 	// fmt.Printf("Listening: %s\n", port)
 
-	defer d.ln.Close()
+	//safe close defer d.ln.Close()
+	defer func() {
+		e := d.ln.Close()
+		if err == nil {
+			err = e
+		} else {
+			if e != nil {
+				err = fmt.Errorf("error %v on closing after %w", e.Error(), err)
+			}
+		}
+	}()
 	defer d.p.tg.Done()
 
 	for {

@@ -284,13 +284,6 @@ provider from the same IP address subnet.`,
 		Run:   wrap(renterworkerscmd),
 	}
 
-	renterWorkersAccountsCmd = &cobra.Command{
-		Use:   "ea",
-		Short: "View the workers' ephemeral account",
-		Long:  "View detailed information of the workers' ephemeral account",
-		Run:   wrap(renterworkerseacmd),
-	}
-
 	renterWorkersDownloadsCmd = &cobra.Command{
 		Use:   "dj",
 		Short: "View the workers' download jobs",
@@ -2655,63 +2648,6 @@ func renterworkerscmd() {
 	}
 }
 
-// renterworkerseacmd is the handler for the command `siac renter workers ea`.
-// It lists the status of the account of every worker.
-func renterworkerseacmd() {
-	rw, err := httpClient.RenterWorkersGet()
-	if err != nil {
-		die("Could not get worker statuses:", err)
-	}
-
-	// collect some overal account stats
-	var nfw uint64
-	for _, worker := range rw.Workers {
-		if !worker.AccountStatus.Funded {
-			nfw++
-		}
-	}
-	fmt.Println("Worker Accounts Summary")
-
-	w := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
-	defer func() {
-		err := w.Flush()
-		if err != nil {
-			die("Could not flush tabwriter:", err)
-		}
-	}()
-
-	// print summary
-	fmt.Fprintf(w, "Total Workers: \t%v\n", rw.NumWorkers)
-	fmt.Fprintf(w, "Non Funded Workers: \t%v\n", nfw)
-
-	// print header
-	hostInfo := "Host PubKey"
-	accountInfo := "\tFunded\tAvailBal\tNegBal\tBalTarget"
-	errorInfo := "\tErrorAt\tError"
-	header := hostInfo + accountInfo + errorInfo
-	fmt.Fprintln(w, "\nWorker Accounts Detail  \n\n"+header)
-
-	// print rows
-	for _, worker := range rw.Workers {
-		as := worker.AccountStatus
-
-		// Host Info
-		fmt.Fprintf(w, "%v", worker.HostPubKey.String())
-
-		// Account Info
-		fmt.Fprintf(w, "\t%t\t%s\t%s\t%s",
-			as.Funded,
-			as.AvailableBalance.HumanString(),
-			as.NegativeBalance.HumanString(),
-			worker.AccountBalanceTarget.HumanString())
-
-		// Error Info
-		fmt.Fprintf(w, "\t%v\t%v\n",
-			sanitizeTime(as.RecentErrTime, as.RecentErr != ""),
-			sanitizeErr(as.RecentErr))
-	}
-}
-
 // renterworkersdownloadscmd is the handler for the command `siac renter workers
 // dj`.  It lists the status of the download jobs of every worker.
 func renterworkersdownloadscmd() {
@@ -2957,12 +2893,10 @@ func writeWorkers(workers []modules.WorkerStatus) {
 	uploadInfo := "\tOn Cooldown\tQueue"
 	maintenanceHeader := "\tWorker Maintenance\t \t "
 	maintenanceInfo := "\tOn Cooldown\tCooldown Time\tLast Error"
-	eaHeader := "\tWorker Account"
-	eaInfo := "\tAvailable Balance"
 	jobHeader := "\tWorker Jobs\t \t "
 	jobInfo := "\tBackups\tDownload By Root\tHas Sector"
-	fmt.Fprintln(w, "\n  "+contractHeader+downloadHeader+uploadHeader+maintenanceHeader+eaHeader+jobHeader)
-	fmt.Fprintln(w, "  "+contractInfo+downloadInfo+uploadInfo+maintenanceInfo+eaInfo+jobInfo)
+	fmt.Fprintln(w, "\n  "+contractHeader+downloadHeader+uploadHeader+maintenanceHeader+jobHeader)
+	fmt.Fprintln(w, "  "+contractInfo+downloadInfo+uploadInfo+maintenanceInfo+jobInfo)
 	for _, worker := range workers {
 		// Contract Info
 		fmt.Fprintf(w, "  %v\t%v\t%v\t%v",
@@ -2986,10 +2920,6 @@ func writeWorkers(workers []modules.WorkerStatus) {
 			worker.MaintenanceOnCooldown,
 			worker.MaintenanceCoolDownTime,
 			worker.MaintenanceCoolDownError)
-
-		// EA Info
-		fmt.Fprintf(w, "\t%v",
-			worker.AccountStatus.AvailableBalance)
 
 		// Job Info
 		fmt.Fprintf(w, "\t%v\t%v\t%v\n",

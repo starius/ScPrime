@@ -26,7 +26,7 @@ import (
 
 const (
 	// minAsyncVersion defines the minimum version that is supported
-	minAsyncVersion = "1.4.3.1"
+	minAsyncVersion = "2.4.3.1"
 )
 
 const (
@@ -91,22 +91,10 @@ type (
 		uploadRecentFailureErr    error                    // What was the reason for the last failure?
 		uploadTerminated          bool                     // Have we stopped uploading?
 
-		// The staticAccount represent the renter's ephemeral account on the
-		// host. It keeps track of the available balance in the account, the
-		// worker has a refill mechanism that keeps the account balance filled
-		// up until the staticBalanceTarget.
-		staticAccount       *account
-		staticBalanceTarget types.Currency
-
 		// The loop state contains information about the worker loop. It is
 		// mostly atomic variables that the worker uses to ratelimit the
 		// launching of async jobs.
 		staticLoopState *workerLoopState
-
-		// The maintenance state contains information about the worker's RHP3
-		// related state. It is used to determine whether or not the worker's
-		// maintenance cooldown can be reset.
-		staticMaintenanceState *workerMaintenanceState
 
 		// Utilities.
 		killChan chan struct{} // Worker will shut down if a signal is sent down this channel.
@@ -159,28 +147,10 @@ func (r *Renter) newWorker(hostPubKey types.SiaPublicKey) (*worker, error) {
 		return nil, errors.New("host does not exist")
 	}
 
-	// open the account
-	account, err := r.staticAccountManager.managedOpenAccount(hostPubKey)
-	if err != nil {
-		return nil, errors.AddContext(err, "could not open account")
-	}
-
-	// TODO: set the balance target to match the hosts EphemeralAccount settings
-	//
-	// TODO: check that the balance target  makes sense in function of the
-	// amount of MDM programs it can run with that amount of money
-	balanceTarget := types.ScPrimecoinPrecision.Div64(1000)
-	if r.deps.Disrupt("DisableFunding") {
-		balanceTarget = types.ZeroCurrency
-	}
-
 	w := &worker{
 		staticHostPubKey:     hostPubKey,
 		staticHostPubKeyStr:  hostPubKey.String(),
 		staticHostMuxAddress: host.HostExternalSettings.SiaMuxAddress(),
-
-		staticAccount:       account,
-		staticBalanceTarget: balanceTarget,
 
 		// Initialize the read and write limits for the async worker tasks.
 		// These may be updated in real time as the worker collects metrics
@@ -190,13 +160,10 @@ func (r *Renter) newWorker(hostPubKey types.SiaPublicKey) (*worker, error) {
 			atomicWriteDataLimit: initialConcurrentAsyncWriteData,
 		},
 
-		staticMaintenanceState: new(workerMaintenanceState),
-
 		killChan: make(chan struct{}),
 		wakeChan: make(chan struct{}, 1),
 		renter:   r,
 	}
-	w.newPriceTable()
 	w.initJobHasSectorQueue()
 	w.initJobReadQueue()
 	w.initJobUploadSnapshotQueue()

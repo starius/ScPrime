@@ -24,7 +24,7 @@ import (
 // endpoint works as expected and that it can be loaded with the
 // /renter/recoverbackup endpoint.
 func TestCreateLoadBackup(t *testing.T) {
-	t.Skip("not used")
+	t.Skip("Backups don't work without EA")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -197,6 +197,7 @@ func TestCreateLoadBackup(t *testing.T) {
 // TestInterruptBackup tests that the renter can resume uploading a backup after
 // restarting.
 func TestInterruptBackup(t *testing.T) {
+	t.Skip("Backups don't work without EA")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -292,6 +293,7 @@ func TestInterruptBackup(t *testing.T) {
 
 // TestRemoteBackup tests creating and loading remote backups.
 func TestRemoteBackup(t *testing.T) {
+	t.Skip("Backups don't work without EA")
 	if testing.Short() {
 		t.SkipNow()
 	}

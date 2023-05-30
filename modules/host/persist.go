@@ -1,18 +1,18 @@
 package host
 
 import (
+	"crypto/ed25519"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"gitlab.com/NebulousLabs/fastrand"
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/persist"
 	"gitlab.com/scpcorp/ScPrime/types"
-
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -72,29 +72,16 @@ func (h *Host) establishDefaults() error {
 		MinSectorAccessPrice:      modules.DefaultSectorAccessPrice,
 		MinStoragePrice:           modules.DefaultStoragePrice,
 		MinUploadBandwidthPrice:   modules.DefaultUploadBandwidthPrice,
-
-		EphemeralAccountExpiry:     modules.DefaultEphemeralAccountExpiry,
-		MaxEphemeralAccountBalance: modules.DefaultMaxEphemeralAccountBalance,
-		MaxEphemeralAccountRisk:    defaultMaxEphemeralAccountRisk,
 	}
 
 	// Set the recent consensusChange to current so rescanning consensus can be skipped
 	h.recentChange = modules.ConsensusChangeRecent
 
-	// Load the host's key pair, use the same keys as the SiaMux.
 	var sk crypto.SecretKey
 	var pk crypto.PublicKey
-	msk := h.staticMux.PrivateKey()
-	mpk := h.staticMux.PublicKey()
-
-	// Sanity check that the mux's key are the same length as the host keys
-	// before copying them
-	if len(sk) != len(msk) || len(pk) != len(mpk) {
-		build.Critical("Expected the siamux keys to be of equal length as the host keys")
-	}
-	copy(sk[:], msk[:])
-	copy(pk[:], mpk[:])
-
+	epk, esk, _ := ed25519.GenerateKey(fastrand.Reader)
+	copy(sk[:], esk)
+	copy(pk[:], epk)
 	h.publicKey = types.Ed25519PublicKey(pk)
 	h.secretKey = sk
 
@@ -180,29 +167,8 @@ func (h *Host) load() error {
 	} else if os.IsNotExist(err) {
 		// There is no host.json file, set up sane defaults.
 		return h.establishDefaults()
-	} else if errors.Is(err, persist.ErrBadVersion) || errors.Is(err, persist.ErrBadHeader) {
-		// Then upgrade to V143.
-		err = h.upgradeFromV120ToV143()
-		if err != nil {
-			err = fmt.Errorf("v120 to v143 host upgrade failed: %w", err)
-			h.log.Printf("WARNING: %v, trying v143 to v151 next", err.Error())
-		}
-		// Then upgrade from V143 to V151.
-		err151 := h.upgradeFromV143ToV151()
-		if err151 != nil {
-			h.log.Println("WARNING: v143 to v151 host upgrade failed, nothing left to try", err)
-			return fmt.Errorf("v143 to v151 host upgrade failed: %w", err151)
-		}
-
-		h.log.Println("SUCCESS: successfully upgraded host to v143")
 	} else {
-		return fmt.Errorf("unspecified error: %w", err)
-	}
-
-	// Compatv148 delete the old account file.
-	af := filepath.Join(h.persistDir, v148AccountsFilename)
-	if err := os.RemoveAll(af); err != nil {
-		h.log.Printf("WARNING: failed to remove legacy account file at '%v', err: %v", af, err)
+		return fmt.Errorf("failed to load host.json: %w", err)
 	}
 
 	// Check if the host is currently using defaults that violate the ratio
@@ -237,7 +203,7 @@ func (h *Host) load() error {
 	h.financialMetrics.LockedStorageCollateral = types.NewCurrency64(0)
 	//In case corrupt entries in the database mark them for deletion
 	var invalidSOkeys [][]byte
-	err = h.db.View(func(tx *bolt.Tx) error {
+	_ = h.db.View(func(tx *bolt.Tx) error {
 		cursor := tx.Bucket(bucketStorageObligations).Cursor()
 		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
 			var so storageObligation
@@ -274,6 +240,9 @@ func (h *Host) load() error {
 			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 	}
 	return h.saveSync()
 }

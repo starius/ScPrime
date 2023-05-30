@@ -143,8 +143,12 @@ func (srv *Server) Unlock(password string) error {
 	}
 	validKeys = append(validKeys, crypto.NewWalletKey(crypto.HashObject(password)))
 	for _, key := range validKeys {
-		if err := srv.node.Wallet.Unlock(key); err == nil {
+		err := srv.node.Wallet.Unlock(key)
+		if err == nil {
 			return nil
+		}
+		if err == modules.ErrAlreadyUnlocked {
+			return err
 		}
 	}
 	return modules.ErrBadEncryptionKey

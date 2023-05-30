@@ -1,7 +1,6 @@
 package host
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -184,110 +183,6 @@ func TestStorageObligationSnapshot(t *testing.T) {
 	err = so.Update([]crypto.Hash{sectorRoot, sectorRoot2, sectorRoot3}, nil, map[crypto.Hash][]byte{sectorRoot3: sectorData})
 	if err == nil {
 		t.Fatal("Expected Update to fail on unlocked SO")
-	}
-}
-
-// TestAccountFundingTracking verifies the AccountFunding field is properly
-// updated when the SOs lifecycle methods get called on the host.
-func TestAccountFundingTracking(t *testing.T) {
-	if testing.Short() {
-		t.SkipNow()
-	}
-	t.Parallel()
-
-	ht, err := newHostTester(t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer ht.Close()
-
-	// expectDelta is a helper that asserts the deltas, with regards to the
-	// account funding fields, in the host's financial metrics before and after
-	// executing the given function f.
-	expectDelta := func(pafDelta, afDelta int, action string, f func() error) error {
-		bkp := ht.host.FinancialMetrics()
-		if err := f(); err != nil {
-			return err
-		}
-
-		fm := ht.host.FinancialMetrics()
-		af := fm.AccountFunding
-		paf := fm.PotentialAccountFunding
-
-		// verify potential account funding delta
-		if pafDelta >= 0 {
-			delta := paf.Sub(bkp.PotentialAccountFunding)
-			if !delta.Equals64(uint64(pafDelta)) {
-				return fmt.Errorf("Unexpected potential account funding delta after %s, expected '%vH' actual '%vH'", action, pafDelta, delta)
-			}
-		} else {
-			delta := bkp.PotentialAccountFunding.Sub(paf)
-			if !delta.Equals64(uint64(pafDelta * -1)) {
-				return fmt.Errorf("Unexpected potential account funding delta after %s, expected '%vH' actual '-%vH'", action, pafDelta, delta)
-			}
-		}
-
-		// verify account funding delta
-		if afDelta >= 0 {
-			delta := af.Sub(bkp.AccountFunding)
-			if !delta.Equals64(uint64(afDelta)) {
-				return fmt.Errorf("Unexpected account funding delta after %s, expected '%vH' actual '%vH'", action, afDelta, delta)
-			}
-		} else {
-			delta := bkp.AccountFunding.Sub(af)
-			if !delta.Equals64(uint64(afDelta * -1)) {
-				return fmt.Errorf("Unexpected account funding delta after %s, expected '%vH' actual '-%vH'", action, afDelta, delta)
-			}
-		}
-
-		return nil
-	}
-
-	// assert account funding is 0 on new host
-	af := ht.host.FinancialMetrics().AccountFunding
-	if !af.IsZero() {
-		t.Fatalf("Expected account funding to be zero but was '%v'", af.HumanString())
-	}
-
-	// create a storage obligation
-	so, err := ht.newTesterStorageObligation()
-	if err != nil {
-		t.Fatal(err)
-	}
-	ht.host.managedLockStorageObligation(so.id())
-	defer ht.host.managedUnlockStorageObligation(so.id())
-
-	// add the storage obligation (expect PAF to increase - AF remain same)
-	rd1 := fastrand.Intn(10) + 1
-	so.PotentialAccountFunding = so.PotentialAccountFunding.Add64(uint64(rd1))
-	if err = expectDelta(rd1, 0, "add SO", func() error {
-		return ht.host.managedAddStorageObligation(so, false)
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	// modify the storage obligation (expect PAF to increase - AF remain same)
-	rd2 := fastrand.Intn(10) + 1
-	so.PotentialAccountFunding = so.PotentialAccountFunding.Add64(uint64(rd2))
-	if err = expectDelta(rd2, 0, "modify SO", func() error {
-		return ht.host.managedModifyStorageObligation(so, []crypto.Hash{}, make(map[crypto.Hash][]byte, 0))
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	// delete the storage obligation (expect PAF to decrease - AF increase)
-	total := rd1 + rd2
-	if err = expectDelta(-1*total, total, "delete SO", func() error {
-		return ht.host.removeStorageObligation(so, obligationSucceeded)
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	// reset the host's financial metrics (expect PAF and AF to remain the same)
-	if err = expectDelta(0, 0, "reset FM", func() error {
-		return ht.host.resetFinancialMetrics()
-	}); err != nil {
-		t.Fatal(err)
 	}
 }
 

@@ -14,9 +14,6 @@ import (
 	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/NebulousLabs/siamux"
-	"gitlab.com/NebulousLabs/siamux/mux"
-
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -470,11 +467,12 @@ func (hdb *HostDB) managedScanHost(entry modules.HostDBEntry) {
 
 			// Try opening a connection to the siamux, this is a very lightweight
 			// way of checking that RHP3 is supported.
-			_, err = fetchPriceTable(hdb.staticMux, siamuxAddr, timeout, modules.SiaPKToMuxPK(entry.PublicKey))
-			if err != nil {
-				hdb.staticLog.Debugf("%v siamux ping not successful: %v\n", entry.PublicKey, err)
-				return errors.AddContext(err, "siamux connection not working, fetchPriceTable() failed")
-			}
+			// Disabled on EA removal
+			// _, err = fetchPriceTable(hdb.staticMux, siamuxAddr, timeout, modules.SiaPKToMuxPK(entry.PublicKey))
+			// if err != nil {
+			// 	hdb.staticLog.Debugf("%v siamux ping not successful: %v\n", entry.PublicKey, err)
+			// 	return errors.AddContext(err, "siamux connection not working, fetchPriceTable() failed")
+			// }
 			return nil
 		}()
 		if tryNewProtoErr == nil {
@@ -743,6 +741,7 @@ func (hdb *HostDB) threadedScan() {
 	}
 }
 
+/* Remove EA
 // fetchPriceTable fetches a price table from a host without paying. This means
 // the price table is only useful for scoring the host and can't be used. This
 // uses an ephemeral stream which is a special type of stream that doesn't leak
@@ -782,3 +781,4 @@ func fetchPriceTable(siamux *siamux.SiaMux, hostAddr string, timeout time.Durati
 	}
 	return &pt, nil
 }
+*/ //Remove EA

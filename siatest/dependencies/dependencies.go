@@ -157,12 +157,6 @@ type (
 		c chan struct{}
 	}
 
-	// DependencyDisableRotateFingerprintBuckets prevents rotation of the
-	// fingerprint buckets on disk.
-	DependencyDisableRotateFingerprintBuckets struct {
-		modules.ProductionDependencies
-	}
-
 	// DependencyDefaultRenewSettings causes the contractor to use default
 	// settings when renewing a contract.
 	DependencyDefaultRenewSettings struct {
@@ -378,11 +372,6 @@ func (d *DependencyRenewWithoutClear) Disrupt(s string) bool {
 // Disrupt causes contract renewal to not clear the contents of a contract.
 func (d *DependencyInterruptAccountSaveOnShutdown) Disrupt(s string) bool {
 	return s == "InterruptAccountSaveOnShutdown"
-}
-
-// Disrupt returns true if the correct string is provided.
-func (d *DependencyDisableRotateFingerprintBuckets) Disrupt(s string) bool {
-	return s == "DisableRotateFingerprintBuckets"
 }
 
 // Disrupt returns true if the correct string is provided.

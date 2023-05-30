@@ -1,6 +1,7 @@
 package proto
 
 import (
+	"fmt"
 	"net"
 	"strings"
 	"sync"
@@ -8,7 +9,6 @@ import (
 
 	"gitlab.com/NebulousLabs/encoding"
 	"gitlab.com/NebulousLabs/errors"
-
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
@@ -60,7 +60,7 @@ func (hd *Downloader) Download(root crypto.Hash, offset, length uint32) (_ modul
 	// create the download revision
 	rev, err := newDownloadRevision(contract.LastRevision(), sectorPrice)
 	if err != nil {
-		return modules.RenterContract{}, nil, errors.AddContext(err, "Error creating new download revision")
+		return modules.RenterContract{}, nil, fmt.Errorf("Error creating new download revision: %w", err)
 	}
 
 	// initiate download by confirming host settings
@@ -94,6 +94,7 @@ func (hd *Downloader) Download(root crypto.Hash, offset, length uint32) (_ modul
 		// they are not considered a failed interaction with the host.
 		if err != nil && err != modules.ErrStopResponse && !strings.Contains(err.Error(), "use of closed network connection") {
 			hd.hdb.IncrementFailedInteractions(contract.HostPublicKey())
+
 			err = errors.Extend(err, modules.ErrHostFault)
 		} else {
 			hd.hdb.IncrementSuccessfulInteractions(contract.HostPublicKey())
@@ -113,7 +114,13 @@ func (hd *Downloader) Download(root crypto.Hash, offset, length uint32) (_ modul
 		// If the host wants to stop communicating after this iteration, close
 		// our connection; this will cause the next download to fail. However,
 		// we must delay closing until we've finished downloading the sector.
-		defer hd.conn.Close()
+		// defer hd.conn.Close()
+		defer func() {
+			e := hd.conn.Close()
+			if e != nil {
+				err = fmt.Errorf("error %v on closing connection after %w", e.Error(), err)
+			}
+		}()
 	} else if err != nil {
 		return modules.RenterContract{}, nil, err
 	}

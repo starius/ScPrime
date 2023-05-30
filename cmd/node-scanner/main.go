@@ -195,7 +195,7 @@ func newNodeScanner(scannerDirPrefix string) (ns *nodeScanner) {
 	// Create dummy gateway at localhost. It is used only to connect/disconnect
 	// from nodes and to use the ShareNodes RPC with other nodes for the purposes
 	// of this scan.
-	g, err := gateway.New("localhost:0", true, scannerGatewayDirPath)
+	g, err := gateway.New("127.0.0.1:0", true, scannerGatewayDirPath)
 	if err != nil {
 		log.Fatal("Error making new gateway: ", err)
 	}

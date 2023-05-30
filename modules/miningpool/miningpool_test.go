@@ -53,7 +53,7 @@ type poolTester struct {
 }
 
 func GetFreePort() (int, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
 	if err != nil {
 		return 0, err
 	}
@@ -72,7 +72,7 @@ func newPoolTester(name string, port int) (*poolTester, error) {
 	fmt.Printf("temp path: %s\n", testdir)
 
 	// Create the modules.
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
 		return nil, err
 	}

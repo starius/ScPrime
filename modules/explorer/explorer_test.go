@@ -37,7 +37,7 @@ func createExplorerTester(name string) (*explorerTester, error) {
 
 	// Create and assemble the dependencies.
 	testdir := build.TempDir(modules.ExplorerDir, name)
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func TestExplorerGenesisHeight(t *testing.T) {
 	}
 	// Create the dependencies.
 	testdir := build.TempDir(modules.HostDir, t.Name())
-	g, err := gateway.New("localhost:0", false, filepath.Join(testdir, modules.GatewayDir))
+	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testdir, modules.GatewayDir))
 	if err != nil {
 		t.Fatal(err)
 	}

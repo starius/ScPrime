@@ -43,7 +43,7 @@ func postEncryptionTesting(m modules.TestMiner, w *Wallet, masterKey crypto.Ciph
 		panic(err)
 	}
 	err = w.Unlock(masterKey)
-	if err != errAlreadyUnlocked {
+	if err != modules.ErrAlreadyUnlocked {
 		panic(err)
 	}
 	// Mine enough coins so that a balance appears (and some buffer for the
@@ -62,7 +62,7 @@ func postEncryptionTesting(m modules.TestMiner, w *Wallet, masterKey crypto.Ciph
 		panic("wallet balance reported as 0 after maturing some mined blocks")
 	}
 	err = w.Unlock(masterKey)
-	if err != errAlreadyUnlocked {
+	if err != modules.ErrAlreadyUnlocked {
 		panic(err)
 	}
 

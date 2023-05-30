@@ -1,23 +1,14 @@
 package renter
 
 import (
-	"bytes"
-	"fmt"
 	"io"
-	"net"
-	"runtime"
-	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
-
-	"gitlab.com/NebulousLabs/errors"
-	"gitlab.com/NebulousLabs/fastrand"
 )
 
 const (
@@ -132,47 +123,48 @@ type (
 // the caller to pass in a buffer if he so pleases in order to optimise the
 // amount of writes on the actual stream.
 func (a *account) ProvidePayment(stream io.Writer, host types.SiaPublicKey, rpc types.Specifier, amount types.Currency, refundAccount modules.AccountID, blockHeight types.BlockHeight) error {
-	if rpc == modules.RPCFundAccount && !refundAccount.IsZeroAccount() {
-		return errors.New("Refund account is expected to be the zero account when funding an ephemeral account")
-	}
-	// NOTE: we purposefully do not verify if the account has sufficient funds.
-	// Seeing as withdrawals are a blocking action on the host, it is perfectly
-	// ok to trigger them from an account with insufficient balance.
+	// if rpc == modules.RPCFundAccount && !refundAccount.IsZeroAccount() {
+	// 	return errors.New("Refund account is expected to be the zero account when funding an ephemeral account")
+	// }
+	// // NOTE: we purposefully do not verify if the account has sufficient funds.
+	// // Seeing as withdrawals are a blocking action on the host, it is perfectly
+	// // ok to trigger them from an account with insufficient balance.
 
-	// create a withdrawal message
-	msg := newWithdrawalMessage(a.staticID, amount, blockHeight)
-	sig := crypto.SignHash(crypto.HashObject(msg), a.staticSecretKey)
+	// // create a withdrawal message
+	// msg := newWithdrawalMessage(a.staticID, amount, blockHeight)
+	// sig := crypto.SignHash(crypto.HashObject(msg), a.staticSecretKey)
 
-	// send PaymentRequest
-	err := modules.RPCWrite(stream, modules.PaymentRequest{Type: modules.PayByEphemeralAccount})
-	if err != nil {
-		return err
-	}
+	// // send PaymentRequest
+	// err := modules.RPCWrite(stream, modules.PaymentRequest{Type: modules.PayByEphemeralAccount})
+	// if err != nil {
+	// 	return err
+	// }
 
-	// send PayByEphemeralAccountRequest
-	err = modules.RPCWrite(stream, modules.PayByEphemeralAccountRequest{
-		Message:   msg,
-		Signature: sig,
-	})
-	if err != nil {
-		return err
-	}
+	// // send PayByEphemeralAccountRequest
+	// err = modules.RPCWrite(stream, modules.PayByEphemeralAccountRequest{
+	// 	Message:   msg,
+	// 	Signature: sig,
+	// })
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
 
+/* EA Removal
 // availableBalance returns the amount of money that is available to
 // spend. It is calculated by taking into account pending spends and pending
 // funds.
 func (a *account) availableBalance() types.Currency {
-	total := a.balance.Add(a.pendingDeposits)
-	if total.Cmp(a.negativeBalance) <= 0 {
-		return types.ZeroCurrency
-	}
-	total = total.Sub(a.negativeBalance)
-	if a.pendingWithdrawals.Cmp(total) < 0 {
-		return total.Sub(a.pendingWithdrawals)
-	}
+	// total := a.balance.Add(a.pendingDeposits)
+	// if total.Cmp(a.negativeBalance) <= 0 {
+	// 	return types.ZeroCurrency
+	// }
+	// total = total.Sub(a.negativeBalance)
+	// if a.pendingWithdrawals.Cmp(total) < 0 {
+	// 	return total.Sub(a.pendingWithdrawals)
+	// }
 	return types.ZeroCurrency
 }
 
@@ -489,6 +481,7 @@ func (w *worker) managedNeedsToSyncAccountBalanceToHost() bool {
 	return w.staticAccount.callNeedsToSync()
 }
 
+
 // managedRefillAccount will refill the account if it needs to be refilled
 func (w *worker) managedRefillAccount() {
 	if w.renter.deps.Disrupt("DisableFunding") {
@@ -731,3 +724,4 @@ func checkFundAccountGouging(pt modules.RPCPriceTable, allowance modules.Allowan
 
 	return nil
 }
+*/

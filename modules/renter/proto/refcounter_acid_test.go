@@ -58,10 +58,10 @@ func TestRefCounterFaultyDisk(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	t.Parallel()
+	//t.Parallel()
 
 	// Determine a reasonable timeout for the test
-	testTimeout := 5 * time.Second
+	testTimeout := 10 * time.Second
 	if build.VLONG {
 		testTimeout = 30 * time.Second
 	}

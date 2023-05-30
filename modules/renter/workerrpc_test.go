@@ -2,11 +2,8 @@ package renter
 
 import (
 	"testing"
-	"time"
 
-	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/fastrand"
-	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
@@ -15,6 +12,7 @@ import (
 // TestExecuteProgramUsedBandwidth verifies the bandwidth used by executing
 // various MDM programs on the host
 func TestExecuteProgramUsedBandwidth(t *testing.T) {
+	t.Skip("EA workers disabled")
 	if testing.Short() {
 		t.SkipNow()
 	}
@@ -32,17 +30,6 @@ func TestExecuteProgramUsedBandwidth(t *testing.T) {
 		}
 	}()
 
-	// wait until we have a valid pricetable
-	err = build.Retry(100, 100*time.Millisecond, func() error {
-		if !wt.worker.staticPriceTable().staticValid() {
-			return errors.New("price table not updated yet")
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	t.Run("HasSector", func(t *testing.T) {
 		testExecuteProgramUsedBandwidthHasSector(t, wt)
 	})
@@ -58,7 +45,7 @@ func testExecuteProgramUsedBandwidthHasSector(t *testing.T, wt *workerTester) {
 	w := wt.worker
 
 	// create a dummy program
-	pt := wt.staticPriceTable().staticPriceTable
+	pt := modules.RPCPriceTable{}
 	pb := modules.NewProgramBuilder(&pt, 0)
 	pb.AddHasSectorInstruction(crypto.Hash{})
 	p, data := pb.Program()
@@ -101,7 +88,7 @@ func testExecuteProgramUsedBandwidthReadSector(t *testing.T, wt *workerTester) {
 	}
 
 	// create a dummy program
-	pt := wt.staticPriceTable().staticPriceTable
+	pt := modules.RPCPriceTable{}
 	pb := modules.NewProgramBuilder(&pt, 0)
 	pb.AddReadSectorInstruction(modules.SectorSize, 0, sectorRoot, true)
 	p, data := pb.Program()

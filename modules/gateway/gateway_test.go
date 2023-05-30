@@ -24,7 +24,7 @@ func newTestingGateway(t *testing.T) *Gateway {
 		panic("newTestingGateway called during short test")
 	}
 
-	g, err := New("localhost:0", false, build.TempDir("gateway", t.Name()))
+	g, err := New("127.0.0.1:0", false, build.TempDir("gateway", t.Name()))
 	if err != nil {
 		panic(err)
 	}
@@ -38,7 +38,7 @@ func newNamedTestingGateway(t *testing.T, suffix string) *Gateway {
 		panic("newTestingGateway called during short test")
 	}
 
-	g, err := New("localhost:0", false, build.TempDir("gateway", t.Name()+suffix))
+	g, err := New("127.0.0.1:0", false, build.TempDir("gateway", t.Name()+suffix))
 	if err != nil {
 		panic(err)
 	}
@@ -152,7 +152,7 @@ func TestNew(t *testing.T) {
 	if _, err := New("", false, ""); err == nil {
 		t.Fatal("expecting persistDir error, got nil")
 	}
-	if _, err := New("localhost:0", false, ""); err == nil {
+	if _, err := New("127.0.0.1:0", false, ""); err == nil {
 		t.Fatal("expecting persistDir error, got nil")
 	}
 	if g, err := New("foo", false, build.TempDir("gateway", t.Name()+"1")); err == nil {
@@ -165,7 +165,7 @@ func TestNew(t *testing.T) {
 	if err != nil {
 		t.Fatal("couldn't create corrupted file:", err)
 	}
-	if _, err := New("localhost:0", false, dir); err == nil {
+	if _, err := New("127.0.0.1:0", false, dir); err == nil {
 		t.Fatal("expected load error, got nil")
 	}
 }
@@ -319,7 +319,7 @@ func TestManualConnectDisconnectPersist(t *testing.T) {
 
 	// Restart g2 without deleting the tmp dir
 	g2.Close()
-	g2, err := New("localhost:0", false, g2.persistDir)
+	g2, err := New("127.0.0.1:0", false, g2.persistDir)
 	if err != nil {
 		t.Fatal(err)
 	}

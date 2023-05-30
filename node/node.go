@@ -15,12 +15,13 @@ import (
 	"path/filepath"
 	"time"
 
+	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/ratelimit"
-	"gitlab.com/NebulousLabs/siamux"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/config"
+	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/modules/consensus"
 	"gitlab.com/scpcorp/ScPrime/modules/explorer"
@@ -103,10 +104,6 @@ type NodeParams struct {
 	// Dependencies for storage monitor supporting dependency injection.
 	StorageManagerDeps modules.Dependencies
 
-	// Custom settings for siamux
-	SiaMuxTCPAddress string
-	SiaMuxWSAddress  string
-
 	// Custom settings for modules
 	Allowance   modules.Allowance
 	Bootstrap   bool
@@ -137,9 +134,6 @@ type NodeParams struct {
 
 // Node is a collection of ScPrime modules operating together as a ScPrime node.
 type Node struct {
-	// The mux of the node.
-	Mux *siamux.SiaMux
-
 	// The modules of the node. Modules that are not initialized will be nil.
 	ConsensusSet    modules.ConsensusSet
 	Explorer        modules.Explorer
@@ -252,10 +246,6 @@ func (n *Node) Close() (err error) {
 		printlnRelease("Closing gateway...")
 		err = errors.Compose(n.Gateway.Close())
 	}
-	if n.Mux != nil {
-		printlnRelease("Closing siamux...")
-		err = errors.Compose(n.Mux.Close())
-	}
 	return err
 }
 
@@ -265,6 +255,7 @@ func (n *Node) Close() (err error) {
 // directly (so that the modules may use the siatest package to test
 // themselves).
 func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
+	walletUnlocked := false
 	numModules := params.NumModules()
 	i := 0
 	printlnRelease("Starting modules:")
@@ -274,13 +265,6 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 	errChan := make(chan error, 1)
 	if err != nil {
 		errChan <- err
-		return nil, errChan
-	}
-
-	// Create the siamux.
-	mux, err := modules.NewSiaMux(filepath.Join(dir, modules.SiaMuxDir), dir, params.SiaMuxTCPAddress, params.SiaMuxWSAddress)
-	if err != nil {
-		errChan <- errors.Extend(err, errors.New("unable to create siamux"))
 		return nil, errChan
 	}
 
@@ -297,7 +281,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 			return nil, nil
 		}
 		if params.RPCAddress == "" {
-			params.RPCAddress = "localhost:0"
+			params.RPCAddress = "127.0.0.1:0"
 		}
 		gatewayDeps := params.GatewayDeps
 		if gatewayDeps == nil {
@@ -428,6 +412,28 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 	}
 	if w != nil {
 		printlnRelease(" done in ", time.Since(loadStart).Seconds(), "seconds.")
+		//Start wallet unlock attempt
+		if password := build.WalletPassword(); password != "" {
+			// fmt.Println("ScPrime Wallet Password found, attempting to auto-unlock wallet")
+			go func() {
+				var validKeys []crypto.CipherKey
+				dicts := []mnemonics.DictionaryID{"english", "german", "japanese"}
+				for _, dict := range dicts {
+					seed, err := modules.StringToSeed(password, dict)
+					if err != nil {
+						continue
+					}
+					validKeys = append(validKeys, crypto.NewWalletKey(crypto.HashObject(seed)))
+				}
+				validKeys = append(validKeys, crypto.NewWalletKey(crypto.HashObject(password)))
+				for _, key := range validKeys {
+					if err := w.Unlock(key); err == nil {
+						walletUnlocked = true
+						return
+					}
+				}
+			}()
+		}
 	}
 
 	loadStart = time.Now()
@@ -460,18 +466,21 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 
 	loadStart = time.Now()
 	// Host.
-	h, err := func() (modules.Host, error) {
+	h, errChanHost := func() (modules.Host, <-chan error) {
+		c := make(chan error, 1)
+		defer close(c)
 		if params.CreateHost && params.Host != nil {
-			return nil, errors.New("cannot create host and use custom host")
+			c <- errors.New("cannot create host and use custom host")
+			return nil, c
 		}
 		if params.Host != nil {
-			return params.Host, nil
+			return params.Host, c
 		}
 		if !params.CreateHost {
-			return nil, nil
+			return nil, c
 		}
 		if params.HostAddress == "" {
-			params.HostAddress = "localhost:0"
+			params.HostAddress = "127.0.0.1:0"
 		}
 		hostDeps := params.HostDeps
 		if hostDeps == nil {
@@ -484,16 +493,21 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 
 		ln, err := net.Listen("tcp", params.HostAPIAddr)
 		if err != nil {
-			return nil, fmt.Errorf("listener for host api: %w", err)
+			c <- fmt.Errorf("error creating network listener for host api: %w", err)
+			return nil, c
 		}
 
 		i++
 		printfRelease("(%d/%d) Loading host...", i, numModules)
-		host, err := host.NewCustomTestHost(hostDeps, smDeps, cs, g, tp, w, mux, params.HostAddress, filepath.Join(dir, modules.HostDir), ln, params.CheckTokenExpirationFrequency, params.OnlyFirstDir)
-		return host, err
+		h, err := host.NewCustomTestHost(hostDeps, smDeps, cs, g, tp, w, params.HostAddress, filepath.Join(dir, modules.HostDir), ln, params.CheckTokenExpirationFrequency, params.OnlyFirstDir)
+		if err != nil {
+			c <- err
+		}
+		return h, c
+		//return host.NewBlockedStartHost(hostDeps, smDeps, cs, g, tp, w, params.HostAddress, filepath.Join(dir, modules.HostDir), ln, params.CheckTokenExpirationFrequency, params.OnlyFirstDir)
 	}()
-	if err != nil {
-		errChan <- errors.Extend(err, errors.New("unable to create host"))
+	if err := modules.PeekErr(errChanHost); err != nil {
+		errChan <- fmt.Errorf("unable to initialize host module: %w", err)
 		return nil, errChan
 	}
 	if h != nil {
@@ -539,7 +553,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		printfRelease("(%d/%d) Loading renter...", i, numModules)
 
 		// HostDB
-		hdb, errChanHDB := hostdb.NewCustomHostDB(g, cs, tp, mux, persistDir, hostDBDeps)
+		hdb, errChanHDB := hostdb.NewCustomHostDB(g, cs, tp, persistDir, hostDBDeps)
 		if err := modules.PeekErr(errChanHDB); err != nil {
 			c <- err
 			close(c)
@@ -566,7 +580,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 			close(c)
 			return nil, c
 		}
-		renter, errChanRenter := renter.NewCustomRenter(g, cs, tp, hdb, w, hc, mux, persistDir, renterRateLimit, renterDeps)
+		renter, errChanRenter := renter.NewCustomRenter(g, cs, tp, hdb, w, hc, persistDir, renterRateLimit, renterDeps)
 		if err := modules.PeekErr(errChanRenter); err != nil {
 			c <- err
 			close(c)
@@ -646,13 +660,11 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 
 	printfRelease("API is now available, module loading completed in %.3f seconds\n", time.Since(loadStartTime).Seconds())
 	go func() {
-		errChan <- errors.Compose(<-errChanCS, <-errChanRenter)
+		errChan <- errors.Compose(<-errChanCS, <-errChanRenter, <-errChanHost)
 		close(errChan)
 	}()
 
-	return &Node{
-		Mux: mux,
-
+	node := &Node{
 		ConsensusSet:    cs,
 		Explorer:        e,
 		Gateway:         g,
@@ -665,5 +677,9 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		Wallet:          w,
 
 		Dir: dir,
-	}, errChan
+	}
+	if walletUnlocked {
+		printfRelease("Wallet unlocked using environment variable %v\n", build.EnvvarWalletPassword)
+	}
+	return node, errChan
 }
