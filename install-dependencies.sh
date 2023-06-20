@@ -11,7 +11,7 @@ if ! [ -x "$(command -v codespell)" ]; then
   if ! [ -x "$(command -v pip3)" ]; then
     sudo apt install python3-pip
   fi
-  pip3 install codespell
+  pip3 install codespell --break-system-packages
 fi
 
 if ! [ -x "$(command -v analyze)" ]; then
