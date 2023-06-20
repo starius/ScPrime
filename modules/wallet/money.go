@@ -87,7 +87,8 @@ func (w *Wallet) ConfirmedBalance() (balance modules.ConfirmedBalance, err error
 		}
 		if isSiafundBOutput {
 			balance.ClaimbBalance = balance.ClaimbBalance.Add(claim.ByOwner)
-			balance.UnclaimbBalance = balance.UnclaimbBalance.Add(claim.Total.Sub(claim.ByOwner))
+			lostClaim := types.SiafundBLostClaim(claim)
+			balance.UnclaimbBalance = balance.UnclaimbBalance.Add(lostClaim)
 		} else {
 			balance.ClaimBalance = balance.ClaimBalance.Add(claim.ByOwner)
 		}
