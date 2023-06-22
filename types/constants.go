@@ -328,6 +328,14 @@ var (
 		Standard: BlockHeight(238650),
 		Testing:  BlockHeight(80000),
 	}).(BlockHeight)
+
+	// SpfPoolHistoryHardforkHeight is the height at which the hardfork
+	// fixing historical SPF pool values is activated.
+	SpfPoolHistoryHardforkHeight = build.Select(build.Var{
+		Dev:      BlockHeight(70),
+		Standard: BlockHeight(247900),
+		Testing:  BlockHeight(100000),
+	}).(BlockHeight)
 )
 
 // SiafundState describes total amount of SPF and tax percentage.
@@ -337,6 +345,12 @@ type SiafundState struct {
 	Mul              int64
 	Div              int64
 	Portion          big.Rat
+}
+
+// IsSpfPoolHistoryHardfork returns true if SPF pool history hardfork
+// needs to happen at this height.
+func IsSpfPoolHistoryHardfork(height BlockHeight) bool {
+	return Fork2022 && height == SpfPoolHistoryHardforkHeight
 }
 
 // IsSpfHardfork returns true when one of Spf hardforks happens at given height.

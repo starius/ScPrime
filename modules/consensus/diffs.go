@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"errors"
+	"fmt"
 
 	bolt "go.etcd.io/bbolt"
 
@@ -209,6 +210,15 @@ func deleteObsoleteDelayedOutputMaps(tx *bolt.Tx, pb *processedBlockV2, dir modu
 	}
 }
 
+// updateSiafundPoolHistory updates historical SPF pool values.
+func updateSiafundPoolHistory(tx *bolt.Tx, pb *processedBlockV2, dir modules.DiffDirection) {
+	if dir == modules.DiffApply {
+		setSiafundHistoricalPool(tx, getSiafundPool(tx), pb.Height)
+	} else {
+		removeSiafundHistoricalPool(tx, pb.Height)
+	}
+}
+
 // updateCurrentPath updates the current path after applying a diff set.
 func updateCurrentPath(tx *bolt.Tx, pb *processedBlockV2, dir modules.DiffDirection) {
 	// Update the current path.
@@ -229,7 +239,41 @@ func commitDiffSet(tx *bolt.Tx, pb *processedBlockV2, dir modules.DiffDirection)
 	createUpcomingDelayedOutputMaps(tx, pb, dir)
 	commitNodeDiffs(tx, pb, dir)
 	deleteObsoleteDelayedOutputMaps(tx, pb, dir)
+	if types.Fork2022 && pb.Height >= types.SpfPoolHistoryHardforkHeight {
+		updateSiafundPoolHistory(tx, pb, dir)
+	}
 	updateCurrentPath(tx, pb, dir)
+}
+
+// SPF pool history hardfork fixes bug introduced in Fork2022.
+// It iterates pool-by-height values and inserts them if needed.
+// The bug is, some blocks don't have pool values because
+// pool values were inserted from SiafundPoolDiffs which don't exist
+// when pool value doesn't change.
+func applySpfPoolHistoryHardfork(tx *bolt.Tx) (err error) {
+	currentPool := getSiafundHardforkPool(tx, types.Fork2022Height)
+	var heightsWithoutPool []types.BlockHeight
+	for height := types.Fork2022Height; height <= types.SpfPoolHistoryHardforkHeight; height++ {
+		pool, err := getSiafundPoolAtHeight(tx, height)
+		if err == errNilItem {
+			// Missing value because it hasn't changed, need to insert the previous one.
+			heightsWithoutPool = append(heightsWithoutPool, height)
+			setSiafundHistoricalPool(tx, currentPool, height)
+			continue
+		} else if err != nil {
+			return fmt.Errorf("failed to get pool at height %d: %w", height, err)
+		}
+		currentPool = pool
+	}
+	storeHeightsWithoutPools(tx, heightsWithoutPool)
+	return nil
+}
+
+func revertSpfPoolHistoryHardfork(tx *bolt.Tx) {
+	heightsToRemove := heightsWithoutPools(tx)
+	for _, h := range heightsToRemove {
+		removeSiafundHistoricalPool(tx, h)
+	}
 }
 
 // generateAndApplyDiff will verify the block and then integrate it into the
@@ -336,6 +380,9 @@ func generateAndApplyDiff(tx *bolt.Tx, pb *processedBlockV2) error {
 	// true on fully validated blocks.
 	pb.DiffsGenerated = true
 
+	if types.Fork2022 && pb.Height >= types.SpfPoolHistoryHardforkHeight {
+		updateSiafundPoolHistory(tx, pb, modules.DiffApply)
+	}
 	// Add the block to the current path and block map.
 	updateCurrentPath(tx, pb, modules.DiffApply)
 

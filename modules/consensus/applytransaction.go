@@ -235,9 +235,8 @@ func applySiafundInputs(tx *bolt.Tx, pb *processedBlockV2, t types.Transaction) 
 
 		if !claim.Total.Equals(claim.ByOwner) {
 			// Add another claim output for DevFund in case of SPF-B.
-			lostClaim := claim.Total.Sub(claim.ByOwner)
 			sco := types.SiacoinOutput{
-				Value:      lostClaim,
+				Value:      types.SiafundBLostClaim(claim),
 				UnlockHash: types.SiafundBLostClaimAddress,
 			}
 			sfoid := sfi.ParentID.SiaClaimSecondOutputID()

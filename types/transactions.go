@@ -280,3 +280,17 @@ func (sfc *SiafundClaim) MulCurrency(c Currency) {
 	sfc.Total = sfc.Total.Mul(c)
 	sfc.ByOwner = sfc.ByOwner.Mul(c)
 }
+
+// SiafundBLostClaim returns unclaimed amount for
+// specific SPF-B claim lost due to lack of active contracts.
+func SiafundBLostClaim(sfc SiafundClaim) Currency {
+	// Workaround to handle negative currency due to bug in Fork2022,
+	// fixed by SpfPoolHistoryHardfork.
+	var lostClaim Currency
+	if sfc.Total.Cmp(sfc.ByOwner) < 0 {
+		lostClaim = ZeroCurrency
+	} else {
+		lostClaim = sfc.Total.Sub(sfc.ByOwner)
+	}
+	return lostClaim
+}

@@ -95,6 +95,10 @@ var (
 	// SiafundBOutputs is a database bucket that stores all existing SPF-B
 	// output IDs (only keys are used).
 	SiafundBOutputs = []byte("SiafundBOutputs")
+
+	// PoolHistoryHardforkBucket is an utility database bucket that is
+	// only used by SPF pool history hardfork code.
+	PoolHistoryHardforkBucket = []byte("PoolHistoryHardforkBucket")
 )
 
 var (
@@ -127,6 +131,7 @@ func (cs *ConsensusSet) createConsensusDB(tx *bolt.Tx) error {
 		FileContractsOwnership,
 		FileContractRanges,
 		SiafundBOutputs,
+		PoolHistoryHardforkBucket,
 	}
 	for _, bucket := range buckets {
 		_, err := tx.CreateBucket(bucket)
@@ -245,6 +250,23 @@ func siafundClaim(tx *bolt.Tx, sfoid types.SiafundOutputID, sfo types.SiafundOut
 	claim := claimPerFund(sfo.ClaimStart, currentPool, hardforks, ownersClaimRanges)
 	claim.MulCurrency(sfo.Value)
 	return claim
+}
+
+func heightsWithoutPools(tx *bolt.Tx) (heights []types.BlockHeight) {
+	heightsBytes := tx.Bucket(PoolHistoryHardforkBucket).Get(PoolHistoryHardforkBucket)
+	err := encoding.Unmarshal(heightsBytes, &heights)
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
+	return
+}
+
+func storeHeightsWithoutPools(tx *bolt.Tx, heights []types.BlockHeight) {
+	b := tx.Bucket(PoolHistoryHardforkBucket)
+	err := b.Put(PoolHistoryHardforkBucket, encoding.Marshal(heights))
+	if build.DEBUG && err != nil {
+		panic(err)
+	}
 }
 
 // blockHeight returns the height of the blockchain.

@@ -23,6 +23,7 @@ var (
 		FileContractRanges,
 		SiafundBOutputs,
 		BlockMapV2,
+		PoolHistoryHardforkBucket,
 	}
 )
 
@@ -115,6 +116,7 @@ func (cs *ConsensusSet) initPersist() error {
 	if err != nil {
 		return err
 	}
+
 	// Set up the closing of the database.
 	err = cs.tg.AfterStop(func() error {
 		err := cs.db.Close()

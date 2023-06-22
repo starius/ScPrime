@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"errors"
+	"fmt"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -66,6 +67,11 @@ func (cs *ConsensusSet) revertToBlock(tx *bolt.Tx, pb *processedBlockV2) (revert
 			// reset SPF hardfork siafund pool.
 			setSiafundHardforkPool(tx, types.ZeroCurrency, height)
 		}
+		if types.IsSpfPoolHistoryHardfork(height) {
+			// We are reverting SPF pool history hardfork,
+			// it requires manual rollback procedure.
+			revertSpfPoolHistoryHardfork(tx)
+		}
 		block := currentProcessedBlock(tx)
 		commitDiffSet(tx, block, modules.DiffRevert)
 		revertedBlocks = append(revertedBlocks, block)
@@ -99,6 +105,19 @@ func (cs *ConsensusSet) applyUntilBlock(tx *bolt.Tx, pb *processedBlockV2) (appl
 				return nil, err
 			}
 		}
+		if types.IsSpfPoolHistoryHardfork(block.Height) {
+			// At SiafundPoolHistoryHardforkHeight a correction is applied to add
+			// all missing values so that for every block after Fork2022Height there is
+			// Siafund pool value stored. Before this, when there are no SiafundPoolDiffs
+			// in the block, no pool values were stored which lead to mistakes
+			// in SPF-B claim calculation.
+			// This change is a hardfork, because claim values for same SPF-B outputs
+			// might differ from what the previous version would produce.
+			if err := applySpfPoolHistoryHardfork(tx); err != nil {
+				return nil, fmt.Errorf("failed to add missing values to SPF pool history: %w", err)
+			}
+		}
+
 		appliedBlocks = append(appliedBlocks, block)
 
 		// Sanity check - after applying a block, check that the consensus set
