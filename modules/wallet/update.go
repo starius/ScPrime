@@ -365,25 +365,40 @@ func (w *Wallet) computeProcessedTransactionsFromBlock(tx *bolt.Tx, block types.
 				w.log.Println("\tSiafund Input:", pi.ParentID, "::", pi.Value.HumanString())
 			}
 
-			siafundPool, err := dbGetSiafundPool(w.dbTx)
+			claim, err := w.cs.SiafundClaim(sfi.ParentID)
 			if err != nil {
-				w.log.Println("could not get siafund pool: ", err)
+				w.log.Println("could not get siafund claim: ", err)
 				continue
 			}
-
-			sfo := spentSiafundOutputs[sfi.ParentID]
-			po := modules.ProcessedOutput{
-				ID:             types.OutputID(sfi.ParentID),
-				FundType:       types.SpecifierClaimOutput,
-				MaturityHeight: consensusHeight + types.MaturityDelay,
-				WalletAddress:  w.isWalletAddress(sfi.UnlockConditions.UnlockHash()),
-				RelatedAddress: sfi.ClaimUnlockHash,
-				Value:          siafundPool.Sub(sfo.ClaimStart).Mul(sfo.Value),
+			if !claim.ByOwner.IsZero() {
+				po := modules.ProcessedOutput{
+					ID:             types.OutputID(sfi.ParentID),
+					FundType:       types.SpecifierClaimOutput,
+					MaturityHeight: consensusHeight + types.MaturityDelay,
+					WalletAddress:  w.isWalletAddress(sfi.UnlockConditions.UnlockHash()),
+					RelatedAddress: sfi.ClaimUnlockHash,
+					Value:          claim.ByOwner,
+				}
+				pt.Outputs = append(pt.Outputs, po)
+				// Log any wallet-relevant outputs.
+				if po.WalletAddress {
+					w.log.Println("\tClaim Output:", po.ID, "::", po.Value.HumanString())
+				}
 			}
-			pt.Outputs = append(pt.Outputs, po)
-			// Log any wallet-relevant outputs.
-			if po.WalletAddress {
-				w.log.Println("\tClaim Output:", po.ID, "::", po.Value.HumanString())
+			if !claim.Total.Equals(claim.ByOwner) {
+				po := modules.ProcessedOutput{
+					ID:             types.OutputID(sfi.ParentID.SiaClaimSecondOutputID()),
+					FundType:       types.SpecifierClaimOutput,
+					MaturityHeight: consensusHeight + types.MaturityDelay,
+					WalletAddress:  w.isWalletAddress(sfi.UnlockConditions.UnlockHash()),
+					RelatedAddress: types.SiafundBLostClaimAddress,
+					Value:          types.SiafundBLostClaim(claim),
+				}
+				pt.Outputs = append(pt.Outputs, po)
+				// Log any wallet-relevant outputs.
+				if po.WalletAddress {
+					w.log.Println("\tClaim Output:", po.ID, "::", po.Value.HumanString())
+				}
 			}
 		}
 
