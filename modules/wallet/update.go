@@ -351,10 +351,21 @@ func (w *Wallet) computeProcessedTransactionsFromBlock(tx *bolt.Tx, block types.
 			}
 		}
 
+		txHasSiafundBInputs := false
 		for _, sfi := range txn.SiafundInputs {
+			isB, err := w.cs.IsSiafundBOutput(sfi.ParentID)
+			if err != nil {
+				w.log.Println("IsSiafundBOutput failed: ", err)
+				continue
+			}
+			fundType := types.SpecifierSiafundInput
+			if isB {
+				txHasSiafundBInputs = true
+				fundType = types.SpecifierSiafundBInput
+			}
 			pi := modules.ProcessedInput{
 				ParentID:       types.OutputID(sfi.ParentID),
-				FundType:       types.SpecifierSiafundInput,
+				FundType:       fundType,
 				WalletAddress:  w.isWalletAddress(sfi.UnlockConditions.UnlockHash()),
 				RelatedAddress: sfi.UnlockConditions.UnlockHash(),
 				Value:          spentSiafundOutputs[sfi.ParentID].Value,
@@ -403,9 +414,15 @@ func (w *Wallet) computeProcessedTransactionsFromBlock(tx *bolt.Tx, block types.
 		}
 
 		for i, sfo := range txn.SiafundOutputs {
+			fundType := types.SpecifierSiafundOutput
+			if txHasSiafundBInputs {
+				// We know for sure all inputs are either B or A (from consensus rules),
+				// hence all SPF outputs are considered B or A based on inputs.
+				fundType = types.SpecifierSiafundBOutput
+			}
 			po := modules.ProcessedOutput{
 				ID:             types.OutputID(txn.SiafundOutputID(uint64(i))),
-				FundType:       types.SpecifierSiafundOutput,
+				FundType:       fundType,
 				MaturityHeight: consensusHeight,
 				WalletAddress:  w.isWalletAddress(sfo.UnlockHash),
 				RelatedAddress: sfo.UnlockHash,
