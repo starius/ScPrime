@@ -372,10 +372,10 @@ func (w *Wallet) computeProcessedTransactionsFromBlock(tx *bolt.Tx, block types.
 			}
 			if !claim.ByOwner.IsZero() {
 				po := modules.ProcessedOutput{
-					ID:             types.OutputID(sfi.ParentID),
+					ID:             types.OutputID(sfi.ParentID.SiaClaimOutputID()),
 					FundType:       types.SpecifierClaimOutput,
 					MaturityHeight: consensusHeight + types.MaturityDelay,
-					WalletAddress:  w.isWalletAddress(sfi.UnlockConditions.UnlockHash()),
+					WalletAddress:  w.isWalletAddress(sfi.ClaimUnlockHash),
 					RelatedAddress: sfi.ClaimUnlockHash,
 					Value:          claim.ByOwner,
 				}
@@ -390,7 +390,7 @@ func (w *Wallet) computeProcessedTransactionsFromBlock(tx *bolt.Tx, block types.
 					ID:             types.OutputID(sfi.ParentID.SiaClaimSecondOutputID()),
 					FundType:       types.SpecifierClaimOutput,
 					MaturityHeight: consensusHeight + types.MaturityDelay,
-					WalletAddress:  w.isWalletAddress(sfi.UnlockConditions.UnlockHash()),
+					WalletAddress:  w.isWalletAddress(types.SiafundBLostClaimAddress),
 					RelatedAddress: types.SiafundBLostClaimAddress,
 					Value:          types.SiafundBLostClaim(claim),
 				}
