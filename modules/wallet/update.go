@@ -11,8 +11,9 @@ import (
 )
 
 type (
-	spentSiacoinOutputSet map[types.SiacoinOutputID]types.SiacoinOutput
-	spentSiafundOutputSet map[types.SiafundOutputID]types.SiafundOutput
+	spentSiacoinOutputSet     map[types.SiacoinOutputID]types.SiacoinOutput
+	spentSiafundOutputSet     map[types.SiafundOutputID]types.SiafundOutput
+	delayedSiacoinOutputDiffs map[types.SiacoinOutputID]modules.DelayedSiacoinOutputDiff
 )
 
 // threadedResetSubscriptions unsubscribes the wallet from the consensus set and transaction pool
@@ -211,6 +212,17 @@ func (w *Wallet) revertHistory(tx *bolt.Tx, reverted []types.Block) error {
 	return nil
 }
 
+// computeDelayedSiacoinOutputDiffs collects all applied DelayedSiacoinOutputDiffs in a map of SiacoinOutputID -> diff.
+func computeDelayedSiacoinOutputDiffs(diffs []modules.DelayedSiacoinOutputDiff) delayedSiacoinOutputDiffs {
+	outputs := make(delayedSiacoinOutputDiffs)
+	for _, diff := range diffs {
+		if diff.Direction == modules.DiffApply {
+			outputs[diff.ID] = diff
+		}
+	}
+	return outputs
+}
+
 // outputs and collects them in a map of SiacoinOutputID -> SiacoinOutput.
 func computeSpentSiacoinOutputSet(diffs []modules.SiacoinOutputDiff) spentSiacoinOutputSet {
 	outputs := make(spentSiacoinOutputSet)
@@ -239,7 +251,7 @@ func computeSpentSiafundOutputSet(diffs []modules.SiafundOutputDiff) spentSiafun
 // computeProcessedTransactionsFromBlock searches all the miner payouts and
 // transactions in a block and computes a ProcessedTransaction slice containing
 // all of the transactions processed for the given block.
-func (w *Wallet) computeProcessedTransactionsFromBlock(tx *bolt.Tx, block types.Block, spentSiacoinOutputs spentSiacoinOutputSet, spentSiafundOutputs spentSiafundOutputSet, consensusHeight types.BlockHeight) []modules.ProcessedTransaction {
+func (w *Wallet) computeProcessedTransactionsFromBlock(tx *bolt.Tx, block types.Block, spentSiacoinOutputs spentSiacoinOutputSet, spentSiafundOutputs spentSiafundOutputSet, newDelayedSiacoinOutputs delayedSiacoinOutputDiffs, consensusHeight types.BlockHeight) []modules.ProcessedTransaction {
 	var pts []modules.ProcessedTransaction
 
 	// Find ProcessedTransactions from miner payouts.
@@ -351,10 +363,21 @@ func (w *Wallet) computeProcessedTransactionsFromBlock(tx *bolt.Tx, block types.
 			}
 		}
 
+		txHasSiafundBInputs := false
 		for _, sfi := range txn.SiafundInputs {
+			isB, err := w.cs.IsSiafundBOutput(sfi.ParentID)
+			if err != nil {
+				w.log.Println("IsSiafundBOutput failed: ", err)
+				continue
+			}
+			fundType := types.SpecifierSiafundInput
+			if isB {
+				txHasSiafundBInputs = true
+				fundType = types.SpecifierSiafundBInput
+			}
 			pi := modules.ProcessedInput{
 				ParentID:       types.OutputID(sfi.ParentID),
-				FundType:       types.SpecifierSiafundInput,
+				FundType:       fundType,
 				WalletAddress:  w.isWalletAddress(sfi.UnlockConditions.UnlockHash()),
 				RelatedAddress: sfi.UnlockConditions.UnlockHash(),
 				Value:          spentSiafundOutputs[sfi.ParentID].Value,
@@ -365,32 +388,46 @@ func (w *Wallet) computeProcessedTransactionsFromBlock(tx *bolt.Tx, block types.
 				w.log.Println("\tSiafund Input:", pi.ParentID, "::", pi.Value.HumanString())
 			}
 
-			siafundPool, err := dbGetSiafundPool(w.dbTx)
-			if err != nil {
-				w.log.Println("could not get siafund pool: ", err)
-				continue
+			// Handle claim outputs. We find them in the set of all new delayed siacoin outputs.
+			// We can not compute outputs directly, because claim of spent SiafundOutputs is unknown,
+			// since consensus does only provide claim for SiafundOutputs currently unspent,
+			// and here we deal with historcial outputs.
+			var dscos []modules.DelayedSiacoinOutputDiff
+			claimID0 := sfi.ParentID.SiaClaimOutputID()
+			if dsco, ok := newDelayedSiacoinOutputs[claimID0]; ok {
+				dscos = append(dscos, dsco)
 			}
-
-			sfo := spentSiafundOutputs[sfi.ParentID]
-			po := modules.ProcessedOutput{
-				ID:             types.OutputID(sfi.ParentID),
-				FundType:       types.SpecifierClaimOutput,
-				MaturityHeight: consensusHeight + types.MaturityDelay,
-				WalletAddress:  w.isWalletAddress(sfi.UnlockConditions.UnlockHash()),
-				RelatedAddress: sfi.ClaimUnlockHash,
-				Value:          siafundPool.Sub(sfo.ClaimStart).Mul(sfo.Value),
+			claimID1 := sfi.ParentID.SiaClaimSecondOutputID()
+			if dsco, ok := newDelayedSiacoinOutputs[claimID1]; ok {
+				dscos = append(dscos, dsco)
 			}
-			pt.Outputs = append(pt.Outputs, po)
-			// Log any wallet-relevant outputs.
-			if po.WalletAddress {
-				w.log.Println("\tClaim Output:", po.ID, "::", po.Value.HumanString())
+			for _, dsco := range dscos {
+				po := modules.ProcessedOutput{
+					ID:             types.OutputID(dsco.ID),
+					FundType:       types.SpecifierClaimOutput,
+					MaturityHeight: dsco.MaturityHeight,
+					WalletAddress:  w.isWalletAddress(dsco.SiacoinOutput.UnlockHash),
+					RelatedAddress: dsco.SiacoinOutput.UnlockHash,
+					Value:          dsco.SiacoinOutput.Value,
+				}
+				pt.Outputs = append(pt.Outputs, po)
+				// Log any wallet-relevant outputs.
+				if po.WalletAddress {
+					w.log.Println("\tClaim Output:", po.ID, "::", po.Value.HumanString())
+				}
 			}
 		}
 
 		for i, sfo := range txn.SiafundOutputs {
+			fundType := types.SpecifierSiafundOutput
+			if txHasSiafundBInputs {
+				// We know for sure all inputs are either B or A (from consensus rules),
+				// hence all SPF outputs are considered B or A based on inputs.
+				fundType = types.SpecifierSiafundBOutput
+			}
 			po := modules.ProcessedOutput{
 				ID:             types.OutputID(txn.SiafundOutputID(uint64(i))),
-				FundType:       types.SpecifierSiafundOutput,
+				FundType:       fundType,
 				MaturityHeight: consensusHeight,
 				WalletAddress:  w.isWalletAddress(sfo.UnlockHash),
 				RelatedAddress: sfo.UnlockHash,
@@ -487,6 +524,7 @@ func (w *Wallet) computeProcessedTransactionsFromBlock(tx *bolt.Tx, block types.
 func (w *Wallet) applyHistory(tx *bolt.Tx, cc modules.ConsensusChange) error {
 	spentSiacoinOutputs := computeSpentSiacoinOutputSet(cc.SiacoinOutputDiffs)
 	spentSiafundOutputs := computeSpentSiafundOutputSet(cc.SiafundOutputDiffs)
+	newDelayedSiacoinOutputs := computeDelayedSiacoinOutputDiffs(cc.DelayedSiacoinOutputDiffs)
 
 	for _, block := range cc.AppliedBlocks {
 		consensusHeight, err := dbGetConsensusHeight(tx)
@@ -502,7 +540,7 @@ func (w *Wallet) applyHistory(tx *bolt.Tx, cc modules.ConsensusChange) error {
 			}
 		}
 
-		pts := w.computeProcessedTransactionsFromBlock(tx, block, spentSiacoinOutputs, spentSiafundOutputs, consensusHeight)
+		pts := w.computeProcessedTransactionsFromBlock(tx, block, spentSiacoinOutputs, spentSiafundOutputs, newDelayedSiacoinOutputs, consensusHeight)
 		for _, pt := range pts {
 			err := dbAppendProcessedTransaction(tx, pt)
 			if err != nil {
