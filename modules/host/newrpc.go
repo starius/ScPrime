@@ -1132,7 +1132,11 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 	h.mu.RLock()
 	blockHeight := h.blockHeight
 	secretKey := h.secretKey
+	tokenStor := h.tokenStor
 	h.mu.RUnlock()
+	if tokenStor == nil {
+		return errors.New("host module not loaded")
+	}
 	currentRevision := s.so.RevisionTransactionSet[len(s.so.RevisionTransactionSet)-1].FileContractRevisions[0]
 
 	// Validate the request.
@@ -1192,7 +1196,7 @@ func (h *Host) managedRPCLoopTopUpToken(s *rpcSession) error {
 
 	// Save changes to token storage.
 	id := types.TokenID(req.Token)
-	if err := h.tokenStor.AddResources(id, req.ResourcesType, req.ResourcesAmount); err != nil {
+	if err := tokenStor.AddResources(id, req.ResourcesType, req.ResourcesAmount); err != nil {
 		return err
 	}
 
@@ -1220,6 +1224,13 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 		return err
 	}
 
+	h.mu.RLock()
+	tokenStor := h.tokenStor
+	h.mu.RUnlock()
+	if tokenStor == nil {
+		return errors.New("host module not loaded")
+	}
+
 	// As soon as we finish reading the request, we must begin listening for
 	// RPCLoopDownloadWithTokenStop, which may arrive at any time, and must arrive before the
 	// RPC is considered complete.
@@ -1239,7 +1250,7 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 	enoughSectors := true
 	availableBandwidth := int64(0)
 	availableSectors := int64(0)
-	tokenResources, err := h.tokenStor.TokenRecord(id)
+	tokenResources, err := tokenStor.TokenRecord(id)
 	if err == nil {
 		// Token not found = no resources, and 0 is correct.
 		availableBandwidth = tokenResources.DownloadBytes
@@ -1265,7 +1276,7 @@ func (h *Host) managedRPCLoopDownloadWithToken(s *rpcSession) error {
 		// The stop signal must arrive before RPC is complete.
 		return <-stopSignal
 	}
-	if _, err := h.tokenStor.RecordDownload(id, estBandwidth, sectorAccesses, time.Now()); err != nil {
+	if _, err := tokenStor.RecordDownload(id, estBandwidth, sectorAccesses, time.Now()); err != nil {
 		h.log.Println(err)
 	}
 

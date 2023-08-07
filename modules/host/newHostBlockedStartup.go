@@ -102,6 +102,9 @@ func newHostBlocked(dependencies modules.Dependencies, smDeps modules.Dependenci
 		}
 	})
 
+	// Create bandwidth monitor
+	h.staticMonitor = connmonitor.NewMonitor()
+
 	go func() {
 		defer close(errChan)
 
@@ -149,9 +152,12 @@ func (h *Host) delayedHostInitialization(smDeps modules.Dependencies, cs modules
 		h.log.Println("Could not open the storage manager:", err)
 		return fmt.Errorf("error creating contract manager: %w", err)
 	}
+	h.mu.Lock()
 	h.StorageManager = stManager
+	h.mu.Unlock()
 	h.log.Debugf("Contract manager ready")
 	h.tg.AfterStop(func() {
+		var err error
 		err = h.StorageManager.Close()
 		if err != nil {
 			h.log.Println("Could not close storage manager:", err)
@@ -161,7 +167,9 @@ func (h *Host) delayedHostInitialization(smDeps modules.Dependencies, cs modules
 	// Initialize token storage.
 	// TODO: the current version of tokens storage does not support reverting blocks.
 	// If contracts related to `TopUpToken` RPC are reverted, all the tokens resources remain in the storage.
+	h.mu.Lock()
 	h.tokenStor, err = tokenstorage.NewTokenStorage(stManager, tokenStorageDir)
+	h.mu.Unlock()
 	if err != nil {
 		return fmt.Errorf("error initializing token storage: %w", err)
 	}
@@ -169,6 +177,7 @@ func (h *Host) delayedHostInitialization(smDeps modules.Dependencies, cs modules
 	updateTokenSectorsChan := make(chan bool)
 	h.tg.AfterStop(func() {
 		updateTokenSectorsChan <- true
+		var err error
 		err = h.tokenStor.Close(context.Background())
 		if err != nil {
 			h.log.Errorf("Error when closing token storage: %v", err)
@@ -199,9 +208,6 @@ func (h *Host) delayedHostInitialization(smDeps modules.Dependencies, cs modules
 		return fmt.Errorf("error subscribing to consensus: %w", err)
 	}
 	h.log.Debugln("Consensus subscription initialized")
-
-	// Create bandwidth monitor
-	h.staticMonitor = connmonitor.NewMonitor()
 
 	// Initialize the networking. We need to hold the lock while doing so since
 	// the previous load subscribed the host to the consensus set.
