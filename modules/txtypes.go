@@ -28,6 +28,7 @@ const (
 	TXTypeHostAnnouncement
 	TXTypeArbitraryData
 	TXTypeMixed
+	TXTypeSwapSPF
 )
 
 var (
@@ -44,6 +45,7 @@ var (
 		"hostannounce",
 		"arbitrary_data",
 		"composite",
+		"swap_spf_scp",
 	}
 )
 
@@ -119,6 +121,11 @@ func TransactionType(t *types.Transaction) TXType {
 		return TXTypeSetup
 	}
 	if len(t.SiafundInputs) > 0 {
+		//scheck for SCP to SPF Swap
+		if IsSwapSPFtransaction(t) {
+			return TXTypeSwapSPF
+		}
+
 		return TXTypeSPFMove
 	}
 	if len(t.SiacoinOutputs) == 0 {
@@ -133,4 +140,25 @@ func TransactionType(t *types.Transaction) TXType {
 		}
 	}
 	return TXTypeSCPMove
+}
+
+// IsSwapSPFtransaction checks if it looks like SPF to SCP swap transaction
+func IsSwapSPFtransaction(t *types.Transaction) bool {
+	//check if spf outputs
+	if len(t.SiafundOutputs) > 0 && len(t.SiacoinOutputs) > 0 {
+		spfsenderaddress := t.SiacoinOutputs[0].UnlockHash
+		scpsenderaddress := t.SiafundOutputs[0].UnlockHash
+		for _, spfo := range t.SiafundOutputs {
+			isSwap := spfsenderaddress == spfo.UnlockHash
+			if isSwap {
+				for _, scpo := range t.SiacoinOutputs {
+					if scpsenderaddress == scpo.UnlockHash {
+						return true
+					}
+				}
+			}
+		}
+	}
+
+	return false
 }
