@@ -23,17 +23,10 @@ func (w *Wallet) UnspentOutputs() ([]modules.UnspentOutput, error) {
 	if err := w.syncDB(); err != nil {
 		return nil, err
 	}
-
 	// build initial list of confirmed outputs
 	var outputs []modules.UnspentOutput
-	dbForEachSiacoinOutput(w.dbTx, func(scoid types.SiacoinOutputID, sco types.SiacoinOutput) {
-		outputs = append(outputs, modules.UnspentOutput{
-			FundType:   types.SpecifierSiacoinOutput,
-			ID:         types.OutputID(scoid),
-			UnlockHash: sco.UnlockHash,
-			Value:      sco.Value,
-		})
-	})
+
+	//add SPF first to do A or B checks on shorter list
 	dbForEachSiafundOutput(w.dbTx, func(sfoid types.SiafundOutputID, sfo types.SiafundOutput) {
 		outputs = append(outputs, modules.UnspentOutput{
 			FundType:   types.SpecifierSiafundOutput,
@@ -42,7 +35,28 @@ func (w *Wallet) UnspentOutputs() ([]modules.UnspentOutput, error) {
 			Value:      sfo.Value,
 		})
 	})
+	// check and correct specifier for SPF-B outputs
+	for i, output := range outputs {
+		isB, err := w.cs.IsSiafundBOutput(types.SiafundOutputID(output.ID))
+		if err != nil {
+			return nil, err
+		}
+		if isB {
+			//modify and replace
+			output.FundType = types.SpecifierSiafundBOutput
+			outputs[i] = output
+		}
+	}
 
+	//add SCP outputs
+	dbForEachSiacoinOutput(w.dbTx, func(scoid types.SiacoinOutputID, sco types.SiacoinOutput) {
+		outputs = append(outputs, modules.UnspentOutput{
+			FundType:   types.SpecifierSiacoinOutput,
+			ID:         types.OutputID(scoid),
+			UnlockHash: sco.UnlockHash,
+			Value:      sco.Value,
+		})
+	})
 	// don't include outputs marked as spent in pending transactions
 	pending := make(map[types.OutputID]struct{})
 	for _, pt := range w.unconfirmedProcessedTransactions {

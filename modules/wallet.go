@@ -9,7 +9,6 @@ import (
 	"unicode"
 
 	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
-
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/types"
 )
@@ -567,6 +566,25 @@ type (
 		// IsWatchedAddress checks if the supplied unlockhash is in the list
 		// of watched addresses. Returns true only if the address is already known
 		IsWatchedAddress(types.UnlockHash) bool
+
+		//CreateSwapOffer creates a transaction proposal for exchanging between SCP and SPF
+		//receiveAddress is where the funding and eventually change return from own funding will be received
+		//The transaction offer is not binding as has no signatures for output spending
+		CreateSwapOffer(amountOffered types.Currency, typeOffered types.Specifier, amountAccepted types.Currency, typeAccepted types.Specifier, receiveAddress types.UnlockHash) (SwapOffer, error)
+
+		//AcceptSwapOffer accepts an offered swap transaction by filling in missing amounts and addresses and signing the transaction
+		//The transaction offer after this is done is still just an offer as it is missing the offer creator signature
+		//Transaction can not be submitted without it and so no funds are leaving the acceptors wallet.
+		//The transaction creator can not alter any fields as that would invalidate the acceptors signature
+		AcceptSwapOffer(swapOffer SwapOffer, receiveAddr types.UnlockHash) (SwapOffer, error)
+
+		//FinalizeSwapOffer finalizes the offer accepted by counterparty, signs
+		//and sends the resulting transaction to transactionpool
+		FinalizeSwapOffer(swapOffer SwapOffer) ([]types.Transaction, error)
+
+		//CheckSwapOffer checks the status of the offer and tells the main properties
+		// of swap transaction
+		CheckSwapOffer(swapOffer SwapOffer) (SwapSummary, error)
 	}
 
 	// WalletSettings control the behavior of the Wallet.
