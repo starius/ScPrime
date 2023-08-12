@@ -499,12 +499,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 
 		i++
 		printfRelease("(%d/%d) Loading host...", i, numModules)
-		h, err := host.NewCustomTestHost(hostDeps, smDeps, cs, g, tp, w, params.HostAddress, filepath.Join(dir, modules.HostDir), ln, params.CheckTokenExpirationFrequency, params.OnlyFirstDir)
-		if err != nil {
-			c <- err
-		}
-		return h, c
-		//return host.NewBlockedStartHost(hostDeps, smDeps, cs, g, tp, w, params.HostAddress, filepath.Join(dir, modules.HostDir), ln, params.CheckTokenExpirationFrequency, params.OnlyFirstDir)
+		return host.NewBlockedStartHost(hostDeps, smDeps, cs, g, tp, w, params.HostAddress, filepath.Join(dir, modules.HostDir), ln, params.CheckTokenExpirationFrequency, params.OnlyFirstDir)
 	}()
 	if err := modules.PeekErr(errChanHost); err != nil {
 		errChan <- fmt.Errorf("unable to initialize host module: %w", err)

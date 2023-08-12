@@ -4,11 +4,18 @@ import "gitlab.com/scpcorp/ScPrime/modules"
 
 // Alerts implements the modules.Alerter interface for the host.
 func (h *Host) Alerts() (crit, err, warn []modules.Alert) {
-	hostCrit, hostErr, hostWarn := h.staticAlerter.Alerts()
-	smCrit, smErr, smWarn := h.StorageManager.Alerts()
-	crit = append(hostCrit, smCrit...)
-	err = append(hostErr, smErr...)
-	warn = append(hostWarn, smWarn...)
+	crit, err, warn = h.staticAlerter.Alerts()
+
+	h.mu.RLock()
+	storageManager := h.StorageManager
+	h.mu.RUnlock()
+	if storageManager != nil {
+		smCrit, smErr, smWarn := storageManager.Alerts()
+		crit = append(crit, smCrit...)
+		err = append(err, smErr...)
+		warn = append(warn, smWarn...)
+	}
+
 	return crit, err, warn
 }
 

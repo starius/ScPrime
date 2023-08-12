@@ -144,6 +144,7 @@ type Host struct {
 	wallet        modules.Wallet
 	staticAlerter *modules.GenericAlerter
 	dependencies  modules.Dependencies
+	// Should be called under mu.RLock and checked for not being nil.
 	modules.StorageManager
 
 	// Host ACID fields - these fields need to be updated in serial, ACID
@@ -173,6 +174,7 @@ type Host struct {
 	lockedStorageObligations map[types.FileContractID]*lockedObligation
 
 	// Storage of tokens for prepaid downloads.
+	// Should be called under mu.RLock and checked for not being nil.
 	tokenStor *tokenstorage.TokenStorage
 
 	// Misc state.

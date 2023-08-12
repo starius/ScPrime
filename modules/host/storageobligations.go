@@ -1330,9 +1330,13 @@ func (h *Host) MoveTokenSectorsToStorageObligation(fcID types.FileContractID, re
 		so, err = h.getStorageObligation(tx, fcID)
 		return err
 	})
+	tokenStor := h.tokenStor
 	h.mu.RUnlock()
 	if err != nil {
 		return nil, extendErr("could not get storage obligation "+fcID.String()+": ", err)
+	}
+	if tokenStor == nil {
+		return nil, errors.New("host module not loaded")
 	}
 	_, maxFee := h.tpool.FeeEstimation()
 	h.mu.Lock()
@@ -1424,7 +1428,7 @@ func (h *Host) MoveTokenSectorsToStorageObligation(fcID types.FileContractID, re
 		tokenSectors = append(tokenSectors, s.SectorID)
 		tokensSectors[s.Token] = tokenSectors
 	}
-	if err := h.tokenStor.AttachSectors(tokensSectors, time.Now()); err != nil {
+	if err := tokenStor.AttachSectors(tokensSectors, time.Now()); err != nil {
 		return nil, fmt.Errorf("tokenStor.AttachSectors: %w", err)
 	}
 
