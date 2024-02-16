@@ -2,6 +2,8 @@ module gitlab.com/scpcorp/ScPrime
 
 go 1.20
 
+replace gitlab.com/scpcorp/spf-transporter => /home/user/go/src/gitlab.com/scpcorp/spf-transporter
+
 require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
 	github.com/dchest/threefish v0.0.0-20120919164726-3ecf4c494abf
@@ -15,9 +17,9 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.15.0
-	github.com/starius/api2 v0.2.8
+	github.com/starius/api2 v0.2.18
 	github.com/starius/unifynil v0.0.0-20220116024101-fb5f67afeb8e
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.4
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/xtaci/smux v1.5.24
 	gitlab.com/NebulousLabs/demotemutex v0.0.0-20151003192217-235395f71c40
@@ -37,8 +39,8 @@ require (
 	gitlab.com/zer0main/eventsourcing v0.0.0-20210911223220-4432c7e50e57
 	gitlab.com/zer0main/filestorage v0.0.0-20211220182308-d090285b251e
 	go.etcd.io/bbolt v1.3.7
-	golang.org/x/crypto v0.9.0
-	golang.org/x/net v0.10.0
+	golang.org/x/crypto v0.14.0
+	golang.org/x/net v0.16.0
 )
 
 require (
@@ -60,7 +62,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
-	github.com/perimeterx/marshmallow v1.1.4 // indirect
+	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/petermattis/goid v0.0.0-20230516130339-69c5d00fc54d // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -71,13 +73,13 @@ require (
 	github.com/starius/flock v0.0.0-20211126131212-41983f66ca4f // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	gitlab.com/NebulousLabs/persist v0.0.0-20200605115618-007e5e23d877 // indirect
-	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
-	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/term v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
-	golang.org/x/tools v0.9.1 // indirect
-	google.golang.org/protobuf v1.30.0 // indirect
+	gitlab.com/scpcorp/spf-transporter v0.0.0
+	golang.org/x/mod v0.13.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/term v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/tools v0.14.0 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

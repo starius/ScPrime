@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"gitlab.com/scpcorp/ScPrime/crypto"
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -37,6 +38,34 @@ type (
 		SiacoinBUnclaimBalance types.Currency `json:"siacoinbunclaimbalance"`
 
 		DustThreshold types.Currency `json:"dustthreshold"`
+	}
+
+	// WalletSpfTransportHistoryGET contains information returned by a GET
+	// call to /wallet/spftransport/history.
+	WalletSpfTransportHistoryGET struct {
+		History []types.SpfTransport `json:"history"`
+	}
+
+	// WalletSpfTransportAllowanceGET contains information returned by a GET
+	// call to /wallet/spftransport/allowance.
+	WalletSpfTransportAllowanceGET struct {
+		Allowance types.SpfTransportAllowance `json:"allowance"`
+	}
+
+	// WalletSpfTransportSendPOSTParams contains request for a POST
+	// call to /wallet/spftransport/send.
+	WalletSpfTransportSendPOSTParams struct {
+		Amount             types.SpfAmount        `json:"amount"`
+		TransportType      types.SpfTransportType `json:"transport_type"`
+		PreminedUnlockHash *types.UnlockHash      `json:"premined_unlock_hash,omitempty"`
+		SolanaAddress      types.SolanaAddress    `json:"solana_address"`
+	}
+
+	// WalletSpfTransportSendPOSTResp contains response for POST
+	// call to /wallet/spftransport/send.
+	WalletSpfTransportSendPOSTResp struct {
+		WaitTime       time.Duration   `json:"wait_time"`
+		SpfAmountAhead *types.Currency `json:"spf_amount_ahead,omitempty"`
 	}
 
 	// WalletAddressGET contains an address returned by a GET call to
@@ -936,6 +965,55 @@ func (api *API) walletUnlockConditionsHandlerGET(w http.ResponseWriter, _ *http.
 	}
 	WriteJSON(w, WalletUnlockConditionsGET{
 		UnlockConditions: uc,
+	})
+}
+
+// walletSpfTransportHistoryHandlerGET handles GET calls to /wallet/spftransport/history.
+func (api *API) walletSpfTransportHistoryHandlerGET(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	history, err := api.wallet.SiafundTransportHistory()
+	if err != nil {
+		WriteError(w, Error{"failed to get SPF transport history: " + err.Error()}, http.StatusInternalServerError)
+		return
+	}
+	WriteJSON(w, WalletSpfTransportHistoryGET{
+		History: history,
+	})
+}
+
+// walletSpfTransportAllowanceHandlerGET handles GET calls to /wallet/spftransport/allowance.
+func (api *API) walletSpfTransportAllowanceHandlerGET(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	spfTypStr := req.FormValue("spftype")
+	spfType, err := types.SpfTypeFromString(spfTypStr)
+	if err != nil {
+		WriteError(w, Error{"failed to convert SPF type: " + err.Error()}, http.StatusBadRequest)
+		return
+	}
+	allowance, err := api.wallet.SiafundTransportAllowance(spfType)
+	if err != nil {
+		WriteError(w, Error{"failed to get allowance: " + err.Error()}, http.StatusInternalServerError)
+		return
+	}
+	WriteJSON(w, WalletSpfTransportAllowanceGET{
+		Allowance: *allowance,
+	})
+}
+
+// walletSpfTransportSendHandlerPOST handles POST calls to /wallet/spftransport/send.
+func (api *API) walletSpfTransportSendHandlerPOST(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	var params WalletSpfTransportSendPOSTParams
+	err := json.NewDecoder(req.Body).Decode(&params)
+	if err != nil {
+		WriteError(w, Error{"invalid parameters: " + err.Error()}, http.StatusBadRequest)
+		return
+	}
+	waitTime, spfAhead, err := api.wallet.SiafundTransportSend(params.Amount, params.TransportType, params.PreminedUnlockHash, params.SolanaAddress)
+	if err != nil {
+		WriteError(w, Error{"failed to transport SPF: " + err.Error()}, http.StatusBadRequest)
+		return
+	}
+	WriteJSON(w, WalletSpfTransportSendPOSTResp{
+		SpfAmountAhead: spfAhead,
+		WaitTime:       waitTime,
 	})
 }
 

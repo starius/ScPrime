@@ -220,6 +220,9 @@ func (api *API) buildHTTPRoutes() {
 		router.POST("/wallet/sign", RequirePassword(api.walletSignHandler, requiredPassword))
 		router.GET("/wallet/watch", RequirePassword(api.walletWatchHandlerGET, requiredPassword))
 		router.POST("/wallet/watch", RequirePassword(api.walletWatchHandlerPOST, requiredPassword))
+		router.GET("/wallet/spftransport/history", api.walletSpfTransportHistoryHandlerGET)
+		router.GET("/wallet/spftransport/allowance", api.walletSpfTransportAllowanceHandlerGET)
+		router.POST("/wallet/spftransport/send", RequirePassword(api.walletSpfTransportSendHandlerPOST, requiredPassword))
 	}
 
 	// Apply UserAgent middleware and return the Router

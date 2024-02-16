@@ -1,13 +1,16 @@
 package wallet
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"gitlab.com/NebulousLabs/errors"
 
 	"gitlab.com/scpcorp/ScPrime/build"
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
+	"gitlab.com/scpcorp/spf-transporter"
 )
 
 // estimatedTransactionSize is the estimated size of a transaction used to send
@@ -224,6 +227,15 @@ func (w *Wallet) managedSendSiacoins(amount, fee types.Currency, dest types.Unlo
 
 // BuildUnsignedBatchTransaction builds and returns an unsigned transaction.
 func (w *Wallet) BuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput, fundbOutputs []types.SiafundOutput) (modules.TransactionBuilder, error) {
+	return w.customBuildUnsignedBatchTransaction(coinOutputs, fundOutputs, fundbOutputs, buildSpfTxParameters{})
+}
+
+type buildSpfTxParameters struct {
+	sendFrom        *types.UnlockHash
+	onlySpfxRegular bool
+}
+
+func (w *Wallet) customBuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput, fundbOutputs []types.SiafundOutput, spfParams buildSpfTxParameters) (modules.TransactionBuilder, error) {
 	if len(fundOutputs) > 0 && len(fundbOutputs) > 0 {
 		return nil, errors.New("cannot send both spf-a & spf-b in one transaction")
 	}
@@ -286,7 +298,8 @@ func (w *Wallet) BuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput
 		for _, fundOutput := range fundOutputs {
 			totalFundCost = totalFundCost.Add(fundOutput.Value)
 		}
-		err = txnBuilder.FundSiafunds(totalFundCost, false)
+		spfAmount := types.SpfAmount{Amount: totalFundCost, Type: types.SpfA}
+		err = txnBuilder.CustomFundSiafunds(spfAmount, spfParams.sendFrom, spfParams.onlySpfxRegular)
 		if err != nil {
 			return nil, build.ExtendErr("not enough SPF to fund transaction", err)
 		}
@@ -299,7 +312,8 @@ func (w *Wallet) BuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput
 		for _, fundbOutput := range fundbOutputs {
 			totalFundCost = totalFundCost.Add(fundbOutput.Value)
 		}
-		err = txnBuilder.FundSiafunds(totalFundCost, true)
+		spfAmount := types.SpfAmount{Amount: totalFundCost, Type: types.SpfB}
+		err = txnBuilder.CustomFundSiafunds(spfAmount, spfParams.sendFrom, spfParams.onlySpfxRegular)
 		if err != nil {
 			return nil, build.ExtendErr("not enough SPF-B to fund transaction", err)
 		}
@@ -324,6 +338,278 @@ func (w *Wallet) BuildUnsignedBatchTransaction(coinOutputs []types.SiacoinOutput
 // these types of transactions. After this happens the check to prevent both coin
 // and fund outputs from being supplied can be removed.
 func (w *Wallet) SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput, fundbOutputs []types.SiafundOutput) (txns []types.Transaction, err error) {
+	txns, err = w.buildAndSignTxnSet(coinOutputs, fundOutputs, fundbOutputs, buildSpfTxParameters{}, nil)
+	if err != nil {
+		return nil, err
+	}
+	if err := w.broadcastTxnSet(txns); err != nil {
+		return nil, err
+	}
+	w.logSuccessfulBroadcast(coinOutputs, fundOutputs, fundbOutputs, txns)
+	return txns, nil
+}
+
+func (w *Wallet) fetchSiafundUtxos(t types.SpfType) (map[types.UnlockHash]types.Currency, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	// Ensure durability of reported utxos.
+	if err := w.syncDB(); err != nil {
+		return nil, err
+	}
+
+	needb := (t == types.SpfB)
+	utxos := make(map[types.UnlockHash]types.Currency)
+	if err := dbForEachSiafundOutput(w.dbTx, func(sfoid types.SiafundOutputID, sfo types.SiafundOutput) {
+		isb, err := w.cs.IsSiafundBOutput(sfoid)
+		if err != nil {
+			return
+		}
+		if isb != needb {
+			return
+		}
+		sum := utxos[sfo.UnlockHash]
+		sum = sum.Add(sfo.Value)
+		utxos[sfo.UnlockHash] = sum
+	}); err != nil {
+		return nil, err
+	}
+	return utxos, nil
+}
+
+func (w *Wallet) SiafundTransportAllowance(t types.SpfType) (*types.SpfTransportAllowance, error) {
+	if w.transporterClient == nil {
+		return nil, errors.New("transporter is disabled")
+	}
+	w.mu.RLock()
+	unlocked := w.unlocked
+	w.mu.RUnlock()
+	if !unlocked {
+		w.log.Println("Attempt to view SPF transport allowance has failed - wallet is locked")
+		return nil, modules.ErrLockedWallet
+	}
+
+	ctx := context.Background()
+	utxos, err := w.fetchSiafundUtxos(t)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch SPF utxos: %w", err)
+	}
+	var regularBalance, preminedBalance types.Currency
+	var premined []types.UnlockHash
+	w.mu.RLock()
+	for uh, amount := range utxos {
+		if _, isPremined := w.spfxPreminedAddrs[uh]; isPremined {
+			premined = append(premined, uh)
+			preminedBalance = preminedBalance.Add(amount)
+		} else {
+			regularBalance = regularBalance.Add(amount)
+		}
+	}
+	w.mu.RUnlock()
+	totalBalance := preminedBalance.Add(regularBalance)
+	allowanceReq := &transporter.CheckAllowanceRequest{}
+	if len(premined) != 0 {
+		allowanceReq.PreminedUnlockHashes = &premined
+	}
+	allowanceResp, err := w.transporterClient.CheckAllowance(ctx, allowanceReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch allowance from transporter: %w", err)
+	}
+	// Handle premined part of allowance.
+	preminedAllowance := make(map[types.UnlockHash]types.SpfTransportTypeAllowance)
+	for uh, p := range allowanceResp.Premined {
+		if _, ok := utxos[uh]; !ok {
+			// Ensure we have this UnlockHash in our wallet.
+			continue
+		}
+		preminedAllowance[uh] = types.SpfTransportTypeAllowance{
+			MaxAllowed:   types.MinCurrency(p.Amount, totalBalance),
+			WaitTime:     p.WaitEstimate,
+			PotentialMax: p.Amount,
+		}
+	}
+	// Handle regular.
+	min := types.MinCurrency(allowanceResp.Regular.Amount, regularBalance)
+	max := types.MaxCurrency(allowanceResp.Regular.Amount, regularBalance)
+	amountDiff := max.Sub(min)
+	// TODO: avoid doing these calculations on spd side.
+	// We need some way to get wait estimates for exact (not just max)
+	// amounts from transporter.
+	waitTimeDiff := spfxEmissionTime(amountDiff)
+	regular := types.SpfTransportTypeAllowance{
+		MaxAllowed:   min,
+		WaitTime:     allowanceResp.Regular.WaitEstimate - waitTimeDiff,
+		PotentialMax: allowanceResp.Regular.Amount,
+	}
+	// Airdrop is always skipped (not implemented).
+	return &types.SpfTransportAllowance{
+		Premined: preminedAllowance,
+		Regular:  regular,
+	}, nil
+}
+
+func (w *Wallet) SiafundTransportHistory() ([]types.SpfTransport, error) {
+	if w.transporterClient == nil {
+		return nil, errors.New("transporter is disabled")
+	}
+	w.mu.RLock()
+	unlocked := w.unlocked
+	w.mu.RUnlock()
+	if !unlocked {
+		w.log.Println("Attempt to view SPF transport history has failed - wallet is locked")
+		return nil, modules.ErrLockedWallet
+	}
+
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	set, err := dbGetAllSpfTransports(w.dbTx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch transports from database: %w", err)
+	}
+	return set, nil
+}
+
+func (w *Wallet) SiafundTransportSend(spfAmount types.SpfAmount, t types.SpfTransportType, preminedUnlockHash *types.UnlockHash, solanaAddr types.SolanaAddress) (time.Duration, *types.Currency, error) {
+	if w.transporterClient == nil {
+		return 0, nil, errors.New("transporter is disabled")
+	}
+	w.mu.RLock()
+	unlocked := w.unlocked
+	w.mu.RUnlock()
+	if !unlocked {
+		w.log.Println("Attempt to transport SPF has failed - wallet is locked")
+		return 0, nil, modules.ErrLockedWallet
+	}
+
+	if t == types.Airdrop {
+		return 0, nil, errors.New("Airdrop SPF transport type is not supported")
+	}
+	ctx := context.Background()
+	// Start with sanity checks.
+	if t == types.Premined && preminedUnlockHash == nil {
+		return 0, nil, errors.New("must provide premined unlock hash when type is premined")
+	}
+	if t != types.Premined && preminedUnlockHash != nil {
+		return 0, nil, errors.New("premined unlock hash must be empty when type is not premined")
+	}
+
+	// Check allowance.
+	allowance, err := w.SiafundTransportAllowance(spfAmount.Type)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to fetch allowance: %w", err)
+	}
+	if err := allowance.ApplyTo(spfAmount, t, preminedUnlockHash); err != nil {
+		return 0, nil, fmt.Errorf("not allowed: %w", err)
+	}
+
+	// Build SPF burn transaction (and parents in case we need to build proper SPF inputs first).
+	var fundbOutputs, fundaOutputs []types.SiafundOutput
+	fundOutput := types.SiafundOutput{
+		Value:      spfAmount.Amount,
+		UnlockHash: types.BurnAddressUnlockHash,
+	}
+	if spfAmount.Type == types.SpfA {
+		fundaOutputs = append(fundaOutputs, fundOutput)
+	} else {
+		fundbOutputs = append(fundbOutputs, fundOutput)
+	}
+	spfParams := buildSpfTxParameters{
+		onlySpfxRegular: (t == types.Regular),
+		sendFrom:        preminedUnlockHash,
+	}
+	txnSet, err := w.buildAndSignTxnSet(nil, fundaOutputs, fundbOutputs, spfParams, solanaAddr[:])
+	if err != nil {
+		return 0, nil, err
+	}
+	burnTx := txnSet[len(txnSet)-1]
+	burnID := burnTx.ID()
+	// Sanity check - ensure tx has only one SPF input.
+	if t == types.Premined && len(burnTx.SiafundInputs) != 1 {
+		return 0, nil, fmt.Errorf("sanity check has failed: expect only 1 SiafundInput for Premined transports, got %d", len(burnTx.SiafundInputs))
+	}
+	// Sanity check - ensure SPF input is from requested unlock hash.
+	sentFrom := burnTx.SiafundInputs[0].UnlockConditions.UnlockHash()
+	if t == types.Premined && sentFrom != *preminedUnlockHash {
+		return 0, nil, fmt.Errorf("sanity check has failed: got unlock hash %s, expect %s", sentFrom.String(), preminedUnlockHash.String())
+	}
+
+	// Save transactions and create a new SPF transport record.
+	if err := w.putSpfBurn(burnID, txnSet); err != nil {
+		return 0, nil, fmt.Errorf("failed to save transactions before broadcasting: %w", err)
+	}
+	st := types.SpfTransport{
+		BurnID: burnID,
+		SpfTransportRecord: types.SpfTransportRecord{
+			Status:  types.BurnCreated,
+			Amount:  spfAmount.Amount,
+			Created: time.Now(),
+		},
+	}
+	if err := w.putSpfTransport(st); err != nil {
+		return 0, nil, fmt.Errorf("failed to create transport record before broadcasting: %w", err)
+	}
+
+	// Broadcast transactions.
+	if err := w.broadcastTxnSet(txnSet); err != nil {
+		return 0, nil, err
+	}
+	w.logSuccessfulBroadcast(nil, fundaOutputs, fundbOutputs, txnSet)
+	st.Status = types.BurnBroadcasted
+	if err := w.putSpfTransport(st); err != nil {
+		return 0, nil, fmt.Errorf("failed to update transport record after broadcasting: %w", err)
+	}
+
+	// Submit burn to transporter.
+	resp, err := w.transporterClient.SubmitScpTx(ctx, &transporter.SubmitScpTxRequest{
+		Transaction: txnSet[len(txnSet)-1],
+	})
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to submit transaction to transporter: %w", err)
+	}
+
+	// Update the record status.
+	st.Status = types.SubmittedToTransporter
+	if err := w.putSpfTransport(st); err != nil {
+		return 0, nil, fmt.Errorf("failed to update transport record after submitting: %w", err)
+	}
+
+	return resp.WaitTimeEstimate, resp.SpfAmountAhead, nil
+}
+
+func (w *Wallet) logSuccessfulBroadcast(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput, fundbOutputs []types.SiafundOutput, txnSet []types.Transaction) {
+	var outputList string
+	for _, coinOutput := range coinOutputs {
+		outputList = outputList + "\n\tAddress: " + coinOutput.UnlockHash.String() + "\n\tValue: " + coinOutput.Value.HumanString() + "\n"
+	}
+	for _, fundOutput := range fundOutputs {
+		fmtSpf := fmt.Sprintf("%14v SPF", fundOutput.Value)
+		outputList = outputList + "\n\tAddress: " + fundOutput.UnlockHash.String() + "\n\tValue: " + fmtSpf + "\n"
+	}
+	txn := txnSet[len(txnSet)-1]
+	tPoolFee := types.NewCurrency64(0)
+	for _, minerFee := range txn.MinerFees {
+		tPoolFee = tPoolFee.Add(minerFee)
+	}
+	w.log.Printf("Successfully broadcast transaction with id %v, fee %v, and the following outputs: %v", txnSet[len(txnSet)-1].ID(), tPoolFee.HumanString(), outputList)
+}
+
+func (w *Wallet) broadcastTxnSet(txnSet []types.Transaction) error {
+	if w.deps.Disrupt("SendSiacoinsInterrupted") {
+		return errors.New("failed to accept transaction set (SendSiacoinsInterrupted)")
+	}
+	if w.deps.Disrupt("SendBatchTransaction") {
+		return errors.New("failed to accept transaction set (SendBatchTransaction)")
+	}
+	w.log.Println("Attempting to broadcast a batch transaction over the network")
+	if err := w.tpool.AcceptTransactionSet(txnSet); err != nil {
+		w.log.Println("Attempt to send coins has failed - transaction pool rejected transaction:", err)
+		return build.ExtendErr("unable to get transaction accepted", err)
+	}
+	return nil
+}
+
+func (w *Wallet) buildAndSignTxnSet(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput, fundbOutputs []types.SiafundOutput, spfParams buildSpfTxParameters, arbitraryData []byte) (txns []types.Transaction, err error) {
 	// TODO: Fix the ScPrime.info blockchain explorer to correctly display
 	// transactions with both SPF and SCP outputs. Afterwhich, this check
 	// should be removed.
@@ -339,7 +625,7 @@ func (w *Wallet) SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOut
 	defer w.tg.Done()
 	w.log.Println("Beginning call to SendBatchTransaction")
 
-	txnBuilder, err := w.BuildUnsignedBatchTransaction(coinOutputs, fundOutputs, fundbOutputs)
+	txnBuilder, err := w.customBuildUnsignedBatchTransaction(coinOutputs, fundOutputs, fundbOutputs, spfParams)
 	if err != nil {
 		return nil, err
 	}
@@ -348,38 +634,14 @@ func (w *Wallet) SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOut
 			txnBuilder.Drop()
 		}
 	}()
+	if arbitraryData != nil {
+		txnBuilder.AddArbitraryData(arbitraryData)
+	}
 	txnSet, err := txnBuilder.Sign(true)
 	if err != nil {
 		w.log.Println("Attempt to send transaction has failed - failed to sign transaction:", err)
 		return nil, build.ExtendErr("unable to sign transaction", err)
 	}
-	if w.deps.Disrupt("SendSiacoinsInterrupted") {
-		return nil, errors.New("failed to accept transaction set (SendSiacoinsInterrupted)")
-	}
-	if w.deps.Disrupt("SendBatchTransaction") {
-		return nil, errors.New("failed to accept transaction set (SendBatchTransaction)")
-	}
-	w.log.Println("Attempting to broadcast a batch transaction over the network")
-	err = w.tpool.AcceptTransactionSet(txnSet)
-	if err != nil {
-		w.log.Println("Attempt to send coins has failed - transaction pool rejected transaction:", err)
-		return nil, build.ExtendErr("unable to get transaction accepted", err)
-	}
-	// Log the success.
-	var outputList string
-	for _, coinOutput := range coinOutputs {
-		outputList = outputList + "\n\tAddress: " + coinOutput.UnlockHash.String() + "\n\tValue: " + coinOutput.Value.HumanString() + "\n"
-	}
-	for _, fundOutput := range fundOutputs {
-		fmtSpf := fmt.Sprintf("%14v SPF", fundOutput.Value)
-		outputList = outputList + "\n\tAddress: " + fundOutput.UnlockHash.String() + "\n\tValue: " + fmtSpf + "\n"
-	}
-	txn, _ := txnBuilder.View()
-	tPoolFee := types.NewCurrency64(0)
-	for _, minerFee := range txn.MinerFees {
-		tPoolFee = tPoolFee.Add(minerFee)
-	}
-	w.log.Printf("Successfully broadcast transaction with id %v, fee %v, and the following outputs: %v", txnSet[len(txnSet)-1].ID(), tPoolFee.HumanString(), outputList)
 	return txnSet, nil
 }
 

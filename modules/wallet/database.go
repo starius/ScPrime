@@ -46,6 +46,10 @@ var (
 	// bucketWallet contains various fields needed by the wallet, such as its
 	// UID, EncryptionVerification, and PrimarySeedFile.
 	bucketWallet = []byte("bucketWallet")
+	// bucketSpfTransports contains all SPF transports done by the wallet.
+	bucketSpfTransports = []byte("spfTransports")
+	// bucketSpfBurns contains SPF burn transactions for each SPF transport.
+	bucketSpfBurns = []byte("spfBurns")
 
 	dbBuckets = [][]byte{
 		bucketProcessedTransactions,
@@ -56,6 +60,8 @@ var (
 		bucketSpentOutputs,
 		bucketUnlockConditions,
 		bucketWallet,
+		bucketSpfTransports,
+		bucketSpfBurns,
 	}
 
 	errNoKey = errors.New("key does not exist")
@@ -572,6 +578,33 @@ func convert121ProcessedTransaction(oldpt v121ProcessedTransaction) (pt modules.
 			RelatedAddress: out.RelatedAddress,
 			Value:          out.Value,
 		}
+	}
+	return
+}
+
+func dbPutSpfBurn(tx *bolt.Tx, burnID types.TransactionID, set []types.Transaction) error {
+	return dbPut(tx.Bucket(bucketSpfBurns), burnID, set)
+}
+
+func dbGetSpfBurn(tx *bolt.Tx, burnID types.TransactionID) (set []types.Transaction, err error) {
+	err = dbGet(tx.Bucket(bucketSpfBurns), burnID, &set)
+	return
+}
+
+func dbGetSpfTransport(tx *bolt.Tx, burnID types.TransactionID) (t types.SpfTransportRecord, err error) {
+	err = dbGet(tx.Bucket(bucketSpfTransports), burnID, &t)
+	return
+}
+
+func dbPutSpfTransport(tx *bolt.Tx, t types.SpfTransport) error {
+	return dbPut(tx.Bucket(bucketSpfTransports), t.BurnID, t.SpfTransportRecord)
+}
+
+func dbGetAllSpfTransports(tx *bolt.Tx) (set []types.SpfTransport, err error) {
+	if err := dbForEach(tx.Bucket(bucketSpfTransports), func(burnID types.TransactionID, r types.SpfTransportRecord) {
+		set = append(set, types.SpfTransport{BurnID: burnID, SpfTransportRecord: r})
+	}); err != nil {
+		return nil, err
 	}
 	return
 }

@@ -345,15 +345,26 @@ func (tb *transactionBuilder) FundSiacoinsFixedAddress(amount types.Currency, pa
 	return nil
 }
 
-// FundSiafunds will add a siafund input of exactly 'amount' to the
-// transaction. A parent transaction may be needed to achieve an input with the
-// correct value. The siafund input will not be signed until 'Sign' is called
-// on the transaction builder. If b is True, then it tries to find inputs
-// of siafundbs (SPF-B's).
-func (tb *transactionBuilder) FundSiafunds(amount types.Currency, needb bool) error {
+func (tb *transactionBuilder) CustomFundSiafunds(amount types.SpfAmount, sendFrom *types.UnlockHash, onlySpfxRegular bool) (err error) {
 	tb.wallet.mu.Lock()
 	defer tb.wallet.mu.Unlock()
 
+	var parentUnlockConditions, refundUnlockConditions types.UnlockConditions
+	if sendFrom != nil {
+		parentUnlockConditions = tb.wallet.keys[*sendFrom].UnlockConditions
+		refundUnlockConditions = tb.wallet.keys[*sendFrom].UnlockConditions
+	} else {
+		parentUnlockConditions, refundUnlockConditions, err = tb.generateTwoNextAddresses()
+		if err != nil {
+			return err
+		}
+	}
+	return tb.fundSiafundsFixedAddress(amount, parentUnlockConditions, refundUnlockConditions, onlySpfxRegular)
+}
+
+func (tb *transactionBuilder) fundSiafundsFixedAddress(spfAmount types.SpfAmount, parentUnlockConditions, refundUnlockConditions types.UnlockConditions, onlySpfxRegular bool) error {
+	amount := spfAmount.Amount
+	needb := (spfAmount.Type == types.SpfB)
 	consensusHeight, err := dbGetConsensusHeight(tb.wallet.dbTx)
 	if err != nil {
 		return err
@@ -373,6 +384,10 @@ func (tb *transactionBuilder) FundSiafunds(amount types.Currency, needb bool) er
 			return err
 		} else if err := encoding.Unmarshal(sfoBytes, &sfo); err != nil {
 			return err
+		}
+
+		if onlySpfxRegular && !tb.wallet.spfxRegularUnlockHash(sfo.UnlockHash) {
+			continue
 		}
 
 		// Check that we have required type of output.
@@ -433,10 +448,6 @@ func (tb *transactionBuilder) FundSiafunds(amount types.Currency, needb bool) er
 
 	// Create and add the output that will be used to fund the standard
 	// transaction.
-	parentUnlockConditions, err := tb.wallet.nextPrimarySeedAddress(tb.wallet.dbTx)
-	if err != nil {
-		return err
-	}
 	exactOutput := types.SiafundOutput{
 		Value:      amount,
 		UnlockHash: parentUnlockConditions.UnlockHash(),
@@ -445,10 +456,6 @@ func (tb *transactionBuilder) FundSiafunds(amount types.Currency, needb bool) er
 
 	// Create a refund output if needed.
 	if !amount.Equals(fund) {
-		refundUnlockConditions, err := tb.wallet.nextPrimarySeedAddress(tb.wallet.dbTx)
-		if err != nil {
-			return err
-		}
 		refundOutput := types.SiafundOutput{
 			Value:      fund.Sub(amount),
 			UnlockHash: refundUnlockConditions.UnlockHash(),
@@ -484,6 +491,40 @@ func (tb *transactionBuilder) FundSiafunds(amount types.Currency, needb bool) er
 		}
 	}
 	return nil
+}
+
+func (tb *transactionBuilder) generateTwoNextAddresses() (types.UnlockConditions, types.UnlockConditions, error) {
+	uc0, err := tb.wallet.nextPrimarySeedAddress(tb.wallet.dbTx)
+	if err != nil {
+		return types.UnlockConditions{}, types.UnlockConditions{}, errors.AddContext(err, "Unable to generate new wallet address for transaction input creation")
+	}
+	uc1, err := tb.wallet.nextPrimarySeedAddress(tb.wallet.dbTx)
+	if err != nil {
+		return types.UnlockConditions{}, types.UnlockConditions{}, errors.AddContext(err, "Unable to generate new wallet address for remaining unspent inputs")
+	}
+	return uc0, uc1, nil
+}
+
+// FundSiafunds will add a siafund input of exactly 'amount' to the
+// transaction. A parent transaction may be needed to achieve an input with the
+// correct value. The siafund input will not be signed until 'Sign' is called
+// on the transaction builder. If b is True, then it tries to find inputs
+// of siafundbs (SPF-B's).
+func (tb *transactionBuilder) FundSiafunds(amount types.Currency, needb bool) error {
+	tb.wallet.mu.Lock()
+	defer tb.wallet.mu.Unlock()
+
+	spfAmount := types.SpfAmount{Amount: amount}
+	if needb {
+		spfAmount.Type = types.SpfB
+	} else {
+		spfAmount.Type = types.SpfA
+	}
+	parentUnlockConditions, refundUnlockConditions, err := tb.generateTwoNextAddresses()
+	if err != nil {
+		return err
+	}
+	return tb.fundSiafundsFixedAddress(spfAmount, parentUnlockConditions, refundUnlockConditions, false)
 }
 
 // Sweep creates a funded txn that sends the inputs of this transactionBuilder

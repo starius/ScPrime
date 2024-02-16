@@ -51,6 +51,8 @@ type Config struct {
 		ProfileDir string
 		DataDir    string
 
+		SpfTransporterAddress string
+
 		OnlyFirstDir bool
 	}
 

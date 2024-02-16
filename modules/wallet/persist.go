@@ -176,6 +176,11 @@ func (w *Wallet) initPersist() error {
 		return err
 	}
 
+	if w.transporterClient != nil {
+		// spawn a goroutine to monitor SPF transports.
+		go w.threadedMonitorSpfTransports()
+	}
+
 	// spawn a goroutine to commit the db transaction at regular intervals
 	go w.threadedDBUpdate()
 	return nil

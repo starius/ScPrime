@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"gitlab.com/scpcorp/spf-transporter"
+
 	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
 	"gitlab.com/NebulousLabs/errors"
 	"gitlab.com/NebulousLabs/ratelimit"
@@ -110,6 +112,9 @@ type NodeParams struct {
 	HostAddress string
 	HostStorage uint64
 	RPCAddress  string
+
+	// Address of the SPF transporter for wallet module.
+	SpfTransporterAddress string
 
 	// Initialize node from existing seed.
 	PrimarySeed string
@@ -402,9 +407,16 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		if walletDeps == nil {
 			walletDeps = modules.ProdDependencies
 		}
+		var tc wallet.TransporterClient
+		if params.SpfTransporterAddress != "" {
+			tc, err = transporter.NewClient(params.SpfTransporterAddress)
+			if err != nil {
+				return nil, errors.Extend(err, errors.New("unable to create SPF transporter client for wallet"))
+			}
+		}
 		i++
 		printfRelease("(%d/%d) Loading wallet...", i, numModules)
-		return wallet.NewCustomWallet(cs, tp, filepath.Join(dir, modules.WalletDir), walletDeps)
+		return wallet.NewWithTransporterClient(cs, tp, tc, filepath.Join(dir, modules.WalletDir), walletDeps)
 	}()
 	if err != nil {
 		errChan <- errors.Extend(err, errors.New("unable to create wallet"))

@@ -5,6 +5,7 @@ package wallet
 
 import (
 	"bytes"
+	"context"
 	"sort"
 	"sync"
 
@@ -18,6 +19,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/persist"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
 	"gitlab.com/scpcorp/ScPrime/types"
+	"gitlab.com/scpcorp/spf-transporter"
 )
 
 const (
@@ -41,6 +43,14 @@ var (
 type spendableKey struct {
 	UnlockConditions types.UnlockConditions
 	SecretKeys       []crypto.SecretKey
+}
+
+// TransporterClient defines transporter dependency.
+type TransporterClient interface {
+	PreminedList(ctx context.Context, req *transporter.PreminedListRequest) (*transporter.PreminedListResponse, error)
+	CheckAllowance(ctx context.Context, req *transporter.CheckAllowanceRequest) (*transporter.CheckAllowanceResponse, error)
+	SubmitScpTx(ctx context.Context, req *transporter.SubmitScpTxRequest) (*transporter.SubmitScpTxResponse, error)
+	TransportStatus(ctx context.Context, req *transporter.TransportStatusRequest) (*transporter.TransportStatusResponse, error)
 }
 
 // Wallet is an object that tracks balances, creates keys and addresses,
@@ -68,6 +78,8 @@ type Wallet struct {
 	tpool modules.TransactionPool
 	deps  modules.Dependencies
 
+	transporterClient TransporterClient
+
 	// The following set of fields are responsible for tracking the confirmed
 	// outputs, and for being able to spend them. The seeds are used to derive
 	// the keys that are tracked on the blockchain. All keys are pregenerated
@@ -78,6 +90,8 @@ type Wallet struct {
 	keys         map[types.UnlockHash]spendableKey
 	lookahead    map[types.UnlockHash]uint64
 	watchedAddrs map[types.UnlockHash]struct{}
+
+	spfxPreminedAddrs map[types.UnlockHash]struct{}
 
 	// unconfirmedProcessedTransactions tracks unconfirmed transactions.
 	//
@@ -184,6 +198,11 @@ func New(cs modules.ConsensusSet, tpool modules.TransactionPool, persistDir stri
 
 // NewCustomWallet creates a new wallet using custom dependencies.
 func NewCustomWallet(cs modules.ConsensusSet, tpool modules.TransactionPool, persistDir string, deps modules.Dependencies) (*Wallet, error) {
+	return NewWithTransporterClient(cs, tpool, nil, persistDir, deps)
+}
+
+// NewWithTransporterClient creates a new wallet with SPF transporter client.
+func NewWithTransporterClient(cs modules.ConsensusSet, tpool modules.TransactionPool, transporterClient TransporterClient, persistDir string, deps modules.Dependencies) (*Wallet, error) {
 	// Check for nil dependencies.
 	if cs == nil {
 		return nil, errNilConsensusSet
@@ -192,14 +211,26 @@ func NewCustomWallet(cs modules.ConsensusSet, tpool modules.TransactionPool, per
 		return nil, errNilTpool
 	}
 
+	spfxPreminedAddrs := make(map[types.UnlockHash]struct{})
+	var err error
+	if transporterClient != nil {
+		spfxPreminedAddrs, err = spfxPremined(context.Background(), transporterClient)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Initialize the data structure.
 	w := &Wallet{
-		cs:    cs,
-		tpool: tpool,
+		transporterClient: transporterClient,
+		cs:                cs,
+		tpool:             tpool,
 
 		keys:         make(map[types.UnlockHash]spendableKey),
 		lookahead:    make(map[types.UnlockHash]uint64),
 		watchedAddrs: make(map[types.UnlockHash]struct{}),
+
+		spfxPreminedAddrs: spfxPreminedAddrs,
 
 		unconfirmedSets: make(map[modules.TransactionSetID][]types.TransactionID),
 
@@ -207,8 +238,7 @@ func NewCustomWallet(cs modules.ConsensusSet, tpool modules.TransactionPool, per
 
 		deps: deps,
 	}
-	err := w.initPersist()
-	if err != nil {
+	if err := w.initPersist(); err != nil {
 		return nil, err
 	}
 	return w, nil
@@ -305,4 +335,16 @@ func (w *Wallet) managedCanSpendUnlockHash(unlockHash types.UnlockHash) bool {
 func (w *Wallet) IsWatchedAddress(address types.UnlockHash) bool {
 	_, watched := w.watchedAddrs[address]
 	return watched
+}
+
+func spfxPremined(ctx context.Context, tc TransporterClient) (map[types.UnlockHash]struct{}, error) {
+	resp, err := tc.PreminedList(ctx, &transporter.PreminedListRequest{})
+	if err != nil {
+		return nil, err
+	}
+	spfxPreminedAddrs := make(map[types.UnlockHash]struct{})
+	for uh := range resp.Premined {
+		spfxPreminedAddrs[uh] = struct{}{}
+	}
+	return spfxPreminedAddrs, nil
 }
