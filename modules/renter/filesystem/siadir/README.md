@@ -59,7 +59,7 @@ format and methods that return information about the SiaDir.
 
 **Exports**
  - `Deleted`
- - `Metatdata`
+ - `Metadata`
  - `SiaPath`
 
 ### SiaDirSet Subsystem
