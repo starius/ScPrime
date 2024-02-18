@@ -43,6 +43,8 @@ require (
 	golang.org/x/net v0.16.0
 )
 
+require github.com/mr-tron/base58 v1.2.0 // indirect
+
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

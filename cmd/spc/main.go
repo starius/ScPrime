@@ -362,7 +362,7 @@ func initCmds() *cobra.Command {
 	root.AddCommand(walletCmd)
 	walletCmd.AddCommand(walletAddressCmd, walletHashCmd, walletAddressesCmd, walletBalanceCmd, walletBroadcastCmd, walletChangepasswordCmd,
 		walletInitCmd, walletInitSeedCmd, walletLoadCmd, walletLockCmd, walletSeedsCmd, walletSendCmd,
-		walletSignCmd, walletSweepCmd, walletTransactionsCmd, walletUnlockCmd)
+		walletSignCmd, walletSweepCmd, walletTransactionsCmd, walletUnlockCmd, walletSpfTransportSendCmd, walletSpfTransportSendPreminedCmd, walletSpfTransportAllowanceCmd, walletSpfTransportHistoryCmd)
 	walletInitCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Prompt for a custom password")
 	walletInitCmd.Flags().BoolVarP(&initForce, "force", "", false, "destroy the existing wallet and re-encrypt")
 	walletInitSeedCmd.Flags().BoolVarP(&initForce, "force", "", false, "destroy the existing wallet")
