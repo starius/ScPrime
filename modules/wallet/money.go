@@ -11,6 +11,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/modules"
 	"gitlab.com/scpcorp/ScPrime/types"
 	"gitlab.com/scpcorp/spf-transporter"
+	"gitlab.com/scpcorp/spf-transporter/common"
 )
 
 // estimatedTransactionSize is the estimated size of a transaction used to send
@@ -518,7 +519,8 @@ func (w *Wallet) SiafundTransportSend(spfAmount types.SpfAmount, t types.SpfTran
 		onlySpfxRegular: (t == types.Regular),
 		sendFrom:        preminedUnlockHash,
 	}
-	txnSet, err := w.buildAndSignTxnSet(nil, fundaOutputs, fundbOutputs, spfParams, solanaAddr[:])
+	arbitraryData := common.PutSolanaAddress(common.SolanaAddress(solanaAddr))
+	txnSet, err := w.buildAndSignTxnSet(nil, fundaOutputs, fundbOutputs, spfParams, arbitraryData)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -535,7 +537,7 @@ func (w *Wallet) SiafundTransportSend(spfAmount types.SpfAmount, t types.SpfTran
 	}
 
 	// Save transactions and create a new SPF transport record.
-	if err := w.putSpfBurn(burnID, txnSet); err != nil {
+	if err := w.putSpfBurn(burnID, burnTx); err != nil {
 		return 0, nil, fmt.Errorf("failed to save transactions before broadcasting: %w", err)
 	}
 	st := types.SpfTransport{
@@ -561,9 +563,19 @@ func (w *Wallet) SiafundTransportSend(spfAmount types.SpfAmount, t types.SpfTran
 	}
 
 	// Submit burn to transporter.
-	resp, err := w.transporterClient.SubmitScpTx(ctx, &transporter.SubmitScpTxRequest{
-		Transaction: txnSet[len(txnSet)-1],
-	})
+	const submitRetries = 6
+	const submitRetryInterval = time.Second * 10
+	resp := &transporter.SubmitScpTxResponse{}
+	for i := 0; i < submitRetries; i++ {
+		resp, err = w.transporterClient.SubmitScpTx(ctx, &transporter.SubmitScpTxRequest{
+			Transaction: burnTx,
+		})
+		if err == nil {
+			break
+		}
+		w.log.Printf("Failed to submit SCP tx: %v", err)
+		time.Sleep(submitRetryInterval)
+	}
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to submit transaction to transporter: %w", err)
 	}

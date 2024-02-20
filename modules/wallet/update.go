@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"fmt"
 	"math"
 
 	"gitlab.com/scpcorp/ScPrime/modules"
@@ -157,6 +158,22 @@ func (w *Wallet) updateConfirmedSet(tx *bolt.Tx, cc modules.ConsensusChange) err
 	return nil
 }
 
+// rollbackSpfTransports checks if given ProcessedTransaction is related to SPF transports
+// and removes all the relevant info in this case.
+func (w *Wallet) rollbackSpfTransports(tx *bolt.Tx, pt modules.ProcessedTransaction) error {
+	if !IsSpfTransportTx(&pt.Transaction) {
+		return nil
+	}
+	// Delete txid from spfBurns and spfTransports buckets.
+	if err := dbDeleteSpfBurn(tx, pt.TransactionID); err != nil {
+		return fmt.Errorf("could not delete SPF burn: %w", err)
+	}
+	if err := dbDeleteSpfTransport(tx, pt.TransactionID); err != nil {
+		return fmt.Errorf("could not delete SPF transport: %w", err)
+	}
+	return nil
+}
+
 // revertHistory reverts any transaction history that was destroyed by reverted
 // blocks in the consensus change.
 func (w *Wallet) revertHistory(tx *bolt.Tx, reverted []types.Block) error {
@@ -176,6 +193,10 @@ func (w *Wallet) revertHistory(tx *bolt.Tx, reverted []types.Block) error {
 					w.log.Severe("Could not revert transaction:", err)
 					return err
 				}
+				if err := w.rollbackSpfTransports(tx, pt); err != nil {
+					w.log.Severe("Could not revert SPF transports of transaction:", err)
+					return err
+				}
 			}
 		}
 
@@ -191,6 +212,10 @@ func (w *Wallet) revertHistory(tx *bolt.Tx, reverted []types.Block) error {
 				w.log.Println("Miner payout has been reverted due to a reorg:", block.MinerPayoutID(uint64(i)), "::", mp.Value.HumanString())
 				if err := dbDeleteLastProcessedTransaction(tx); err != nil {
 					w.log.Severe("Could not revert transaction:", err)
+					return err
+				}
+				if err := w.rollbackSpfTransports(tx, pt); err != nil {
+					w.log.Severe("Could not revert SPF transports of transaction:", err)
 					return err
 				}
 				break // there will only ever be one miner transaction
@@ -545,6 +570,22 @@ func (w *Wallet) applyHistory(tx *bolt.Tx, cc modules.ConsensusChange) error {
 			err := dbAppendProcessedTransaction(tx, pt)
 			if err != nil {
 				return errors.AddContext(err, "could not put processed transaction")
+			}
+			// Handle SPF transports.
+			if IsSpfTransportTx(&pt.Transaction) {
+				if err := dbPutSpfBurn(tx, pt.TransactionID, pt.Transaction); err != nil {
+					return errors.AddContext(err, "could not put SPF burn")
+				}
+				if err := dbPutSpfTransport(tx, types.SpfTransport{
+					BurnID: pt.TransactionID,
+					SpfTransportRecord: types.SpfTransportRecord{
+						Status:  types.BurnBroadcasted,
+						Amount:  SpfBurntAmount(&pt.Transaction),
+						Created: pt.ConfirmationTimestamp.ToStdTime(),
+					},
+				}); err != nil {
+					return errors.AddContext(err, "coud not put SPF transport record")
+				}
 			}
 		}
 	}

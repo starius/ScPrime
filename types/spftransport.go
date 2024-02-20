@@ -9,6 +9,7 @@ import (
 // SpfTransportType introduces enum for SPF transport types.
 type SpfTransportType int
 
+// SpfTransportType constants.
 const (
 	Airdrop SpfTransportType = iota
 	Premined
@@ -18,11 +19,13 @@ const (
 // SpfType enum (A or B).
 type SpfType int
 
+// SpfType constants.
 const (
 	SpfA SpfType = iota
 	SpfB
 )
 
+// SpfTypeFromString creates SpfType from string.
 func SpfTypeFromString(str string) (t SpfType, err error) {
 	switch str {
 	case "spfa":
@@ -35,6 +38,7 @@ func SpfTypeFromString(str string) (t SpfType, err error) {
 	return
 }
 
+// String method converts SpfType to string.
 func (st SpfType) String() string {
 	if st == SpfA {
 		return "spfa"
@@ -71,6 +75,9 @@ func (spfAllowance *SpfTransportAllowance) ApplyTo(spf SpfAmount, t SpfTransport
 			return fmt.Errorf("amount %s exceeds the limit of %s for type Regular", spf.Amount.String(), spfAllowance.Regular.MaxAllowed.String())
 		}
 	case Premined:
+		if preminedUh == nil {
+			return errors.New("nil premined UnlockHash but type is Premined")
+		}
 		preminedAllowance, ok := spfAllowance.Premined[*preminedUh]
 		if !ok {
 			return fmt.Errorf("premined unlock hash %s does not exist", preminedUh.String())
@@ -92,6 +99,7 @@ func (spfAllowance *SpfTransportAllowance) ApplyTo(spf SpfAmount, t SpfTransport
 // SpfTransportStatus introduces enum for SPF transport states.
 type SpfTransportStatus int
 
+// SpfTransportStatus constants.
 const (
 	BurnCreated SpfTransportStatus = iota
 	BurnBroadcasted
@@ -100,6 +108,7 @@ const (
 	Completed
 )
 
+// String method converts SpfTransportStatus to string.
 func (sts SpfTransportStatus) String() string {
 	switch sts {
 	case BurnCreated:

@@ -582,12 +582,16 @@ func convert121ProcessedTransaction(oldpt v121ProcessedTransaction) (pt modules.
 	return
 }
 
-func dbPutSpfBurn(tx *bolt.Tx, burnID types.TransactionID, set []types.Transaction) error {
-	return dbPut(tx.Bucket(bucketSpfBurns), burnID, set)
+func dbPutSpfBurn(tx *bolt.Tx, burnID types.TransactionID, t types.Transaction) error {
+	return dbPut(tx.Bucket(bucketSpfBurns), burnID, t)
 }
 
-func dbGetSpfBurn(tx *bolt.Tx, burnID types.TransactionID) (set []types.Transaction, err error) {
-	err = dbGet(tx.Bucket(bucketSpfBurns), burnID, &set)
+func dbDeleteSpfBurn(tx *bolt.Tx, burnID types.TransactionID) error {
+	return dbDelete(tx.Bucket(bucketSpfBurns), burnID)
+}
+
+func dbGetSpfBurn(tx *bolt.Tx, burnID types.TransactionID) (t types.Transaction, err error) {
+	err = dbGet(tx.Bucket(bucketSpfBurns), burnID, &t)
 	return
 }
 
@@ -598,6 +602,10 @@ func dbGetSpfTransport(tx *bolt.Tx, burnID types.TransactionID) (t types.SpfTran
 
 func dbPutSpfTransport(tx *bolt.Tx, t types.SpfTransport) error {
 	return dbPut(tx.Bucket(bucketSpfTransports), t.BurnID, t.SpfTransportRecord)
+}
+
+func dbDeleteSpfTransport(tx *bolt.Tx, burnID types.TransactionID) error {
+	return dbDelete(tx.Bucket(bucketSpfTransports), burnID)
 }
 
 func dbGetAllSpfTransports(tx *bolt.Tx) (set []types.SpfTransport, err error) {

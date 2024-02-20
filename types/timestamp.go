@@ -14,6 +14,11 @@ type (
 	TimestampSlice []Timestamp
 )
 
+// ToStdTime converts Timestamp to time.Time.
+func (t Timestamp) ToStdTime() time.Time {
+	return time.Unix(int64(t), 0)
+}
+
 // CurrentTimestamp returns the current time as a Timestamp.
 func CurrentTimestamp() Timestamp {
 	return Timestamp(time.Now().Unix())

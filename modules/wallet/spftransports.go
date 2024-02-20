@@ -10,6 +10,39 @@ import (
 	"gitlab.com/scpcorp/spf-transporter/common"
 )
 
+// SpfBurntAmount returns amount of SPF burnt in this transaction.
+func SpfBurntAmount(tx *types.Transaction) types.Currency {
+	var burntAmount types.Currency
+	for _, sfo := range tx.SiafundOutputs {
+		if sfo.UnlockHash == types.BurnAddressUnlockHash {
+			burntAmount = burntAmount.Add(sfo.Value)
+		}
+	}
+	return burntAmount
+}
+
+// IsSpfTransportTx returns true if given tx is a valid SPF transport to Solana.
+func IsSpfTransportTx(tx *types.Transaction) bool {
+	// Ensure tx burns some SPFs.
+	burntAmount := SpfBurntAmount(tx)
+	if burntAmount.IsZero() {
+		return false
+	}
+	// Ensure WholeTransaction flag is set in all signatures.
+	for _, sig := range tx.TransactionSignatures {
+		if !sig.CoveredFields.WholeTransaction {
+			return false
+		}
+	}
+	// Ensure there is valid Solana address in arbitrary data.
+	for _, ad := range tx.ArbitraryData {
+		if _, err := common.ExtractSolanaAddress(ad); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
 func spfxEmissionTime(c types.Currency) time.Duration {
 	minutes := common.DivCurrencyRoundUp(c, common.SpfPerMinute).Big().Int64()
 	return time.Minute * time.Duration(minutes)
@@ -61,9 +94,10 @@ func (w *Wallet) threadedMonitorSpfTransports() {
 	}
 	defer w.tg.Done()
 
+	const monitorInterval = 10 * time.Minute
 	for {
 		select {
-		case <-time.After(10 * time.Minute):
+		case <-time.After(monitorInterval):
 		case <-w.tg.StopChan():
 			return
 		}
@@ -81,7 +115,8 @@ func (w *Wallet) threadedMonitorSpfTransports() {
 				// Skip completed.
 				continue
 			}
-			if time.Since(t.Created) < time.Hour {
+			const minRecordAge = time.Hour
+			if time.Since(t.Created) < minRecordAge {
 				// Do not touch recently created records here, they might still be
 				// updated by the actual Send function.
 				continue
@@ -110,7 +145,7 @@ func (w *Wallet) threadedMonitorSpfTransports() {
 				if confirmed {
 					// Burn tx was confirmed, try submitting to transporter.
 					w.mu.Lock()
-					txnSet, err := dbGetSpfBurn(w.dbTx, t.BurnID)
+					burnTx, err := dbGetSpfBurn(w.dbTx, t.BurnID)
 					w.mu.Unlock()
 					if err != nil {
 						w.log.Println("Failed to fetch burn txn set from database:", err)
@@ -118,7 +153,7 @@ func (w *Wallet) threadedMonitorSpfTransports() {
 					}
 					if _, err := w.transporterClient.SubmitScpTx(
 						ctx,
-						&transporter.SubmitScpTxRequest{Transaction: txnSet[len(txnSet)-1]},
+						&transporter.SubmitScpTxRequest{Transaction: burnTx},
 					); err != nil {
 						w.log.Println("Failed to submit confirmed tx to transporter (threadedMonitorSpfTransports):", err)
 						continue
@@ -140,17 +175,21 @@ func (w *Wallet) threadedMonitorSpfTransports() {
 				recordsToUpdate[t.BurnID] = newRecord
 			}
 		}
-		if err := w.putSpfTransports(recordsToUpdate); err != nil {
+		if err := w.updateSpfTransports(recordsToUpdate); err != nil {
 			w.log.Println("Failed to save updated SPF transport records:", err)
 		}
 	}
 }
 
-func (w *Wallet) putSpfTransports(records map[types.TransactionID]types.SpfTransportRecord) error {
+func (w *Wallet) updateSpfTransports(records map[types.TransactionID]types.SpfTransportRecord) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
 	for burnID, r := range records {
+		if _, err := dbGetSpfTransport(w.dbTx, burnID); err == errNoKey {
+			// Do not create new records here.
+			continue
+		}
 		if err := dbPutSpfTransport(w.dbTx, types.SpfTransport{BurnID: burnID, SpfTransportRecord: r}); err != nil {
 			return err
 		}
@@ -158,11 +197,11 @@ func (w *Wallet) putSpfTransports(records map[types.TransactionID]types.SpfTrans
 	return w.syncDB()
 }
 
-func (w *Wallet) putSpfBurn(burnID types.TransactionID, txnSet []types.Transaction) error {
+func (w *Wallet) putSpfBurn(burnID types.TransactionID, tx types.Transaction) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	if err := dbPutSpfBurn(w.dbTx, burnID, txnSet); err != nil {
+	if err := dbPutSpfBurn(w.dbTx, burnID, tx); err != nil {
 		return err
 	}
 	return w.syncDB()
