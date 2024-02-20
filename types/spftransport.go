@@ -62,9 +62,9 @@ type SpfTransportTypeAllowance struct {
 
 // SpfTransportAllowance contains allowance for all types.
 type SpfTransportAllowance struct {
-	Regular  SpfTransportTypeAllowance                `json:"regular"`
-	Premined map[UnlockHash]SpfTransportTypeAllowance `json:"premined"`
-	Airdrop  *SpfTransportTypeAllowance               `json:"airdrop,omitempty"`
+	Regular  SpfTransportTypeAllowance            `json:"regular"`
+	Premined map[string]SpfTransportTypeAllowance `json:"premined"`
+	Airdrop  *SpfTransportTypeAllowance           `json:"airdrop,omitempty"`
 }
 
 // ApplyTo validates SPF amount against allowance.
@@ -78,7 +78,7 @@ func (spfAllowance *SpfTransportAllowance) ApplyTo(spf SpfAmount, t SpfTransport
 		if preminedUh == nil {
 			return errors.New("nil premined UnlockHash but type is Premined")
 		}
-		preminedAllowance, ok := spfAllowance.Premined[*preminedUh]
+		preminedAllowance, ok := spfAllowance.Premined[preminedUh.String()]
 		if !ok {
 			return fmt.Errorf("premined unlock hash %s does not exist", preminedUh.String())
 		}

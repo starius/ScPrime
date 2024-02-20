@@ -6,6 +6,7 @@ package wallet
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 
@@ -343,7 +344,11 @@ func spfxPremined(ctx context.Context, tc TransporterClient) (map[types.UnlockHa
 		return nil, err
 	}
 	spfxPreminedAddrs := make(map[types.UnlockHash]struct{})
-	for uh := range resp.Premined {
+	for uhStr := range resp.Premined {
+		var uh types.UnlockHash
+		if err := uh.LoadString(uhStr); err != nil {
+			return nil, fmt.Errorf("failed to parse UnlockHash: %w", err)
+		}
 		spfxPreminedAddrs[uh] = struct{}{}
 	}
 	return spfxPreminedAddrs, nil

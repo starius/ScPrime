@@ -417,13 +417,17 @@ func (w *Wallet) SiafundTransportAllowance(t types.SpfType) (*types.SpfTransport
 		return nil, fmt.Errorf("failed to fetch allowance from transporter: %w", err)
 	}
 	// Handle premined part of allowance.
-	preminedAllowance := make(map[types.UnlockHash]types.SpfTransportTypeAllowance)
-	for uh, p := range allowanceResp.Premined {
+	preminedAllowance := make(map[string]types.SpfTransportTypeAllowance)
+	for uhStr, p := range allowanceResp.Premined {
+		var uh types.UnlockHash
+		if err := uh.LoadString(uhStr); err != nil {
+			return nil, fmt.Errorf("failed to parse UnlockHash from transporter: %w", err)
+		}
 		if _, ok := utxos[uh]; !ok {
 			// Ensure we have this UnlockHash in our wallet.
 			continue
 		}
-		preminedAllowance[uh] = types.SpfTransportTypeAllowance{
+		preminedAllowance[uhStr] = types.SpfTransportTypeAllowance{
 			MaxAllowed:   types.MinCurrency(p.Amount, totalBalance),
 			WaitTime:     p.WaitEstimate,
 			PotentialMax: p.Amount,
