@@ -549,7 +549,7 @@ func (w *Wallet) SiafundTransportSend(spfAmount types.SpfAmount, t types.SpfTran
 		SpfTransportRecord: types.SpfTransportRecord{
 			Status:  types.BurnCreated,
 			Amount:  spfAmount.Amount,
-			Created: time.Now(),
+			Created: types.CurrentTimestamp(),
 		},
 	}
 	if err := w.putSpfTransport(st); err != nil {

@@ -572,7 +572,12 @@ func (w *Wallet) applyHistory(tx *bolt.Tx, cc modules.ConsensusChange) error {
 				return errors.AddContext(err, "could not put processed transaction")
 			}
 			// Handle SPF transports.
-			if IsSpfTransportTx(&pt.Transaction) {
+			// Idempotency: check if burnID already exists - then do nothing.
+			spfTransportExists := false
+			if _, err := dbGetSpfTransport(tx, pt.TransactionID); err == nil {
+				spfTransportExists = true
+			}
+			if IsSpfTransportTx(&pt.Transaction) && !spfTransportExists {
 				if err := dbPutSpfBurn(tx, pt.TransactionID, pt.Transaction); err != nil {
 					return errors.AddContext(err, "could not put SPF burn")
 				}
@@ -581,7 +586,7 @@ func (w *Wallet) applyHistory(tx *bolt.Tx, cc modules.ConsensusChange) error {
 					SpfTransportRecord: types.SpfTransportRecord{
 						Status:  types.BurnBroadcasted,
 						Amount:  SpfBurntAmount(&pt.Transaction),
-						Created: pt.ConfirmationTimestamp.ToStdTime(),
+						Created: pt.ConfirmationTimestamp,
 					},
 				}); err != nil {
 					return errors.AddContext(err, "coud not put SPF transport record")

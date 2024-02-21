@@ -116,7 +116,7 @@ func (w *Wallet) threadedMonitorSpfTransports() {
 				continue
 			}
 			const minRecordAge = time.Hour
-			if time.Since(t.Created) < minRecordAge {
+			if time.Since(t.Created.ToStdTime()) < minRecordAge {
 				// Do not touch recently created records here, they might still be
 				// updated by the actual Send function.
 				continue

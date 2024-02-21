@@ -136,7 +136,7 @@ type SpfTransport struct {
 type SpfTransportRecord struct {
 	Status  SpfTransportStatus `json:"status"`
 	Amount  Currency           `json:"currency"`
-	Created time.Time          `json:"created"`
+	Created Timestamp          `json:"created"`
 }
 
 // SolanaAddrLen is the length of Solana public keys.
