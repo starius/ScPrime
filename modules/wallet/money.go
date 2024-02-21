@@ -338,14 +338,21 @@ func (w *Wallet) customBuildUnsignedBatchTransaction(coinOutputs []types.Siacoin
 // Ideally the blockchain explorer will someday be fixed to correctly display
 // these types of transactions. After this happens the check to prevent both coin
 // and fund outputs from being supplied can be removed.
-func (w *Wallet) SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput, fundbOutputs []types.SiafundOutput) (txns []types.Transaction, err error) {
-	txns, err = w.buildAndSignTxnSet(coinOutputs, fundOutputs, fundbOutputs, buildSpfTxParameters{}, nil)
+func (w *Wallet) SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput, fundbOutputs []types.SiafundOutput) (txns []types.Transaction, err0 error) {
+	txns, txnBuilder, err := w.buildAndSignTxnSet(coinOutputs, fundOutputs, fundbOutputs, buildSpfTxParameters{}, nil)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err0 != nil {
+			txnBuilder.Drop()
+		}
+	}()
+
 	if err := w.broadcastTxnSet(txns); err != nil {
 		return nil, err
 	}
+
 	w.logSuccessfulBroadcast(coinOutputs, fundOutputs, fundbOutputs, txns)
 	return txns, nil
 }
@@ -491,7 +498,7 @@ func (w *Wallet) SiafundTransportHistory() ([]types.SpfTransport, error) {
 	return set, nil
 }
 
-func (w *Wallet) SiafundTransportSend(spfAmount types.SpfAmount, t types.SpfTransportType, preminedUnlockHash *types.UnlockHash, solanaAddr types.SolanaAddress) (time.Duration, *types.Currency, error) {
+func (w *Wallet) SiafundTransportSend(spfAmount types.SpfAmount, t types.SpfTransportType, preminedUnlockHash *types.UnlockHash, solanaAddr types.SolanaAddress) (dur time.Duration, cur *types.Currency, err0 error) {
 	if w.transporterClient == nil {
 		return 0, nil, errors.New("transporter is disabled")
 	}
@@ -554,10 +561,16 @@ func (w *Wallet) SiafundTransportSend(spfAmount types.SpfAmount, t types.SpfTran
 		sendFrom:        preminedUnlockHash,
 	}
 	arbitraryData := common.PutSolanaAddress(common.SolanaAddress(solanaAddr))
-	txnSet, err := w.buildAndSignTxnSet(nil, fundaOutputs, fundbOutputs, spfParams, arbitraryData)
+	txnSet, txnBuilder, err := w.buildAndSignTxnSet(nil, fundaOutputs, fundbOutputs, spfParams, arbitraryData)
 	if err != nil {
 		return 0, nil, err
 	}
+	defer func() {
+		if err0 != nil {
+			txnBuilder.Drop()
+		}
+	}()
+
 	burnTx := txnSet[len(txnSet)-1]
 	burnID := burnTx.ID()
 	// Sanity check - ensure tx has only one SPF input.
@@ -655,25 +668,25 @@ func (w *Wallet) broadcastTxnSet(txnSet []types.Transaction) error {
 	return nil
 }
 
-func (w *Wallet) buildAndSignTxnSet(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput, fundbOutputs []types.SiafundOutput, spfParams buildSpfTxParameters, arbitraryData []byte) (txns []types.Transaction, err error) {
+func (w *Wallet) buildAndSignTxnSet(coinOutputs []types.SiacoinOutput, fundOutputs []types.SiafundOutput, fundbOutputs []types.SiafundOutput, spfParams buildSpfTxParameters, arbitraryData []byte) (txns []types.Transaction, txnBuilder modules.TransactionBuilder, err error) {
 	// TODO: Fix the ScPrime.info blockchain explorer to correctly display
 	// transactions with both SPF and SCP outputs. Afterwhich, this check
 	// should be removed.
 	if (len(coinOutputs) != 0 && len(fundOutputs) != 0) ||
 		(len(coinOutputs) != 0 && len(fundbOutputs) != 0) ||
 		(len(fundOutputs) != 0 && len(fundbOutputs) != 0) {
-		return nil, errors.New("cannot supply different kind of outputs in one transaction")
+		return nil, nil, errors.New("cannot supply different kind of outputs in one transaction")
 	}
 	if err := w.tg.Add(); err != nil {
 		err = modules.ErrWalletShutdown
-		return nil, err
+		return nil, nil, err
 	}
 	defer w.tg.Done()
 	w.log.Println("Beginning call to SendBatchTransaction")
 
-	txnBuilder, err := w.customBuildUnsignedBatchTransaction(coinOutputs, fundOutputs, fundbOutputs, spfParams)
+	txnBuilder, err = w.customBuildUnsignedBatchTransaction(coinOutputs, fundOutputs, fundbOutputs, spfParams)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer func() {
 		if err != nil {
@@ -686,9 +699,9 @@ func (w *Wallet) buildAndSignTxnSet(coinOutputs []types.SiacoinOutput, fundOutpu
 	txnSet, err := txnBuilder.Sign(true)
 	if err != nil {
 		w.log.Println("Attempt to send transaction has failed - failed to sign transaction:", err)
-		return nil, build.ExtendErr("unable to sign transaction", err)
+		return nil, nil, build.ExtendErr("unable to sign transaction", err)
 	}
-	return txnSet, nil
+	return txnSet, txnBuilder, nil
 }
 
 // SendSiacoinsMulti creates a transaction that includes the specified
