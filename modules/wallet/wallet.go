@@ -49,6 +49,7 @@ type spendableKey struct {
 // TransporterClient defines transporter dependency.
 type TransporterClient interface {
 	PreminedList(ctx context.Context, req *transporter.PreminedListRequest) (*transporter.PreminedListResponse, error)
+	CheckSolanaAddress(ctx context.Context, req *transporter.CheckSolanaAddressRequest) (*transporter.CheckSolanaAddressResponse, error)
 	CheckAllowance(ctx context.Context, req *transporter.CheckAllowanceRequest) (*transporter.CheckAllowanceResponse, error)
 	SubmitScpTx(ctx context.Context, req *transporter.SubmitScpTxRequest) (*transporter.SubmitScpTxResponse, error)
 	TransportStatus(ctx context.Context, req *transporter.TransportStatusRequest) (*transporter.TransportStatusResponse, error)

@@ -350,17 +350,17 @@ func (w *Wallet) SendBatchTransaction(coinOutputs []types.SiacoinOutput, fundOut
 	return txns, nil
 }
 
-func (w *Wallet) fetchSiafundUtxos(t types.SpfType) (map[types.UnlockHash]types.Currency, error) {
+func (w *Wallet) fetchSiafundBalances(t types.SpfType) (map[types.UnlockHash]types.Currency, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	// Ensure durability of reported utxos.
+	// Ensure durability of reported balances.
 	if err := w.syncDB(); err != nil {
 		return nil, err
 	}
 
 	needb := (t == types.SpfB)
-	utxos := make(map[types.UnlockHash]types.Currency)
+	balances := make(map[types.UnlockHash]types.Currency)
 	if err := dbForEachSiafundOutput(w.dbTx, func(sfoid types.SiafundOutputID, sfo types.SiafundOutput) {
 		isb, err := w.cs.IsSiafundBOutput(sfoid)
 		if err != nil {
@@ -369,13 +369,13 @@ func (w *Wallet) fetchSiafundUtxos(t types.SpfType) (map[types.UnlockHash]types.
 		if isb != needb {
 			return
 		}
-		sum := utxos[sfo.UnlockHash]
+		sum := balances[sfo.UnlockHash]
 		sum = sum.Add(sfo.Value)
-		utxos[sfo.UnlockHash] = sum
+		balances[sfo.UnlockHash] = sum
 	}); err != nil {
 		return nil, err
 	}
-	return utxos, nil
+	return balances, nil
 }
 
 func (w *Wallet) SiafundTransportAllowance(t types.SpfType) (*types.SpfTransportAllowance, error) {
@@ -391,16 +391,24 @@ func (w *Wallet) SiafundTransportAllowance(t types.SpfType) (*types.SpfTransport
 	}
 
 	ctx := context.Background()
-	utxos, err := w.fetchSiafundUtxos(t)
+	balances, err := w.fetchSiafundBalances(t)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch SPF utxos: %w", err)
+		return nil, fmt.Errorf("failed to fetch SPF balances: %w", err)
+	}
+	walletAddresses, err := w.AllAddresses()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch wallet addresses: %w", err)
 	}
 	var regularBalance, preminedBalance types.Currency
-	var premined []types.UnlockHash
+	walletPremined := make(map[types.UnlockHash]bool)
 	w.mu.RLock()
-	for uh, amount := range utxos {
+	for _, addr := range walletAddresses {
+		if _, isPremined := w.spfxPreminedAddrs[addr]; isPremined {
+			walletPremined[addr] = true
+		}
+	}
+	for uh, amount := range balances {
 		if _, isPremined := w.spfxPreminedAddrs[uh]; isPremined {
-			premined = append(premined, uh)
 			preminedBalance = preminedBalance.Add(amount)
 		} else {
 			regularBalance = regularBalance.Add(amount)
@@ -409,8 +417,12 @@ func (w *Wallet) SiafundTransportAllowance(t types.SpfType) (*types.SpfTransport
 	w.mu.RUnlock()
 	totalBalance := preminedBalance.Add(regularBalance)
 	allowanceReq := &transporter.CheckAllowanceRequest{}
-	if len(premined) != 0 {
-		allowanceReq.PreminedUnlockHashes = &premined
+	if len(walletPremined) != 0 {
+		premined := make([]types.UnlockHash, 0, len(walletPremined))
+		for wp := range walletPremined {
+			premined = append(premined, wp)
+		}
+		allowanceReq.PreminedUnlockHashes = premined
 	}
 	allowanceResp, err := w.transporterClient.CheckAllowance(ctx, allowanceReq)
 	if err != nil {
@@ -423,7 +435,7 @@ func (w *Wallet) SiafundTransportAllowance(t types.SpfType) (*types.SpfTransport
 		if err := uh.LoadString(uhStr); err != nil {
 			return nil, fmt.Errorf("failed to parse UnlockHash from transporter: %w", err)
 		}
-		if _, ok := utxos[uh]; !ok {
+		if _, ok := walletPremined[uh]; !ok {
 			// Ensure we have this UnlockHash in our wallet.
 			continue
 		}
@@ -434,15 +446,19 @@ func (w *Wallet) SiafundTransportAllowance(t types.SpfType) (*types.SpfTransport
 		}
 	}
 	// Handle regular.
-	min := types.MinCurrency(allowanceResp.Regular.Amount, regularBalance)
-	max := types.MaxCurrency(allowanceResp.Regular.Amount, regularBalance)
-	amountDiff := max.Sub(min)
-	// TODO: avoid doing these calculations on spd side.
-	// We need some way to get wait estimates for exact (not just max)
-	// amounts from transporter.
-	waitTimeDiff := spfxEmissionTime(amountDiff)
+	maxAllowed := allowanceResp.Regular.Amount
+	waitTimeDiff := time.Duration(0)
+	if regularBalance.Cmp(allowanceResp.Regular.Amount) < 0 {
+		// Wallet balance < allowed amount from transporter.
+		maxAllowed := regularBalance
+		amountDiff := allowanceResp.Regular.Amount.Sub(maxAllowed)
+		// TODO: avoid doing these calculations on spd side.
+		// We need some way to get wait estimates for exact (not just max)
+		// amounts from transporter.
+		waitTimeDiff = spfxEmissionTime(amountDiff)
+	}
 	regular := types.SpfTransportTypeAllowance{
-		MaxAllowed:   min,
+		MaxAllowed:   maxAllowed,
 		WaitTime:     allowanceResp.Regular.WaitEstimate - waitTimeDiff,
 		PotentialMax: allowanceResp.Regular.Amount,
 	}
@@ -505,7 +521,21 @@ func (w *Wallet) SiafundTransportSend(spfAmount types.SpfAmount, t types.SpfTran
 		return 0, nil, fmt.Errorf("failed to fetch allowance: %w", err)
 	}
 	if err := allowance.ApplyTo(spfAmount, t, preminedUnlockHash); err != nil {
-		return 0, nil, fmt.Errorf("not allowed: %w", err)
+		return 0, nil, fmt.Errorf("not allowed: %w. no coins were burnts, send canceled.", err)
+	}
+
+	// Check Solana address.
+	checkSolanaResp, err := w.transporterClient.CheckSolanaAddress(ctx, &transporter.CheckSolanaAddressRequest{
+		SolanaAddress: common.SolanaAddress(solanaAddr),
+		Amount:        spfAmount.Amount,
+	})
+	if err != nil {
+		return 0, nil, fmt.Errorf("solana address check failed: %w. please double check. no coins were burnt, send canceled.", err)
+	}
+	localTime := types.CurrentTimestamp().ToStdTime()
+	const maxAcceptableTimeGap = 30 * time.Minute
+	if localTime.Sub(checkSolanaResp.CurrentTime).Abs() > maxAcceptableTimeGap {
+		return 0, nil, fmt.Errorf("please fix your clock before doing any sends, time diff is critical %s local vs %s remote. no coins were burnt, send canceled.", localTime.String(), checkSolanaResp.CurrentTime.String())
 	}
 
 	// Build SPF burn transaction (and parents in case we need to build proper SPF inputs first).
