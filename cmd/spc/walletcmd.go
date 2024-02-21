@@ -832,7 +832,7 @@ func wallettransactionscmd() {
 		// Determine the number of outgoing siacoins and siafunds.
 		var outgoingSiafunds types.Currency
 		for _, input := range txn.Inputs {
-			if (input.FundType == types.SpecifierSiafundOutput || input.FundType == types.SpecifierSiafundBOutput) && input.WalletAddress {
+			if (input.FundType == types.SpecifierSiafundInput || input.FundType == types.SpecifierSiafundBInput) && input.WalletAddress {
 				outgoingSiafunds = outgoingSiafunds.Add(input.Value)
 			}
 		}
