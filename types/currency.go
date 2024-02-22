@@ -290,3 +290,19 @@ func (x Currency) Uint64() (u uint64, err error) {
 	}
 	return x.Big().Uint64(), nil
 }
+
+// MinCurrency is a min function for Currency type.
+func MinCurrency(c0, c1 Currency) Currency {
+	if c0.Cmp(c1) <= 0 {
+		return c0
+	}
+	return c1
+}
+
+// MaxCurrency is a max function for Currency type.
+func MaxCurrency(c0, c1 Currency) Currency {
+	if c0.Cmp(c1) >= 0 {
+		return c0
+	}
+	return c1
+}

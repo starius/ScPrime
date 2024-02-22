@@ -19,6 +19,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/node/api"
 	"gitlab.com/scpcorp/ScPrime/types"
 
+	"github.com/mr-tron/base58"
 	"github.com/spf13/cobra"
 	"gitlab.com/NebulousLabs/encoding"
 	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
@@ -39,6 +40,34 @@ var (
 		Short: "Hash unlock conditions",
 		Long:  "Take unlock conditions from stdin, calculate address and print it.",
 		Run:   wrap(wallethashcmd),
+	}
+
+	walletSpfTransportHistoryCmd = &cobra.Command{
+		Use:   "spf-transport-history",
+		Short: "Prints all SPF transpors",
+		Long:  "Prints all SPF transports, including uncompleted",
+		Run:   wrap(walletSpfTransportHistory),
+	}
+
+	walletSpfTransportAllowanceCmd = &cobra.Command{
+		Use:   "spf-transport-allowance [spf-type]",
+		Short: "View current SPF transport allowance",
+		Long:  "View SPF transport allowance for SPF type: specify spfa/spfb.",
+		Run:   wrap(walletSpfTransportAllowance),
+	}
+
+	walletSpfTransportSendCmd = &cobra.Command{
+		Use:   "spf-transport-send [amount] [spf-type] [solana-address]",
+		Short: "Send SPF to Solana blockchain",
+		Long:  "Send SPF to Solana blockchain.",
+		Run:   wrap(walletSpfTransportSend),
+	}
+
+	walletSpfTransportSendPreminedCmd = &cobra.Command{
+		Use:   "spf-transport-send-premined [amount] [spf-type] [unlock-hash] [solana-address]",
+		Short: "Send premined SPF to Solana blockchain",
+		Long:  "Send premined SPF to Solana blockchain. `unlock-hash` parameter is a whitelisted initial tranche address to send from.",
+		Run:   wrap(walletSpfTransportSendPremined),
 	}
 
 	walletAddressesCmd = &cobra.Command{
@@ -446,6 +475,92 @@ func walletsendsiacoinscmd(amount, dest string) {
 	fmt.Printf("Sent %s hastings to %s\n", hastings, dest)
 }
 
+func solanaAddressFromString(str string) (out types.SolanaAddress, err error) {
+	val, err := base58.Decode(str)
+	if err != nil {
+		return out, fmt.Errorf("decode: %w", err)
+	}
+	if len(val) != types.SolanaAddrLen {
+		return out, fmt.Errorf("invalid length, expected %v, got %d", types.SolanaAddrLen, len(val))
+	}
+	copy(out[:], val)
+	return
+}
+
+func parseBasicSpfTransportSendParams(amountStr, spfTypeStr, solanaAddrStr string) (types.SpfAmount, types.SolanaAddress) {
+	var amount types.Currency
+	if _, err := fmt.Sscan(amountStr, &amount); err != nil {
+		die("Failed to parse amount", err)
+	}
+	spfType, err := types.SpfTypeFromString(spfTypeStr)
+	if err != nil {
+		die("Failed to parse SPF type", err)
+	}
+	solanaAddr, err := solanaAddressFromString(solanaAddrStr)
+	if err != nil {
+		die("Failed to parse Solana address", err)
+	}
+	return types.SpfAmount{Amount: amount, Type: spfType}, solanaAddr
+}
+
+func callSpfTransportSend(params api.WalletSpfTransportSendPOSTParams) {
+	resp, err := httpClient.WalletSpfTransportSendPost(params)
+	if err != nil {
+		die("Could not transport SPF", err)
+	}
+	fmt.Printf("Successfully submitted transport request. Wait estimate is %s\n", resp.WaitTime.String())
+	if resp.SpfAmountAhead != nil {
+		fmt.Printf("SPF amount ahead in the queue is: %s\n", resp.SpfAmountAhead.String())
+	}
+}
+
+func walletSpfTransportSend(amountStr, spfTypeStr, solanaAddrStr string) {
+	spfAmount, solanaAddr := parseBasicSpfTransportSendParams(amountStr, spfTypeStr, solanaAddrStr)
+	params := api.WalletSpfTransportSendPOSTParams{
+		Amount:        spfAmount,
+		TransportType: types.Regular,
+		SolanaAddress: solanaAddr,
+	}
+	callSpfTransportSend(params)
+}
+
+func walletSpfTransportSendPremined(amountStr, spfTypeStr, unlockHashStr, solanaAddrStr string) {
+	spfAmount, solanaAddr := parseBasicSpfTransportSendParams(amountStr, spfTypeStr, solanaAddrStr)
+	var uh types.UnlockHash
+	if _, err := fmt.Sscan(unlockHashStr, &uh); err != nil {
+		die("Failed to parse premined unlock hash", err)
+	}
+	params := api.WalletSpfTransportSendPOSTParams{
+		Amount:             spfAmount,
+		TransportType:      types.Premined,
+		PreminedUnlockHash: &uh,
+		SolanaAddress:      solanaAddr,
+	}
+	callSpfTransportSend(params)
+}
+
+func walletSpfTransportAllowance(spfTypeStr string) {
+	spfType, err := types.SpfTypeFromString(spfTypeStr)
+	if err != nil {
+		die("Failed to parse SPF type", err)
+	}
+	resp, err := httpClient.WalletSpfTransportAllowanceGet(spfType)
+	if err != nil {
+		die("Could not get SPF transport allowance from spd", err)
+	}
+	fmt.Printf("%+v\n", resp.Allowance)
+}
+
+func walletSpfTransportHistory() {
+	resp, err := httpClient.WalletSpfTransportHistoryGet()
+	if err != nil {
+		die("Could not get SPF transport history from spd", err)
+	}
+	for _, r := range resp.History {
+		fmt.Printf("%+v\n", r)
+	}
+}
+
 // walletsendsiafundscmd sends siafunds to a destination address.
 func walletsendsiafundscmd(amount, dest string) {
 	var value types.Currency
@@ -717,7 +832,7 @@ func wallettransactionscmd() {
 		// Determine the number of outgoing siacoins and siafunds.
 		var outgoingSiafunds types.Currency
 		for _, input := range txn.Inputs {
-			if input.FundType == types.SpecifierSiafundInput && input.WalletAddress {
+			if (input.FundType == types.SpecifierSiafundInput || input.FundType == types.SpecifierSiafundBInput) && input.WalletAddress {
 				outgoingSiafunds = outgoingSiafunds.Add(input.Value)
 			}
 		}
@@ -725,7 +840,7 @@ func wallettransactionscmd() {
 		// Determine the number of incoming siacoins and siafunds.
 		var incomingSiafunds types.Currency
 		for _, output := range txn.Outputs {
-			if output.FundType == types.SpecifierSiafundOutput && output.WalletAddress {
+			if (output.FundType == types.SpecifierSiafundOutput || output.FundType == types.SpecifierSiafundBOutput) && output.WalletAddress {
 				incomingSiafunds = incomingSiafunds.Add(output.Value)
 			}
 		}

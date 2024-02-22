@@ -91,6 +91,7 @@ func (a *API) DownloadWithToken(ctx context.Context, req *DownloadWithTokenReque
 		// Fetch the requested data.
 		sectorData, err := a.host.ReadSector(sec.MerkleRoot)
 		if err != nil {
+			sec := sec
 			return nil, &DownloadWithTokenError{NoSuchSector: &sec.MerkleRoot}
 		}
 		data := sectorData[sec.Offset : sec.Offset+sec.Length]

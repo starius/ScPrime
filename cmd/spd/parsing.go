@@ -50,5 +50,6 @@ func parseModules(config Config) node.NodeParams {
 	params.HostAPIAddr = config.Spd.HostApiAddr
 	params.CheckTokenExpirationFrequency = 1 * time.Hour // default
 	params.OnlyFirstDir = config.Spd.OnlyFirstDir
+	params.SpfTransporterAddress = config.Spd.SpfTransporterAddress
 	return params
 }

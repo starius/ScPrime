@@ -1279,7 +1279,7 @@ host announcements, file contract revisions, and storage proofs.
 
 **downloadbandwidthrevenue** | hastings  
 The amount of money that the host has made from renters downloading their files.
-This money has been locked in by successsful storage proofs.  
+This money has been locked in by successful storage proofs.
 
 **potentialdownloadbandwidthrevenue** | hastings  
 The amount of money that the host stands to make from renters that downloaded

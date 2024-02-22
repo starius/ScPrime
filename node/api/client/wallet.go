@@ -171,6 +171,30 @@ func (c *Client) WalletSiacoinsPost(amount types.Currency, destination types.Unl
 	return
 }
 
+// WalletSpfTransportHistoryGet uses the /wallet/spftransport/history endpoint to get a list
+// of SPF transports done by the wallet.
+func (c *Client) WalletSpfTransportHistoryGet() (wsh api.WalletSpfTransportHistoryGET, err error) {
+	err = c.get("/wallet/spftransport/history", &wsh)
+	return
+}
+
+// WalletSpfTransportAllowanceGet uses the /wallet/spftransport/allowance endpoint to get
+// current SPF transport allowance.
+func (c *Client) WalletSpfTransportAllowanceGet(spfType types.SpfType) (wsa api.WalletSpfTransportAllowanceGET, err error) {
+	err = c.get(fmt.Sprintf("/wallet/spftransport/allowance?spftype=%v", spfType.String()), &wsa)
+	return
+}
+
+// WalletSpfTransportSendPost uses the /wallet/spftransport/send endpoint to initiate SPF transport.
+func (c *Client) WalletSpfTransportSendPost(wstParams api.WalletSpfTransportSendPOSTParams) (wst api.WalletSpfTransportSendPOSTResp, err error) {
+	json, err := json.Marshal(wstParams)
+	if err != nil {
+		return
+	}
+	err = c.post("/wallet/spftransport/send", string(json), &wst)
+	return
+}
+
 // WalletSignPost uses the /wallet/sign api endpoint to sign a transaction.
 func (c *Client) WalletSignPost(txn types.Transaction, toSign []crypto.Hash) (wspr api.WalletSignPOSTResp, err error) {
 	json, err := json.Marshal(api.WalletSignPOSTParams{

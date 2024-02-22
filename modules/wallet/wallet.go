@@ -5,6 +5,8 @@ package wallet
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"sort"
 	"sync"
 
@@ -18,6 +20,7 @@ import (
 	"gitlab.com/scpcorp/ScPrime/persist"
 	siasync "gitlab.com/scpcorp/ScPrime/sync"
 	"gitlab.com/scpcorp/ScPrime/types"
+	"gitlab.com/scpcorp/spf-transporter"
 )
 
 const (
@@ -41,6 +44,17 @@ var (
 type spendableKey struct {
 	UnlockConditions types.UnlockConditions
 	SecretKeys       []crypto.SecretKey
+}
+
+//go:generate mockgen -destination ./mock_transporter_client/transporter_client_mock.go -package mock_transporter_client . TransporterClient
+
+// TransporterClient defines transporter dependency.
+type TransporterClient interface {
+	PreminedList(ctx context.Context, req *transporter.PreminedListRequest) (*transporter.PreminedListResponse, error)
+	CheckSolanaAddress(ctx context.Context, req *transporter.CheckSolanaAddressRequest) (*transporter.CheckSolanaAddressResponse, error)
+	CheckAllowance(ctx context.Context, req *transporter.CheckAllowanceRequest) (*transporter.CheckAllowanceResponse, error)
+	SubmitScpTx(ctx context.Context, req *transporter.SubmitScpTxRequest) (*transporter.SubmitScpTxResponse, error)
+	TransportStatus(ctx context.Context, req *transporter.TransportStatusRequest) (*transporter.TransportStatusResponse, error)
 }
 
 // Wallet is an object that tracks balances, creates keys and addresses,
@@ -68,6 +82,8 @@ type Wallet struct {
 	tpool modules.TransactionPool
 	deps  modules.Dependencies
 
+	transporterClient TransporterClient
+
 	// The following set of fields are responsible for tracking the confirmed
 	// outputs, and for being able to spend them. The seeds are used to derive
 	// the keys that are tracked on the blockchain. All keys are pregenerated
@@ -78,6 +94,8 @@ type Wallet struct {
 	keys         map[types.UnlockHash]spendableKey
 	lookahead    map[types.UnlockHash]uint64
 	watchedAddrs map[types.UnlockHash]struct{}
+
+	spfxPreminedAddrs map[types.UnlockHash]struct{}
 
 	// unconfirmedProcessedTransactions tracks unconfirmed transactions.
 	//
@@ -182,8 +200,28 @@ func New(cs modules.ConsensusSet, tpool modules.TransactionPool, persistDir stri
 	return NewCustomWallet(cs, tpool, persistDir, modules.ProdDependencies)
 }
 
+// WalletConfig holds wallet configuration used in Options pattern.
+type WalletConfig struct {
+	transporterClient TransporterClient
+}
+
+// WalletOption changes something in WalletConfig.
+type WalletOption func(*WalletConfig)
+
+// WithTransporterClient returns an option setting transporterClient.
+func WithTransporterClient(transporterClient TransporterClient) WalletOption {
+	return func(c *WalletConfig) {
+		c.transporterClient = transporterClient
+	}
+}
+
 // NewCustomWallet creates a new wallet using custom dependencies.
-func NewCustomWallet(cs modules.ConsensusSet, tpool modules.TransactionPool, persistDir string, deps modules.Dependencies) (*Wallet, error) {
+func NewCustomWallet(cs modules.ConsensusSet, tpool modules.TransactionPool, persistDir string, deps modules.Dependencies, opts ...WalletOption) (*Wallet, error) {
+	var config WalletConfig
+	for _, opt := range opts {
+		opt(&config)
+	}
+
 	// Check for nil dependencies.
 	if cs == nil {
 		return nil, errNilConsensusSet
@@ -192,14 +230,26 @@ func NewCustomWallet(cs modules.ConsensusSet, tpool modules.TransactionPool, per
 		return nil, errNilTpool
 	}
 
+	spfxPreminedAddrs := make(map[types.UnlockHash]struct{})
+	var err error
+	if config.transporterClient != nil {
+		spfxPreminedAddrs, err = spfxPremined(context.Background(), config.transporterClient)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Initialize the data structure.
 	w := &Wallet{
-		cs:    cs,
-		tpool: tpool,
+		transporterClient: config.transporterClient,
+		cs:                cs,
+		tpool:             tpool,
 
 		keys:         make(map[types.UnlockHash]spendableKey),
 		lookahead:    make(map[types.UnlockHash]uint64),
 		watchedAddrs: make(map[types.UnlockHash]struct{}),
+
+		spfxPreminedAddrs: spfxPreminedAddrs,
 
 		unconfirmedSets: make(map[modules.TransactionSetID][]types.TransactionID),
 
@@ -207,8 +257,7 @@ func NewCustomWallet(cs modules.ConsensusSet, tpool modules.TransactionPool, per
 
 		deps: deps,
 	}
-	err := w.initPersist()
-	if err != nil {
+	if err := w.initPersist(); err != nil {
 		return nil, err
 	}
 	return w, nil
@@ -305,4 +354,20 @@ func (w *Wallet) managedCanSpendUnlockHash(unlockHash types.UnlockHash) bool {
 func (w *Wallet) IsWatchedAddress(address types.UnlockHash) bool {
 	_, watched := w.watchedAddrs[address]
 	return watched
+}
+
+func spfxPremined(ctx context.Context, tc TransporterClient) (map[types.UnlockHash]struct{}, error) {
+	resp, err := tc.PreminedList(ctx, &transporter.PreminedListRequest{})
+	if err != nil {
+		return nil, err
+	}
+	spfxPreminedAddrs := make(map[types.UnlockHash]struct{})
+	for uhStr := range resp.Premined {
+		var uh types.UnlockHash
+		if err := uh.LoadString(uhStr); err != nil {
+			return nil, fmt.Errorf("failed to parse UnlockHash: %w", err)
+		}
+		spfxPreminedAddrs[uh] = struct{}{}
+	}
+	return spfxPreminedAddrs, nil
 }

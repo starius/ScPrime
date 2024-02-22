@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 	"unicode"
 
 	mnemonics "gitlab.com/NebulousLabs/entropy-mnemonics"
@@ -183,6 +184,12 @@ type (
 		// double-spends, because the wallet will assume the transaction
 		// failed.
 		FundSiafunds(amount types.Currency, needb bool) error
+
+		// CustomFundSiafunds is similar to FundSiafunds but has more parameters.
+		// If sendFrom is not nil, transaction will only get 1 SiafundInput from this specific
+		// unlock hash. Refund (if any) also goes to same unlock hash.
+		// onlySpfxRegular excludes initial tranche unlock hashes from being used in inputs.
+		CustomFundSiafunds(amount types.SpfAmount, sendFrom *types.UnlockHash, onlySpfxRegular bool) error
 
 		// AddParents adds a set of parents to the transaction.
 		AddParents([]types.Transaction)
@@ -547,6 +554,18 @@ type (
 		SendSiafunds(amount types.Currency, dest types.UnlockHash) ([]types.Transaction, error)
 
 		SendSiafundbs(amount types.Currency, dest types.UnlockHash) ([]types.Transaction, error)
+
+		// SiafundTransportHistory returns all transport records ever done by the wallet.
+		SiafundTransportHistory() ([]types.SpfTransport, error)
+
+		// SiafundTransportAllowance returns limits and time estimates for current state
+		// of the wallet.
+		SiafundTransportAllowance(t types.SpfType) (*types.SpfTransportAllowance, error)
+
+		// SiafundTransportSend initiates SPF transport. Return values:
+		// - WaitTime time.Duration (wait duration for transport to complete)
+		// - SpfAmountAhead types.Currency (nil if none) - amount of SPF ahead in the queue.
+		SiafundTransportSend(amount types.SpfAmount, t types.SpfTransportType, preminedUnlockHash *types.UnlockHash, solanaAddr types.SolanaAddress) (time.Duration, *types.Currency, error)
 
 		// DustThreshold returns the quantity per byte below which a Currency is
 		// considered to be Dust.
