@@ -30,7 +30,7 @@ type walletTester struct {
 }
 
 // createWalletTester takes a testing.T and creates a WalletTester.
-func createWalletTester(name string, deps modules.Dependencies) (*walletTester, error) {
+func createWalletTester(name string, deps modules.Dependencies, walletOpts ...WalletOption) (*walletTester, error) {
 	// Create the modules
 	testdir := build.TempDir(modules.WalletDir, name)
 	g, err := gateway.New("127.0.0.1:0", false, filepath.Join(testdir, modules.GatewayDir))
@@ -45,7 +45,7 @@ func createWalletTester(name string, deps modules.Dependencies) (*walletTester, 
 	if err != nil {
 		return nil, err
 	}
-	w, err := NewCustomWallet(cs, tp, filepath.Join(testdir, modules.WalletDir), deps)
+	w, err := NewCustomWallet(cs, tp, filepath.Join(testdir, modules.WalletDir), deps, walletOpts...)
 	if err != nil {
 		return nil, err
 	}
