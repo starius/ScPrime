@@ -508,7 +508,7 @@ func callSpfTransportSend(params api.WalletSpfTransportSendPOSTParams) {
 	if err != nil {
 		die("Could not transport SPF", err)
 	}
-	fmt.Printf("Successfuly submitted transport request. Wait estimate is %s\n", resp.WaitTime.String())
+	fmt.Printf("Successfully submitted transport request. Wait estimate is %s\n", resp.WaitTime.String())
 	if resp.SpfAmountAhead != nil {
 		fmt.Printf("SPF amount ahead in the queue is: %s\n", resp.SpfAmountAhead.String())
 	}

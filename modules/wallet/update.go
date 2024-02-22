@@ -567,6 +567,7 @@ func (w *Wallet) applyHistory(tx *bolt.Tx, cc modules.ConsensusChange) error {
 
 		pts := w.computeProcessedTransactionsFromBlock(tx, block, spentSiacoinOutputs, spentSiafundOutputs, newDelayedSiacoinOutputs, consensusHeight)
 		for _, pt := range pts {
+			pt := pt
 			err := dbAppendProcessedTransaction(tx, pt)
 			if err != nil {
 				return errors.AddContext(err, "could not put processed transaction")
