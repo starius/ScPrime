@@ -198,13 +198,28 @@ func New(cs modules.ConsensusSet, tpool modules.TransactionPool, persistDir stri
 	return NewCustomWallet(cs, tpool, persistDir, modules.ProdDependencies)
 }
 
-// NewCustomWallet creates a new wallet using custom dependencies.
-func NewCustomWallet(cs modules.ConsensusSet, tpool modules.TransactionPool, persistDir string, deps modules.Dependencies) (*Wallet, error) {
-	return NewWithTransporterClient(cs, tpool, nil, persistDir, deps)
+// WalletConfig holds wallet configuration used in Options pattern.
+type WalletConfig struct {
+	transporterClient TransporterClient
 }
 
-// NewWithTransporterClient creates a new wallet with SPF transporter client.
-func NewWithTransporterClient(cs modules.ConsensusSet, tpool modules.TransactionPool, transporterClient TransporterClient, persistDir string, deps modules.Dependencies) (*Wallet, error) {
+// WalletOption changes something in WalletConfig.
+type WalletOption func(*WalletConfig)
+
+// WithTransporterClient returns an option setting transporterClient.
+func WithTransporterClient(transporterClient TransporterClient) WalletOption {
+	return func(c *WalletConfig) {
+		c.transporterClient = transporterClient
+	}
+}
+
+// NewCustomWallet creates a new wallet using custom dependencies.
+func NewCustomWallet(cs modules.ConsensusSet, tpool modules.TransactionPool, persistDir string, deps modules.Dependencies, opts ...WalletOption) (*Wallet, error) {
+	var config WalletConfig
+	for _, opt := range opts {
+		opt(&config)
+	}
+
 	// Check for nil dependencies.
 	if cs == nil {
 		return nil, errNilConsensusSet
@@ -215,8 +230,8 @@ func NewWithTransporterClient(cs modules.ConsensusSet, tpool modules.Transaction
 
 	spfxPreminedAddrs := make(map[types.UnlockHash]struct{})
 	var err error
-	if transporterClient != nil {
-		spfxPreminedAddrs, err = spfxPremined(context.Background(), transporterClient)
+	if config.transporterClient != nil {
+		spfxPreminedAddrs, err = spfxPremined(context.Background(), config.transporterClient)
 		if err != nil {
 			return nil, err
 		}
@@ -224,7 +239,7 @@ func NewWithTransporterClient(cs modules.ConsensusSet, tpool modules.Transaction
 
 	// Initialize the data structure.
 	w := &Wallet{
-		transporterClient: transporterClient,
+		transporterClient: config.transporterClient,
 		cs:                cs,
 		tpool:             tpool,
 

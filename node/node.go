@@ -416,7 +416,7 @@ func New(params NodeParams, loadStartTime time.Time) (*Node, <-chan error) {
 		}
 		i++
 		printfRelease("(%d/%d) Loading wallet...", i, numModules)
-		return wallet.NewWithTransporterClient(cs, tp, tc, filepath.Join(dir, modules.WalletDir), walletDeps)
+		return wallet.NewCustomWallet(cs, tp, filepath.Join(dir, modules.WalletDir), walletDeps, wallet.WithTransporterClient(tc))
 	}()
 	if err != nil {
 		errChan <- errors.Extend(err, errors.New("unable to create wallet"))
