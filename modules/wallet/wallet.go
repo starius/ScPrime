@@ -46,6 +46,8 @@ type spendableKey struct {
 	SecretKeys       []crypto.SecretKey
 }
 
+//go:generate mockgen -destination ./mock_transporter_client/transporter_client_mock.go -package mock_transporter_client . TransporterClient
+
 // TransporterClient defines transporter dependency.
 type TransporterClient interface {
 	PreminedList(ctx context.Context, req *transporter.PreminedListRequest) (*transporter.PreminedListResponse, error)
